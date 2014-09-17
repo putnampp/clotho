@@ -17,6 +17,9 @@ extern boost::property_tree::ptree global_log;
 
 #include "accessor.hpp"
 
+namespace clotho {
+namespace recombination {
+
 template < class Block, class Allocator, class AlleleSet >
 class recombine_bitset;
 
@@ -643,6 +646,9 @@ protected:
 
 template < class Block, class Allocator, class AlleleSet >
 const typename recombine_bitset< Block, Allocator, AlleleSet >::lowest_bit_map recombine_bitset< Block, Allocator, AlleleSet >::low_bit_map;
+
+}   // namespace recombination
+}   // namespace clotho
 
 #undef BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 
