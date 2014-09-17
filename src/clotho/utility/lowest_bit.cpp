@@ -1,5 +1,8 @@
 #include "clotho/utility/lowest_bit.h"
 
+namespace clotho {
+namespace utility {
+
 lowest_bit_256::lowest_bit_256() {
     initialize();
 }
@@ -109,3 +112,6 @@ const lowest_bit_64K::value_type * lowest_bit_64K::begin() const {
 }
 
 lowest_bit_64K::~lowest_bit_64K() {}
+
+}   // namespace utility
+}   // namespace clotho
