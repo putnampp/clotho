@@ -1,0 +1,5 @@
+INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
+INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_SRC_DIR}/tools )
+
+ADD_EXECUTABLE(performance_combiner examples/performance_combiner.cpp)
+TARGET_LINK_LIBRARIES(performance_combiner ${COMMON_LIBRARIES} )
