@@ -13,7 +13,7 @@
 extern boost::property_tree::ptree global_log;
 #endif
 
-#include "utility/lowest_bit.h"
+#include "clotho/utility/lowest_bit.h"
 
 #include "accessor.hpp"
 
@@ -148,7 +148,7 @@ public:
     typedef typename recombination_points::iterator     recombination_iterator;
     typedef typename AlleleSet::active_iterator          active_iterator;
 
-    typedef lowest_bit_64K                              lowest_bit_map;
+    typedef clotho::utility::lowest_bit_64K             lowest_bit_map;
 
     struct result_stats {
         bool match_base, match_alt, is_empty;
