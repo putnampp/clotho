@@ -64,7 +64,8 @@ using clotho::utility::timer;
 
 #include "reproduce_with_recombination.hpp"
 #include "fitness_methods.hpp"
-#include "discrete_selector.hpp"
+//#include "discrete_selector.hpp"
+#include "clotho/selection.hpp"
 #include "specializations.tcc"
 
 #include "population_graphs.h"
@@ -247,7 +248,7 @@ int main( int argc, char ** argv ) {
         //
         // mate
         //
-        DiscreteSelector< individual_pointer, environment_type * > ds( my_rng, fitness, parent->size() );
+        clotho::selection::DiscreteSelection< individual_pointer, environment_type * > ds( my_rng, fitness, parent->size() );
         unsigned int child_idx = 0;
         while( child_idx < child->size()) {
             std::pair< individual_pointer, individual_pointer > mate_pair = ds( parent );
