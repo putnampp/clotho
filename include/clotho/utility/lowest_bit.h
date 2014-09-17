@@ -3,6 +3,9 @@
 
 #include <cstdlib>
 
+namespace clotho {
+namespace utility {
+
 struct lowest_set_bit_node {
     unsigned char bit_index, bit_shift_next;
     lowest_set_bit_node * next_ptr;
@@ -58,4 +61,8 @@ protected:
 
     value_type m_vals[max_values];
 };
+
+}   // namespace utility
+}   // namespace clotho
+
 #endif  // CLOTHO_LOWEST_BIT_H_
