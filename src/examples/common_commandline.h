@@ -1,7 +1,6 @@
 #ifndef CLOTHO_COMMANDLINE_H_
 #define CLOTHO_COMMANDLINE_H_
 
-#include "clotho.h"
 #include <boost/program_options.hpp>
 
 namespace po=boost::program_options;
