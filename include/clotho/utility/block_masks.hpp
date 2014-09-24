@@ -1,5 +1,5 @@
-#ifndef BLOCK_MASKS_2_HPP_
-#define BLOCK_MASKS_2_HPP_
+#ifndef BLOCK_MASKS_HPP__
+#define BLOCK_MASKS_HPP__
 
 #include <cassert>
 
@@ -70,4 +70,4 @@ template < class Block >
 typename block_masks< Block >::mask_type block_masks< Block >::bit_position_masks[ block_masks< Block >::bits_per_block ];
 }   // namespace utility {
 }   // namespace clotho {
-#endif  // BLOCK_MASKS_2_HPP_
+#endif  // BLOCK_MASKS_HPP__
