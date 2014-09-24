@@ -1,7 +1,7 @@
 #ifndef VARIABLE_SUBSET_HPP_
 #define VARIABLE_SUBSET_HPP_
 
-#include "clotho/powersets/powerset.hpp"
+#include "clotho/powerset/powerset.hpp"
 #include "boost/dynamic_bitset.hpp"
 
 namespace clotho {
@@ -10,23 +10,25 @@ namespace powersets {
 template < class Element, class Block = unsigned long, class BlockMap = block_map< Element, Block>, class ElementKeyer = element_key_of< Element > >
 class variable_subset {
     public:
+        typedef variable_subset< Element, Block, BlockMap, ElementKeyer > self_type;
         typedef Element value_type;
 
-        typedef clotho::powersets::powerset< Element, Block, BlockMap, ElementKeyer, variable_subset< Element, Block, BlockMap, ElementKeyer > > powerset_type;
+        typedef clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer > powerset_type;
         typedef boost::dynamic_bitset< unsigned long > bitset_type;
 
-        friend class clotho::powersets::powerset< Element, Block, BlockMap, ElementKeyer, variable_subset< Element, Block, BlockMap, ElementKeyers > >;
+        friend class clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer >;
 
-        variable_subset *   clone() const;
-        variable_subset *   copy();
+        self_type *   clone() const;
+        self_type *   copy();
 
         void                release();
         unsigned int        ref_count() const;
 
-        void                addElement( const Element & elem );
-        void                removeElement( const Element & elem );
+        void                addElement( const value_type & elem );
+        void                removeElement( const value_type & elem );
 
-        friend bool operator==(const variable_subset & lhs, const variable_subset & rhs );
+        template < class E, class B, class BM, class EK >
+        friend bool operator==(const variable_subset< E, B, BM, EK> & lhs, const variable_subset< E, B, BM, EK> & rhs );
 
         virtual ~variable_subset();
     protected:
@@ -59,14 +61,14 @@ TEMPLATE_HEADER
 SUBSET_SPECIALIZATION::~variable_subset() {}
 
 TEMPLATE_HEADER
-typename SUBSET_SPECIALIZATION * SUBSET_SPECIALIZATION::clone() const {
+SUBSET_SPECIALIZATION * SUBSET_SPECIALIZATION::clone() const {
     variable_subset * sub = this->m_parent->clone_subset( this );
 
     return sub;
 }
 
 TEMPLATE_HEADER
-typename SUBSET_SPECIALIZATION * SUBSET_SPECIALIZATION::copy() {
+SUBSET_SPECIALIZATION * SUBSET_SPECIALIZATION::copy() {
     m_parent->copy_subset( this );
     return this;
 }
@@ -77,7 +79,7 @@ void SUBSET_SPECIALIZATION::release() {
 }
 
 TEMPLATE_HEADER
-void    SUBSET_SPECIALIZATION::addElement( const POWERSET_SPECIALIZATION::value_type & elem ) {
+void    SUBSET_SPECIALIZATION::addElement( const value_type & elem ) {
     typename powerset_type::element_index_type idx = m_parent->find_or_create( elem );
 
     if( idx == powerset_type::npos ) return;
@@ -95,6 +97,11 @@ void SUBSET_SPECIALIZATION::removeElement( const value_type & elem ) {
     if( idx == powerset_type::npos || m_data.size() <= idx ) return;
 
     m_data[idx] = false;
+}
+
+TEMPLATE_HEADER
+inline bool operator==( const SUBSET_SPECIALIZATION & lhs, const SUBSET_SPECIALIZATION & rhs ) {
+    return (lhs.m_parent == rhs.m_parent && lhs.m_data == rhs.m_data);
 }
 
 }   // namespace powersets
