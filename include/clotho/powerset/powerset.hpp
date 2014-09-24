@@ -14,7 +14,7 @@
 #include <cassert>
 #include <limits>
 
-#include "clotho/utility/block_masks.2.hpp"
+#include "clotho/utility/block_masks.hpp"
 
 namespace clotho {
 namespace powersets {
@@ -50,7 +50,7 @@ struct block_map {
     }
 };
 
-template < class Element, class Block = unsigned long, class BlockMap = block_map< Element, Block > , class ElementKeyer = element_key_of< Element >, class Subset >
+template < class Element, class Subset, class Block = unsigned long, class BlockMap = block_map< Element, Block > , class ElementKeyer = element_key_of< Element > >
 class powerset {
 public:
     typedef Element                 value_type;
@@ -60,7 +60,7 @@ public:
     typedef typename element_keyer_type::key_type     key_type;
 
     typedef std::vector< value_type >   set_type;
-    typedef typename ElementKeyer::size_type      element_index_type;
+    typedef unsigned int                element_index_type;
 
     typedef BlockMap                block_map_type;
 
@@ -233,8 +233,8 @@ void release_subsets( SubsetIterator first, SubsetIterator last ){
 // powerset Implementation Details
 //
 
-#define TEMPLATE_HEADER template < class Element, class Block, class BlockMap, class ElementKeyer >
-#define POWERSET_SPECIALIZATION powerset< Element, Block, BlockMap, ElementKeyer >
+#define TEMPLATE_HEADER template < class Element, class Subset, class Block, class BlockMap, class ElementKeyer >
+#define POWERSET_SPECIALIZATION powerset< Element, Subset, Block, BlockMap, ElementKeyer >
 
 TEMPLATE_HEADER
 POWERSET_SPECIALIZATION::powerset() : 
@@ -257,8 +257,8 @@ const typename POWERSET_SPECIALIZATION::subset_type * POWERSET_SPECIALIZATION::e
 }
 
 TEMPLATE_HEADER
-typename POWERSET_SPECIALIZATION::variable_subset * POWERSET_SPECIALIZATION::clone_subset( const subset_type * s ) {
-    variable_subset * sub = new variable_subset( *s );
+typename POWERSET_SPECIALIZATION::subset_type * POWERSET_SPECIALIZATION::clone_subset( const subset_type * s ) {
+    subset_type * sub = new subset_type( *s );
 
     m_family.insert( sub );
     ++m_family_size;
@@ -344,7 +344,7 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::ad
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::findFreeIndex( const value_type & v ) {
     element_index_type _offset = m_block_map( v );
-    block_type  mask = masks::bit_position_mask[ _offset ];
+    block_type  mask = masks::position_mask( _offset );
 
     if( !m_free_ranges.empty() && (m_free_ranges.m_bits[0] & mask ) ) {
         if( m_free_list.num_blocks() == 1 ) {
@@ -396,7 +396,7 @@ void POWERSET_SPECIALIZATION::updateFreeIndex( element_index_type idx, bool stat
     element_index_type block_idx = idx / bits_per_block, block_offset = idx % bits_per_block;
     element_index_type path = block_idx + m_free_ranges.num_blocks();
 
-    block_type clear_mask = masks::bit_position_masks[ block_offset ];
+    block_type clear_mask = masks::position_mask( block_offset );
     block_type set_mask = ((state) ? clear_mask : 0);
 
     clear_mask = ~clear_mask;
