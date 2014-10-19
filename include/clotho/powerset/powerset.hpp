@@ -140,6 +140,10 @@ public:
     variable_iterator          variable_end();
     const_variable_iterator    variable_end() const;
 
+    bool  empty() const;
+    size_t  size() const;
+    size_t  variable_allocated_size() const;
+
 /// Compact space
     void pruneSpace();
 
@@ -428,6 +432,21 @@ void POWERSET_SPECIALIZATION::updateFreeIndex( element_index_type idx, bool stat
         p += ((p & 1) ? 1 : -1);
         c1 = m_free_ranges.m_bits[p];
     }
+}
+
+TEMPLATE_HEADER
+bool POWERSET_SPECIALIZATION::empty() const {
+    return m_lookup.size() == 0;
+}
+
+TEMPLATE_HEADER
+size_t POWERSET_SPECIALIZATION::size() const {
+    return m_lookup.size();
+}
+
+TEMPLATE_HEADER
+size_t POWERSET_SPECIALIZATION::variable_allocated_size() const {
+    return m_variable.size();
 }
 
 TEMPLATE_HEADER
