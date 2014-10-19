@@ -126,5 +126,5 @@ set(CMAKE_CXX_FLAGS "-g -fPIC -Wall -O3 -std=c++0x -march=native -pedantic" )
 
 LINK_DIRECTORIES( ${PROJECT_BINARY_DIR}/bin )
 
-add_subdirectory( src )
+#add_subdirectory( src )
 add_subdirectory( unittest )
