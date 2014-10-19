@@ -1,8 +1,9 @@
 #ifndef VARIABLE_SUBSET_HPP_
 #define VARIABLE_SUBSET_HPP_
 
+//#include <boost/dynamic_bitset.hpp>
+
 #include "clotho/powerset/powerset.hpp"
-#include "boost/dynamic_bitset.hpp"
 
 namespace clotho {
 namespace powersets {
@@ -18,11 +19,11 @@ class variable_subset {
 
         friend class clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer >;
 
-        self_type *   clone() const;
-        self_type *   copy();
+        //self_type *   clone() const;
+//        self_type *   copy();
 
-        void                release();
-        unsigned int        ref_count() const;
+//        void                release();
+//        unsigned int        ref_count() const;
 
         void                addElement( const value_type & elem );
         void                removeElement( const value_type & elem );
@@ -60,23 +61,23 @@ SUBSET_SPECIALIZATION::variable_subset( const variable_subset & vs ) :
 TEMPLATE_HEADER
 SUBSET_SPECIALIZATION::~variable_subset() {}
 
-TEMPLATE_HEADER
-SUBSET_SPECIALIZATION * SUBSET_SPECIALIZATION::clone() const {
-    variable_subset * sub = this->m_parent->clone_subset( this );
+//TEMPLATE_HEADER
+//SUBSET_SPECIALIZATION * SUBSET_SPECIALIZATION::clone() const {
+//    variable_subset * sub = this->m_parent->clone_subset( this );
+//
+//    return sub;
+//}
 
-    return sub;
-}
+//TEMPLATE_HEADER
+//SUBSET_SPECIALIZATION * SUBSET_SPECIALIZATION::copy() {
+//    m_parent->copy_subset( this );
+//    return this;
+//}
 
-TEMPLATE_HEADER
-SUBSET_SPECIALIZATION * SUBSET_SPECIALIZATION::copy() {
-    m_parent->copy_subset( this );
-    return this;
-}
-
-TEMPLATE_HEADER
-void SUBSET_SPECIALIZATION::release() {
-    m_parent->release_subset( this );
-}
+//TEMPLATE_HEADER
+//void SUBSET_SPECIALIZATION::release() {
+//    m_parent->release_subset( this );
+//}
 
 TEMPLATE_HEADER
 void    SUBSET_SPECIALIZATION::addElement( const value_type & elem ) {

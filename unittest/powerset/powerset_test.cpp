@@ -1,6 +1,8 @@
 #include <boost/test/unit_test.hpp>
 
 //#include "clotho/powerset/powerset.hpp"
+//
+#include "clotho/powerset/block_map.hpp"
 #include "clotho/powerset/variable_subset.hpp"
 
 struct test_element {
@@ -54,32 +56,48 @@ typedef powerset_type::block_map_type bmap;
 
 BOOST_AUTO_TEST_SUITE( test_powerset )
 
-BOOST_AUTO_TEST_CASE( create_powerset_simple) {
+BOOST_AUTO_TEST_CASE( create_powerset_append) {
 
     powerset_type ps;
 
-    double k = 0.75;
-    test_element te( k, 2.0 );
+    typename powerset_type::element_index_type idx = ps.appendElement( test_element( 0., 1.0) );
+    BOOST_REQUIRE_MESSAGE( idx == 0, "Unexpected index " << idx << " returned for " << 0 << "(" << 0 << ")" );
+    BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == bmap::bits_per_block, "Unexpected variable space: " << ps.variable_allocated_size() );
+}
 
-    typename powerset_type::element_index_type idx = ps.find_or_create(te);
-    BOOST_REQUIRE_MESSAGE( idx == bmap()(te), "Unexpected index returned" );
+BOOST_AUTO_TEST_CASE( create_powerset_add) {
+
+    powerset_type ps;
+
+    typename powerset_type::element_index_type idx = ps.addElement( test_element( 0., 1.0) );
+    BOOST_REQUIRE_MESSAGE( idx == 0, "Unexpected index " << idx << " returned for " << 0 << "(" << 0 << ")" );
+
     BOOST_REQUIRE_MESSAGE( ps.size() == 1, "Unexpected size" );
     BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == bmap::bits_per_block, "Unexpected variable space: " << ps.variable_allocated_size() );
-
 }
 
 BOOST_AUTO_TEST_CASE( create_powerset_width ) {
     powerset_type ps;
 
     BOOST_REQUIRE_MESSAGE( ps.empty(), "Unexpected size" );
-    for( unsigned int i = 0; i < bmap::bits_per_block; ++i ) {
+
+    typename powerset_type::element_index_type idx = ps.appendElement( test_element( 0., 1.0) );
+    BOOST_REQUIRE_MESSAGE( idx == 0, "Unexpected index " << idx << " returned for " << 0 << "(" << 0 << ")" );
+
+    BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == bmap::bits_per_block, "Unexpected variable space: " << ps.variable_allocated_size() );
+
+    for( unsigned int i = 1; i < bmap::bits_per_block; ++i ) {
         double v = (double) i;
         double k = v / (double) bmap::bits_per_block;
         test_element te(k, 1.0);
 
-        typename powerset_type::element_index_type idx = ps.find_or_create(te);
+        typename powerset_type::element_index_type e_idx = ps.findFreeIndex(te);
 
-        BOOST_REQUIRE_MESSAGE( idx == i, "Unexpected index " << idx << " returned for " << i << "(" << k << ")" );
+        BOOST_REQUIRE_MESSAGE( e_idx == i, e_idx << " != " << i );
+
+        typename powerset_type::element_index_type idx = ps.addElement(te);
+
+        BOOST_REQUIRE_MESSAGE( idx == i, "Unexpected index " << idx << " returned for " << i << "(" << k << "; " << e_idx << ")" );
     }
 
     BOOST_REQUIRE_MESSAGE( ps.size() == bmap::bits_per_block, "Unexpected size" );

@@ -14,41 +14,14 @@
 #include <cassert>
 #include <limits>
 
+#include <memory>
+
 #include "clotho/utility/block_masks.hpp"
+#include "clotho/powerset/element_key_of.hpp"
+#include "clotho/powerset/block_map.hpp"
 
 namespace clotho {
 namespace powersets {
-
-template < class E >
-struct element_key_of {
-    typedef E key_type;
-
-    key_type operator()( const E & e ) { return e; }
-};
-
-template < class E >
-struct block_ordered {
-    size_t operator()( const E & e ) {
-        return 0;
-    }
-};
-
-template < class Element, class Block >
-struct block_map {
-    typedef Element element_type;
-    typedef Block   size_type;
-
-    static const unsigned int       bits_per_block = sizeof( size_type ) * 8;
-
-    static constexpr double             min_bin_value = 0.0;
-    static constexpr double             max_bin_value = 1.0;
-
-    constexpr static const double   width_per_bin = ((max_bin_value - min_bin_value) / (double) bits_per_block);
-
-    size_type operator()( const element_type & elem ) {
-        return 0;
-    }
-};
 
 template < class Element, class Subset, class Block = unsigned long, class BlockMap = block_map< Element, Block > , class ElementKeyer = element_key_of< Element > >
 class powerset {
@@ -79,48 +52,19 @@ public:
     static const element_index_type npos = -1;
     static const unsigned int       fixed_flag = (npos ^ ((npos)>> 1));
     static const unsigned int       bits_per_block = masks::bits_per_block;
-/*
-    class variable_subset {
-    public:
-        typedef powerset< Element, Block, BlockMap, ElementKeyer > parent_type;
-        typedef boost::dynamic_bitset< unsigned long > bitset_type;
 
-        friend class powerset< Element, Block, BlockMap, ElementKeyer >;
-
-        variable_subset *   clone() const;
-        variable_subset *   copy();
-
-        void                release();
-        unsigned int        ref_count() const;
-
-        void                addElement( const Element & elem );
-        void                removeElement( const Element & elem );
-
-        friend bool operator==(const variable_subset & lhs, const variable_subset & rhs );
-
-        virtual ~variable_subset();
-    protected:
-        variable_subset(parent_type * p);
-        variable_subset( const variable_subset & vs );
-
-        parent_type *       m_parent;
-        bitset_type         m_data;
-        unsigned int        m_ref_count;
-    };
-*/
-
-//    typedef variable_subset             subset_type;
-    typedef Subset subset_type;
-    typedef typename subset_type::bitset_type    bitset_type;
+    typedef Subset                              subset_type;
+    typedef std::shared_ptr< Subset >            subset_ptr;
+    typedef boost::dynamic_bitset< block_type > bitset_type;
 
     powerset();
 
-    const subset_type *   empty_set() const;
+    const subset_ptr   empty_set() const;
 
-    subset_type *   clone_subset( const subset_type * t );
+    subset_ptr   clone_subset( const subset_ptr t );
     
-    void   copy_subset( subset_type * t );
-    void   release_subset( subset_type * t );
+//    void   copy_subset( subset_ptr t );
+//    void   release_subset( subset_ptr t );
 
     element_index_type find_or_create( const value_type & v );
 
@@ -128,48 +72,65 @@ public:
     element_index_type find( const value_type & v );
 
 /// Element Iterators
-    fixed_iterator          fixed_begin();
-    const_fixed_iterator    fixed_begin() const;
+//    fixed_iterator          fixed_begin();
+//    const_fixed_iterator    fixed_begin() const;
+//
+//    fixed_iterator          fixed_end();
+//    const_fixed_iterator    fixed_end() const;
+//
+//    variable_iterator          variable_begin();
+//    const_variable_iterator    variable_begin() const;
+//
+//    variable_iterator          variable_end();
+//    const_variable_iterator    variable_end() const;
 
-    fixed_iterator          fixed_end();
-    const_fixed_iterator    fixed_end() const;
-
-    variable_iterator          variable_begin();
-    const_variable_iterator    variable_begin() const;
-
-    variable_iterator          variable_end();
-    const_variable_iterator    variable_end() const;
-
+/**
+ * Returns whether the set is empty
+ */
     bool  empty() const;
-    size_t  size() const;
+
+/**
+ * Returns the number of keys in the lookup table
+ */
+    size_t size() const;
+
+/**
+ *  Returns the number of elements which are variable in the set
+ */
+    size_t  variable_size() const;
+
+/**
+ * Returns the number of variable elements which have been allocated
+ */
     size_t  variable_allocated_size() const;
+
+/**
+ * Returns the number of subsets of the powerset exist
+ */
+    size_t family_size() const;
 
 /// Compact space
     void pruneSpace();
 
-/// FRIENDS
-    template < class SubsetIterator >
-    friend void element_distribution( std::vector< unsigned int > & dist, SubsetIterator first, SubsetIterator last );
-
     virtual ~powerset();
-protected:
+//protected:
     element_index_type addElement( const value_type & v );
     element_index_type appendElement( const value_type & v );
 
     element_index_type findFreeIndex( const value_type & v );
 
-    void updateFreeElements( const subset_type * s );
-    void updateSubsetFree( subset_type * s );
+    void updateFreeElements( const subset_ptr s );
+    void updateSubsetFree( subset_ptr s );
     void updateFixed();
 
     void updateFreeIndex( element_index_type idx, bool state);
 
     void buildFreeRanges();
 
-    void clearGarbage();
+//    void clearGarbage();
 
 /**
- * Encode set index
+ * Encode set index as a 1's complement
  *
  * Two element sets exist (fixed, variable).  An element may only exist in one set at any given time.
  * Variable elements have an index [0x0, 0x7FFFFFFF];
@@ -185,6 +146,8 @@ protected:
  * Decode set index
  *
  * Strips off high order bit of index
+ * 
+ * The input index is modified if the value is fixed (negative).
  *
  * \return high order bit
  */
@@ -201,13 +164,13 @@ protected:
 
     const subset_type         m_empty_set;
 
-    typedef std::set< subset_type * >       family_type;
-    typedef std::vector< subset_type * >    garbage_subsets;
-    typedef typename family_type::iterator           family_iterator;
+    typedef std::set< subset_ptr >       family_type;
+    typedef std::vector< subset_ptr >    garbage_subsets;
+    typedef typename family_type::iterator  family_iterator;
     family_type m_family;
     garbage_subsets m_garbage;
 
-    unsigned int m_family_size; // running total number of active subset references
+//    unsigned int m_family_size; // running total number of active subset references
 
     /// META-INFORMATION about variable elements in powerset
     bitset_type     m_free_list, m_fxied_in_variable, m_free_union;
@@ -243,49 +206,49 @@ void release_subsets( SubsetIterator first, SubsetIterator last ){
 TEMPLATE_HEADER
 POWERSET_SPECIALIZATION::powerset() : 
     m_empty_set( this )
-    , m_family_size( 0 )
+//    , m_family_size( 0 )
 {}
 
 TEMPLATE_HEADER
 POWERSET_SPECIALIZATION::~powerset() {
     while( !m_family.empty() ) {
-        subset_type * s = *m_family.begin();
+        subset_ptr s = *m_family.begin();
         m_family.erase( m_family.begin() );
-        delete s;
+        s.reset();
     }
 }
 
 TEMPLATE_HEADER
-const typename POWERSET_SPECIALIZATION::subset_type * POWERSET_SPECIALIZATION::empty_set() const {
-    return &m_empty_set;
+const typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::empty_set() const {
+    return subset_ptr( &m_empty_set );
 }
 
 TEMPLATE_HEADER
-typename POWERSET_SPECIALIZATION::subset_type * POWERSET_SPECIALIZATION::clone_subset( const subset_type * s ) {
-    subset_type * sub = new subset_type( *s );
+typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::clone_subset( const subset_ptr s ) {
+    subset_ptr sub( new subset_type( *s ));
 
     m_family.insert( sub );
-    ++m_family_size;
+//    ++m_family_size;
 
     return sub;
 }
 
-TEMPLATE_HEADER
-void POWERSET_SPECIALIZATION::copy_subset( subset_type * s ) {
-    assert( s->m_parent == this );
-    ++m_family_size;
-    ++s->m_ref_count;
-}
+//TEMPLATE_HEADER
+//void POWERSET_SPECIALIZATION::copy_subset( subset_type * s ) {
+//    assert( s->m_parent == this );
+//    ++m_family_size;
+//    ++s->m_ref_count;
+//}
 
-TEMPLATE_HEADER
-void POWERSET_SPECIALIZATION::release_subset( subset_type * s ) {
-    assert( s->m_parent == this );
-    --m_family_size;
-    if( --s->m_ref_count == 0 ) {
-        m_family.erase( s );
-        m_garbage.push_back( s );
-    }
-}
+//TEMPLATE_HEADER
+//void POWERSET_SPECIALIZATION::release_subset( subset_type * s ) {
+//    assert( s->m_parent == this );
+//    --m_family_size;
+//    if( --s->m_ref_count == 0 ) {
+//        m_family.erase( s );
+//        m_garbage.push_back( s );
+//    }
+//}
 
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::find_or_create( const value_type & v ) {
@@ -450,18 +413,23 @@ size_t POWERSET_SPECIALIZATION::variable_allocated_size() const {
 }
 
 TEMPLATE_HEADER
-void POWERSET_SPECIALIZATION::clearGarbage() {
-    while(!m_garbage.empty() ) {
-        subset_type * s = m_garbage.back();
-        m_garbage.pop_back();
-
-        delete s;
-    }
+size_t POWERSET_SPECIALIZATION::family_size() const {
+    return m_family.size();
 }
+
+//TEMPLATE_HEADER
+//void POWERSET_SPECIALIZATION::clearGarbage() {
+//    while(!m_garbage.empty() ) {
+//        subset_type * s = m_garbage.back();
+//        m_garbage.pop_back();
+//
+//        delete s;
+//    }
+//}
 
 TEMPLATE_HEADER
 void POWERSET_SPECIALIZATION::pruneSpace() {
-    clearGarbage( );
+    //clearGarbage( );
 
     if( m_family.empty() ) return;
 
@@ -478,13 +446,22 @@ void POWERSET_SPECIALIZATION::pruneSpace() {
     m_fxied_in_variable.reset().flip();
     m_free_union.reset();
 
+    std::vector< subset_ptr > to_remove;
+
     while( it != m_family.end() ) {
-        updateFreeElements( *it );
-        ++it;
+        if( (*it).use_count() > 1 ) {
+            updateFreeElements( *it );
+            ++it;
+        } else {
+            to_remove.push_back( (*it) );
+        }
     }
 
     m_free_list = (m_fxied_in_variable | ~m_free_union);
     m_variable_mask = ~m_free_list;
+
+    // remove un-referenced subsets
+    m_family.erase( to_remove.begin(), to_remove.end() );
 
     updateFixed();
 
@@ -498,7 +475,7 @@ void POWERSET_SPECIALIZATION::pruneSpace() {
 }
 
 TEMPLATE_HEADER
-void POWERSET_SPECIALIZATION::updateSubsetFree( subset_type * s ) {
+void POWERSET_SPECIALIZATION::updateSubsetFree( subset_ptr s ) {
     typedef typename bitset_buffer_type::iterator       buffer_iterator;
     typedef typename bitset_buffer_type::const_iterator buffer_citerator;
 
@@ -515,7 +492,7 @@ void POWERSET_SPECIALIZATION::updateSubsetFree( subset_type * s ) {
 }
 
 TEMPLATE_HEADER
-void POWERSET_SPECIALIZATION::updateFreeElements( const subset_type * s ) {
+void POWERSET_SPECIALIZATION::updateFreeElements( const subset_ptr s ) {
     typedef typename bitset_buffer_type::iterator       buffer_iterator;
     typedef typename bitset_buffer_type::const_iterator buffer_citerator;
 
