@@ -100,7 +100,8 @@ BOOST_AUTO_TEST_CASE( create_powerset_width ) {
         BOOST_REQUIRE_MESSAGE( idx == i, "Unexpected index " << idx << " returned for " << i << "(" << k << "; " << e_idx << ")" );
     }
 
-    BOOST_REQUIRE_MESSAGE( ps.size() == bmap::bits_per_block, "Unexpected size" );
+    const unsigned int bpb = bmap::bits_per_block;
+    BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == bpb, "Unexpected size: " << ps.variable_allocated_size() << "(" << bpb << ")" );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
