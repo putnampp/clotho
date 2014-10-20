@@ -16,6 +16,7 @@ class variable_subset {
 
         typedef clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer > powerset_type;
         typedef boost::dynamic_bitset< unsigned long > bitset_type;
+        typedef size_t index_type;
 
         friend class clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer >;
 
@@ -27,6 +28,10 @@ class variable_subset {
 
         void                addElement( const value_type & elem );
         void                removeElement( const value_type & elem );
+
+        bool                check_state( index_type idx ) const;
+
+        size_t              count() const;
 
         template < class E, class B, class BM, class EK >
         friend bool operator==(const variable_subset< E, B, BM, EK> & lhs, const variable_subset< E, B, BM, EK> & rhs );
@@ -98,6 +103,16 @@ void SUBSET_SPECIALIZATION::removeElement( const value_type & elem ) {
     if( idx == powerset_type::npos || m_data.size() <= idx ) return;
 
     m_data[idx] = false;
+}
+
+TEMPLATE_HEADER
+size_t SUBSET_SPECIALIZATION::count( ) const {
+    return m_data.count();
+}
+
+TEMPLATE_HEADER
+bool SUBSET_SPECIALIZATION::check_state( index_type idx ) const {
+    return m_data[idx];
 }
 
 TEMPLATE_HEADER
