@@ -59,9 +59,10 @@ public:
 
     powerset();
 
-    const subset_ptr   empty_set() const;
+    subset_ptr   empty_set() const;
 
-    subset_ptr   clone_subset( const subset_ptr t );
+    subset_ptr  create_subset();
+    subset_ptr  clone_subset( subset_ptr t );
     
 //    void   copy_subset( subset_ptr t );
 //    void   release_subset( subset_ptr t );
@@ -219,12 +220,19 @@ POWERSET_SPECIALIZATION::~powerset() {
 }
 
 TEMPLATE_HEADER
-const typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::empty_set() const {
+typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::empty_set() const {
     return subset_ptr( &m_empty_set );
 }
 
 TEMPLATE_HEADER
-typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::clone_subset( const subset_ptr s ) {
+typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::create_subset( ) {
+    subset_ptr sub( new subset_type( this ) );
+    m_family.insert( sub );
+    return sub;
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::clone_subset( subset_ptr s ) {
     subset_ptr sub( new subset_type( *s ));
 
     m_family.insert( sub );
