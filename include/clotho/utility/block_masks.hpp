@@ -27,12 +27,12 @@ public:
 
     static mask_type low_order_mask( unsigned int idx ) {
         assert( idx < bits_per_block );
-        return ((idx == bits_per_block - 1) ? (mask_type)-1 : (( 1 << (idx + 1) ) - 1));
+        return ((idx == bits_per_block - 1) ? (mask_type)-1 : (( (mask_type)1 << (idx + 1) ) - 1));
     }
 
     static mask_type position_mask( unsigned int idx ) {
         assert( idx < bits_per_block );
-        return (1 << idx);
+        return ((mask_type)1 << idx);
     }
 
 private:
