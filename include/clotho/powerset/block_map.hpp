@@ -1,11 +1,12 @@
 #ifndef BLOCK_MAP_HPP_
 #define BLOCK_MAP_HPP_
 
+#include "clotho/powerset/next_available_order.hpp"
 
 namespace clotho {
 namespace powersets {
 
-template < class Element, class Block >
+template < class Element, class Block, class Tag = next_available_order >
 struct block_map {
     typedef Element element_type;
     typedef Block   size_type;
@@ -18,7 +19,7 @@ struct block_map {
     constexpr static const double   width_per_bin = ((max_bin_value - min_bin_value) / (double) bits_per_block);
 
     size_type operator()( const element_type & elem ) {
-        return 0;
+        return -1;
     }
 };
 
