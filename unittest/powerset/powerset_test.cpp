@@ -1,54 +1,7 @@
 #include <boost/test/unit_test.hpp>
 
-//#include "clotho/powerset/powerset.hpp"
-//
-#include "clotho/powerset/block_map.hpp"
+#include "test_element.h"
 #include "clotho/powerset/variable_subset.hpp"
-
-struct test_element {
-    double k, v;
-
-    test_element( double _k = 0., double _v = 0.) : k (_k), v(_v) {}
-    test_element( const test_element & t ) : k(t.k), v(t.v) {}
-
-    friend bool operator==( const test_element & lhs, const test_element & rhs ); 
-    friend bool operator!=( const test_element & lhs, const test_element & rhs ); 
-};
-
-inline bool operator==( const test_element & lhs, const test_element & rhs ) {
-    return ( lhs.k == rhs.k && lhs.v == rhs.v);
-}
-
-inline bool operator!=( const test_element & lhs, const test_element & rhs ) {
-    return ( lhs.k != rhs.k && lhs.v != rhs.v);
-}
-
-namespace clotho {
-namespace powersets {
-
-template <>
-struct element_key_of< test_element > {
-    typedef double key_type;
-
-    inline key_type operator()( const test_element & t ) { return t.k; }
-};
-
-template< class Block >
-struct block_map< test_element, Block > {
-    typedef test_element    element_type;
-    typedef Block           size_type;
-
-    static const unsigned int bits_per_block = sizeof(size_type) * 8;
-
-    inline size_type operator()( const element_type & elem ) {
-        assert( 0. <= elem.k && elem.k < 1. );
-
-        return elem.k * bits_per_block;
-    }
-};
-
-}   // namespace powersets
-}   // namespace clotho
 
 typedef clotho::powersets::variable_subset< test_element > subset_type;
 typedef typename subset_type::powerset_type powerset_type;
@@ -181,6 +134,38 @@ BOOST_AUTO_TEST_CASE( create_powerset_find_or_create_collision ) {
     test_element te2(k, 2.0);
     typename powerset_type::element_index_type cidx = ps.find_or_create(te2);
     BOOST_REQUIRE_MESSAGE( cidx == idx, "Unexpected index " << idx << " returned for " << cidx << "(" << k << ")" );
+}
+
+/**
+ * Create an empty powerset
+ *
+ * find_or_create elements in a bit position order.
+ * Every element after the first in each sub-division should result in a collision.
+ *
+ * Verify that each new element is assigned to expected index
+ */
+BOOST_AUTO_TEST_CASE( create_powerset_find_or_create_order_collision ) {
+    powerset_type ps;
+
+    const unsigned int sub_div = 3;
+    const double div_offset = (1.0/ ((double)sub_div*bmap::bits_per_block));
+
+    for( unsigned int i = 0; i < bmap::bits_per_block; ++i ) {
+        for( unsigned int j = 0; j < sub_div; ++j ) {
+            double v = (double)i;
+            double k = v / (double) bmap::bits_per_block + (double)j*div_offset;
+
+            test_element te(k, 1.0);
+
+            unsigned int e_idx = i + j * bmap::bits_per_block;
+            typename powerset_type::element_index_type idx = ps.find_or_create(te);
+
+            BOOST_REQUIRE_MESSAGE( idx == e_idx, "Unexpected index " << idx << " returned for " << e_idx << "(" << k << ")" );
+        }
+    }
+
+    const unsigned int e_size = sub_div * bmap::bits_per_block;
+    BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == e_size, "Unexpected size: " << ps.variable_allocated_size() << "(" << e_size << ")" );
 }
 
 /**
