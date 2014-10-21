@@ -3,9 +3,11 @@
 #include "test_element.h"
 #include "clotho/powerset/variable_subset.hpp"
 
-typedef clotho::powersets::variable_subset< test_element > subset_type;
+typedef unsigned long Block;
+
+typedef clotho::powersets::block_map< test_element, Block, clotho::powersets::user_defined > bmap;
+typedef clotho::powersets::variable_subset< test_element, Block, bmap > subset_type;
 typedef typename subset_type::powerset_type powerset_type;
-typedef powerset_type::block_map_type bmap;
 
 BOOST_AUTO_TEST_SUITE( test_powerset )
 
@@ -21,8 +23,12 @@ BOOST_AUTO_TEST_CASE( create_powerset_append) {
     powerset_type ps;
 
     typename powerset_type::element_index_type idx = ps.appendElement( test_element( 0., 1.0) );
+
     BOOST_REQUIRE_MESSAGE( idx == 0, "Unexpected index " << idx << " returned for " << 0 << "(" << 0 << ")" );
     BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == bmap::bits_per_block, "Unexpected variable space: " << ps.variable_allocated_size() );
+
+    ps.updateFreeIndex( idx, false );
+    BOOST_REQUIRE_MESSAGE( ps.free_size() == (bmap::bits_per_block - 1), "Unexpected number of free space: " << ps.free_size() );
 }
 
 /**
@@ -61,9 +67,12 @@ BOOST_AUTO_TEST_CASE( create_powerset_width ) {
     BOOST_REQUIRE_MESSAGE( ps.empty(), "Unexpected size" );
 
     typename powerset_type::element_index_type idx = ps.appendElement( test_element( 0., 1.0) );
+    
     BOOST_REQUIRE_MESSAGE( idx == 0, "Unexpected index " << idx << " returned for " << 0 << "(" << 0 << ")" );
-
     BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == bmap::bits_per_block, "Unexpected variable space: " << ps.variable_allocated_size() );
+
+    ps.updateFreeIndex( idx, false );
+    BOOST_REQUIRE_MESSAGE( ps.free_size() == (bmap::bits_per_block - 1), "Unexpected number of free space: " << ps.free_size() );
 
     for( unsigned int i = 1; i < bmap::bits_per_block; ++i ) {
         double v = (double) i;
