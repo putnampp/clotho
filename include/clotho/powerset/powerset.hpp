@@ -6,6 +6,7 @@
 #define UNDEF_FRIEND
 #endif  // BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
 
+#include <iostream>
 #include <vector>
 #include <unordered_map>
 #include <set>
@@ -30,7 +31,7 @@ public:
     typedef Block                   block_type;
 
     typedef ElementKeyer                            element_keyer_type;
-    typedef typename element_keyer_type::key_type     key_type;
+    typedef typename element_keyer_type::key_type   key_type;
 
     typedef std::vector< value_type >   set_type;
     typedef unsigned int                element_index_type;
@@ -101,9 +102,19 @@ public:
     size_t  variable_size() const;
 
 /**
+ *  Returns the number of elements which are variable in the set
+ */
+    size_t  fixed_size() const;
+
+/**
  * Returns the number of variable elements which have been allocated
  */
     size_t  variable_allocated_size() const;
+
+/**
+ *  Returns the number of free variable positions
+ */
+    size_t free_size() const;
 
 /**
  * Returns the number of subsets of the powerset exist
@@ -114,13 +125,14 @@ public:
     void pruneSpace();
 
     virtual ~powerset();
+
 //protected:
     element_index_type addElement( const value_type & v );
     element_index_type appendElement( const value_type & v );
 
     element_index_type findFreeIndex( const value_type & v );
 
-    void updateFreeElements( const subset_ptr s );
+    void updateFreeElements( subset_ptr s );
     void updateSubsetFree( subset_ptr s );
     void updateFixed();
 
@@ -163,7 +175,7 @@ public:
     set_type            m_fixed, m_variable;
     lookup_table_type   m_lookup;
 
-    const subset_type         m_empty_set;
+//    const subset_type         m_empty_set;
 
     typedef std::set< subset_ptr >       family_type;
     typedef std::vector< subset_ptr >    garbage_subsets;
@@ -174,7 +186,7 @@ public:
 //    unsigned int m_family_size; // running total number of active subset references
 
     /// META-INFORMATION about variable elements in powerset
-    bitset_type     m_free_list, m_fxied_in_variable, m_free_union;
+    bitset_type     m_free_list, m_fixed_variable, m_lost_variable;
     bitset_type     m_variable_mask, m_free_ranges;
 
     block_map_type      m_block_map;
@@ -205,8 +217,8 @@ void release_subsets( SubsetIterator first, SubsetIterator last ){
 #define POWERSET_SPECIALIZATION powerset< Element, Subset, Block, BlockMap, ElementKeyer >
 
 TEMPLATE_HEADER
-POWERSET_SPECIALIZATION::powerset() : 
-    m_empty_set( this )
+POWERSET_SPECIALIZATION::powerset() //: 
+//    m_empty_set( this )
 //    , m_family_size( 0 )
 {}
 
@@ -221,7 +233,7 @@ POWERSET_SPECIALIZATION::~powerset() {
 
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::empty_set() const {
-    return subset_ptr( &m_empty_set );
+    return subset_ptr();
 }
 
 TEMPLATE_HEADER
@@ -416,6 +428,16 @@ size_t POWERSET_SPECIALIZATION::size() const {
 }
 
 TEMPLATE_HEADER
+size_t POWERSET_SPECIALIZATION::variable_size() const {
+    return m_variable.size() - m_free_list.count();
+}
+
+TEMPLATE_HEADER
+size_t POWERSET_SPECIALIZATION::fixed_size() const {
+    return m_fixed.size();
+}
+
+TEMPLATE_HEADER
 size_t POWERSET_SPECIALIZATION::variable_allocated_size() const {
     return m_variable.size();
 }
@@ -423,6 +445,11 @@ size_t POWERSET_SPECIALIZATION::variable_allocated_size() const {
 TEMPLATE_HEADER
 size_t POWERSET_SPECIALIZATION::family_size() const {
     return m_family.size();
+}
+
+TEMPLATE_HEADER
+size_t POWERSET_SPECIALIZATION::free_size() const {
+    return m_free_list.count();
 }
 
 //TEMPLATE_HEADER
@@ -441,35 +468,38 @@ void POWERSET_SPECIALIZATION::pruneSpace() {
 
     if( m_family.empty() ) return;
 
+    if( m_fixed_variable.size() < m_variable.size() ) {
+        m_fixed_variable.resize( m_variable.size(), false );
+    }
+
+    if( m_lost_variable.size() < m_variable.size() ) {
+        m_lost_variable.resize( m_variable.size(), false );
+    }
+
+    m_fixed_variable.reset().flip();
+    m_lost_variable.reset();
+
+    std::vector< family_iterator > to_remove;
+
     family_iterator it = m_family.begin();
-
-    if( m_fxied_in_variable.size() < m_variable.size() ) {
-        m_fxied_in_variable.resize( m_variable.size(), false );
-    }
-
-    if( m_free_union.size() < m_variable.size() ) {
-        m_free_union.resize( m_variable.size(), false );
-    }
-
-    m_fxied_in_variable.reset().flip();
-    m_free_union.reset();
-
-    std::vector< subset_ptr > to_remove;
-
     while( it != m_family.end() ) {
         if( (*it).use_count() > 1 ) {
             updateFreeElements( *it );
-            ++it;
         } else {
-            to_remove.push_back( (*it) );
+            to_remove.push_back( it );
         }
+        ++it;
     }
 
-    m_free_list = (m_fxied_in_variable | ~m_free_union);
+    m_free_list = (m_fixed_variable | ~m_lost_variable);
     m_variable_mask = ~m_free_list;
 
     // remove un-referenced subsets
-    m_family.erase( to_remove.begin(), to_remove.end() );
+    while( !to_remove.empty() ) {
+        family_iterator tmp = to_remove.back();
+        to_remove.pop_back();
+        m_family.erase( tmp );
+    }
 
     updateFixed();
 
@@ -489,10 +519,10 @@ void POWERSET_SPECIALIZATION::updateSubsetFree( subset_ptr s ) {
 
     if( s == empty_set() ) return;
 
-    assert( s->m_data.block_count() <= m_variable_mask.block_count() );
+    assert( s->m_data.num_blocks() <= m_variable_mask.num_blocks() );
 
-    buffer_citerator fit = m_variable_mask.m_bits.begin(), fend = m_variable_mask.m_bits.end();
-    buffer_iterator  sit = s->m_data.m_bits.begin(), send = s->m_data.m_bits.end();
+    buffer_iterator fit = m_variable_mask.m_bits.begin();
+    buffer_citerator  sit = s->m_data.m_bits.begin(), send = s->m_data.m_bits.end();
 
     while( sit != send ) {
         (*fit++) &= (*sit++);
@@ -500,18 +530,19 @@ void POWERSET_SPECIALIZATION::updateSubsetFree( subset_ptr s ) {
 }
 
 TEMPLATE_HEADER
-void POWERSET_SPECIALIZATION::updateFreeElements( const subset_ptr s ) {
+void POWERSET_SPECIALIZATION::updateFreeElements( subset_ptr s ) {
     typedef typename bitset_buffer_type::iterator       buffer_iterator;
     typedef typename bitset_buffer_type::const_iterator buffer_citerator;
 
-    if( s == empty_set() ) return;
+    // don't need b/c empty_set not stored in family
+    //if( s == empty_set() ) return;
 
     buffer_citerator cit = s->m_data.m_bits.begin(), cend = s->m_data.m_bits.end();
 
-    assert( s->m_data.block_count() <= m_fxied_in_variable.block_count() );
+    assert( s->m_data.num_blocks() <= m_fixed_variable.num_blocks() );
 
-    buffer_iterator int_it = m_fxied_in_variable.m_bits.begin(), int_end = m_fxied_in_variable.m_bits.end();
-    buffer_iterator un_it = m_free_union.m_bits.begin();
+    buffer_iterator int_it = m_fixed_variable.m_bits.begin(), int_end = m_fixed_variable.m_bits.end();
+    buffer_iterator un_it = m_lost_variable.m_bits.begin();
 
     // handle common prefix
     while( cit != cend ) {
@@ -528,17 +559,17 @@ void POWERSET_SPECIALIZATION::updateFreeElements( const subset_ptr s ) {
 
 TEMPLATE_HEADER
 void POWERSET_SPECIALIZATION::updateFixed() {
-    typename bitset_type::size_type idx = m_fxied_in_variable.find_first();
+    typename bitset_type::size_type idx = m_fixed_variable.find_first();
 
     while( idx != bitset_type::npos ) {
         element_index_type eid = m_fixed.size();
         m_fixed.push_back( m_variable[ idx ] );
 
-        lookup_iterator it = m_lookup.find( key_of( m_fixed.back() ) );
+        lookup_iterator it = m_lookup.find( m_elem_keyer( m_fixed.back() ) );
         assert( it != m_lookup.end() );
 
         it->second = encode_index( eid, true );
-        idx = m_fxied_in_variable.find_next(idx);
+        idx = m_fixed_variable.find_next(idx);
     }
 }
 
