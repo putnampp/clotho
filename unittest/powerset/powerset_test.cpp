@@ -222,7 +222,6 @@ BOOST_AUTO_TEST_CASE( create_powerset_subset ) {
 
     BOOST_REQUIRE_MESSAGE( c->check_state( idx ), "Unexpected state for element after add" );
 
-
     c->removeElement( te );
 
     cnt = c->count();
@@ -230,8 +229,100 @@ BOOST_AUTO_TEST_CASE( create_powerset_subset ) {
     BOOST_REQUIRE_MESSAGE( !c->check_state( idx ), "Unexpected state for element after remove" );
 }
 
+/**
+ * Create a powerset
+ *
+ * Create a subset with one element in it, in a sub-scope;
+ * Assuming subset_ptr is a shared_ptr, the change in scope should dereference
+ * a single instance to the subset, leaving a single instance of the subset
+ * in the family.  If the family contains only a single instance of a subset,
+ * prune the powerset should remove the subset, and free up lost|fixed
+ * elements.
+ *
+ */
 BOOST_AUTO_TEST_CASE( create_powerset_prunespace ) {
-// TODO
+    powerset_type ps;
+
+    // change in scope should release one instance of subset_ptr
+    {
+        typename powerset_type::subset_ptr c = ps.create_subset();
+
+        double k = 0.5;
+        test_element te(k, 1.0);
+
+        c->addElement( te );
+    }
+
+    BOOST_REQUIRE_MESSAGE( ps.family_size() == 1, "Subset was not added to family");
+
+    const unsigned int bpb = bmap::bits_per_block;
+    size_t fs = ps.free_size();
+    BOOST_REQUIRE_MESSAGE( fs == (bpb - 1), "Unexpected free size " << fs << "(" << (bpb - 1) << ")" );
+    BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == bpb, "Unexpected size: " << ps.variable_allocated_size() << "(" << bpb << ")" );
+
+    ps.pruneSpace();
+
+    BOOST_REQUIRE_MESSAGE( ps.family_size() == 0, "Subset was not removed from family");
+
+    fs = ps.free_size();
+    BOOST_REQUIRE_MESSAGE( fs == bpb, "Unexpected free size " << fs << "(" << bpb << ")" );
 }
 
+/**
+ * Create a powerset
+ *
+ * Create a subset with one element in it, in a sub-scope;
+ * Create a second subset with the same element (a duplicate of the first subset)
+ *
+ * As before the first subset should be dereferenced, and will be removed from
+ * the family.  The second subset, however, will not because two references to the
+ * subset should exist (one in this scope, and one in the family).
+ *
+ * Therefore, pruning the powerset space should result in the subsets being 
+ * reduced to 1.  Furthermore, since there is a single subset, with a single
+ * element, that element becomes fixed within the powerset.  The fixed element
+ * should be copied to the fixed subset, and its positions should be freed
+ *
+ */
+BOOST_AUTO_TEST_CASE( create_powerset_prunespace2 ) {
+    powerset_type ps;
+
+    double k = 0.5;
+    test_element te(k, 1.0);
+
+    // change in scope should release one instance of subset_ptr
+    {
+        typename powerset_type::subset_ptr c = ps.create_subset();
+
+        c->addElement( te );
+    }
+
+    typename powerset_type::subset_ptr c2 = ps.create_subset();
+    c2->addElement(te);
+
+    BOOST_REQUIRE_MESSAGE( ps.family_size() == 2, "Subset was not added to family");
+
+    typename powerset_type::element_index_type idx = ps.find_or_create(te);
+
+    const unsigned int bpb = bmap::bits_per_block;
+    size_t fs = ps.free_size();
+    BOOST_REQUIRE_MESSAGE( fs == (bpb - 1), "Unexpected free size " << fs << "(" << (bpb - 1) << ")" );
+    BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == bpb, "Unexpected size: " << ps.variable_allocated_size() << " (" << bpb << ")" );
+
+    ps.pruneSpace();
+
+    fs = ps.free_size();
+    BOOST_REQUIRE_MESSAGE( ps.family_size() == 1, "Expected subset was not removed from family " << ps.family_size() << " (1)" );
+    BOOST_REQUIRE_MESSAGE( fs == bpb, "Unexpected free size " << fs << " (" << bpb << ")" );
+    BOOST_REQUIRE_MESSAGE( ps.fixed_size() == 1, "Unexpected fixed size " << ps.fixed_size() << " (1)"); 
+
+    typename powerset_type::element_index_type idx2 = ps.find_or_create(te);
+    BOOST_REQUIRE_MESSAGE( idx != idx2, "After pruning, fixed element has same index.  Should be different");
+
+    BOOST_REQUIRE_MESSAGE( idx2 == ps.encode_index(0, true), "Unxpected fixed index " << idx2 << " (" << ps.encode_index(0, true) << ")");
+
+    bool is_fixed  = ps.decode_index(idx2);
+    BOOST_REQUIRE_MESSAGE( is_fixed, "Unexpected state decoding false (true)" );
+    BOOST_REQUIRE_MESSAGE( idx2 == 0, "Unexpected index decoded " << idx2 << " (0)");
+}
 BOOST_AUTO_TEST_SUITE_END()
