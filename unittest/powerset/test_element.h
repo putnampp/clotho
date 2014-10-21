@@ -3,6 +3,7 @@
 
 #include "clotho/powerset/block_map.hpp"
 #include "clotho/powerset/element_key_of.hpp"
+#include "clotho/powerset/user_defined.hpp"
 
 struct test_element {
     double k, v;
@@ -33,7 +34,7 @@ struct element_key_of< test_element > {
 };
 
 template< class Block >
-struct block_map< test_element, Block > {
+struct block_map< test_element, Block, user_defined > {
     typedef test_element    element_type;
     typedef Block           size_type;
 
