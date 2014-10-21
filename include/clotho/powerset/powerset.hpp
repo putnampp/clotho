@@ -304,13 +304,12 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::ad
     element_index_type idx = findFreeIndex(v);
 
     if( idx == npos ) {
-        idx = appendElement(v );
+        idx = appendElement(v);
         m_lookup.insert( std::make_pair( m_elem_keyer( v ), encode_index(idx, false)));
     } else {
         assert( idx < m_variable.size());
 
         if( m_variable[idx] != v ) {
-//            key_type _k = element_key_of< Element >::getKey( m_variable[idx] );
             lookup_iterator it = m_lookup.find( m_elem_keyer( m_variable[idx] ) );
             if( it != m_lookup.end() && it->second == idx ) {
                 // if the element was lost
@@ -319,9 +318,10 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::ad
 
             m_lookup.insert( std::make_pair( m_elem_keyer(v), encode_index(idx, false)));
         }
+        m_variable[ idx ] = v;
     }
 
-    m_variable[ idx ] = v;
+//    m_variable[ idx ] = v;
 
     updateFreeIndex( idx, false );
 
@@ -331,6 +331,11 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::ad
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::findFreeIndex( const value_type & v ) {
     element_index_type _offset = m_block_map( v );
+    if( _offset == npos ) {
+        element_index_type idx = m_free_list.find_first();
+        return idx;
+    }
+
     block_type  mask = masks::position_mask( _offset );
 
     if( !m_free_ranges.empty() && (m_free_ranges.m_bits[0] & mask ) ) {
@@ -364,7 +369,10 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::fi
 
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::appendElement( const value_type & v ) {
-    element_index_type idx = m_block_map( v ) + m_variable.size();
+    element_index_type idx = m_variable.size();
+    element_index_type _offset = m_block_map( v );
+
+    idx += ((_offset != npos ) ? _offset : 0 );
 
     unsigned int i = bits_per_block;
     while( i-- ) {
@@ -380,16 +388,19 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::ap
 
 TEMPLATE_HEADER
 void POWERSET_SPECIALIZATION::updateFreeIndex( element_index_type idx, bool state ) {
-    element_index_type block_idx = idx / bits_per_block, block_offset = idx % bits_per_block;
+    m_free_list[idx] = state;
+
+    element_index_type block_idx = idx / bits_per_block;//, block_offset = idx % bits_per_block;
     element_index_type path = block_idx + m_free_ranges.num_blocks();
 
-    block_type clear_mask = masks::position_mask( block_offset );
-    block_type set_mask = ((state) ? clear_mask : 0);
+//    block_type clear_mask = masks::position_mask( block_offset );
+ //   block_type set_mask = ((state) ? clear_mask : 0);
 
-    clear_mask = ~clear_mask;
+//    clear_mask = ~clear_mask;
 
-    m_free_list.m_bits[ block_idx ] &= clear_mask;
-    m_free_list.m_bits[ block_idx ] |= set_mask;
+//    m_free_list[idx] = state;
+//    m_free_list.m_bits[ block_idx ] &= clear_mask;
+//    m_free_list.m_bits[ block_idx ] |= set_mask;
 
     block_type c0 = m_free_list.m_bits[ block_idx ];
 
@@ -451,16 +462,6 @@ TEMPLATE_HEADER
 size_t POWERSET_SPECIALIZATION::free_size() const {
     return m_free_list.count();
 }
-
-//TEMPLATE_HEADER
-//void POWERSET_SPECIALIZATION::clearGarbage() {
-//    while(!m_garbage.empty() ) {
-//        subset_type * s = m_garbage.back();
-//        m_garbage.pop_back();
-//
-//        delete s;
-//    }
-//}
 
 TEMPLATE_HEADER
 void POWERSET_SPECIALIZATION::pruneSpace() {
@@ -622,61 +623,6 @@ void POWERSET_SPECIALIZATION::buildFreeRanges() {
         m_free_ranges.m_bits[ r_idx-- ] |= m_free_ranges.m_bits[ b_idx-- ];
     }
 }
-/*
-TEMPLATE_HEADER
-POWERSET_SPECIALIZATION::variable_subset::variable_subset( parent_type * p ) :
-    m_parent(p)
-    , m_ref_count(1)
-{}
-
-TEMPLATE_HEADER
-POWERSET_SPECIALIZATION::variable_subset::variable_subset( const variable_subset & vs ) :
-    m_parent(vs.m_parent)
-    , m_data( vs.m_data )
-    , m_ref_count(1)
-{}
-
-TEMPLATE_HEADER
-POWERSET_SPECIALIZATION::variable_subset::~variable_subset() {}
-
-TEMPLATE_HEADER
-typename POWERSET_SPECIALIZATION::subset_type * POWERSET_SPECIALIZATION::variable_subset::clone() const {
-    variable_subset * sub = this->m_parent->clone_subset( this );
-
-    return sub;
-}
-
-TEMPLATE_HEADER
-typename POWERSET_SPECIALIZATION::subset_type * POWERSET_SPECIALIZATION::variable_subset::copy() {
-    m_parent->copy_subset( this );
-    return this;
-}
-
-TEMPLATE_HEADER
-void POWERSET_SPECIALIZATION::variable_subset::release() {
-    m_parent->release_subset( this );
-}
-
-TEMPLATE_HEADER
-void    POWERSET_SPECIALIZATION::variable_subset::addElement( const POWERSET_SPECIALIZATION::value_type & elem ) {
-    typename parent_type::element_index_type idx = m_parent->find_or_create( elem );
-
-    if( idx == parent_type::npos ) return;
-
-    if( idx >= m_data.size() ) {
-        m_data.resize( idx + 1, false );
-    }
-    m_data[ idx ] = true;
-}
-
-TEMPLATE_HEADER
-void POWERSET_SPECIALIZATION::variable_subset::removeElement( const POWERSET_SPECIALIZATION::value_type & elem ) {
-    typename parent_type::element_index_type idx = m_parent->find( elem );
-
-    if( idx == parent_type::npos || m_data.size() <= idx ) return;
-
-    m_data[idx] = false;
-}*/
 
 }   // namespace powersets
 }   // namespace clotho
