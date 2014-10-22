@@ -7,4 +7,4 @@ FOREACH( D ${DIRS} )
 ENDFOREACH( D )
 
 ADD_EXECUTABLE(test_main test_main.cpp)
-TARGET_LINK_LIBRARIES( test_main ${COMMON_LIBRARIES} powerset)
+TARGET_LINK_LIBRARIES( test_main ${COMMON_LIBRARIES} powerset ${PROJECT_NAME}_utility)
