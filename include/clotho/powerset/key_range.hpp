@@ -8,6 +8,8 @@ struct normal_01 {};
 
 template < class R = normal_01 >
 struct key_range {
+    typedef R range_type;
+
     static constexpr double min = 0.0;
     static constexpr double max = 1.0;
 
