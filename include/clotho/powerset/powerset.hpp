@@ -63,6 +63,8 @@ public:
     subset_ptr   empty_set() const;
 
     subset_ptr  create_subset();
+    subset_ptr  create_subset( const typename subset_type::bitset_type & b );
+
     subset_ptr  clone_subset( subset_ptr t );
 
 //    void   copy_subset( subset_ptr t );
@@ -239,6 +241,13 @@ typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::empty_set(
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::create_subset( ) {
     subset_ptr sub( new subset_type( this ) );
+    m_family.insert( sub );
+    return sub;
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::create_subset( const typename subset_type::bitset_type & b ) {
+    subset_ptr sub( new subset_type( this, b ) );
     m_family.insert( sub );
     return sub;
 }
