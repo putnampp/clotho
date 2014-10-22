@@ -64,7 +64,7 @@ public:
 
     subset_ptr  create_subset();
     subset_ptr  clone_subset( subset_ptr t );
-    
+
 //    void   copy_subset( subset_ptr t );
 //    void   release_subset( subset_ptr t );
 
@@ -86,39 +86,39 @@ public:
 //    variable_iterator          variable_end();
 //    const_variable_iterator    variable_end() const;
 
-/**
- * Returns whether the set is empty
- */
+    /**
+     * Returns whether the set is empty
+     */
     bool  empty() const;
 
-/**
- * Returns the number of keys in the lookup table
- */
+    /**
+     * Returns the number of keys in the lookup table
+     */
     size_t size() const;
 
-/**
- *  Returns the number of elements which are variable in the set
- */
+    /**
+     *  Returns the number of elements which are variable in the set
+     */
     size_t  variable_size() const;
 
-/**
- *  Returns the number of elements which are variable in the set
- */
+    /**
+     *  Returns the number of elements which are variable in the set
+     */
     size_t  fixed_size() const;
 
-/**
- * Returns the number of variable elements which have been allocated
- */
+    /**
+     * Returns the number of variable elements which have been allocated
+     */
     size_t  variable_allocated_size() const;
 
-/**
- *  Returns the number of free variable positions
- */
+    /**
+     *  Returns the number of free variable positions
+     */
     size_t free_size() const;
 
-/**
- * Returns the number of subsets of the powerset exist
- */
+    /**
+     * Returns the number of subsets of the powerset exist
+     */
     size_t family_size() const;
 
 /// Compact space
@@ -142,28 +142,28 @@ public:
 
 //    void clearGarbage();
 
-/**
- * Encode set index as a 1's complement
- *
- * Two element sets exist (fixed, variable).  An element may only exist in one set at any given time.
- * Variable elements have an index [0x0, 0x7FFFFFFF];
- * Fixed elements  have an index [0x80000000, 0xFFFFFFFE];
- * Index value of 0xFFFFFFFF is left available to indicate npos;
- *
- */
+    /**
+     * Encode set index as a 1's complement
+     *
+     * Two element sets exist (fixed, variable).  An element may only exist in one set at any given time.
+     * Variable elements have an index [0x0, 0x7FFFFFFF];
+     * Fixed elements  have an index [0x80000000, 0xFFFFFFFE];
+     * Index value of 0xFFFFFFFF is left available to indicate npos;
+     *
+     */
     inline element_index_type  encode_index( element_index_type idx, bool is_fixed ) {
         return ((is_fixed) ? (idx | fixed_flag) : idx);
     }
 
-/**
- * Decode set index
- *
- * Strips off high order bit of index
- * 
- * The input index is modified if the value is fixed (negative).
- *
- * \return high order bit
- */
+    /**
+     * Decode set index
+     *
+     * Strips off high order bit of index
+     *
+     * The input index is modified if the value is fixed (negative).
+     *
+     * \return high order bit
+     */
     inline bool decode_index( element_index_type & idx ) {
         if(idx & fixed_flag) {
             idx ^= fixed_flag;
@@ -202,9 +202,9 @@ private:
 // Helper functions
 //
 template < class SubsetIterator >
-void release_subsets( SubsetIterator first, SubsetIterator last ){
+void release_subsets( SubsetIterator first, SubsetIterator last ) {
     while( first != last ) {
-       (*first)->release();
+        (*first)->release();
         ++first;
     }
 }
@@ -217,7 +217,7 @@ void release_subsets( SubsetIterator first, SubsetIterator last ){
 #define POWERSET_SPECIALIZATION powerset< Element, Subset, Block, BlockMap, ElementKeyer >
 
 TEMPLATE_HEADER
-POWERSET_SPECIALIZATION::powerset() //: 
+POWERSET_SPECIALIZATION::powerset() //:
 //    m_empty_set( this )
 //    , m_family_size( 0 )
 {}
@@ -394,7 +394,7 @@ void POWERSET_SPECIALIZATION::updateFreeIndex( element_index_type idx, bool stat
     element_index_type path = block_idx + m_free_ranges.num_blocks();
 
 //    block_type clear_mask = masks::position_mask( block_offset );
- //   block_type set_mask = ((state) ? clear_mask : 0);
+//   block_type set_mask = ((state) ? clear_mask : 0);
 
 //    clear_mask = ~clear_mask;
 
@@ -405,7 +405,7 @@ void POWERSET_SPECIALIZATION::updateFreeIndex( element_index_type idx, bool stat
     block_type c0 = m_free_list.m_bits[ block_idx ];
 
     block_idx += ((block_idx & 1) ? -1 : 1);
-    
+
     block_type c1 = (( block_idx < m_free_list.num_blocks() ) ? m_free_list.m_bits[ block_idx ] : 0);
 
     if( path == 1 ) {

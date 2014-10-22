@@ -8,11 +8,10 @@
 
 template < class Result, class Individual, class SelectionTag >
 class fitness :
-public clotho::fitness::detail::fitness_core< Result, Individual, SelectionTag >,
-public clotho::fitness::detail::fitness_core< Result, Individual, SelectionTag >::evaluation_type
-{
+    public clotho::fitness::detail::fitness_core< Result, Individual, SelectionTag >,
+    public clotho::fitness::detail::fitness_core< Result, Individual, SelectionTag >::evaluation_type {
 public:
-    
+
     typedef clotho::fitness::detail::fitness_core< Result, Individual, SelectionTag > core;
     typedef core::evaluation_type eval_type;
 

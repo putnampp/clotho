@@ -60,7 +60,7 @@ int main( int argc, char ** argv ) {
     std::vector< string > inp = vm[ INPUT_K ].as< std::vector<string> >();
 
     std::string prefix = vm[PREFIX_K].as< string >();
-  
+
     json_tree_type raw_data, graph;
 
     join_performance_data( inp, raw_data );
@@ -89,16 +89,16 @@ int main( int argc, char ** argv ) {
 int parse_commandline( int argc, char ** argv, po::variables_map & vm ) {
     po::options_description general("General");
     general.add_options()
-        ((HELP_K + ",h").c_str(), "Print this" )
+    ((HELP_K + ",h").c_str(), "Print this" )
     ;
 
     po::options_description parameters("Parameters");
     parameters.add_options()
-        ( (INPUT_K + ",i").c_str(), po::value< std::vector< string > >()->composing(), "JSON files")
-        ( (CANVAS_K).c_str(), "CanvasXpress graphs and data")
-        ( (GNUPLOT_K).c_str(), "GNUPlot graphs and data")
-        ( (PREFIX_K + ",p").c_str(), po::value< string >()->default_value(""), "Output file prefix")
-        ( (GRAPHING_K + ",g").c_str(), po::value< std::vector< string > >()->composing(), "Graph data keys")
+    ( (INPUT_K + ",i").c_str(), po::value< std::vector< string > >()->composing(), "JSON files")
+    ( (CANVAS_K).c_str(), "CanvasXpress graphs and data")
+    ( (GNUPLOT_K).c_str(), "GNUPlot graphs and data")
+    ( (PREFIX_K + ",p").c_str(), po::value< string >()->default_value(""), "Output file prefix")
+    ( (GRAPHING_K + ",g").c_str(), po::value< std::vector< string > >()->composing(), "Graph data keys")
     ;
 
     po::positional_options_description pos;
@@ -211,7 +211,7 @@ void to_canvasxpress_graph( const boost::property_tree::ptree & p ) {
                 smps.push_back( std::make_pair("", tmp ) );
             } while (--max_gen );
         }
-        
+
         ++nChildren;
         ++first;
     }
@@ -343,7 +343,7 @@ void to_canvasxpress_graph3( const boost::property_tree::ptree & p, const std::s
         graphs.add_child( "graphs." + (*it), tmp );
     }
 
-    if( prefix.empty() ) { 
+    if( prefix.empty() ) {
         boost::property_tree::write_json( std::cout, graphs );
     } else {
         boost::property_tree::write_json( prefix + "_canvasxpress.json", graphs);
@@ -367,19 +367,19 @@ void combine_sample_data( boost::property_tree::ptree::const_iterator first, boo
             if( !gen_found ) {
                 smps = first->second.get_child( "generations" );
                 gen_found = true;
-/*            } else {
-              // check not working ATM. assuming that once found all other data sets
-              // have same number of generations
-                // check that sampling sizes are equivalent for each variable
-                boost::property_tree::ptree::iterator smps_it = smps.get_child("").begin(), smps_end = smps.get_child("").end();
+                /*            } else {
+                              // check not working ATM. assuming that once found all other data sets
+                              // have same number of generations
+                                // check that sampling sizes are equivalent for each variable
+                                boost::property_tree::ptree::iterator smps_it = smps.get_child("").begin(), smps_end = smps.get_child("").end();
 
-                boost::property_tree::ptree::const_iterator c_it = first->second.get_child("generations").begin(), c_end = first->second.get_child("generations").end();
+                                boost::property_tree::ptree::const_iterator c_it = first->second.get_child("generations").begin(), c_end = first->second.get_child("generations").end();
 
-                while( smps_it != smps_end && c_it != c_end ) {
-                    assert( smps_it->second == c_it->second);
-                    ++smps_it; ++c_it;
-                }
-                assert( smps_it == smps_end && c_it == c_end );*/
+                                while( smps_it != smps_end && c_it != c_end ) {
+                                    assert( smps_it->second == c_it->second);
+                                    ++smps_it; ++c_it;
+                                }
+                                assert( smps_it == smps_end && c_it == c_end );*/
             }
             data.push_back( std::make_pair( "", first->second.get_child( child_key ) ) );
         }
@@ -402,7 +402,7 @@ void combine_sample_data( boost::property_tree::ptree::const_iterator first, boo
     graph_opts.put( "xAxisTitle", child_key );
     graph_opts.put( "yAxisTitle", "Generations" );
     graph_opts.put( "colorBy", "filenames" );
-    
+
     res.add_child( "y", y );
     res.add_child( "z", z );
     res.add_child( "graph_opts", graph_opts );

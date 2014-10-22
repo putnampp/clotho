@@ -67,14 +67,12 @@ struct simulation_configuration {
     std::shared_ptr< iRNG >     rng;
 
     simulation_configuration( ) :
-        nGen(0), nPop(0), mu( 0.0 ), rho(0.0), my_rng( NULL )
-    {
+        nGen(0), nPop(0), mu( 0.0 ), rho(0.0), my_rng( NULL ) {
         init_rng();
     }
 
     simulation_configuration( unsigned int gen, unsigned int pop, double m, double r ) :
-        nGen( gen ), nPop(pop), mu(m), rho(r)
-    {
+        nGen( gen ), nPop(pop), mu(m), rho(r) {
         init_rng();
     }
 
@@ -250,7 +248,7 @@ int main( int argc, char ** argv ) {
 
         size_t parent_pop_seq_count = locus_bitset::activeCount();
         size_t parent_pop_mut_count = alphabet_type::getInstance()->active_count(); // performs dynamic_bitset::count(); linear computation of bitset Hamming Weight
-        
+
         state_log_type a, g, r, s, t, f, m, c;
         a.put("", parent_pop_mut_count );
         gen_alpha_log.push_back( std::make_pair("", a ) );

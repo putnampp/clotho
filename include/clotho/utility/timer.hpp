@@ -19,30 +19,30 @@ public:
     static constexpr double hertz = (double)clock_type::period::num/clock_type::period::den;
     timer() : m_start( clock_type::now() ), m_end( time_point_type::max() ) {}
 
-/**
- * (re)start the timer
- */
+    /**
+     * (re)start the timer
+     */
     inline void start() {
         m_end = time_point_type::max();
         m_start = clock_type::now();
     }
 
-/**
- *  stop the timer
- */
+    /**
+     *  stop the timer
+     */
     inline void stop() {
         m_end = clock_type::now();
     }
 
-/**
- * Calculates the elapsed time
- *
- * If the timer has been stopped, then the elasped time is stop - start.
- * Otherwise, the elapsed time is the time between "now" and the last start.
- *
- * \return elasped time
- * \note This does not stop a running timer
- */
+    /**
+     * Calculates the elapsed time
+     *
+     * If the timer has been stopped, then the elasped time is stop - start.
+     * Otherwise, the elapsed time is the time between "now" and the last start.
+     *
+     * \return elasped time
+     * \note This does not stop a running timer
+     */
     duration_type elapsed() const {
         time_point_type t = ((m_end == time_point_type::max()) ? clock_type::now() : m_end);
         return (t - m_start);

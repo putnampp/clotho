@@ -9,7 +9,9 @@ template < class E >
 struct element_key_of {
     typedef E key_type;
 
-    key_type operator()( const E & e ) { return e; }
+    key_type operator()( const E & e ) {
+        return e;
+    }
 };
 
 }   // namespace powersets

@@ -44,8 +44,8 @@ private:
     static mask_type bit_position_masks[ bits_per_block ];
 
     static bool init() {
-        static bool _init_low_order = init_low_order(low_order_bit_masks) 
-                                        && init_positions(bit_position_masks);
+        static bool _init_low_order = init_low_order(low_order_bit_masks)
+                                      && init_positions(bit_position_masks);
         return _init_low_order;
     }
 

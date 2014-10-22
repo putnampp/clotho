@@ -10,41 +10,41 @@ namespace powersets {
 
 template < class Element, class Block = unsigned long, class BlockMap = block_map< Element, Block>, class ElementKeyer = element_key_of< Element > >
 class variable_subset {
-    public:
-        typedef variable_subset< Element, Block, BlockMap, ElementKeyer > self_type;
-        typedef Element value_type;
+public:
+    typedef variable_subset< Element, Block, BlockMap, ElementKeyer > self_type;
+    typedef Element value_type;
 
-        typedef clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer > powerset_type;
-        typedef boost::dynamic_bitset< unsigned long > bitset_type;
-        typedef size_t index_type;
+    typedef clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer > powerset_type;
+    typedef boost::dynamic_bitset< unsigned long > bitset_type;
+    typedef size_t index_type;
 
-        friend class clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer >;
+    friend class clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer >;
 
-        //self_type *   clone() const;
+    //self_type *   clone() const;
 //        self_type *   copy();
 
 //        void                release();
 //        unsigned int        ref_count() const;
 
-        void                addElement( const value_type & elem );
-        void                removeElement( const value_type & elem );
+    void                addElement( const value_type & elem );
+    void                removeElement( const value_type & elem );
 
-        bool                check_state( index_type idx ) const;
+    bool                check_state( index_type idx ) const;
 
-        size_t              count() const;
+    size_t              count() const;
 
-        template < class E, class B, class BM, class EK >
-        friend bool operator==(const variable_subset< E, B, BM, EK> & lhs, const variable_subset< E, B, BM, EK> & rhs );
+    template < class E, class B, class BM, class EK >
+    friend bool operator==(const variable_subset< E, B, BM, EK> & lhs, const variable_subset< E, B, BM, EK> & rhs );
 
-        virtual ~variable_subset();
-    protected:
-        variable_subset(powerset_type * p);
-        variable_subset( const variable_subset & vs );
+    virtual ~variable_subset();
+protected:
+    variable_subset(powerset_type * p);
+    variable_subset( const variable_subset & vs );
 
-        powerset_type *       m_parent;
-        bitset_type         m_data;
-        unsigned int        m_ref_count;
-    };
+    powerset_type *       m_parent;
+    bitset_type         m_data;
+    unsigned int        m_ref_count;
+};
 
 #define TEMPLATE_HEADER template < class Element, class Block, class BlockMap, class ElementKeyer >
 #define SUBSET_SPECIALIZATION variable_subset< Element, Block, BlockMap, ElementKeyer >
@@ -53,15 +53,15 @@ class variable_subset {
 TEMPLATE_HEADER
 SUBSET_SPECIALIZATION::variable_subset( powerset_type * p ) :
     m_parent(p)
-    , m_ref_count(1)
-{}
+    , m_ref_count(1) {
+}
 
 TEMPLATE_HEADER
 SUBSET_SPECIALIZATION::variable_subset( const variable_subset & vs ) :
     m_parent(vs.m_parent)
     , m_data( vs.m_data )
-    , m_ref_count(1)
-{}
+    , m_ref_count(1) {
+}
 
 TEMPLATE_HEADER
 SUBSET_SPECIALIZATION::~variable_subset() {}
