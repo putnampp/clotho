@@ -3,7 +3,7 @@
 
 #include "clotho/powerset/block_map.hpp"
 #include "clotho/powerset/element_key_of.hpp"
-#include "clotho/powerset/user_defined.hpp"
+#include "clotho/powerset/normalized_key.hpp"
 
 struct test_element {
     double k, v;
@@ -33,20 +33,14 @@ struct element_key_of< test_element > {
     inline key_type operator()( const test_element & t ) { return t.k; }
 };
 
-template< class Block >
-struct block_map< test_element, Block, user_defined > {
-    typedef test_element    element_type;
-    typedef Block           size_type;
-
-    static const unsigned int bits_per_block = sizeof(size_type) * 8;
-
-    inline size_type operator()( const element_type & elem ) {
-        assert( 0. <= elem.k && elem.k < 1. );
-
-        return elem.k * bits_per_block;
+template <>
+struct normalized_key< test_element > : public key_range< > {
+    inline double operator()( const test_element & elem ) {
+        return elem.k;
     }
 };
 
 }   // namespace powersets
 }   // namespace clotho
+
 #endif  // TEST_ELEMENT_H_
