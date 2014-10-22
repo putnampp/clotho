@@ -5,11 +5,20 @@
 
 typedef unsigned long Block;
 
-typedef clotho::powersets::block_map< test_element, Block, clotho::powersets::user_defined > bmap;
+typedef clotho::powersets::block_map< test_element, Block, clotho::powersets::normalized_key< test_element > > bmap;
 typedef clotho::powersets::variable_subset< test_element, Block, bmap > subset_type;
 typedef typename subset_type::powerset_type powerset_type;
 
 BOOST_AUTO_TEST_SUITE( test_powerset )
+
+/**
+ *  Test that the expected width per block is initialized correctly
+ *
+ */
+BOOST_AUTO_TEST_CASE( test_bmap ) {
+    double bwidth = bmap::width_per_bin;
+    BOOST_REQUIRE_MESSAGE( bwidth == (1.0/64.0), "Unexpected width per bin: " << bwidth << "(" << (1.0/64.0) << ")");
+}
 
 /**
  * Create an empty powerset
