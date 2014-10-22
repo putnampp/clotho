@@ -7,7 +7,7 @@ namespace clotho {
 namespace powersets {
 
 template < class Element >
-struct normalized_key : public key_range < Element > {
+struct normalized_key : public key_range < > {
     inline double operator()( const Element & elem ) {
         return 0.0;
     }
