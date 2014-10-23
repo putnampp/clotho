@@ -38,6 +38,7 @@ public:
 
     static set_bit_node (&getNode())[ max_nodes ] {
         static bool i = node_array_initializer::init_array( m_nodes, max_nodes );
+        assert( i );
         return m_nodes;
     }
 
@@ -69,6 +70,7 @@ public:
 
     static set_bit_node (&getNode())[ max_nodes ] {
         static bool i = node_array_initializer::init_array(m_nodes, max_nodes);
+        assert( i );
         return m_nodes;
     }
 
