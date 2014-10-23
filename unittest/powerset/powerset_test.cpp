@@ -328,4 +328,54 @@ BOOST_AUTO_TEST_CASE( create_powerset_prunespace2 ) {
     BOOST_REQUIRE_MESSAGE( is_fixed, "Unexpected state decoding false (true)" );
     BOOST_REQUIRE_MESSAGE( idx2 == 0, "Unexpected index decoded " << idx2 << " (0)");
 }
+
+/**
+ * Create an empty powerset
+ *
+ * find_or_create elements in a bit position order.
+ * Every element after the first in each sub-division should result in a collision.
+ *
+ * Verify that each new element is assigned to expected index
+ */
+BOOST_AUTO_TEST_CASE( subset_addElement ) {
+    powerset_type ps;
+
+    const unsigned int sub_div = 3;
+    const double div_offset = (1.0/ ((double)sub_div*bmap::bits_per_block));
+
+    typename powerset_type::subset_ptr p = ps.create_subset();
+
+    for( unsigned int i = 0; i < bmap::bits_per_block; ++i ) {
+        for( unsigned int j = 0; j < sub_div; ++j ) {
+            double v = (double)i;
+            double k = v / (double) bmap::bits_per_block + (double)j*div_offset;
+
+            test_element te(k, 1.0);
+
+            unsigned int e_idx = i + j * bmap::bits_per_block;
+
+            p->addElement( te );
+
+            typename powerset_type::element_index_type idx = ps.find(te);
+
+            BOOST_REQUIRE_MESSAGE( idx == e_idx, "Unexpected index " << idx << " returned for " << e_idx << "(" << k << ")" );
+        }
+    }
+
+    const unsigned int e_size = sub_div * bmap::bits_per_block;
+    BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == e_size, "Unexpected size: " << ps.variable_allocated_size() << "(" << e_size << ")" );
+}
+
+/**
+ *
+ */
+BOOST_AUTO_TEST_CASE( subset_copy ) {
+}
+
+/**
+ *
+ */
+BOOST_AUTO_TEST_CASE( subset_clone ) {
+}
+
 BOOST_AUTO_TEST_SUITE_END()
