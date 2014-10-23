@@ -12,15 +12,21 @@ struct test_element {
     test_element( const test_element & t ) : k(t.k), v(t.v) {}
 
     friend bool operator==( const test_element & lhs, const test_element & rhs ); 
-    friend bool operator!=( const test_element & lhs, const test_element & rhs ); 
+    friend bool operator!=( const test_element & lhs, const test_element & rhs );
+    friend std::ostream & operator<<( std::ostream & out, const test_element & rhs );
 };
 
 inline bool operator==( const test_element & lhs, const test_element & rhs ) {
-    return ( lhs.k == rhs.k && lhs.v == rhs.v);
+    return ( lhs.k == rhs.k);
 }
 
 inline bool operator!=( const test_element & lhs, const test_element & rhs ) {
-    return ( lhs.k != rhs.k && lhs.v != rhs.v);
+    return ( lhs.k != rhs.k);
+}
+
+inline std::ostream & operator<<( std::ostream & out, const test_element & rhs ) {
+    out << "{" << rhs.k << ", " << rhs.v << "}";
+    return out;
 }
 
 namespace clotho {
