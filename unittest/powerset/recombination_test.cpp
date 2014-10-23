@@ -2,7 +2,7 @@
 
 #include "test_element.h"
 #include "clotho/powerset/variable_subset.hpp"
-#include "clotho/recombination/recombination_def.hpp"
+#include "clotho/powerset/variable_subset_recombination.hpp"
 
 typedef unsigned long Block;
 
