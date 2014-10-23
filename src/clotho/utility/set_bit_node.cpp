@@ -5,7 +5,8 @@
 namespace clotho {
 namespace utility {
 
-bool set_bit_node_array::init_array( set_bit_node * first, unsigned int max ) {
+
+bool node_array_initializer::init_array( set_bit_node * first, unsigned int max ) {
     unsigned int val = max - 1;
     while( val ) {
         unsigned int idx = 0, tmp = val;
@@ -13,6 +14,7 @@ bool set_bit_node_array::init_array( set_bit_node * first, unsigned int max ) {
         while( tmp ) {
             if( tmp & 1 ) {
                 first[val].bit_index = idx++;
+                tmp >>= 1;
                 break;
             }
             tmp >>= 1;
@@ -23,7 +25,7 @@ bool set_bit_node_array::init_array( set_bit_node * first, unsigned int max ) {
             do {
                 if( tmp & 1 ) {
                     first[ val ].bit_shift_next = idx;
-                    first[ val ].next_ptr = &first[tmp];
+                    first[ val ].next = tmp;
                     break;
                 }
                 tmp >>= 1;
@@ -31,7 +33,7 @@ bool set_bit_node_array::init_array( set_bit_node * first, unsigned int max ) {
             } while( tmp );
         } else {
             first[val].bit_shift_next = idx;
-            first[ val ].next_ptr = NULL;
+            first[val].next = 0;
         }
         --val;
     }
