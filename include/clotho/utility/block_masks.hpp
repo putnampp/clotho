@@ -16,12 +16,14 @@ public:
     typedef Block mask_type;
 
     static const mask_type (&lookupLowBitMask())[bits_per_block] {
-        init();
+        static bool i = init_low_order(low_order_bit_masks);
+        assert( i );
         return low_order_bit_masks;
     }
 
     static const mask_type (&lookupPositionMask())[bits_per_block] {
-        init();
+        static bool i = init_positions(bit_position_masks);
+        assert( i );
         return bit_position_masks;
     }
 
@@ -42,12 +44,6 @@ private:
 
     /// OFFSET_BIT_MASK => bit_[n] = 1
     static mask_type bit_position_masks[ bits_per_block ];
-
-    static bool init() {
-        static bool _init_low_order = init_low_order(low_order_bit_masks)
-                                      && init_positions(bit_position_masks);
-        return _init_low_order;
-    }
 
     static bool init_low_order( mask_type * masks ) {
         for( unsigned int i = 0; i < bits_per_block; ++i ) {
