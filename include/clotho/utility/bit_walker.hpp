@@ -3,13 +3,18 @@
 
 #include <iostream>
 #include <cassert>
+#include <type_traits>
+
 #include "clotho/utility/set_bit_node.h"
 
 namespace clotho {
 namespace utility {
 
+template < unsigned int B, class E = void >
+class bit_block_walker;
+
 template < unsigned int B >
-class bit_block_walker {
+class bit_block_walker< B, typename std::enable_if< B <= 64 >::type > {
 public:
     typedef size_t              walkable_block_type;
     static const unsigned int   bits_per_block = B;
@@ -30,7 +35,7 @@ public:
 };
 
 template < >
-class bit_block_walker< 8 > {
+class bit_block_walker< 8, void > {
 public:
     typedef unsigned char walkable_block_type;
     static const unsigned int bits_per_block = 8;
@@ -62,7 +67,7 @@ protected:
 set_bit_node bit_block_walker< 8 >::m_nodes[ bit_block_walker< 8 >::max_nodes ];
 
 template < >
-class bit_block_walker< 16 > {
+class bit_block_walker< 16, void > {
 public:
     typedef unsigned short walkable_block_type;
     static const unsigned int bits_per_block = 16;
@@ -94,7 +99,7 @@ protected:
 
 set_bit_node bit_block_walker< 16 >::m_nodes[ bit_block_walker< 16 >::max_nodes ];
 
-template < class Block, class SubBlock >
+template < class Block, class SubBlock, class BitWalker = bit_block_walker< sizeof( SubBlock) * 8> >
 class block_walker {
 public:
     typedef Block block_type;
@@ -103,7 +108,7 @@ public:
     static const unsigned int bits_per_block = sizeof( block_type ) * 8;
     static const unsigned int bits_per_subblock = sizeof( sub_block_type ) * 8;
 
-    typedef bit_block_walker< bits_per_subblock > bit_walker_type;
+    typedef BitWalker bit_walker_type;
 
     static const unsigned int subblocks_per_block = (bits_per_block / bit_walker_type::bits_per_block);
 
