@@ -38,6 +38,8 @@ BOOST_AUTO_TEST_CASE( test_bit_walker_bit_sizes ) {
 }
 
 BOOST_AUTO_TEST_CASE( test_bit_node_init ) {
+    // clotho::utility::bit_block_walker< 300 > bw3;    // should not compile because of enable_if in general bit_walker
+    
     walker_type::bit_walker_type bw;
 
     for( unsigned int i = 1; i < walker_type::bit_walker_type::max_nodes; ++i ) {
