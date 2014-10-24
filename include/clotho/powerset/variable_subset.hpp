@@ -3,6 +3,7 @@
 
 //#include <boost/dynamic_bitset.hpp>
 
+#include <iostream>
 #include "clotho/powerset/powerset.hpp"
 
 namespace clotho {
@@ -83,8 +84,11 @@ public:
     template < class E, class B, class BM, class EK >
     friend bool operator==(const variable_subset< E, B, BM, EK> & lhs, const variable_subset< E, B, BM, EK> & rhs );
 
+    template < class E, class B, class BM, class EK >
+    friend std::ostream & operator<<( std::ostream & lhs, const variable_subset< E, B, BM, EK> & rhs );
+
     virtual ~variable_subset();
-protected:
+//protected:
     variable_subset(powerset_type * p);
     variable_subset(powerset_type * p, const bitset_type & b);
     variable_subset( const variable_subset & vs );
@@ -226,9 +230,46 @@ typename SUBSET_SPECIALIZATION::cblock_iterator SUBSET_SPECIALIZATION::end() con
     return m_data.m_bits.end();
 }
 
+/**
+ * Equality of variable_subsets.
+ *
+ * Note the dynamic_bitset::operator== compares size() of bitsets; if they are not equal the
+ * sets.  However, we only attempt to maintain minimal subsets.  That is, we allow a variable
+ * length zero extention of a subset to exist.  Therefore, we compare the
+ * common prefix length of blocks, then require the longer sequence to be all 0s there after.
+ */
 TEMPLATE_HEADER
 inline bool operator==( const SUBSET_SPECIALIZATION & lhs, const SUBSET_SPECIALIZATION & rhs ) {
-    return (lhs.m_parent == rhs.m_parent && lhs.m_data == rhs.m_data);
+    if( lhs.m_parent != rhs.m_parent ) return false;
+
+    typename SUBSET_SPECIALIZATION::cblock_iterator lit = lhs.m_data.m_bits.begin(), lend = lhs.m_data.m_bits.end();
+    typename SUBSET_SPECIALIZATION::cblock_iterator rit = rhs.m_data.m_bits.begin(), rend = rhs.m_data.m_bits.end();
+
+    bool is_eq = true;
+    while( is_eq ) {
+        if( lit == lend ) {
+            while( is_eq && rit != rend) {
+                is_eq = ((*rit++) == 0);
+            }
+            break;
+        }
+
+        if( rit == rend ) {
+            while(is_eq && lit != lend ) {
+                is_eq = ((*lit++) == 0);
+            }
+            break;
+        }
+
+        is_eq = ((*lit++) == (*rit++));
+    }
+    return is_eq;
+}
+
+TEMPLATE_HEADER
+std::ostream & operator<<( std::ostream & lhs, const SUBSET_SPECIALIZATION & rhs ) {
+    lhs << "{" << rhs.m_ref_count << ";" << rhs.m_data << "}"; 
+    return lhs;
 }
 
 }   // namespace powersets
