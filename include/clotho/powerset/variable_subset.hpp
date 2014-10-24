@@ -1,7 +1,7 @@
 #ifndef VARIABLE_SUBSET_HPP_
 #define VARIABLE_SUBSET_HPP_
 
-//#include <boost/dynamic_bitset.hpp>
+#include "clotho/powerset/config.hpp"
 
 #include <iostream>
 #include "clotho/powerset/powerset.hpp"
@@ -88,7 +88,9 @@ public:
     friend std::ostream & operator<<( std::ostream & lhs, const variable_subset< E, B, BM, EK> & rhs );
 
     virtual ~variable_subset();
-//protected:
+
+CLOTHO_PROTECTED
+
     variable_subset(powerset_type * p);
     variable_subset(powerset_type * p, const bitset_type & b);
     variable_subset( const variable_subset & vs );

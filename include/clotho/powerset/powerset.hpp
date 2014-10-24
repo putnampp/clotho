@@ -1,10 +1,7 @@
 #ifndef POWERSET_HPP_
 #define POWERSET_HPP_
 
-#ifndef BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
-#define BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
-#define UNDEF_FRIEND
-#endif  // BOOST_DYNAMIC_BITSET_DONT_USE_FRIENDS
+#include "clotho/powerset/config.hpp"
 
 #include <iostream>
 #include <vector>
@@ -129,6 +126,8 @@ public:
     virtual ~powerset();
 
 //protected:
+CLOTHO_PROTECTED
+
     element_index_type addElement( const value_type & v );
     element_index_type appendElement( const value_type & v );
 

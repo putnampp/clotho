@@ -1,5 +1,7 @@
 #include <boost/test/unit_test.hpp>
 
+#include "../unittest_config.h"
+
 #include "test_element.h"
 #include "clotho/powerset/variable_subset.hpp"
 

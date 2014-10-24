@@ -1,6 +1,8 @@
 #ifndef CLOTHO_VARIABLE_SUBSET_RECOMBINATION_DEF_HPP_
 #define CLOTHO_VARIABLE_SUBSET_RECOMBINATION_DEF_HPP_
 
+#include "clotho/powerset/config.hpp"
+
 #include <cassert>
 
 #include "clotho/recombination/recombination_def.hpp"

@@ -1,6 +1,6 @@
 #include <boost/test/unit_test.hpp>
 
-#include <boost/property_tree/ptree.hpp>
+#include "../unittest_config.h"
 
 #include "test_element.h"
 #include "clotho/powerset/variable_subset.hpp"
@@ -99,8 +99,6 @@ struct range_classifier {
         if( (rit - m_pts.begin()) % 2 == 0 ) {
             m_res |= ((block_type)1 << idx);
         }
-
-        std::cerr << "Index: " << idx << "; " << std::hex << m_res << std::dec << std::endl;
     }
 
 /**
