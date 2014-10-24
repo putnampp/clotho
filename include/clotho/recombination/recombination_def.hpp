@@ -1,8 +1,6 @@
 #ifndef RECOMBINATION_DEF_HPP_
 #define RECOMBINATION_DEF_HPP_
 
-#include <cassert>
-
 namespace clotho {
 namespace recombine {
 
