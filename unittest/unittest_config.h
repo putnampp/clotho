@@ -1,0 +1,6 @@
+#ifndef UNITTEST_CONFIG_H_
+#define UNITTEST_CONFIG_H_
+
+#define CLOTHO_UNITTEST 1
+
+#endif  // UNITTEST_CONFIG_H_
