@@ -42,10 +42,10 @@ public:
     typedef typename lookup_table_type::iterator lookup_iterator;
 
     typedef typename set_type::iterator      fixed_iterator;
-    typedef typename set_type::const_iterator const_fixed_iterator;
+    typedef typename set_type::const_iterator cfixed_iterator;
 
     typedef typename set_type::iterator      variable_iterator;
-    typedef typename set_type::const_iterator const_variable_iterator;
+    typedef typename set_type::const_iterator cvariable_iterator;
 
     typedef clotho::utility::block_masks< block_type > masks;
 
@@ -76,17 +76,17 @@ public:
     element_index_type find( const value_type & v );
 
 /// Element Iterators
-//    fixed_iterator          fixed_begin();
-//    const_fixed_iterator    fixed_begin() const;
-//
-//    fixed_iterator          fixed_end();
-//    const_fixed_iterator    fixed_end() const;
-//
-//    variable_iterator          variable_begin();
-//    const_variable_iterator    variable_begin() const;
-//
-//    variable_iterator          variable_end();
-//    const_variable_iterator    variable_end() const;
+    fixed_iterator          fixed_begin();
+    cfixed_iterator    fixed_begin() const;
+
+    fixed_iterator          fixed_end();
+    cfixed_iterator    fixed_end() const;
+
+    variable_iterator          variable_begin();
+    cvariable_iterator    variable_begin() const;
+
+    variable_iterator          variable_end();
+    cvariable_iterator    variable_end() const;
 
     /**
      * Returns whether the set is empty
@@ -565,6 +565,46 @@ void POWERSET_SPECIALIZATION::updateFreeElements( subset_ptr s ) {
     while( int_it != int_end ) {
         (*int_it++) = 0;
     }
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::fixed_iterator POWERSET_SPECIALIZATION::fixed_begin() {
+    return m_fixed.begin();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::cfixed_iterator POWERSET_SPECIALIZATION::fixed_begin() const {
+    return m_fixed.begin();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::fixed_iterator POWERSET_SPECIALIZATION::fixed_end() {
+    return m_fixed.end();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::cfixed_iterator POWERSET_SPECIALIZATION::fixed_end() const {
+    return m_fixed.end();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::variable_iterator POWERSET_SPECIALIZATION::variable_begin() {
+    return m_variable.begin();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::cvariable_iterator POWERSET_SPECIALIZATION::variable_begin() const {
+    return m_variable.begin();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::variable_iterator POWERSET_SPECIALIZATION::variable_end() {
+    return m_variable.end();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::cvariable_iterator POWERSET_SPECIALIZATION::variable_end() const {
+    return m_variable.end();
 }
 
 TEMPLATE_HEADER
