@@ -35,7 +35,7 @@ public:
         m_res_seq.resize( base->max_size(), false );
 
         typename subset_type::cblock_iterator base_it = base->begin(), base_end = base->end();
-        typename subset_type::cblock_iterator alt_it = base->begin(), alt_end = base->end();
+        typename subset_type::cblock_iterator alt_it = alt->begin(), alt_end = alt->end();
         typename subset_type::block_iterator res_it = m_res_seq.m_bits.begin();
 
         while( true ) {
@@ -60,6 +60,8 @@ public:
             block_type _base = (*base_it++), _alt = (*alt_it++);
             recombine( (*res_it), _base, _alt, elem_classifier );
             ++res_it;
+
+            elem_classifier.updateOffset( block_walker_type::bits_per_block );
         }
     }
 
@@ -74,7 +76,6 @@ public:
         block_type hets = base ^ alt;
 
         elem_classifier.resetResult();
-
         block_walker_type::apply( hets, elem_classifier );
 
         block_type base_mask = elem_classifier.getResult();
