@@ -12,6 +12,10 @@ struct element_key_of {
     key_type operator()( const E & e ) {
         return e;
     }
+
+    static key_type get_key( const E & e ) {
+        return e;
+    }
 };
 
 }   // namespace powersets
