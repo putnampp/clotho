@@ -1,6 +1,6 @@
 
 LIST(APPEND DIRS clotho)
-#LIST(APPEND DIRS examples)
+LIST(APPEND DIRS examples)
 #LIST(APPEND DIRS tools)
 
 FOREACH( D ${DIRS} )
