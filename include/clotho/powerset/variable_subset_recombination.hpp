@@ -3,7 +3,9 @@
 
 #include "clotho/powerset/config.hpp"
 
+#include <iostream>
 #include <cassert>
+#include <algorithm>
 
 #include "clotho/recombination/recombination_def.hpp"
 #include "clotho/powerset/variable_subset.hpp"
@@ -26,18 +28,58 @@ public:
     typedef clotho::utility::block_walker< block_type, unsigned short > block_walker_type;
 
     void operator()( sequence_type base, sequence_type alt, classifier_type & elem_classifier) {
-        assert( base->isSameFamily( alt ) );
         m_match_base = m_match_alt = m_empty = true;
+        m_res_seq.reset();
 
         if( base == alt ) {
+            // pointers match
+            if( base ) {
+                m_empty = false;
+                m_res_seq.resize( base->max_size(), false);
+                std::copy( base->begin(), base->end(), m_res_seq.m_bits.begin() );
+            }
             return;
         }
 
-        m_res_seq.reset();
-        m_res_seq.resize( base->max_size(), false );
+        typename subset_type::cblock_iterator base_it, base_end;
+        typename subset_type::cblock_iterator alt_it, alt_end;
 
-        typename subset_type::cblock_iterator base_it = base->begin(), base_end = base->end();
-        typename subset_type::cblock_iterator alt_it = alt->begin(), alt_end = alt->end();
+        if( !base ) {
+            // base sequence is empty
+            // NOTE: since base != alt, alt must be defined
+            alt_it = alt->begin();
+            alt_end = alt->end();
+
+            // slight "trick" to cause following loop to iterate only
+            // over the alt sequence
+            base_it = alt->end();
+            base_end = alt->end();
+
+            m_res_seq.resize( alt->max_size(), false );
+        } else if( !alt ) {
+            // alt sequence is empty
+            base_it = base->begin();
+            base_end = base->end();
+
+            // slight "trick" to cause following loop to iterate only
+            // over the base sequence
+            alt_it = base->end();
+            alt_end = base->end();
+
+            m_res_seq.resize( base->max_size(), false );
+        } else {
+            assert( base->isSameFamily( alt ) );
+
+            base_it = base->begin();
+            base_end = base->end();
+
+            alt_it = alt->begin();
+            alt_end = alt->end();
+
+            m_res_seq.resize( base->max_size(), false );
+        }
+
+
         typename subset_type::block_iterator res_it = m_res_seq.m_bits.begin();
 
         while( true ) {
@@ -45,7 +87,13 @@ public:
                 while( base_it != base_end ) {
                     block_type _base = (*base_it++);
                     recombine( (*res_it), _base, 0, elem_classifier );
-                    ++res_it;
+
+                    if( base_it != base_end ) {
+                        ++res_it;
+                        elem_classifier.updateOffset( block_walker_type::bits_per_block );
+                    } else {
+                        break;
+                    }
                 }
                 break;
             }
@@ -54,15 +102,20 @@ public:
                 while( alt_it != alt_end ) {
                     block_type _alt = (*alt_it++);
                     recombine( (*res_it), 0, _alt, elem_classifier );
-                    ++res_it;
+                    if( alt_it != alt_end ) {
+                        ++res_it;
+                        elem_classifier.updateOffset( block_walker_type::bits_per_block );
+                    } else {
+                        break;
+                    }
                 }
                 break;
             }
 
             block_type _base = (*base_it++), _alt = (*alt_it++);
             recombine( (*res_it), _base, _alt, elem_classifier );
-            ++res_it;
 
+            ++res_it;
             elem_classifier.updateOffset( block_walker_type::bits_per_block );
         }
     }
