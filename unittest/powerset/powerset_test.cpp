@@ -123,9 +123,10 @@ BOOST_AUTO_TEST_CASE( create_powerset_find_or_create_unique ) {
         double k = v / (double) bmap::bits_per_block + (double)s*div_offset;
         test_element te(k, 1.0);
 
-        typename powerset_type::element_index_type idx = ps.find_or_create(te);
+        std::pair< typename powerset_type::element_index_type, bool > res = ps.find_or_create(te);
 
-        BOOST_REQUIRE_MESSAGE( idx == i, "Unexpected index " << idx << " returned for " << i << "(" << k << ")" );
+        BOOST_REQUIRE_MESSAGE( res.second, "Element failed to be added to set" );
+        BOOST_REQUIRE_MESSAGE( res.first == i, "Unexpected index " << res.first << " returned for " << i << "(" << k << ")" );
     }
 
     const unsigned int bpb = sub_div * bmap::bits_per_block;
@@ -148,12 +149,12 @@ BOOST_AUTO_TEST_CASE( create_powerset_find_or_create_collision ) {
 
     double k = 0.5;
     test_element te(k, 1.0);
-    typename powerset_type::element_index_type idx = ps.find_or_create(te);
-    BOOST_REQUIRE_MESSAGE( idx == bmap()(te), "Unexpected index " << idx << " returned for " << 0 << "(" << k << ")" );
+    std::pair< typename powerset_type::element_index_type, bool>  res = ps.find_or_create(te);
+    BOOST_REQUIRE_MESSAGE( res.first == bmap()(te), "Unexpected index " << res.first << " returned for " << 0 << "(" << k << ")" );
 
     test_element te2(k, 2.0);
-    typename powerset_type::element_index_type cidx = ps.find_or_create(te2);
-    BOOST_REQUIRE_MESSAGE( cidx == idx, "Unexpected index " << idx << " returned for " << cidx << "(" << k << ")" );
+    std::pair< typename powerset_type::element_index_type, bool>  res2 = ps.find_or_create(te2);
+    BOOST_REQUIRE_MESSAGE( res2.first == bmap()(te2), "Unexpected index " << res2.first << " returned for " << 0 << "(" << k << ")" );
 }
 
 /**
@@ -178,9 +179,9 @@ BOOST_AUTO_TEST_CASE( create_powerset_find_or_create_order_collision ) {
             test_element te(k, 1.0);
 
             unsigned int e_idx = i + j * bmap::bits_per_block;
-            typename powerset_type::element_index_type idx = ps.find_or_create(te);
+            std::pair< typename powerset_type::element_index_type, bool > res = ps.find_or_create(te);
 
-            BOOST_REQUIRE_MESSAGE( idx == e_idx, "Unexpected index " << idx << " returned for " << e_idx << "(" << k << ")" );
+            BOOST_REQUIRE_MESSAGE( res.first == e_idx, "Unexpected index " << res.first << " returned for " << e_idx << "(" << k << ")" );
         }
     }
 
@@ -222,16 +223,16 @@ BOOST_AUTO_TEST_CASE( create_powerset_subset ) {
     const unsigned int bpb = bmap::bits_per_block;
     BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == bpb, "Unexpected size: " << ps.variable_allocated_size() << "(" << bpb << ")" );
 
-    typename powerset_type::element_index_type idx = ps.find_or_create(te);
-    BOOST_REQUIRE_MESSAGE( idx == bmap()(te), "Unexpected index " << idx << " returned for " << 0 << "(" << k << ")" );
+    std::pair< typename powerset_type::element_index_type, bool> res = ps.find_or_create(te);
+    BOOST_REQUIRE_MESSAGE( res.first == bmap()(te), "Unexpected index " << res.first << " returned for " << 0 << "(" << k << ")" );
 
-    BOOST_REQUIRE_MESSAGE( c->check_state( idx ), "Unexpected state for element after add" );
+    BOOST_REQUIRE_MESSAGE( c->check_state( res.first ), "Unexpected state for element after add" );
 
     c->removeElement( te );
 
     cnt = c->count();
     BOOST_REQUIRE_MESSAGE( cnt == 0, "Element has not been removed to the subset: " << cnt << "(0)" );
-    BOOST_REQUIRE_MESSAGE( !c->check_state( idx ), "Unexpected state for element after remove" );
+    BOOST_REQUIRE_MESSAGE( !c->check_state( res.first ), "Unexpected state for element after remove" );
 }
 
 /**
@@ -307,7 +308,7 @@ BOOST_AUTO_TEST_CASE( create_powerset_prunespace2 ) {
 
     BOOST_REQUIRE_MESSAGE( ps.family_size() == 2, "Subset was not added to family");
 
-    typename powerset_type::element_index_type idx = ps.find_or_create(te);
+    std::pair< typename powerset_type::element_index_type, bool > res = ps.find_or_create(te);
 
     const unsigned int bpb = bmap::bits_per_block;
     size_t fs = ps.free_size();
@@ -321,14 +322,14 @@ BOOST_AUTO_TEST_CASE( create_powerset_prunespace2 ) {
     BOOST_REQUIRE_MESSAGE( fs == bpb, "Unexpected free size " << fs << " (" << bpb << ")" );
     BOOST_REQUIRE_MESSAGE( ps.fixed_size() == 1, "Unexpected fixed size " << ps.fixed_size() << " (1)"); 
 
-    typename powerset_type::element_index_type idx2 = ps.find_or_create(te);
-    BOOST_REQUIRE_MESSAGE( idx != idx2, "After pruning, fixed element has same index.  Should be different");
+    std::pair< typename powerset_type::element_index_type, bool > res2 = ps.find_or_create(te);
+    BOOST_REQUIRE_MESSAGE( res.first != res2.first, "After pruning, fixed element has same index.  Should be different");
 
-    BOOST_REQUIRE_MESSAGE( idx2 == ps.encode_index(0, true), "Unxpected fixed index " << idx2 << " (" << ps.encode_index(0, true) << ")");
+    BOOST_REQUIRE_MESSAGE( res2.first == ps.encode_index(0, true), "Unxpected fixed index " << res2.first << " (" << ps.encode_index(0, true) << ")");
 
-    bool is_fixed  = ps.decode_index(idx2);
+    bool is_fixed  = ps.decode_index(res2.first);
     BOOST_REQUIRE_MESSAGE( is_fixed, "Unexpected state decoding false (true)" );
-    BOOST_REQUIRE_MESSAGE( idx2 == 0, "Unexpected index decoded " << idx2 << " (0)");
+    BOOST_REQUIRE_MESSAGE( res2.first == 0, "Unexpected index decoded " << res2.first << " (0)");
 }
 
 /**
