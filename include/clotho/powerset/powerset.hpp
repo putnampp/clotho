@@ -67,7 +67,12 @@ public:
 //    void   copy_subset( subset_ptr t );
 //    void   release_subset( subset_ptr t );
 
-    element_index_type find_or_create( const value_type & v );
+/**
+ *  Returns the element_index of the value, and if it was newly
+ *
+ *  bool - true if newly created, false if already exists
+ */
+    std::pair< element_index_type, bool > find_or_create( const value_type & v );
 
     element_index_type find_by_key( const key_type & k );
     element_index_type find( const value_type & v );
@@ -279,16 +284,17 @@ typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::clone_subs
 //}
 
 TEMPLATE_HEADER
-typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::find_or_create( const value_type & v ) {
+std::pair< typename POWERSET_SPECIALIZATION::element_index_type, bool > POWERSET_SPECIALIZATION::find_or_create( const value_type & v ) {
+    std::pair< element_index_type, bool > res = std::make_pair( npos, false );
     lookup_iterator it = m_lookup.find( m_elem_keyer( v ) );
 
-    element_index_type res = npos;
     if( it == m_lookup.end() ) {
         // DNE
         //
-        res = addElement( v );
+        res.first = addElement( v );
+        res.second = true;
     } else {
-        res = it->second;
+        res.first = it->second;
     }
     return res;
 }
