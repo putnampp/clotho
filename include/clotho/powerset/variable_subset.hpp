@@ -168,14 +168,14 @@ bool    SUBSET_SPECIALIZATION::operator[]( const value_type & elem ) {
 
 TEMPLATE_HEADER
 void    SUBSET_SPECIALIZATION::addElement( const value_type & elem ) {
-    typename powerset_type::element_index_type idx = m_parent->find_or_create( elem );
+    std::pair< typename powerset_type::element_index_type, bool > res = m_parent->find_or_create( elem );
 
-    if( idx == powerset_type::npos ) return;
+    if( res.first == powerset_type::npos ) return;
 
-    if( idx >= m_data.size() ) {
-        m_data.resize( idx + 1, false );
+    if( res.first >= m_data.size() ) {
+        m_data.resize( res.first + 1, false );
     }
-    m_data[ idx ] = true;
+    m_data[ res.first ] = true;
 }
 
 TEMPLATE_HEADER
@@ -204,7 +204,7 @@ size_t SUBSET_SPECIALIZATION::size() const {
 
 TEMPLATE_HEADER
 size_t SUBSET_SPECIALIZATION::max_size() const {
-    return m_parent->variable_size();
+    return m_parent->variable_allocated_size();
 }
 
 TEMPLATE_HEADER
