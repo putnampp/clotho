@@ -19,15 +19,15 @@ typedef typename subset_type::powerset_type powerset_type;
  * elements from alt
  */
 template < class Block >
-struct simple_classifier {
+struct odd_from_base_classifier {
     typedef Block block_type;
 
-    simple_classifier() : m_res(0) {}
+    odd_from_base_classifier() : m_res(0) {}
 
 /**
  * Does nothing
  */
-    inline void updateOffset( unsigned int idx ) {}
+    inline void updateOffset( unsigned int idx ) { return; }
 
 /**
  * Classifies all indices which are odd as being (1 - base)
@@ -55,7 +55,7 @@ struct simple_classifier {
     block_type m_res;
 };
 
-typedef simple_classifier< Block > classifier_type;
+typedef odd_from_base_classifier< Block > classifier_type;
 typedef clotho::recombine::recombination< subset_type, classifier_type > recombination_type;
 
 /**
@@ -132,6 +132,53 @@ typedef range_classifier< Block > classifier2_type;
 typedef clotho::recombine::recombination< subset_type, classifier2_type > recombination2_type;
 
 BOOST_AUTO_TEST_SUITE( test_recombination )
+
+/**
+ * Testing odd_from_base_classifier recombination with empty sequences (NULL shared_ptr)
+ *
+ * Case 1 - recombines empty sequences, 
+ * Case 2 & 3 - recombine empty sequence with sequence with single element (and vice versa).
+ * Case 4 - recombine same sequence with element
+ */
+BOOST_AUTO_TEST_CASE( recombine_empty ) {
+    powerset_type ps;
+
+    typename powerset_type::subset_ptr p0 = ps.empty_set();
+    typename powerset_type::subset_ptr p1 = ps.empty_set();
+    typename powerset_type::subset_ptr c1_exp = ps.create_subset();
+    //
+
+    recombination_type rec;
+    classifier_type cfier;
+
+    rec( p0, p1, cfier );
+
+    BOOST_REQUIRE_MESSAGE( rec.isEmpty(), "Expected that with p0 and p1 being empty, recombination would be empty");
+    BOOST_REQUIRE_MESSAGE( rec.isMatchBase(), "Expected that with p0 and p1 being empty, recombination should match base");
+    BOOST_REQUIRE_MESSAGE( rec.isMatchAlt(), "Expected that with p0 and p1 being empty, recombination should match alt");
+
+    test_element te( 0.5, 1.0 );
+    c1_exp->addElement( te );
+
+    rec( p0, c1_exp, cfier );
+
+    BOOST_REQUIRE_MESSAGE( !rec.isEmpty(), "Nothing recombined. Expected that with base is empty, even element from c1_exp." );
+    BOOST_REQUIRE_MESSAGE( rec.isMatchAlt(), "Expected that with base is empty, even element from c1_exp." );
+
+    rec( c1_exp, p0, cfier );
+
+    BOOST_REQUIRE_MESSAGE( rec.isEmpty(), "Expected that with base having only even element, and alt being empty, recombination should empty but is not." );
+    BOOST_REQUIRE_MESSAGE( rec.isMatchAlt(), "Since alt is empty and recombination results in empty, rec should also match alt. However, this is not the case" );
+
+    rec( c1_exp, c1_exp, cfier );
+    BOOST_REQUIRE_MESSAGE( !rec.isEmpty(), "Expected that recombination of c1_exp with itself should not be empty." );
+    BOOST_REQUIRE_MESSAGE( rec.isMatchBase(), "Expected that recombination of c1_exp with itself should match base");
+    BOOST_REQUIRE_MESSAGE( rec.isMatchAlt(), "Expected that recombination  of c1_exp with itself should match alt");
+
+    typename powerset_type::subset_ptr c = ps.create_subset( *rec.getResultSequence() );
+
+    BOOST_REQUIRE_MESSAGE( *c == *c1_exp , "Expected that c == c1_exp");   
+}
 
 /**
  * Simple classifier test
