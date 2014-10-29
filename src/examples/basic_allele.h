@@ -16,8 +16,16 @@ struct basic_allele {
     virtual ~basic_allele() {}
 };
 
-bool operator==( const basic_allele & lhs, const basic_allele & rhs ) {
+inline bool operator<( const basic_allele & lhs, const basic_allele & rhs ) {
+    return lhs.m_key < rhs.m_key;
+}
+
+inline bool operator==( const basic_allele & lhs, const basic_allele & rhs ) {
     return (lhs.m_key == rhs.m_key);
+}
+
+inline bool operator!=( const basic_allele & lhs, const basic_allele & rhs ) {
+    return (lhs.m_key != rhs.m_key);
 }
 
 std::ostream & operator<<( std::ostream & lhs, const basic_allele & rhs ) {
