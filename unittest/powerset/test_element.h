@@ -37,6 +37,8 @@ struct element_key_of< test_element > {
     typedef double key_type;
 
     inline key_type operator()( const test_element & t ) { return t.k; }
+
+    static key_type get_key( const test_element & t ) { return t.k; }
 };
 
 template <>
@@ -44,6 +46,8 @@ struct normalized_key< test_element > : public key_range< > {
     inline double operator()( const test_element & elem ) {
         return elem.k;
     }
+
+    static double get_key( const test_element & elem ) { return elem.k; }
 };
 
 }   // namespace powersets
