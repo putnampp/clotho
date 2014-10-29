@@ -18,6 +18,8 @@ extern const string FOUNDER_SIZE_K;
 extern const string MUTATION_RATE_K;
 extern const string RECOMBINATION_RATE_K;
 
+extern const string REPEAT_K;
+
 extern const string RNG_SEED_K;
 
 /// I/O OPTION KEYS

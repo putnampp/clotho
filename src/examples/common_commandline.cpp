@@ -15,6 +15,7 @@ const string GENERATIONS_K = "generations";
 const string FOUNDER_SIZE_K = "founder-size";
 const string MUTATION_RATE_K = "mu";
 const string RECOMBINATION_RATE_K = "rho";
+const string REPEAT_K = "repeat";
 const string RNG_SEED_K = "seed";
 
 /// I/O OPTION KEYS
@@ -34,6 +35,7 @@ int parse_commandline( int argc, char ** argv, po::variables_map & vm ) {
     ( (FOUNDER_SIZE_K+ ",n").c_str(), po::value< unsigned int >()->default_value(DEFAULT_POPULATION_SIZE), "Founding population size" )
     ( (MUTATION_RATE_K + ",m").c_str(), po::value< double >()->default_value( DEFAULT_MUTATION_RATE ), "Mutation rate" )
     ( (RECOMBINATION_RATE_K + ",r").c_str(), po::value< double>()->default_value( DEFAULT_RECOMB_RATE ), "Recombination rate" )
+    ( (REPEAT_K + ",R").c_str(), po::value< unsigned int >()->default_value( 1 ), "Repetitions" )
     ( (RNG_SEED_K + ",s").c_str(), po::value< unsigned int >()->default_value( DEFAULT_SEED ), "Random number generator initial seed value" )
     ;
 
@@ -73,6 +75,7 @@ int parse_commandline( int argc, char ** argv, simulation_config & cfg ) {
     } else {
         cfg.nGen = vm[ GENERATIONS_K ].as< unsigned int >();
         cfg.nPop = vm[ FOUNDER_SIZE_K ].as< unsigned int >();
+        cfg.nRep = vm[ REPEAT_K ].as< unsigned int >();
 
         cfg.mu = vm[ MUTATION_RATE_K ].as< double >();
         cfg.rho = vm[ RECOMBINATION_RATE_K ].as< double >();
