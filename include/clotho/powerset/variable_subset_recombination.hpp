@@ -8,8 +8,9 @@
 #include <algorithm>
 
 #include "clotho/recombination/recombination_def.hpp"
+#include "clotho/recombination/bit_block_recombiner.hpp"
+
 #include "clotho/powerset/variable_subset.hpp"
-#include "clotho/utility/bit_walker.hpp"
 
 namespace clotho {
 namespace recombine {
@@ -22,12 +23,15 @@ public:
 
     typedef Classifier                                                  classifier_type;
 
+    typedef clotho::recombine::bit_block_recombiner< Classifier >        recombiner_type;
+
     typedef typename subset_type::bitset_type                           bit_sequence_type;
     typedef Block                                                       block_type;
 
-    typedef clotho::utility::block_walker< block_type, unsigned short > block_walker_type;
 
-    void operator()( sequence_type base, sequence_type alt, classifier_type & elem_classifier) {
+    static const unsigned int bits_per_block = sizeof( block_type ) * 8;
+
+    void operator()( sequence_type base, sequence_type alt, classifier_type & elem_classifier ) {
         m_match_base = m_match_alt = m_empty = true;
         m_res_seq.reset();
 
@@ -44,6 +48,8 @@ public:
         typename subset_type::cblock_iterator base_it, base_end;
         typename subset_type::cblock_iterator alt_it, alt_end;
 
+        typename subset_type::powerset_type::cvariable_iterator elem_it;
+
         if( !base ) {
             // base sequence is empty
             // NOTE: since base != alt, alt must be defined
@@ -54,6 +60,8 @@ public:
             // over the alt sequence
             base_it = alt->end();
             base_end = alt->end();
+
+            elem_it = alt->getParent()->variable_begin();
 
             m_res_seq.resize( alt->max_size(), false );
         } else if( !alt ) {
@@ -66,6 +74,8 @@ public:
             alt_it = base->end();
             alt_end = base->end();
 
+            elem_it = base->getParent()->variable_begin();
+
             m_res_seq.resize( base->max_size(), false );
         } else {
             assert( base->isSameFamily( alt ) );
@@ -76,24 +86,27 @@ public:
             alt_it = alt->begin();
             alt_end = alt->end();
 
+            elem_it = base->getParent()->variable_begin();
+
             m_res_seq.resize( base->max_size(), false );
         }
 
-
         typename subset_type::block_iterator res_it = m_res_seq.m_bits.begin();
+
+        recombiner_type  brecombiner( elem_classifier );
 
         while( true ) {
             if( alt_it == alt_end ) {
                 while( base_it != base_end ) {
                     block_type _base = (*base_it++);
-                    recombine( (*res_it), _base, 0, elem_classifier );
+                    block_type r = brecombiner( _base, (block_type)0, elem_it );
 
-                    if( base_it != base_end ) {
-                        ++res_it;
-                        elem_classifier.updateOffset( block_walker_type::bits_per_block );
-                    } else {
-                        break;
-                    }
+                    m_match_base = (m_match_base && (_base == r) );
+                    m_match_alt = (m_match_alt && ((block_type)0 == r) );
+                    m_empty = (m_empty && (r == (block_type)0) );
+
+                    (*res_it++) = r;
+                    elem_it += bits_per_block;
                 }
                 break;
             }
@@ -101,22 +114,27 @@ public:
             if( base_it == base_end ) {
                 while( alt_it != alt_end ) {
                     block_type _alt = (*alt_it++);
-                    recombine( (*res_it), 0, _alt, elem_classifier );
-                    if( alt_it != alt_end ) {
-                        ++res_it;
-                        elem_classifier.updateOffset( block_walker_type::bits_per_block );
-                    } else {
-                        break;
-                    }
+                    block_type r = brecombiner( (block_type)0, _alt, elem_it );
+
+                    m_match_base = (m_match_base && ((block_type)0 == r) );
+                    m_match_alt = (m_match_alt && (_alt == r) );
+                    m_empty = (m_empty && (r == (block_type)0) );
+
+                    (*res_it++) = r;
+                    elem_it += bits_per_block;
                 }
                 break;
             }
 
             block_type _base = (*base_it++), _alt = (*alt_it++);
-            recombine( (*res_it), _base, _alt, elem_classifier );
+            block_type r = brecombiner( _base, _alt, elem_it );
 
-            ++res_it;
-            elem_classifier.updateOffset( block_walker_type::bits_per_block );
+            m_match_base = (m_match_base && (_base == r) );
+            m_match_alt = (m_match_alt && (_alt == r) );
+            m_empty = (m_empty && (r == 0) );
+
+            (*res_it++) = r;
+            elem_it += bits_per_block;
         }
     }
 
@@ -125,23 +143,6 @@ public:
     bool isMatchBase() const { return m_match_base; }
     bool isMatchAlt() const { return m_match_alt; }
     bool isEmpty() const    { return m_empty; }
-
-    void recombine( block_type & res, const block_type base, const block_type alt, classifier_type & elem_classifier ) {
-        block_type hom = base & alt;
-        block_type hets = base ^ alt;
-
-        elem_classifier.resetResult();
-        block_walker_type::apply( hets, elem_classifier );
-
-        block_type base_mask = elem_classifier.getResult();
-        block_type alt_mask = ((~base_mask & hets) & alt);
-
-        res =(hom | (alt_mask | (base_mask & base)));
-
-        m_match_base = (m_match_base && (base == res) );
-        m_match_alt = (m_match_alt && (alt == res) );
-        m_empty = (m_empty && (res == 0) );
-    }
 
     virtual ~recombination() {}
 protected:
