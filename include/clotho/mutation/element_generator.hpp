@@ -12,6 +12,10 @@ public:
     typedef Element                         element_type;
     typedef Generator                       generator_type;
 
+    element_generator() :
+        m_gen()
+    {}
+
     element_generator( generator_type & g ) :
         m_gen( g )
     {}
