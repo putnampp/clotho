@@ -2,7 +2,8 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
 
 LIST(APPEND POWERSET_SRCS powerset_test.cpp )
 LIST(APPEND POWERSET_SRCS powerset_test2.cpp )
-LIST(APPEND POWERSET_SRCS recombination_test.cpp )
+#LIST(APPEND POWERSET_SRCS recombination_test.cpp )
+LIST(APPEND POWERSET_SRCS recombination_test2.cpp )
 LIST(APPEND POWERSET_SRCS element_generator_test.cpp )
 
 ADD_LIBRARY(${PROJECT_NAME}_powerset_test SHARED ${POWERSET_SRCS} )
