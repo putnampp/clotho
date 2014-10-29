@@ -17,6 +17,7 @@ extern const string   MODEL_K;
 extern const string   SIZE_K;
 extern const string   SEED_K;
 extern const string   GENERATOR_K;
+extern const string   REPETITION_K;
 extern const string   RATE_PER_REGION_K;
 extern const string   RATE_PER_BASE_K;
 extern const string   BASE_PER_REGION_K;

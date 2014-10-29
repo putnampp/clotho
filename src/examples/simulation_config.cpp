@@ -36,6 +36,10 @@ void parse_config( simulation_config & cfg ) {
 
     oss << CONFIG_BLOCK_K << "." << MUT_BLOCK_K << "." << RATE_PER_REGION_K;
     cfg.mu = jfile.get< double >( oss.str(), DEFAULT_MUTATION_RATE );
+
+    RESET_SS(oss)
+    oss << CONFIG_BLOCK_K << "." << REPETITION_K;
+    cfg.nRep = jfile.get< unsigned int >( oss.str(), 1 );
 }
 
 void add_config( boost::property_tree::ptree & log, const simulation_config & sim ) {
@@ -48,6 +52,10 @@ void add_config( boost::property_tree::ptree & log, const simulation_config & si
     RESET_SS( oss )
     oss << CONFIG_BLOCK_K << ".output_path";
     log.put( oss.str(), sim.out_path );
+
+    RESET_SS(oss)
+    oss << CONFIG_BLOCK_K << "." << REPETITION_K;
+    log.put( oss.str(), sim.nRep );
 
     RESET_SS( oss )
     oss << CONFIG_BLOCK_K << "." << RNG_BLOCK_K << "." << SEED_K;

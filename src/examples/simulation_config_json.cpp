@@ -12,6 +12,7 @@ const string   REGION_BLOCK_K = "region";
 const string   MODEL_K = "model";
 const string   SIZE_K = "size";
 const string   SEED_K = "seed";
+const string   REPETITION_K = "repeat";
 const string   GENERATOR_K = "generator";
 const string   RATE_PER_REGION_K = "rate_per_region";
 const string   RATE_PER_BASE_K = "rate_per_base";

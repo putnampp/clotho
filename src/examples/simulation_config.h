@@ -9,15 +9,16 @@
 #include "simulation_config_json.h"
 
 struct simulation_config {
-    unsigned int    nGen, nPop;
+    unsigned int    nGen, nPop, nRep;
     double          mu, rho;
 
     unsigned int    seed;
 
     string          cfg_path, out_path;
-    simulation_config( unsigned int gen = 0, unsigned int pop = 0, double m = 0.0, double r = 0.0, unsigned int s = 0, const string & cpath = "", const string & opath = "" ) :
+    simulation_config( unsigned int gen = 0, unsigned int pop = 0, unsigned int rep = 0, double m = 0.0, double r = 0.0, unsigned int s = 0, const string & cpath = "", const string & opath = "" ) :
         nGen(gen)
         , nPop(pop)
+        , nRep(rep)
         , mu(m)
         , rho(r)
         , seed(s)
@@ -28,6 +29,7 @@ struct simulation_config {
     simulation_config( const simulation_config & s) :
         nGen(s.nGen)
         , nPop(s.nPop)
+        , nRep(s.nRep)
         , mu(s.mu)
         , rho(s.rho)
         , seed(s.seed)
