@@ -55,6 +55,10 @@ public:
     typedef std::shared_ptr< Subset >            subset_ptr;
     typedef boost::dynamic_bitset< block_type > bitset_type;
 
+    typedef std::set< subset_ptr >       family_type;
+    typedef typename family_type::iterator  family_iterator;
+    typedef typename family_type::const_iterator  cfamily_iterator;
+
     powerset();
 
     subset_ptr   empty_set() const;
@@ -90,6 +94,12 @@ public:
     variable_iterator          variable_end();
     cvariable_iterator    variable_end() const;
 
+    family_iterator     family_begin();
+    cfamily_iterator    family_begin() const;
+
+    family_iterator     family_end();
+    cfamily_iterator    family_end() const;
+
     /**
      * Returns whether the set is empty
      */
@@ -124,6 +134,10 @@ public:
      * Returns the number of subsets of the powerset exist
      */
     size_t family_size() const;
+
+    bool isFamilyMember( subset_ptr p ) const;
+
+    void clear();
 
 /// Compact space
     void pruneSpace();
@@ -181,13 +195,8 @@ CLOTHO_PROTECTED
     set_type            m_fixed, m_variable;
     lookup_table_type   m_lookup;
 
-//    const subset_type         m_empty_set;
 
-    typedef std::set< subset_ptr >       family_type;
-    typedef std::vector< subset_ptr >    garbage_subsets;
-    typedef typename family_type::iterator  family_iterator;
     family_type m_family;
-    garbage_subsets m_garbage;
 
 //    unsigned int m_family_size; // running total number of active subset references
 
@@ -472,6 +481,11 @@ size_t POWERSET_SPECIALIZATION::family_size() const {
 }
 
 TEMPLATE_HEADER
+bool POWERSET_SPECIALIZATION::isFamilyMember( subset_ptr p) const {
+    return m_family.find(p) != m_family.end();
+}
+
+TEMPLATE_HEADER
 size_t POWERSET_SPECIALIZATION::free_size() const {
     return m_free_list.count();
 }
@@ -609,6 +623,26 @@ typename POWERSET_SPECIALIZATION::variable_iterator POWERSET_SPECIALIZATION::var
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::cvariable_iterator POWERSET_SPECIALIZATION::variable_end() const {
     return m_variable.end();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::family_iterator POWERSET_SPECIALIZATION::family_begin() {
+    return m_family.begin();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::cfamily_iterator POWERSET_SPECIALIZATION::family_begin() const {
+    return m_family.begin();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::family_iterator POWERSET_SPECIALIZATION::family_end() {
+    return m_family.end();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::cfamily_iterator POWERSET_SPECIALIZATION::family_end() const {
+    return m_family.end();
 }
 
 TEMPLATE_HEADER
