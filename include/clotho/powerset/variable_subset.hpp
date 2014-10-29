@@ -26,12 +26,13 @@ public:
 
     friend class clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer >;
 
-    //self_type *   clone() const;
-//        self_type *   copy();
+    pointer clone() const;
 
-//        void                release();
-//        unsigned int        ref_count() const;
-//
+    void    copy();
+    void                release();
+
+    unsigned int        ref_count() const;
+
     powerset_type *     getParent() const;
 
     bool                isSameFamily( pointer other ) const;
@@ -137,24 +138,27 @@ bool SUBSET_SPECIALIZATION::isSameFamily( pointer p ) const {
     return this->m_parent == p->m_parent;
 }
 
-//TEMPLATE_HEADER
-//SUBSET_SPECIALIZATION * SUBSET_SPECIALIZATION::clone() const {
-//    variable_subset * sub = this->m_parent->clone_subset( this );
-//
-//    return sub;
-//}
+TEMPLATE_HEADER
+typename SUBSET_SPECIALIZATION::pointer SUBSET_SPECIALIZATION::clone() const {
+    pointer sub = this->m_parent->create_subset( m_data );
+    return sub;
+}
 
-//TEMPLATE_HEADER
-//SUBSET_SPECIALIZATION * SUBSET_SPECIALIZATION::copy() {
-//    m_parent->copy_subset( this );
-//    return this;
-//}
+TEMPLATE_HEADER
+void SUBSET_SPECIALIZATION::copy() {
+    ++m_ref_count;
+}
 
-//TEMPLATE_HEADER
-//void SUBSET_SPECIALIZATION::release() {
-//    m_parent->release_subset( this );
-//}
-//
+TEMPLATE_HEADER
+void SUBSET_SPECIALIZATION::release() {
+    --m_ref_count;
+}
+
+TEMPLATE_HEADER
+unsigned int SUBSET_SPECIALIZATION::ref_count() const {
+    return m_ref_count;
+}
+
 
 TEMPLATE_HEADER
 bool    SUBSET_SPECIALIZATION::operator[]( const value_type & elem ) {
