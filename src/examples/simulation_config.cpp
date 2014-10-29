@@ -40,6 +40,10 @@ void parse_config( simulation_config & cfg ) {
     RESET_SS(oss)
     oss << CONFIG_BLOCK_K << "." << REPETITION_K;
     cfg.nRep = jfile.get< unsigned int >( oss.str(), 1 );
+
+    RESET_SS(oss)
+    oss << CONFIG_BLOCK_K << "." << LOG_FREQUENCY_K;
+    cfg.log_period = jfile.get< unsigned int >( oss.str(), -1);
 }
 
 void add_config( boost::property_tree::ptree & log, const simulation_config & sim ) {
@@ -56,6 +60,10 @@ void add_config( boost::property_tree::ptree & log, const simulation_config & si
     RESET_SS(oss)
     oss << CONFIG_BLOCK_K << "." << REPETITION_K;
     log.put( oss.str(), sim.nRep );
+
+    RESET_SS(oss)
+    oss << CONFIG_BLOCK_K << "." << LOG_FREQUENCY_K;
+    log.put( oss.str(), sim.log_period);
 
     RESET_SS( oss )
     oss << CONFIG_BLOCK_K << "." << RNG_BLOCK_K << "." << SEED_K;

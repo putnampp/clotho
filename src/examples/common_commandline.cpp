@@ -17,6 +17,7 @@ const string MUTATION_RATE_K = "mu";
 const string RECOMBINATION_RATE_K = "rho";
 const string REPEAT_K = "repeat";
 const string RNG_SEED_K = "seed";
+const string LOG_PERIOD_K = "log-period";
 
 /// I/O OPTION KEYS
 const string OUTPUT_K = "output";
@@ -31,12 +32,13 @@ int parse_commandline( int argc, char ** argv, po::variables_map & vm ) {
 
     po::options_description clotho_app( "Simulation Parameters" );
     clotho_app.add_options()
-    ( (GENERATIONS_K + ",p").c_str(), po::value<unsigned int>()->default_value(DEFAULT_GENERATIONS), "Simulate a number of generations.")
-    ( (FOUNDER_SIZE_K+ ",n").c_str(), po::value< unsigned int >()->default_value(DEFAULT_POPULATION_SIZE), "Founding population size" )
+    ( (GENERATIONS_K + ",g").c_str(), po::value<unsigned int>()->default_value(DEFAULT_GENERATIONS), "Simulate a number of generations.")
+    ( (FOUNDER_SIZE_K+ ",p").c_str(), po::value< unsigned int >()->default_value(DEFAULT_POPULATION_SIZE), "Founding population size" )
     ( (MUTATION_RATE_K + ",m").c_str(), po::value< double >()->default_value( DEFAULT_MUTATION_RATE ), "Mutation rate" )
     ( (RECOMBINATION_RATE_K + ",r").c_str(), po::value< double>()->default_value( DEFAULT_RECOMB_RATE ), "Recombination rate" )
     ( (REPEAT_K + ",R").c_str(), po::value< unsigned int >()->default_value( 1 ), "Repetitions" )
     ( (RNG_SEED_K + ",s").c_str(), po::value< unsigned int >()->default_value( DEFAULT_SEED ), "Random number generator initial seed value" )
+    ( (LOG_PERIOD_K + ",l").c_str(), po::value< unsigned int >()->default_value( -1 ), "Number of generations between population stats calculations. (-1 => only final population)" )
     ;
 
     po::options_description io_param("I/O parameters");
@@ -81,6 +83,7 @@ int parse_commandline( int argc, char ** argv, simulation_config & cfg ) {
         cfg.rho = vm[ RECOMBINATION_RATE_K ].as< double >();
 
         cfg.seed = vm[ RNG_SEED_K ].as< unsigned int >();
+        cfg.log_period = vm[ LOG_PERIOD_K ].as< unsigned int >();
     }
 
     return res;

@@ -15,7 +15,8 @@ struct simulation_config {
     unsigned int    seed;
 
     string          cfg_path, out_path;
-    simulation_config( unsigned int gen = 0, unsigned int pop = 0, unsigned int rep = 0, double m = 0.0, double r = 0.0, unsigned int s = 0, const string & cpath = "", const string & opath = "" ) :
+    unsigned int    log_period;
+    simulation_config( unsigned int gen = 0, unsigned int pop = 0, unsigned int rep = 0, double m = 0.0, double r = 0.0, unsigned int s = 0, const string & cpath = "", const string & opath = "", unsigned int log = 0 ) :
         nGen(gen)
         , nPop(pop)
         , nRep(rep)
@@ -24,6 +25,7 @@ struct simulation_config {
         , seed(s)
         , cfg_path(cpath)
         , out_path(opath)
+        , log_period(log)
     {}
 
     simulation_config( const simulation_config & s) :
@@ -35,6 +37,7 @@ struct simulation_config {
         , seed(s.seed)
         , cfg_path(s.cfg_path)
         , out_path(s.out_path)
+        , log_period(s.log_period)
     {}
 };
 

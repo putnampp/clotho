@@ -21,6 +21,7 @@ extern const string   REPETITION_K;
 extern const string   RATE_PER_REGION_K;
 extern const string   RATE_PER_BASE_K;
 extern const string   BASE_PER_REGION_K;
+extern const string   LOG_FREQUENCY_K;
 
 // optimizations
 extern const string   OPT_BLOCK_K;

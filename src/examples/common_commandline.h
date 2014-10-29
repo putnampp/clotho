@@ -21,6 +21,7 @@ extern const string RECOMBINATION_RATE_K;
 extern const string REPEAT_K;
 
 extern const string RNG_SEED_K;
+extern const string LOG_PERIOD_K;
 
 /// I/O OPTION KEYS
 extern const string OUTPUT_K;
