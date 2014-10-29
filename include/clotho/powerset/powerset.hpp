@@ -62,7 +62,7 @@ public:
     subset_ptr  create_subset();
     subset_ptr  create_subset( const typename subset_type::bitset_type & b );
 
-    subset_ptr  clone_subset( subset_ptr t );
+//    subset_ptr  clone_subset( subset_ptr t );
 
 //    void   copy_subset( subset_ptr t );
 //    void   release_subset( subset_ptr t );
@@ -196,7 +196,6 @@ CLOTHO_PROTECTED
     bitset_type     m_variable_mask, m_free_ranges;
 
     block_map_type      m_block_map;
-    element_keyer_type   m_elem_keyer;
 
 private:
     typedef typename bitset_type::block_type bitset_block_type;
@@ -256,15 +255,15 @@ typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::create_sub
     return sub;
 }
 
-TEMPLATE_HEADER
-typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::clone_subset( subset_ptr s ) {
-    subset_ptr sub( new subset_type( *s ));
-
-    m_family.insert( sub );
+//TEMPLATE_HEADER
+//typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::clone_subset( subset_ptr s ) {
+//    subset_ptr sub( new subset_type( *s ));
+//
+//    m_family.insert( sub );
 //    ++m_family_size;
-
-    return sub;
-}
+//
+//    return sub;
+//}
 
 //TEMPLATE_HEADER
 //void POWERSET_SPECIALIZATION::copy_subset( subset_type * s ) {
@@ -286,7 +285,7 @@ typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::clone_subs
 TEMPLATE_HEADER
 std::pair< typename POWERSET_SPECIALIZATION::element_index_type, bool > POWERSET_SPECIALIZATION::find_or_create( const value_type & v ) {
     std::pair< element_index_type, bool > res = std::make_pair( npos, false );
-    lookup_iterator it = m_lookup.find( m_elem_keyer( v ) );
+    lookup_iterator it = m_lookup.find( element_keyer_type::get_key( v ) );
 
     if( it == m_lookup.end() ) {
         // DNE
@@ -308,7 +307,7 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::fi
 
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::find( const value_type & v ) {
-    lookup_iterator it = m_lookup.find( m_elem_keyer( v ) );
+    lookup_iterator it = m_lookup.find( element_keyer_type::get_key( v ) );
 
     return (( it == m_lookup.end() ) ? npos : it->second);
 }
@@ -319,18 +318,18 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::ad
 
     if( idx == npos ) {
         idx = appendElement(v);
-        m_lookup.insert( std::make_pair( m_elem_keyer( v ), encode_index(idx, false)));
+        m_lookup.insert( std::make_pair( element_keyer_type::get_key( v ), encode_index(idx, false)));
     } else {
         assert( idx < m_variable.size());
 
         if( m_variable[idx] != v ) {
-            lookup_iterator it = m_lookup.find( m_elem_keyer( m_variable[idx] ) );
+            lookup_iterator it = m_lookup.find( element_keyer_type::get_key( m_variable[idx] ) );
             if( it != m_lookup.end() && it->second == idx ) {
                 // if the element was lost
                 m_lookup.erase( it );
             }
 
-            m_lookup.insert( std::make_pair( m_elem_keyer(v), encode_index(idx, false)));
+            m_lookup.insert( std::make_pair( element_keyer_type::get_key(v), encode_index(idx, false)));
         }
         m_variable[ idx ] = v;
     }
@@ -620,7 +619,7 @@ void POWERSET_SPECIALIZATION::updateFixed() {
         element_index_type eid = m_fixed.size();
         m_fixed.push_back( m_variable[ idx ] );
 
-        lookup_iterator it = m_lookup.find( m_elem_keyer( m_fixed.back() ) );
+        lookup_iterator it = m_lookup.find( element_keyer_type::get_key( m_fixed.back() ) );
         assert( it != m_lookup.end() );
 
         it->second = encode_index( eid, true );
