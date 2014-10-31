@@ -67,7 +67,6 @@ BOOST_AUTO_TEST_CASE( recombine_empty ) {
     typename powerset_type::subset_ptr p0 = ps.empty_set();
     typename powerset_type::subset_ptr p1 = ps.empty_set();
     typename powerset_type::subset_ptr c1_exp = ps.create_subset();
-    //
 
     recombination_type rec;
     classifier_type cfier;
