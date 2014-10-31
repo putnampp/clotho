@@ -2,10 +2,11 @@ INCLUDE_DIRECTORIES(${${PROJECT_NAME}_INCLUDE_DIR})
 
 LIST(APPEND DIRS powerset )
 LIST(APPEND DIRS utility )
+LIST(APPEND DIRS fitness )
 
 FOREACH( D ${DIRS} )
     ADD_SUBDIRECTORY( ${D} )
 ENDFOREACH( D )
 
 ADD_EXECUTABLE(test_main test_main.cpp)
-TARGET_LINK_LIBRARIES( test_main ${COMMON_LIBRARIES} ${PROJECT_NAME}_powerset_test ${PROJECT_NAME}_utility ${PROJECT_NAME}_utility_test)
+TARGET_LINK_LIBRARIES( test_main ${COMMON_LIBRARIES} ${PROJECT_NAME}_powerset_test ${PROJECT_NAME}_utility ${PROJECT_NAME}_utility_test ${PROJECT_NAME}_fitness_test)
