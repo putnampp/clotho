@@ -369,16 +369,4 @@ BOOST_AUTO_TEST_CASE( subset_addElement ) {
     BOOST_REQUIRE_MESSAGE( ps.variable_allocated_size() == e_size, "Unexpected size: " << ps.variable_allocated_size() << "(" << e_size << ")" );
 }
 
-/**
- *
- */
-BOOST_AUTO_TEST_CASE( subset_copy ) {
-}
-
-/**
- *
- */
-BOOST_AUTO_TEST_CASE( subset_clone ) {
-}
-
 BOOST_AUTO_TEST_SUITE_END()
