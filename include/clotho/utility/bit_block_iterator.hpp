@@ -18,16 +18,15 @@ public:
 
     bit_block_iterator( block_type b = (block_type)0) :
         m_val(b)
-        , m_index(0)
-    {
-        if( (m_val & (block_type)1) == 0) 
+        , m_index(0) {
+        if( (m_val & (block_type)1) == 0)
             next();
     }
 
     bit_block_iterator( const bit_block_iterator< Block > & rhs ) :
         m_val( rhs.m_val )
-        , m_index( rhs.m_index )
-    {}
+        , m_index( rhs.m_index ) {
+    }
 
     bit_block_iterator & operator++() {
         if( m_val )
@@ -38,7 +37,7 @@ public:
     bit_block_iterator operator++(int) {
         bit_block_iterator res(*this);
         this->operator++();
-        return res;       
+        return res;
     }
 
     unsigned int operator*() const {

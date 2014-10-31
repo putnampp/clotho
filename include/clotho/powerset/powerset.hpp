@@ -71,11 +71,11 @@ public:
 //    void   copy_subset( subset_ptr t );
 //    void   release_subset( subset_ptr t );
 
-/**
- *  Returns the element_index of the value, and if it was newly
- *
- *  bool - true if newly created, false if already exists
- */
+    /**
+     *  Returns the element_index of the value, and if it was newly
+     *
+     *  bool - true if newly created, false if already exists
+     */
     std::pair< element_index_type, bool > find_or_create( const value_type & v );
 
     element_index_type find_by_key( const key_type & k );
@@ -145,7 +145,7 @@ public:
     virtual ~powerset();
 
 //protected:
-CLOTHO_PROTECTED
+    CLOTHO_PROTECTED
 
     element_index_type addElement( const value_type & v );
     element_index_type appendElement( const value_type & v );

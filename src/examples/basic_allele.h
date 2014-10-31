@@ -8,10 +8,12 @@ struct basic_allele {
     double m_select, m_dom;
 
     basic_allele( double k, double sel = 0.0, double dom = 1.0 ) :
-        m_key(k), m_select(sel), m_dom(dom)
-    {}
+        m_key(k), m_select(sel), m_dom(dom) {
+    }
 
-    bool isNeutral() const { return (m_select == 0.0); }
+    bool isNeutral() const {
+        return (m_select == 0.0);
+    }
 
     virtual ~basic_allele() {}
 };
@@ -43,14 +45,18 @@ template <>
 struct element_key_of< basic_allele > {
     typedef double key_type;
 
-    static key_type get_key( const basic_allele & e ) { return e.m_key; }
+    static key_type get_key( const basic_allele & e ) {
+        return e.m_key;
+    }
 };
 
 template <>
 struct normalized_key< basic_allele > : public key_range < > {
     typedef double key_type;
 
-    static key_type get_key( const basic_allele & a ) { return a.m_key; }
+    static key_type get_key( const basic_allele & a ) {
+        return a.m_key;
+    }
 };
 
 }   // namespace powersets {

@@ -11,8 +11,8 @@ public:
     typedef typename Set::element_type   element_type;
 
     no_duplicate_pred( set_type * elements ) :
-        m_elements( elements )
-    {}
+        m_elements( elements ) {
+    }
 
     bool operator()( const element_type & elem ) {
         assert(false );

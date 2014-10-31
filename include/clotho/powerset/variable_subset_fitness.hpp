@@ -18,7 +18,7 @@ public:
     typedef clotho::fitness::bit_block_fitness< HetFit, AltHomFit, RefHomFit, Result >  fitness_type;
 
     static const unsigned int bits_per_block = sizeof(Block) * 8;
-    
+
     result_type operator()( result_type f, sequence_type base, sequence_type alt ) {
         if( base == alt ) {
             // pointers match

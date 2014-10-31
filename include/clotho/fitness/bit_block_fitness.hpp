@@ -20,8 +20,8 @@ public:
     bit_block_fitness( const HetFit & hets, const AltHomFit & ahoms, const RefHomFit & rhoms ) :
         m_hets( hets )
         , m_ahoms(ahoms)
-        , m_rhoms(rhoms)
-    {}
+        , m_rhoms(rhoms) {
+    }
 
     template < class Block, class ElementIterator >
     result_type operator()( result_type f, Block b0, Block b1, Block keep_mask, ElementIterator first ) {
@@ -57,7 +57,7 @@ protected:
 
     template < class Block, class ElementIterator, class SetOp >
     inline void computeFitness( result_type & res, Block b0, Block b1, Block keep, ElementIterator first, SetOp * sop, no_fit * op ) { }
-    
+
     HetFit      m_hets;
     AltHomFit   m_ahoms;
     RefHomFit   m_rhoms;
@@ -72,8 +72,8 @@ public:
 
     bit_block_fitness( const HetFit & hets, const HomFit & homs ) :
         m_hets( hets )
-        , m_homs(homs)
-    {}
+        , m_homs(homs) {
+    }
 
     template < class Block, class ElementIterator >
     result_type operator()( result_type f, Block b0, Block b1, Block keep_mask, ElementIterator first ) {

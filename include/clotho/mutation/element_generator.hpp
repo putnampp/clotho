@@ -13,12 +13,12 @@ public:
     typedef Generator                       generator_type;
 
     element_generator() :
-        m_gen()
-    {}
+        m_gen() {
+    }
 
     element_generator( generator_type & g ) :
-        m_gen( g )
-    {}
+        m_gen( g ) {
+    }
 
     element_type operator()( ) {
         element_type elem(m_gen() );

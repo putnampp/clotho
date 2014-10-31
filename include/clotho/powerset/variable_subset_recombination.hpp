@@ -138,11 +138,19 @@ public:
         }
     }
 
-    bit_sequence_type * getResultSequence() { return &m_res_seq; }
+    bit_sequence_type * getResultSequence() {
+        return &m_res_seq;
+    }
 
-    bool isMatchBase() const { return m_match_base; }
-    bool isMatchAlt() const { return m_match_alt; }
-    bool isEmpty() const    { return m_empty; }
+    bool isMatchBase() const {
+        return m_match_base;
+    }
+    bool isMatchAlt() const {
+        return m_match_alt;
+    }
+    bool isEmpty() const    {
+        return m_empty;
+    }
 
     virtual ~recombination() {}
 protected:

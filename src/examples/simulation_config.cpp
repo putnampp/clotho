@@ -15,7 +15,7 @@ void parse_config( simulation_config & cfg ) {
     assert( jfile.get_child_optional( CONFIG_BLOCK_K ) != boost::none );
 
     std::ostringstream oss;
-    
+
     oss << CONFIG_BLOCK_K << "." << GEN_BLOCK_K << "." << SIZE_K;
     cfg.nGen = jfile.get<unsigned int>( oss.str(), DEFAULT_GENERATIONS );
 
@@ -25,7 +25,7 @@ void parse_config( simulation_config & cfg ) {
 
     RESET_SS(oss)
     oss << CONFIG_BLOCK_K << "." << RNG_BLOCK_K << "." << SEED_K;
-    
+
     cfg.seed = jfile.get< unsigned int>(oss.str(), DEFAULT_SEED);
 
     RESET_SS(oss)
@@ -68,7 +68,7 @@ void add_config( boost::property_tree::ptree & log, const simulation_config & si
     RESET_SS( oss )
     oss << CONFIG_BLOCK_K << "." << RNG_BLOCK_K << "." << SEED_K;
     log.put( oss.str(), sim.seed );
-    
+
     RESET_SS( oss )
     oss << CONFIG_BLOCK_K << "." << GEN_BLOCK_K << "." << SIZE_K;
     log.put( oss.str(), sim.nGen );

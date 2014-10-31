@@ -11,22 +11,22 @@ namespace classifiers {
 struct is_even_tag {};
 struct is_odd_tag {};
 
-/**                                                                                             
- *  A region based classifier.                                                                    
- *                                                                                                
- *  Assumes that region_upper_bounds represent the upper bounds of each key region.              
- *  For example, the regions of {0.25, 0.5, 0.75} would then be                                   
- *  (-inf, 0.25) -> base                                                                         
- *  [0.25, 0.5) -> alt                                                                           
- *  [0.5, 0.75) -> base                                                                          
- *  [0.75, inf) -> alt                                                                           
+/**
+ *  A region based classifier.
+ *
+ *  Assumes that region_upper_bounds represent the upper bounds of each key region.
+ *  For example, the regions of {0.25, 0.5, 0.75} would then be
+ *  (-inf, 0.25) -> base
+ *  [0.25, 0.5) -> alt
+ *  [0.5, 0.75) -> base
+ *  [0.75, inf) -> alt
  *
  *  The classifier expects a maps a specified element to an indexed region, and applies
  *  a Tag based ordering assignment.
  *
- *  The result is a bit mask which classifies the list elements at relative indices              
- *  as being either in a "base" region (1), or "alt" region (0).                                 
- */          
+ *  The result is a bit mask which classifies the list elements at relative indices
+ *  as being either in a "base" region (1), or "alt" region (0).
+ */
 template < class Element, class Result = bool, class Tag = is_even_tag >
 class region_classifier {
 public:
@@ -41,8 +41,8 @@ public:
     }
 
     region_classifier( const region_classifier< Element, Result, Tag > & rhs ) :
-        m_ubounds( rhs.m_ubounds )
-    {    }
+        m_ubounds( rhs.m_ubounds ) {
+    }
 
     inline bool operator()( const element_type & elem ) const {
         if( m_ubounds.size() == 0 ) return 0;

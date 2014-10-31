@@ -82,8 +82,8 @@ struct config_wrapper : public simulation_config {
         , m_rng( seed )
         , alleles()
         , agen()
-        , pred(&alleles)
-    {}
+        , pred(&alleles) {
+    }
 
 
     void reset_alleles() {
@@ -259,7 +259,7 @@ void computeScaleStats( config_wrapper & cfg, population_type * p, scale_stats &
     ref_map_type seq_ref_counts;
 
     size_t  fam_size = 0;
-    
+
     allele_set_type::cfamily_iterator f_it = cfg.alleles.family_begin(), f_end = cfg.alleles.family_end();
     while( f_it != f_end ) {
         if( (*f_it) ) {
@@ -312,12 +312,12 @@ void reproducePopulation( config_wrapper & cfg, population_type * p, population_
     population_type::iterator it = c->begin();
     while( it != c->end() ) {
         unsigned int idx = udist( cfg.m_rng ), idx2 = udist( cfg.m_rng );
-        
+
         population_type::iterator p0 = p->begin() + idx, p1 = p->begin() + idx2;
 
         boost::property_tree::ptree p0_log;
         it->first = reproduce( cfg, p0->first, p0->second, p0_log );
-        
+
         boost::property_tree::ptree p1_log;
         it->second = reproduce( cfg, p1->first, p1->second, p1_log );
 
@@ -342,7 +342,7 @@ sequence_pointer reproduce( config_wrapper & cfg, sequence_pointer s0, sequence_
     if( ndist( cfg.m_rng ) >= 0.5 ) {
         std::swap( s0, s1 );
     }
-    
+
     sequence_pointer res;
 
     if( nRec ) {
@@ -355,10 +355,10 @@ sequence_pointer reproduce( config_wrapper & cfg, sequence_pointer s0, sequence_
         // mutation only
         res = ((s0) ? s0->clone() : cfg.alleles.create_subset() );
         mutate(cfg, res, nMut );
-    } else if( s0 ){
+    } else if( s0 ) {
         // no recombination or mutation events
         res = s0;
-    } 
+    }
 //  else {
 //      // implies that no recombination or mutations occurred and
 //      // and that s0 was NULL
@@ -518,7 +518,7 @@ void statsPopulation( config_wrapper & cfg, population_type * p, boost::property
     _log.put( "stats.population.family_size", cfg.alleles.family_size() );
 
     _log.put( "stats.population.references_sequences", ((allele_counts.find(0) != allele_counts.end())? allele_counts[0] : 0 ) );
-    
+
     _log.put( "stats.population.total_sequences", nExpSeq );
     _log.put( "stats.sequences.comments", "Allele Count Distribution Format: [ allele_count, seq_ref_counts ]" );
     _log.add_child( "stats.sequences.allele_count_distribution", all_dist );

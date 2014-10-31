@@ -25,8 +25,8 @@ struct simulation_config {
         , seed(s)
         , cfg_path(cpath)
         , out_path(opath)
-        , log_period(log)
-    {}
+        , log_period(log) {
+    }
 
     simulation_config( const simulation_config & s) :
         nGen(s.nGen)
@@ -37,8 +37,8 @@ struct simulation_config {
         , seed(s.seed)
         , cfg_path(s.cfg_path)
         , out_path(s.out_path)
-        , log_period(s.log_period)
-    {}
+        , log_period(s.log_period) {
+    }
 };
 
 void parse_config( simulation_config & cfg );

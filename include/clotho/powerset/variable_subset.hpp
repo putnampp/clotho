@@ -40,42 +40,42 @@ public:
     void                addElement( const value_type & elem );
     void                removeElement( const value_type & elem );
 
-/**
- *  Returns whether an element is a member of this subset
- */
+    /**
+     *  Returns whether an element is a member of this subset
+     */
     bool                operator[]( const value_type & elem );
 
-/**
- *  Returns whether bit index is set; equivalent to determining whether
- *  a known element is a member of this subset
- */
+    /**
+     *  Returns whether bit index is set; equivalent to determining whether
+     *  a known element is a member of this subset
+     */
     bool                check_state( index_type idx ) const;
 
-/**
- *  Returns number of blocks allocated for bitset
- */
+    /**
+     *  Returns number of blocks allocated for bitset
+     */
     size_t              num_blocks() const;
 
-/**
- *  Returns the number of elements in subset
- */
+    /**
+     *  Returns the number of elements in subset
+     */
     size_t              count() const;
 
-/**
- * Returns the numbers the size of the subset in bits;
- *
- * NOTE: not necessarily equal to the number of total possible elements in the parent set
- */
+    /**
+     * Returns the numbers the size of the subset in bits;
+     *
+     * NOTE: not necessarily equal to the number of total possible elements in the parent set
+     */
     size_t              size() const;
 
-/**
- * Returns the maximum number of elements in parent set
- */
+    /**
+     * Returns the maximum number of elements in parent set
+     */
     size_t              max_size() const;
 
-/**
- *  block_iterator for subset
- */
+    /**
+     *  block_iterator for subset
+     */
     block_iterator begin();
     block_iterator end();
 
@@ -90,7 +90,7 @@ public:
 
     virtual ~variable_subset();
 
-CLOTHO_PROTECTED
+    CLOTHO_PROTECTED
 
     variable_subset(powerset_type * p);
     variable_subset(powerset_type * p, const bitset_type & b);
@@ -108,7 +108,7 @@ CLOTHO_PROTECTED
 TEMPLATE_HEADER
 SUBSET_SPECIALIZATION::variable_subset( powerset_type * p ) :
     m_parent(p)
-//    , m_ref_count(1) 
+//    , m_ref_count(1)
 {}
 
 TEMPLATE_HEADER
@@ -274,7 +274,7 @@ inline bool operator==( const SUBSET_SPECIALIZATION & lhs, const SUBSET_SPECIALI
 
 TEMPLATE_HEADER
 std::ostream & operator<<( std::ostream & lhs, const SUBSET_SPECIALIZATION & rhs ) {
-    lhs << "{" << rhs.m_ref_count << ";" << rhs.m_data << "}"; 
+    lhs << "{" << rhs.m_ref_count << ";" << rhs.m_data << "}";
     return lhs;
 }
 
