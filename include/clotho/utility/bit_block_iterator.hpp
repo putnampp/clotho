@@ -20,7 +20,7 @@ public:
         m_val(b)
         , m_index(0)
     {
-        if( m_val & (block_type)1 == 0) 
+        if( (m_val & (block_type)1) == 0) 
             next();
     }
 
@@ -60,7 +60,7 @@ protected:
         do {
             m_val >>= 1;
             ++m_index;
-        } while( (m_val & (block_type)1 == 0) );
+        } while( (m_val != 0) && (m_val & (block_type)1) == 0 );
     }
 
     block_type m_val;
