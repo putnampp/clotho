@@ -28,10 +28,10 @@ public:
 
     pointer clone() const;
 
-    void    copy();
-    void                release();
-
-    unsigned int        ref_count() const;
+//    void    copy();
+//    void                release();
+//
+//    unsigned int        ref_count() const;
 
     powerset_type *     getParent() const;
 
@@ -98,7 +98,7 @@ CLOTHO_PROTECTED
 
     powerset_type *       m_parent;
     bitset_type         m_data;
-    unsigned int        m_ref_count;
+//    unsigned int        m_ref_count;
 };
 
 #define TEMPLATE_HEADER template < class Element, class Block, class BlockMap, class ElementKeyer >
@@ -108,22 +108,22 @@ CLOTHO_PROTECTED
 TEMPLATE_HEADER
 SUBSET_SPECIALIZATION::variable_subset( powerset_type * p ) :
     m_parent(p)
-    , m_ref_count(1) {
-}
+//    , m_ref_count(1) 
+{}
 
 TEMPLATE_HEADER
 SUBSET_SPECIALIZATION::variable_subset( powerset_type * p, const bitset_type & b ) :
     m_parent(p)
     , m_data( b )
-    , m_ref_count(1) {
-}
+//    , m_ref_count(1)
+{}
 
 TEMPLATE_HEADER
 SUBSET_SPECIALIZATION::variable_subset( const variable_subset & vs ) :
     m_parent(vs.m_parent)
     , m_data( vs.m_data )
-    , m_ref_count(1) {
-}
+//    , m_ref_count(1)
+{}
 
 TEMPLATE_HEADER
 SUBSET_SPECIALIZATION::~variable_subset() {}
@@ -144,20 +144,20 @@ typename SUBSET_SPECIALIZATION::pointer SUBSET_SPECIALIZATION::clone() const {
     return sub;
 }
 
-TEMPLATE_HEADER
-void SUBSET_SPECIALIZATION::copy() {
-    ++m_ref_count;
-}
-
-TEMPLATE_HEADER
-void SUBSET_SPECIALIZATION::release() {
-    --m_ref_count;
-}
-
-TEMPLATE_HEADER
-unsigned int SUBSET_SPECIALIZATION::ref_count() const {
-    return m_ref_count;
-}
+//TEMPLATE_HEADER
+//void SUBSET_SPECIALIZATION::copy() {
+//    ++m_ref_count;
+//}
+//
+//TEMPLATE_HEADER
+//void SUBSET_SPECIALIZATION::release() {
+//    --m_ref_count;
+//}
+//
+//TEMPLATE_HEADER
+//unsigned int SUBSET_SPECIALIZATION::ref_count() const {
+//    return m_ref_count;
+//}
 
 
 TEMPLATE_HEADER
