@@ -15,6 +15,7 @@
 #include "clotho/powerset/variable_subset.hpp"
 #include "clotho/powerset/powerset_no_dup_pred.hpp"
 #include "clotho/powerset/variable_subset_recombination.hpp"
+#include "clotho/powerset/variable_subset_fitness.hpp"
 #include "clotho/mutation/infinite_site_pred.hpp"
 #include "clotho/mutation/element_generator.hpp"
 
@@ -28,8 +29,9 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-typedef boost::property_tree::ptree                                         log_type;
+//typedef boost::property_tree::ptree                                         log_type;
 typedef boost::random::mt19937                                              rng_type;
+typedef clotho::utility::timer                                              timer_type;
 
 typedef basic_allele                                                        allele_type;
 typedef clotho::powersets::variable_subset< allele_type, unsigned long >    sequence_type;
@@ -43,10 +45,21 @@ typedef clotho::classifiers::region_classifier< allele_type >               clas
 typedef typename classifier_type::region_upper_bounds                       recombination_points;
 typedef std::vector< allele_type >                                          allele_group;
 
+typedef clotho::fitness::no_fit                                             het_fit_type;
+typedef clotho::fitness::no_fit                                             alt_hom_fit_type;
+typedef clotho::fitness::no_fit                                             ref_hom_fit_type;
+
 typedef clotho::recombine::recombination< sequence_type, classifier_type >    recombination_type;
+
+typedef clotho::fitness::fitness< sequence_type, het_fit_type, alt_hom_fit_type, ref_hom_fit_type, double > fitness_type;
+typedef typename fitness_type::result_type                                  fitness_result_type;
+typedef std::vector< fitness_result_type >                                  population_fitness_type;
 
 typedef std::pair< sequence_pointer, sequence_pointer >                     individual_type;
 typedef std::vector< individual_type >                                      population_type;
+typedef typename population_type::iterator                                  population_iterator;
+
+typedef std::vector< double >                                               population_fitness_type;
 
 typedef boost::random::poisson_distribution<unsigned int, double>           poisson_dist_type;
 typedef boost::random::uniform_01< key_type >                               normal_dist_type;
@@ -56,7 +69,7 @@ typedef clotho::mutations::element_generator< allele_type, normal_dist_type >   
 typedef clotho::mutations::infinite_site_pred< allele_set_type >::type          predicate_type;
 
 struct config_wrapper : public simulation_config {
-    log_type    m_log;
+    boost::property_tree::ptree    m_log;
     rng_type    m_rng;
 
     allele_set_type  alleles;
@@ -81,10 +94,23 @@ struct config_wrapper : public simulation_config {
 };
 
 void write_log( config_wrapper & sim, unsigned int log_idx );
+
+template < class Value >
+void add_value_array( boost::property_tree::ptree & array, const Value & t ) {
+    boost::property_tree::ptree node;
+
+    node.put("", t );
+    array.push_back( std::make_pair("", node));
+}
+
+void add_value_array( boost::property_tree::ptree & array, const clotho::utility::timer & t );
+
+void add_node( boost::property_tree::ptree & array, const string & path, const boost::property_tree::ptree & n );
+
 void initializePopulation(config_wrapper & cfg, population_type & pop, population_type & buffer, boost::property_tree::ptree & log );
 void simulate( config_wrapper & cfg, population_type & pop, population_type & buffer, boost::property_tree::ptree & _log );
 void resetPopulation( config_wrapper & cfg, population_type * p, boost::property_tree::ptree & _log );
-void fitnessOfPopulation( config_wrapper & cfg, population_type * p, boost::property_tree::ptree & _log );
+double fitnessOfPopulation( config_wrapper & cfg, population_type * p, std::vector< double > & fit, boost::property_tree::ptree & _log );
 void reproducePopulation( config_wrapper & cfg, population_type * p, population_type * c, boost::property_tree::ptree & _log );
 
 void statsPopulation( config_wrapper & cfg, population_type * p, boost::property_tree::ptree & _log );
@@ -93,6 +119,16 @@ sequence_pointer reproduce( config_wrapper & cfg, sequence_pointer s0, sequence_
 sequence_pointer recombine( config_wrapper & cfg, sequence_pointer base, sequence_pointer alt, unsigned int nEvents, bool copy = false);
 void mutate( config_wrapper & cfg, sequence_pointer seq, unsigned int nEvents );
 
+typedef std::map< sequence_pointer, unsigned int >  ref_map_type;
+typedef typename ref_map_type::iterator             ref_map_iterator;
+void buildPopulationRefMap( population_type * p, ref_map_type & m);
+
+struct scale_stats {
+    boost::property_tree::ptree family_size, alleles_size, max_alleles;
+};
+
+void computeScaleStats( config_wrapper & cfg, population_type * p, scale_stats & stats );
+void add_node( boost::property_tree::ptree &, const string & path, const scale_stats & s );
 
 int main( int argc, char ** argv ) {
     simulation_config cmd;
@@ -115,9 +151,10 @@ int main( int argc, char ** argv ) {
 }
 
 void initializePopulation( config_wrapper & cfg, population_type & pop, population_type & buffer, boost::property_tree::ptree & _log ) {
+    sequence_pointer s = cfg.alleles.create_subset();
     for( unsigned int i = 0; i < cfg.nPop; ++i ) {
-        pop.push_back( std::make_pair( sequence_pointer(), sequence_pointer() ) );
-        buffer.push_back( std::make_pair(sequence_pointer(), sequence_pointer() ) );
+        pop.push_back( std::make_pair( s, s ) );
+        buffer.push_back( std::make_pair(s, s ) );
     }
 
     _log.put( "status", "success" );
@@ -130,48 +167,143 @@ void simulate( config_wrapper & cfg, population_type & pop, population_type & bu
 
     unsigned int log_period = ((cfg.nGen < cfg.log_period) ? cfg.nGen : cfg.log_period);
 
-    for( unsigned int i = 0; i < cfg.nGen; ++i ) {
-        boost::property_tree::ptree fitness_log;
-        fitnessOfPopulation( cfg, parent, fitness_log );
+    typedef boost::property_tree::ptree log_type;
+    log_type perf_run, perf_fit, perf_repro, perf_reset, perf_stats;
+    log_type l_fit;
 
+    scale_stats mem_stats;
+
+    for( unsigned int i = 0; i < cfg.nGen; ++i ) {
+        oss.str("");
+        oss.clear();
+        oss << "simulation." << i;
+
+        timer_type run_t;
+        timer_type fit_t;
+
+        population_fitness_type fit;
+        boost::property_tree::ptree fit_log;
+        double pop_fit = fitnessOfPopulation( cfg, parent, fit, fit_log );
+        double e_fit = ((double) parent->size() / pop_fit);
+        fit_t.stop();
+
+        timer_type repro_t;
         boost::property_tree::ptree repro_log;
         reproducePopulation(cfg, parent, child, repro_log );
+        repro_t.stop();
 
+        timer_type reset_t;
         boost::property_tree::ptree reset_log;
         resetPopulation( cfg, parent, reset_log );
         std::swap( parent, child );
 
         cfg.alleles.pruneSpace();
 
+        reset_t.stop();
+
+        timer_type stat_t;
+        boost::property_tree::ptree stat_log;
         if( !(--log_period) ) {
-            boost::property_tree::ptree stat_log;
+            std::cerr << "computing population stats: " << i << std::endl;
             statsPopulation(cfg, parent, stat_log );
-
-            if( !stat_log.empty() ) {
-                oss.str("");
-                oss.clear();
-                oss << "data." << i;
-                _log.add_child( oss.str(), stat_log );
-            }
-
+            stat_t.stop();
             log_period = ((i + cfg.log_period < cfg.nGen) ? cfg.log_period : (cfg.nGen - i - 1) );
         }
+        stat_t.stop();
+        run_t.stop();
+
+        computeScaleStats( cfg, parent, mem_stats );
+
+        add_value_array( l_fit, e_fit);
+
+        add_value_array( perf_run, run_t );
+        add_value_array( perf_fit, fit_t);
+        add_value_array( perf_repro, repro_t);
+        add_value_array( perf_reset, reset_t);
+        add_value_array( perf_stats, stat_t);
+
+        add_node( _log, oss.str() + ".fitness", fit_log);
+        add_node( _log, oss.str() + ".reproduction", repro_log);
+        add_node( _log, oss.str() + ".reset", reset_log);
+        add_node( _log, oss.str() + ".stats", stat_log );
     }
+
+    const double h = timer_type::hertz;
+    const string sim_path = "simulation.performance.data";
+    _log.put( sim_path + ".runtimes.scale", h );
+    _log.add_child( sim_path + ".runtimes.total", perf_run );
+    _log.add_child( sim_path + ".runtimes.fitness", perf_fit );
+    _log.add_child( sim_path + ".runtimes.reproduction", perf_repro );
+    _log.add_child( sim_path + ".runtimes.reset", perf_reset );
+    _log.add_child( sim_path + ".runtimes.stats", perf_stats );
+
+    _log.add_child("simulation.data.fitness", l_fit );
+
+    add_node( _log, sim_path, mem_stats );
+}
+
+inline void add_value_array( boost::property_tree::ptree & array, const clotho::utility::timer & t ) {
+    boost::property_tree::ptree node;
+
+    node.put("", t.elapsed().count() );
+    array.push_back( std::make_pair("", node));
+}
+
+inline void add_node( boost::property_tree::ptree & root, const string & path, const boost::property_tree::ptree & node ) {
+    if( !node.empty() ) {
+        root.add_child( path, node );
+    }
+}
+
+void computeScaleStats( config_wrapper & cfg, population_type * p, scale_stats & stats ) {
+    ref_map_type seq_ref_counts;
+
+    size_t  fam_size = 0;
+    
+    allele_set_type::cfamily_iterator f_it = cfg.alleles.family_begin(), f_end = cfg.alleles.family_end();
+    while( f_it != f_end ) {
+        if( (*f_it) ) {
+            fam_size += (*f_it)->num_blocks();
+        }
+        ++f_it;
+    }
+
+    size_t  max_allele_size = cfg.alleles.variable_allocated_size();
+    size_t  allele_size = cfg.alleles.variable_size();
+
+    add_value_array( stats.family_size, fam_size );
+    add_value_array( stats.alleles_size, allele_size );
+    add_value_array( stats.max_alleles, max_allele_size);
+}
+
+void add_node( boost::property_tree::ptree & r, const string & path, const scale_stats & s ) {
+    add_node( r, path + ".memory.family_size", s.family_size );
+    add_node( r, path + ".memory.alleles_size", s.alleles_size );
+    add_node( r, path + ".memory.max_alleles", s.max_alleles );
 }
 
 void resetPopulation( config_wrapper & cfg, population_type * p, boost::property_tree::ptree & _log ) {
     population_type::iterator it = p->begin();
     while( it != p->end() ) {
-        if( it->first )     it->first->release();
         it->first.reset();
-
-        if( it->second )    it->second->release();
         it->second.reset();
         ++it;
     }
 }
 
-void fitnessOfPopulation( config_wrapper & cfg, population_type * p, boost::property_tree::ptree & _log ) {
+double fitnessOfPopulation( config_wrapper & cfg, population_type * p, std::vector< double > & fit, boost::property_tree::ptree & _log ) {
+    population_iterator first = p->begin();
+
+    double pop_fit = 0.;
+    fitness_type    f;
+    std::back_insert_iterator< std::vector< double > > output = std::back_inserter(fit);
+    while( first != p->end() ) {
+        double val = f(0., first->first, first->second);
+        pop_fit += (val);
+        (*output++) = val;
+        ++first;
+    }
+    return pop_fit;
 }
 
 void reproducePopulation( config_wrapper & cfg, population_type * p, population_type * c, boost::property_tree::ptree & _log ) {
@@ -189,12 +321,11 @@ void reproducePopulation( config_wrapper & cfg, population_type * p, population_
         boost::property_tree::ptree p1_log;
         it->second = reproduce( cfg, p1->first, p1->second, p1_log );
 
-        if( !p0_log.empty() ) {
-
-        }
-
-        if( !p1_log.empty() ) {
-
+        if( !p0_log.empty() || !p1_log.empty() ) {
+            std::ostringstream oss("child.");
+            oss << (it - c->begin());
+            add_node( _log, oss.str() + ".p0", p0_log);
+            add_node( _log, oss.str() + ".p1", p1_log);
         }
 
         ++it;
@@ -226,7 +357,6 @@ sequence_pointer reproduce( config_wrapper & cfg, sequence_pointer s0, sequence_
         mutate(cfg, res, nMut );
     } else if( s0 ){
         // no recombination or mutation events
-        s0->copy();
         res = s0;
     } 
 //  else {
@@ -243,7 +373,6 @@ sequence_pointer recombine( config_wrapper & cfg, sequence_pointer base, sequenc
         if( !base ) {
             return cfg.alleles.create_subset();
         } else if( should_copy ) {
-            base->copy();
             return base;
         } else {
             sequence_pointer res = base->clone();
@@ -267,11 +396,9 @@ sequence_pointer recombine( config_wrapper & cfg, sequence_pointer base, sequenc
         if( !should_copy ) {
             res = cfg.alleles.create_subset( *rec.getResultSequence() );
         } else if( rec.isMatchBase() ) {
-            base->copy();
             res = base;
         } else if( rec.isMatchAlt() ) {
-            alt->copy();
-            res = base;
+            res = alt;
         } else {
             res = cfg.alleles.create_subset( *rec.getResultSequence() );
         }
@@ -296,6 +423,26 @@ void mutate( config_wrapper & cfg, sequence_pointer seq, unsigned int nEvents ) 
     }
 }
 
+void buildPopulationRefMap( population_type * p, ref_map_type & m ) {
+    population_iterator pit = p->begin();
+    while( pit != p->end() ) {
+        ref_map_iterator rit = m.find( pit->first );
+        if( rit == m.end() ) {
+            m.insert( std::make_pair( pit->first, 1 ));
+        } else {
+            ++(rit->second);
+        }
+
+        rit = m.find( pit->second);
+        if( rit == m.end() ) {
+            m.insert( std::make_pair( pit->second, 1 ) );
+        } else {
+            ++(rit->second);
+        }
+        ++pit;
+    }
+}
+
 void statsPopulation( config_wrapper & cfg, population_type * p, boost::property_tree::ptree & _log ) {
 
     typedef std::map< unsigned int, unsigned int >  count_map;
@@ -303,53 +450,18 @@ void statsPopulation( config_wrapper & cfg, population_type * p, boost::property
 
     count_map allele_counts;
 
-    typedef std::map< sequence_pointer, unsigned int >  sequence_map;
-    typedef typename sequence_map::iterator             sequence_iterator;
-    sequence_map seq_ref_counts;
+    ref_map_type seq_ref_counts;
+    buildPopulationRefMap( p, seq_ref_counts );
 
-    unsigned int nNull = 0, nSeq = 0;
-    for( unsigned int i = 0; i < p->size(); ++i ) {
-        if( !p->at(i).first ) {
-            ++nNull;
-        } else {
-            assert( cfg.alleles.isFamilyMember( p->at(i).first ) );
-            sequence_iterator sit = seq_ref_counts.find( p->at(i).first );
-
-            if( sit != seq_ref_counts.end() ) {
-                sit->second++;
-            } else {
-                seq_ref_counts.insert( std::make_pair( p->at(i).first, 1 ) );
-            }
-            ++nSeq;
-        }
-
-        if( !p->at(i).second ) {
-            ++nNull;
-        } else {
-            assert( cfg.alleles.isFamilyMember( p->at(i).second ) );
-            sequence_iterator sit = seq_ref_counts.find( p->at(i).second );
-
-            if( sit != seq_ref_counts.end() ) {
-                sit->second++;
-            } else {
-                seq_ref_counts.insert( std::make_pair( p->at(i).second, 1 ) );
-            }
-            ++nSeq;
-        }
-    }
-
-    if(nNull) {
-        allele_counts.insert( std::make_pair(0, nNull) );
-    }
-
-    unsigned int nExpSeq = nNull;
+    unsigned int nExpSeq = 0;
+    unsigned int nSeq = seq_ref_counts.size(); // - ((nExpSeq > 0)? 1 : 0); // remove null sequence
     double nAlleles = 0;
 
-    bool usual_average = (nSeq % 2 == 0);
+    bool usual_average = ( nSeq % 2 == 0);
     unsigned int median_idx = nSeq / 2, med_allele = 0, prev_allele = 0;
     unsigned int mode_allele = 0, mode_seq = 0;
-    for( sequence_iterator sit = seq_ref_counts.begin(); sit != seq_ref_counts.end(); sit++ ) {
-        unsigned int acnt = sit->first->count();
+    for( ref_map_iterator sit = seq_ref_counts.begin(); sit != seq_ref_counts.end(); sit++ ) {
+        unsigned int acnt = (( sit->first ) ? sit->first->count() : 0 );
         unsigned int e_rcnt = sit->second;
 
         count_iterator a_it = allele_counts.find( acnt );
@@ -405,10 +517,8 @@ void statsPopulation( config_wrapper & cfg, population_type * p, boost::property
 
     _log.put( "stats.population.family_size", cfg.alleles.family_size() );
 
-    if( allele_counts.find(0) != allele_counts.end())
-        _log.put( "stats.population.reference_sequences", allele_counts[0] );
-    else
-        _log.put( "stats.population.references_sequences", 0 );
+    _log.put( "stats.population.references_sequences", ((allele_counts.find(0) != allele_counts.end())? allele_counts[0] : 0 ) );
+    
     _log.put( "stats.population.total_sequences", nExpSeq );
     _log.put( "stats.sequences.comments", "Allele Count Distribution Format: [ allele_count, seq_ref_counts ]" );
     _log.add_child( "stats.sequences.allele_count_distribution", all_dist );
