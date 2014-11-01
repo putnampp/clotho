@@ -25,6 +25,7 @@
 #include <boost/random/poisson_distribution.hpp>
 #include <boost/random/uniform_01.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
+#include <boost/random/discrete_distribution.hpp>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -45,8 +46,8 @@ typedef clotho::classifiers::region_classifier< allele_type >               clas
 typedef typename classifier_type::region_upper_bounds                       recombination_points;
 typedef std::vector< allele_type >                                          allele_group;
 
-typedef clotho::fitness::no_fit                                             het_fit_type;
-typedef clotho::fitness::no_fit                                             alt_hom_fit_type;
+typedef clotho::fitness::fitness_method< double, clotho::fitness::additive_heterozygous_tag > het_fit_type;
+typedef clotho::fitness::fitness_method< double, clotho::fitness::additive_homozygous_tag >    alt_hom_fit_type;
 typedef clotho::fitness::no_fit                                             ref_hom_fit_type;
 
 typedef clotho::recombine::recombination< sequence_type, classifier_type >    recombination_type;
@@ -64,6 +65,7 @@ typedef std::vector< double >                                               popu
 typedef boost::random::poisson_distribution<unsigned int, double>           poisson_dist_type;
 typedef boost::random::uniform_01< key_type >                               normal_dist_type;
 typedef boost::random::uniform_int_distribution< unsigned int >             uniform_dist_type;
+typedef boost::random::discrete_distribution< unsigned int, double >        discrete_dist_type;
 
 typedef clotho::mutations::element_generator< allele_type, normal_dist_type >   allele_generator;
 typedef clotho::mutations::infinite_site_pred< allele_set_type >::type          predicate_type;
@@ -111,7 +113,7 @@ void initializePopulation(config_wrapper & cfg, population_type & pop, populatio
 void simulate( config_wrapper & cfg, population_type & pop, population_type & buffer, boost::property_tree::ptree & _log );
 void resetPopulation( config_wrapper & cfg, population_type * p, boost::property_tree::ptree & _log );
 double fitnessOfPopulation( config_wrapper & cfg, population_type * p, std::vector< double > & fit, boost::property_tree::ptree & _log );
-void reproducePopulation( config_wrapper & cfg, population_type * p, population_type * c, boost::property_tree::ptree & _log );
+//void reproducePopulation( config_wrapper & cfg, population_type * p, population_type * c, boost::property_tree::ptree & _log );
 
 void statsPopulation( config_wrapper & cfg, population_type * p, boost::property_tree::ptree & _log );
 
@@ -129,6 +131,31 @@ struct scale_stats {
 
 void computeScaleStats( config_wrapper & cfg, population_type * p, scale_stats & stats );
 void add_node( boost::property_tree::ptree &, const string & path, const scale_stats & s );
+
+template < class PopDist >
+void reproducePopulation( config_wrapper & cfg, population_type * p, population_type * c, const PopDist & dist, boost::property_tree::ptree & _log ) {
+    population_type::iterator it = c->begin();
+    while( it != c->end() ) {
+        unsigned int idx = dist( cfg.m_rng ), idx2 = dist( cfg.m_rng );
+
+        population_type::iterator p0 = p->begin() + idx, p1 = p->begin() + idx2;
+
+        boost::property_tree::ptree p0_log;
+        it->first = reproduce( cfg, p0->first, p0->second, p0_log );
+
+        boost::property_tree::ptree p1_log;
+        it->second = reproduce( cfg, p1->first, p1->second, p1_log );
+
+        if( !p0_log.empty() || !p1_log.empty() ) {
+            std::ostringstream oss("child.");
+            oss << (it - c->begin());
+            add_node( _log, oss.str() + ".p0", p0_log);
+            add_node( _log, oss.str() + ".p1", p1_log);
+        }
+
+        ++it;
+    }
+}
 
 int main( int argc, char ** argv ) {
     simulation_config cmd;
@@ -189,7 +216,9 @@ void simulate( config_wrapper & cfg, population_type & pop, population_type & bu
 
         timer_type repro_t;
         boost::property_tree::ptree repro_log;
-        reproducePopulation(cfg, parent, child, repro_log );
+//        uniform_dist_type dist(0, parent->size() );
+        discrete_dist_type dist( fit.begin(), fit.end() );
+        reproducePopulation(cfg, parent, child, dist, repro_log );
         repro_t.stop();
 
         timer_type reset_t;
@@ -298,7 +327,7 @@ double fitnessOfPopulation( config_wrapper & cfg, population_type * p, std::vect
     fitness_type    f;
     std::back_insert_iterator< std::vector< double > > output = std::back_inserter(fit);
     while( first != p->end() ) {
-        double val = f(0., first->first, first->second);
+        double val = f(1., first->first, first->second);
         pop_fit += (val);
         (*output++) = val;
         ++first;
@@ -306,6 +335,7 @@ double fitnessOfPopulation( config_wrapper & cfg, population_type * p, std::vect
     return pop_fit;
 }
 
+/*
 void reproducePopulation( config_wrapper & cfg, population_type * p, population_type * c, boost::property_tree::ptree & _log ) {
     uniform_dist_type udist(0, p->size());
 
@@ -330,7 +360,7 @@ void reproducePopulation( config_wrapper & cfg, population_type * p, population_
 
         ++it;
     }
-}
+}*/
 
 sequence_pointer reproduce( config_wrapper & cfg, sequence_pointer s0, sequence_pointer s1, boost::property_tree::ptree & _log) {
     poisson_dist_type mu_dist( cfg.mu ), rho_dist( cfg.rho );
@@ -517,7 +547,7 @@ void statsPopulation( config_wrapper & cfg, population_type * p, boost::property
 
     _log.put( "stats.population.family_size", cfg.alleles.family_size() );
 
-    _log.put( "stats.population.references_sequences", ((allele_counts.find(0) != allele_counts.end())? allele_counts[0] : 0 ) );
+    _log.put( "stats.population.reference_sequences", ((allele_counts.find(0) != allele_counts.end())? allele_counts[0] : 0 ) );
 
     _log.put( "stats.population.total_sequences", nExpSeq );
     _log.put( "stats.sequences.comments", "Allele Count Distribution Format: [ allele_count, seq_ref_counts ]" );
