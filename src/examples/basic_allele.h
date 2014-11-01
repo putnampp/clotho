@@ -62,6 +62,32 @@ struct normalized_key< basic_allele > : public key_range < > {
 }   // namespace powersets {
 }   // namespace clotho {
 
-#include "clotho/mutation/element_generator.hpp"
+#include "clotho/fitness/fitness_method.hpp"
+
+namespace clotho {
+namespace fitness {
+
+template < > template < >
+void fitness_method< double, multiplicative_heterozygous_tag >::operator()< basic_allele >( double & res, const basic_allele & elem, double scale ) {
+    res *= (1. + elem.m_select * elem.m_dom);
+}
+
+template < > template < >
+void fitness_method< double, multiplicative_homozygous_tag >::operator()< basic_allele >( double & res, const basic_allele & elem, double scale ) {
+    res *= (1. + elem.m_select * scale);
+}
+
+template < > template < >
+void fitness_method< double, additive_heterozygous_tag >::operator()< basic_allele >( double & res, const basic_allele & elem, double scale ) {
+    res += (1. + elem.m_select * elem.m_dom);
+}
+
+template < > template < >
+void fitness_method< double, additive_homozygous_tag >::operator()< basic_allele >( double & res, const basic_allele & elem, double scale ) {
+    res += (1. + elem.m_select * scale);
+}
+
+}   // namespace fitness {
+}   // namespace clotho {
 
 #endif  // BASIC_ALLELE_H_
