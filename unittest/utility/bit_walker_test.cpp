@@ -6,6 +6,7 @@
 #include <type_traits>
 
 #include "clotho/utility/bit_walker.hpp"
+#include "clotho/utility/bit_block_iterator.hpp"
 
 typedef unsigned long block_type;
 typedef unsigned short sub_block_type;
@@ -110,4 +111,30 @@ BOOST_AUTO_TEST_CASE( test_other_bit_walker_set_bits ) {
     BOOST_REQUIRE_MESSAGE( sbv.indices == expected, "Unexpected list of set bits was returned" );
 }
 
+
+/**
+ *
+ */
+BOOST_AUTO_TEST_CASE( test_bit_block_iterator_walk ) {
+    typedef clotho::utility::bit_block_iterator< block_type, clotho::utility::walk_iterator_tag > bit_iterator;
+
+    block_type val = (block_type)0x10A10000;
+    unsigned int e_bit_count = 4;
+
+    bit_iterator it(val), end;
+
+    std::vector< unsigned int > set_bits;    
+
+    while( it != end ) {
+        set_bits.push_back( *it++ );
+    }
+
+    BOOST_REQUIRE_MESSAGE( set_bits.size() == e_bit_count, "Unexpected number of set bits in " << val << ". " << set_bits.size() << " != " << e_bit_count );
+
+    std::vector< unsigned int >::iterator bit_it = set_bits.begin();
+    while( bit_it != set_bits.end() ) {
+        BOOST_REQUIRE_MESSAGE( (val & ((block_type)1 << *bit_it)), "Bit " << *bit_it << " was not set in " << val << " but should be");
+        ++bit_it;
+    }
+}
 BOOST_AUTO_TEST_SUITE_END()
