@@ -48,7 +48,7 @@ public:
         typename subset_type::cblock_iterator base_it, base_end;
         typename subset_type::cblock_iterator alt_it, alt_end;
 
-        typename subset_type::powerset_type::cvariable_iterator elem_it;
+        typename subset_type::powerset_type::cvariable_iterator elem_it, elem_end;
 
         if( !base ) {
             // base sequence is empty
@@ -62,6 +62,7 @@ public:
             base_end = alt->end();
 
             elem_it = alt->getParent()->variable_begin();
+            elem_end = alt->getParent()->variable_end();
 
             m_res_seq.resize( alt->max_size(), false );
         } else if( !alt ) {
@@ -75,6 +76,7 @@ public:
             alt_end = base->end();
 
             elem_it = base->getParent()->variable_begin();
+            elem_end = base->getParent()->variable_end();
 
             m_res_seq.resize( base->max_size(), false );
         } else {
@@ -87,6 +89,7 @@ public:
             alt_end = alt->end();
 
             elem_it = base->getParent()->variable_begin();
+            elem_end = base->getParent()->variable_end();
 
             m_res_seq.resize( base->max_size(), false );
         }
@@ -98,6 +101,7 @@ public:
         while( true ) {
             if( alt_it == alt_end ) {
                 while( base_it != base_end ) {
+                    assert( elem_it != elem_end );
                     block_type _base = (*base_it++);
                     block_type r = brecombiner( _base, (block_type)0, elem_it );
 
@@ -113,6 +117,7 @@ public:
 
             if( base_it == base_end ) {
                 while( alt_it != alt_end ) {
+                    assert( elem_it != elem_end );
                     block_type _alt = (*alt_it++);
                     block_type r = brecombiner( (block_type)0, _alt, elem_it );
 
@@ -126,6 +131,7 @@ public:
                 break;
             }
 
+            assert( elem_it != elem_end );
             block_type _base = (*base_it++), _alt = (*alt_it++);
             block_type r = brecombiner( _base, _alt, elem_it );
 
