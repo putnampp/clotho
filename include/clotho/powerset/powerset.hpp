@@ -59,6 +59,13 @@ public:
     typedef typename family_type::iterator  family_iterator;
     typedef typename family_type::const_iterator  cfamily_iterator;
 
+    typedef typename bitset_type::block_type bitset_block_type;
+    typedef typename bitset_type::allocator_type bitset_allocator_type;
+    typedef std::vector< bitset_block_type, bitset_allocator_type > bitset_buffer_type;
+
+    typedef typename bitset_buffer_type::iterator free_block_iterator;
+    typedef typename bitset_buffer_type::const_iterator cfree_block_iterator;
+
     powerset();
 
     subset_ptr   empty_set() const;
@@ -99,6 +106,12 @@ public:
 
     family_iterator     family_end();
     cfamily_iterator    family_end() const;
+    
+    free_block_iterator free_begin();
+    cfree_block_iterator free_begin() const;
+
+    free_block_iterator free_end();
+    cfree_block_iterator free_end() const;
 
     /**
      * Returns whether the set is empty
@@ -205,11 +218,6 @@ public:
     bitset_type     m_variable_mask, m_free_ranges;
 
     block_map_type      m_block_map;
-
-private:
-    typedef typename bitset_type::block_type bitset_block_type;
-    typedef typename bitset_type::allocator_type bitset_allocator_type;
-    typedef std::vector< bitset_block_type, bitset_allocator_type > bitset_buffer_type;
 };
 
 //
@@ -643,6 +651,26 @@ typename POWERSET_SPECIALIZATION::family_iterator POWERSET_SPECIALIZATION::famil
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::cfamily_iterator POWERSET_SPECIALIZATION::family_end() const {
     return m_family.end();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::free_block_iterator POWERSET_SPECIALIZATION::free_begin() {
+    return m_free_list.m_bits.begin();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::cfree_block_iterator POWERSET_SPECIALIZATION::free_begin() const {
+    return m_free_list.m_bits.begin();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::free_block_iterator POWERSET_SPECIALIZATION::free_end() {
+    return m_free_list.m_bits.end();
+}
+
+TEMPLATE_HEADER
+typename POWERSET_SPECIALIZATION::cfree_block_iterator POWERSET_SPECIALIZATION::free_end() const {
+    return m_free_list.m_bits.end();
 }
 
 TEMPLATE_HEADER
