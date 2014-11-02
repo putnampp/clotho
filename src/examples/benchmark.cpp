@@ -46,9 +46,15 @@ typedef clotho::classifiers::region_classifier< allele_type >               clas
 typedef typename classifier_type::region_upper_bounds                       recombination_points;
 typedef std::vector< allele_type >                                          allele_group;
 
+#ifdef ALL_NEUTRAL_OPTIMIZATION
+typedef clotho::fitness::no_fit het_fit_type;
+typedef clotho::fitness::no_fit alt_hom_fit_type;
+typedef clotho::fitness::no_fit ref_hom_fit_type;
+#else
 typedef clotho::fitness::fitness_method< double, clotho::fitness::additive_heterozygous_tag > het_fit_type;
 typedef clotho::fitness::fitness_method< double, clotho::fitness::additive_homozygous_tag >    alt_hom_fit_type;
 typedef clotho::fitness::no_fit                                             ref_hom_fit_type;
+#endif  // ALL_NEUTRAL_OPTIMIZATION
 
 typedef clotho::recombine::recombination< sequence_type, classifier_type >    recombination_type;
 
