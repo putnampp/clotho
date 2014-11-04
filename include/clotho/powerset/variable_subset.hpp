@@ -274,7 +274,7 @@ inline bool operator==( const SUBSET_SPECIALIZATION & lhs, const SUBSET_SPECIALI
 
 TEMPLATE_HEADER
 std::ostream & operator<<( std::ostream & lhs, const SUBSET_SPECIALIZATION & rhs ) {
-    lhs << "{" << rhs.m_ref_count << ";" << rhs.m_data << "}";
+    lhs << "{" << rhs.m_data << "; " << rhs.m_data.count() << "}";
     return lhs;
 }
 
