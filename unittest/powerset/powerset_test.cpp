@@ -5,6 +5,8 @@
 #include "test_element.h"
 #include "clotho/powerset/variable_subset.hpp"
 
+#include <vector>
+
 typedef unsigned long Block;
 
 typedef clotho::powersets::block_map< test_element, Block, clotho::powersets::normalized_key< test_element > > bmap;
@@ -290,7 +292,7 @@ BOOST_AUTO_TEST_CASE( create_powerset_prunespace ) {
  * should be copied to the fixed subset, and its positions should be freed
  *
  */
-BOOST_AUTO_TEST_CASE( create_powerset_prunespace2 ) {
+BOOST_AUTO_TEST_CASE( create_powerset_prunespace_fixed ) {
     powerset_type ps;
 
     double k = 0.5;
