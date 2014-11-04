@@ -606,20 +606,15 @@ void statsPopulation( config_wrapper & cfg, population_type * p, boost::property
 
     boost::property_tree::ptree all_dist, all_freq;
     for( count_iterator c_it = allele_counts.begin(); c_it != allele_counts.end(); ++c_it) {
-//        boost::property_tree::ptree a,b,c;
-//        a.put( "", c_it->first );
-//        b.put( "", c_it->second );
-//
-//        c.push_back (std::make_pair( "", a ) );
-//        c.push_back (std::make_pair( "", b ) );
-//        all_dist.push_back( std::make_pair("", c ) );
         add_value_array( all_dist, *c_it );
     }
 
-    unsigned int idx = 0;
-    for( allele_dist_type::iterator a_it = allele_dist.begin(); a_it != allele_dist.end(); ++a_it, ++idx ) {
+    typename allele_set_type::cvariable_iterator e_it = cfg.alleles.variable_begin();
+    for( allele_dist_type::iterator a_it = allele_dist.begin(); a_it != allele_dist.end(); ++a_it, ++e_it ) {
         if( (*a_it) > 0 ) {
-            add_value_array( all_freq, std::make_pair( idx, (*a_it)));
+            std::ostringstream oss;
+            oss << *e_it;
+            add_value_array( all_freq, std::make_pair(oss.str(), (*a_it)));
         }
     }
 
@@ -640,8 +635,8 @@ void statsPopulation( config_wrapper & cfg, population_type * p, boost::property
     _log.put( "alleles.fixed_count", cfg.alleles.fixed_size() );
     _log.put( "alleles.free_size", cfg.alleles.free_size() );
 
-   _log.put( "alleles.frequencies_format", "[allele index, count in population]" );
-   _log.add_child( "alleles.frequencies", all_freq );
+    _log.put( "alleles.frequencies_format", "[allele, count in population]" );
+    _log.add_child( "alleles.frequencies", all_freq );
 }
 
 void write_log( config_wrapper & cfg, unsigned int log_idx ) {
