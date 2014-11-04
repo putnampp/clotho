@@ -5,10 +5,10 @@
 #include "clotho/fitness/bit_block_genotyper.hpp"
 #include "clotho/utility/bit_block_iterator.hpp"
 
+#include "clotho/fitness/no_fit.hpp"
+
 namespace clotho {
 namespace fitness {
-
-struct no_fit {};
 
 template < class HetFit, class AltHomFit, class RefHomFit, class Result = double >
 class bit_block_fitness {
