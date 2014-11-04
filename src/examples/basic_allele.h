@@ -4,15 +4,17 @@
 #include <ostream>
 
 struct basic_allele {
-    double m_key;
-    double m_select, m_dom;
+    double  m_key;
+    double  m_select, m_dom;
 
-    basic_allele( double k, double sel = 0.0, double dom = 1.0 ) :
-        m_key(k), m_select(sel), m_dom(dom) {
+    bool    m_neutral;
+
+    basic_allele( double k, double sel = 0.0, double dom = 1.0, bool neut = true ) :
+        m_key(k), m_select(sel), m_dom(dom), m_neutral( neut ) {
     }
 
     bool isNeutral() const {
-        return (m_select == 0.0);
+        return m_neutral;
     }
 
     virtual ~basic_allele() {}
@@ -79,12 +81,12 @@ void fitness_method< double, multiplicative_homozygous_tag >::operator()< basic_
 
 template < > template < >
 void fitness_method< double, additive_heterozygous_tag >::operator()< basic_allele >( double & res, const basic_allele & elem, double scale ) {
-    res += (1. + elem.m_select * elem.m_dom);
+    res += (elem.m_select * elem.m_dom);
 }
 
 template < > template < >
 void fitness_method< double, additive_homozygous_tag >::operator()< basic_allele >( double & res, const basic_allele & elem, double scale ) {
-    res += (1. + elem.m_select * scale);
+    res += (elem.m_select * scale);
 }
 
 }   // namespace fitness {
