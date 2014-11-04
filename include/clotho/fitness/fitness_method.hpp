@@ -14,7 +14,7 @@ template < class Result, class Tag >
 class fitness_method {
 public:
     typedef Result result_type;
-    
+
     template < class Element >
     void operator()( result_type & res, const Element & elem, result_type scale = 1. ) {}
 };
