@@ -116,6 +116,15 @@ public:
         return (this->m_val != rhs.m_val);
     }
 
+    void reset( block_type b ) {
+        m_val = b;
+        m_index = 0;
+        m_base_index = 0;
+        m_shift_next = 0;
+
+        next();
+    }
+
     virtual ~bit_block_iterator() {}
 
 protected:
