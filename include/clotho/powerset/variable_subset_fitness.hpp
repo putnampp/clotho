@@ -2,7 +2,8 @@
 #define CLOTHO_VARIABLE_SUBSET_FITNESS_HPP_
 
 #include "clotho/fitness/fitness_def.hpp"
-#include "clotho/fitness/bit_block_fitness.hpp"
+//#include "clotho/fitness/bit_block_fitness.hpp"
+#include "clotho/fitness/bit_block_fitness2.hpp"
 
 namespace clotho {
 namespace fitness {
@@ -15,11 +16,13 @@ public:
     typedef Result  result_type;
     typedef Block   block_type;
 
-    typedef clotho::fitness::bit_block_fitness< HetFit, AltHomFit, RefHomFit, Result >  fitness_type;
+    typedef typename subset_type::bitset_type   bitset_type;
+
+    typedef clotho::fitness::bit_block_fitness2< HetFit, AltHomFit, RefHomFit, Result >  fitness_type;
 
     static const unsigned int bits_per_block = sizeof(Block) * 8;
 
-    result_type operator()( result_type f, sequence_type base, sequence_type alt ) {
+    result_type operator()( result_type f, sequence_type base, sequence_type alt, typename subset_type::cblock_iterator sel_it, typename subset_type::cblock_iterator sel_end ) {
         if( base == alt ) {
             // pointers match
             return f;   // null sequences
@@ -29,7 +32,7 @@ public:
         typename subset_type::cblock_iterator alt_it, alt_end;
 
         typename subset_type::powerset_type::cvariable_iterator elem_it, elem_end;
-        typename subset_type::powerset_type::cfree_block_iterator free_it, free_end;
+//        typename subset_type::powerset_type::cfree_block_iterator free_it, free_end;
 
         if( !base ) {
             // base sequence is empty
@@ -45,8 +48,8 @@ public:
             elem_it = alt->getParent()->variable_begin();
             elem_end = alt->getParent()->variable_end();
 
-            free_it = alt->getParent()->free_begin();
-            free_end = alt->getParent()->free_end();
+//            free_it = alt->getParent()->free_begin();
+//            free_end = alt->getParent()->free_end();
         } else if( !alt ) {
             // alt sequence is empty
             base_it = base->begin();
@@ -60,8 +63,8 @@ public:
             elem_it = base->getParent()->variable_begin();
             elem_end = base->getParent()->variable_end();
 
-            free_it = base->getParent()->free_begin();
-            free_end = base->getParent()->free_end();
+//            free_it = base->getParent()->free_begin();
+//            free_end = base->getParent()->free_end();
         } else {
             assert( base->isSameFamily( alt ) );
 
@@ -74,8 +77,8 @@ public:
             elem_it = base->getParent()->variable_begin();
             elem_end = base->getParent()->variable_end();
 
-            free_it = base->getParent()->free_begin();
-            free_end = base->getParent()->free_end();
+//            free_it = base->getParent()->free_begin();
+//            free_end = base->getParent()->free_end();
         }
 
         fitness_type       bfitness;
@@ -84,10 +87,11 @@ public:
         while( true ) {
             if( alt_it == alt_end ) {
                 while( base_it != base_end ) {
-                    assert( free_it != free_end && elem_it != elem_end );
+                    assert( sel_it != sel_end && elem_it != elem_end );
                     block_type _base = (*base_it++);
-                    block_type mask = ~(*free_it++);
-                    res = bfitness( res, _base, (block_type)0, mask, elem_it );
+                    block_type mask = (*sel_it++);
+                    if( mask )
+                        res = bfitness( res, _base, (block_type)0, mask, elem_it );
                     elem_it += bits_per_block;
                 }
                 break;
@@ -95,25 +99,26 @@ public:
 
             if( base_it == base_end ) {
                 while( alt_it != alt_end ) {
-                    assert( free_it != free_end && elem_it != elem_end );
+                    assert( sel_it != sel_end && elem_it != elem_end );
                     block_type _alt = (*alt_it++);
-                    block_type mask = ~(*free_it++);
-                    res = bfitness(res, (block_type)0, _alt, mask, elem_it );
+                    block_type mask = (*sel_it++);
+                    if( mask )
+                        res = bfitness(res, (block_type)0, _alt, mask, elem_it );
                     elem_it += bits_per_block;
                 }
                 break;
             }
 
-            assert( free_it != free_end && elem_it != elem_end );
+            assert( sel_it != sel_end && elem_it != elem_end );
             block_type _base = (*base_it++), _alt = (*alt_it++);
-            block_type mask = ~(*free_it++);
-            res = bfitness(res, _base, _alt, mask, elem_it );
+            block_type mask = (*sel_it++);
+            if( mask )
+                res = bfitness(res, _base, _alt, mask, elem_it );
             elem_it += bits_per_block;
         }
 
         return res;
     }
-
 };
 
 }   // namespace fitness
