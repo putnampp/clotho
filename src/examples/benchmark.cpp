@@ -30,7 +30,6 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-//typedef boost::property_tree::ptree                                         log_type;
 typedef boost::random::mt19937                                              rng_type;
 typedef clotho::utility::timer                                              timer_type;
 
@@ -74,7 +73,6 @@ struct config_wrapper : public simulation_config {
     rng_type    m_rng;
 
     allele_set_type  alleles;
-//    allele_generator agen;
     predicate_type   pred;
 
     config_wrapper( const simulation_config & cfg ) :
@@ -82,7 +80,6 @@ struct config_wrapper : public simulation_config {
         , m_log()
         , m_rng( seed )
         , alleles()
-//        , agen()
         , pred(&alleles) {
     }
 
@@ -141,7 +138,6 @@ void initializePopulation(config_wrapper & cfg, population_type & pop, populatio
 void simulate( config_wrapper & cfg, population_type & pop, population_type & buffer, boost::property_tree::ptree & _log );
 void resetPopulation( config_wrapper & cfg, population_type * p, boost::property_tree::ptree & _log );
 double fitnessOfPopulation( config_wrapper & cfg, population_type * p, std::vector< double > & fit, boost::property_tree::ptree & _log );
-//void reproducePopulation( config_wrapper & cfg, population_type * p, population_type * c, boost::property_tree::ptree & _log );
 
 void statsPopulation( config_wrapper & cfg, population_type * p, boost::property_tree::ptree & _log );
 
@@ -174,15 +170,7 @@ void reproducePopulation( config_wrapper & cfg, population_type * p, population_
         boost::property_tree::ptree p1_log;
         it->second = reproduce( cfg, p1->first, p1->second, p1_log );
 
-        boost::property_tree::ptree p_log;
-//        p_log.put("parent.0.offset", idx );
-//        p_log.put("parent.1.offset", idx2);
-//        p_log.put("child.offset", (it - c->begin()));
-//        add_node( p_log, "parent.0", *p0 );
-//        add_node( p_log, "parent.1", *p0);
-//        add_node( p_log, "child", *it);
-
-        if( !p_log.empty() || !p0_log.empty() || !p1_log.empty() ) {
+        if( !p0_log.empty() || !p1_log.empty() ) {
             std::ostringstream oss;
             oss << "child." << (it - c->begin());
             add_node( _log, oss.str() + ".p0", p0_log);
@@ -253,11 +241,9 @@ void simulate( config_wrapper & cfg, population_type & pop, population_type & bu
 
         timer_type repro_t;
         boost::property_tree::ptree repro_log;
-//        uniform_dist_type dist(0, parent->size() );
+
         discrete_dist_type dist( fit.begin(), fit.end() );
 
-//        std::cerr << fit.size() << std::endl;
-//        std::cerr << dist << std::endl;
         assert( dist.probabilities().size() == fit.size());
         reproducePopulation(cfg, parent, child, dist, repro_log );
         repro_t.stop();
@@ -423,33 +409,6 @@ double fitnessOfPopulation( config_wrapper & cfg, population_type * p, std::vect
     return pop_fit;
 }
 
-/*
-void reproducePopulation( config_wrapper & cfg, population_type * p, population_type * c, boost::property_tree::ptree & _log ) {
-    uniform_dist_type udist(0, p->size());
-
-    population_type::iterator it = c->begin();
-    while( it != c->end() ) {
-        unsigned int idx = udist( cfg.m_rng ), idx2 = udist( cfg.m_rng );
-
-        population_type::iterator p0 = p->begin() + idx, p1 = p->begin() + idx2;
-
-        boost::property_tree::ptree p0_log;
-        it->first = reproduce( cfg, p0->first, p0->second, p0_log );
-
-        boost::property_tree::ptree p1_log;
-        it->second = reproduce( cfg, p1->first, p1->second, p1_log );
-
-        if( !p0_log.empty() || !p1_log.empty() ) {
-            std::ostringstream oss("child.");
-            oss << (it - c->begin());
-            add_node( _log, oss.str() + ".p0", p0_log);
-            add_node( _log, oss.str() + ".p1", p1_log);
-        }
-
-        ++it;
-    }
-}*/
-
 sequence_pointer reproduce( config_wrapper & cfg, sequence_pointer s0, sequence_pointer s1, boost::property_tree::ptree & _log) {
     poisson_dist_type mu_dist( cfg.mu ), rho_dist( cfg.rho );
     normal_dist_type  ndist;
@@ -488,16 +447,12 @@ sequence_pointer reproduce( config_wrapper & cfg, sequence_pointer s0, sequence_
 }
 
 sequence_pointer recombine( config_wrapper & cfg, sequence_pointer base, sequence_pointer alt, unsigned int nEvents, bool should_copy) {
-//    std::cerr << *base << "\n+\n" << *alt << std::endl;
     if( base == alt ) {
-//        std::cerr << "equivalent" << std::endl;
         if( !base ) {
             return cfg.alleles.create_subset();
         } else if( should_copy ) {
-//            std::cerr << "Copying" << std::endl;
             return base;
         } else {
-//            std::cerr << "Cloning" << std::endl;
             sequence_pointer res = base->clone();
             return res;
         }
@@ -530,11 +485,6 @@ sequence_pointer recombine( config_wrapper & cfg, sequence_pointer base, sequenc
         res = cfg.alleles.create_subset();
     }
 
-//    for( recombination_points::iterator it = pts.begin(); it != pts.end(); ++it ){
-//        std::cerr << (*it) << std::endl;
-//    }
-//    std::cerr << "\n=\n" << (*res) << std::endl;
-
     return res;
 }
 
@@ -546,14 +496,10 @@ void mutate( config_wrapper & cfg, sequence_pointer seq, unsigned int nEvents ) 
 
     assert( pts.size() == nEvents );
 
-//    std::cerr << "Before Mutate: " << *seq << std::endl;
-
     while( !pts.empty() ) {
         seq->addElement( pts.back() );
         pts.pop_back();
     }
-
-//    std::cerr << "After Mutate: " << *seq << std::endl;
 }
 
 void buildPopulationRefMap( population_type * p, ref_map_type & m ) {
@@ -574,11 +520,6 @@ void buildPopulationRefMap( population_type * p, ref_map_type & m ) {
         }
         ++pit;
     }
-
-
-//    for( ref_map_iterator rit = m.begin(); rit != m.end(); ++rit ) {
-//        std::cerr << rit->first << ": " << (*rit->first) << "; " << rit->second << std::endl;
-//    }
 }
 
 void statsPopulation( config_wrapper & cfg, population_type * p, boost::property_tree::ptree & _log ) {
