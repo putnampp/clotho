@@ -82,6 +82,9 @@ public:
     cblock_iterator begin() const;
     cblock_iterator end() const;
 
+    size_t find_first() const;
+    size_t find_next( size_t idx ) const;
+
     template < class E, class B, class BM, class EK >
     friend bool operator==(const variable_subset< E, B, BM, EK> & lhs, const variable_subset< E, B, BM, EK> & rhs );
 
@@ -234,6 +237,16 @@ typename SUBSET_SPECIALIZATION::cblock_iterator SUBSET_SPECIALIZATION::begin() c
 TEMPLATE_HEADER
 typename SUBSET_SPECIALIZATION::cblock_iterator SUBSET_SPECIALIZATION::end() const {
     return m_data.m_bits.end();
+}
+
+TEMPLATE_HEADER
+size_t SUBSET_SPECIALIZATION::find_first() const {
+    return m_data.find_first();
+}
+
+TEMPLATE_HEADER
+size_t SUBSET_SPECIALIZATION::find_next( size_t idx ) const {
+    return m_data.find_next( idx );
 }
 
 /**
