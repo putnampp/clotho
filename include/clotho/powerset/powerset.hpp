@@ -106,7 +106,7 @@ public:
 
     family_iterator     family_end();
     cfamily_iterator    family_end() const;
-    
+
     free_block_iterator free_begin();
     cfree_block_iterator free_begin() const;
 
@@ -500,7 +500,6 @@ size_t POWERSET_SPECIALIZATION::free_size() const {
 
 TEMPLATE_HEADER
 void POWERSET_SPECIALIZATION::pruneSpace() {
-    //clearGarbage( );
 
     if( m_family.empty() ) return;
 
@@ -527,8 +526,11 @@ void POWERSET_SPECIALIZATION::pruneSpace() {
         ++it;
     }
 
-    m_free_list = (m_fixed_variable | ~m_lost_variable);
-    m_variable_mask = ~m_free_list;
+    m_lost_variable.flip();
+
+    m_free_list = (m_fixed_variable | m_lost_variable);
+    m_variable_mask = m_free_list;
+    m_variable_mask.flip();
 
     // remove un-referenced subsets
     while( !to_remove.empty() ) {
@@ -553,15 +555,16 @@ void POWERSET_SPECIALIZATION::updateSubsetFree( subset_ptr s ) {
     typedef typename bitset_buffer_type::iterator       buffer_iterator;
     typedef typename bitset_buffer_type::const_iterator buffer_citerator;
 
-    if( s == empty_set() ) return;
+//    if( s == empty_set() ) return;
 
     assert( s->m_data.num_blocks() <= m_variable_mask.num_blocks() );
 
-    buffer_iterator fit = m_variable_mask.m_bits.begin();
-    buffer_citerator  sit = s->m_data.m_bits.begin(), send = s->m_data.m_bits.end();
+    buffer_citerator fit = m_variable_mask.m_bits.begin();
+    buffer_iterator  sit = s->m_data.m_bits.begin(), send = s->m_data.m_bits.end();
 
     while( sit != send ) {
-        (*fit++) &= (*sit++);
+        //(*fit++) &= (*sit++);
+        (*sit++) &= (*fit++);
     }
 }
 
