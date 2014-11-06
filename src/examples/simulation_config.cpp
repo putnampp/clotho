@@ -50,51 +50,51 @@ void add_config( boost::property_tree::ptree & log, const simulation_config & si
     std::ostringstream oss;
 
     // NOTE: config_file and output_file are expected to be command line parameters
-    oss << CONFIG_BLOCK_K << ".config_file";
+    oss  << "config_file";
     log.put( oss.str(), sim.cfg_path );
 
     RESET_SS( oss )
-    oss << CONFIG_BLOCK_K << ".output_path";
+    oss << "output_path";
     log.put( oss.str(), sim.out_path );
 
     RESET_SS(oss)
-    oss << CONFIG_BLOCK_K << "." << REPETITION_K;
+    oss << REPETITION_K;
     log.put( oss.str(), sim.nRep );
 
     RESET_SS(oss)
-    oss << CONFIG_BLOCK_K << "." << LOG_FREQUENCY_K;
+    oss << LOG_FREQUENCY_K;
     log.put( oss.str(), sim.log_period);
 
     RESET_SS( oss )
-    oss << CONFIG_BLOCK_K << "." << RNG_BLOCK_K << "." << SEED_K;
+    oss << RNG_BLOCK_K << "." << SEED_K;
     log.put( oss.str(), sim.seed );
 
     RESET_SS( oss )
-    oss << CONFIG_BLOCK_K << "." << GEN_BLOCK_K << "." << SIZE_K;
+    oss << GEN_BLOCK_K << "." << SIZE_K;
     log.put( oss.str(), sim.nGen );
 
     RESET_SS( oss )
-    oss << CONFIG_BLOCK_K << "." << POP_BLOCK_K << "." << SIZE_K;
+    oss << POP_BLOCK_K << "." << SIZE_K;
     log.put( oss.str(), sim.nPop );
 
     RESET_SS( oss )
-    oss << CONFIG_BLOCK_K << "." << MUT_BLOCK_K << "." << RATE_PER_REGION_K;
+    oss << MUT_BLOCK_K << "." << RATE_PER_REGION_K;
     log.put( oss.str(), sim.mu );
 
     RESET_SS( oss )
-    oss << CONFIG_BLOCK_K << "." << MUT_BLOCK_K << "." << RATE_PER_BASE_K;
+    oss << MUT_BLOCK_K << "." << RATE_PER_BASE_K;
     log.put( oss.str(), 0.00000001 );
 
     RESET_SS( oss )
-    oss << CONFIG_BLOCK_K << "." << REC_BLOCK_K << "." << RATE_PER_REGION_K;
+    oss << REC_BLOCK_K << "." << RATE_PER_REGION_K;
     log.put( oss.str(), sim.rho );
 
     RESET_SS( oss )
-    oss << CONFIG_BLOCK_K << "." << REC_BLOCK_K << "." << RATE_PER_BASE_K;
+    oss << REC_BLOCK_K << "." << RATE_PER_BASE_K;
     log.put( oss.str(), 0.00000001 );
 
     RESET_SS(oss)
-    oss << CONFIG_BLOCK_K << "." << OPT_BLOCK_K << "." << CHECK_SELECTED_K;
+    oss << OPT_BLOCK_K << "." << CHECK_SELECTED_K;
 #ifdef CHECK_SELECTED
     log.put( oss.str(), true );
 #else
