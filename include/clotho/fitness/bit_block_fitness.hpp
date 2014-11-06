@@ -43,9 +43,10 @@ protected:
     void computeFitness(result_type & res, Block b, ElementIterator first, FitOp * op ) {
         typedef clotho::utility::bit_block_iterator< Block, clotho::utility::walk_iterator_tag >    iterator;
 
-        iterator it( b ), end;
-        while( it != end ) {
-            (*op)( res, *(first + *it++));
+        iterator it( b );
+        while( !it.done()  ) {
+            (*op)( res, *(first + *it));
+            ++it;
         }
     }
 
@@ -93,9 +94,10 @@ protected:
     inline void computeFitness(result_type & res, Block b, ElementIterator first, FitOp * op ) {
         typedef clotho::utility::bit_block_iterator< Block >    iterator;
 
-        iterator it( b ), end;
-        while( it != end ) {
-            (*op)( res, *(first + *it++));
+        iterator it( b );
+        while( !it.done() ) {
+            (*op)( res, *(first + *it));
+            ++it;
         }
     }
 
