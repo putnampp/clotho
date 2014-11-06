@@ -231,7 +231,7 @@ void simulate( config_wrapper & cfg, population_type & pop, population_type & bu
 
     typedef boost::property_tree::ptree log_type;
     log_type perf_run, perf_fit, perf_repro, perf_reset, perf_stats;
-    log_type l_fit;
+    log_type l_fit, l_gen, l_fam;
 
     scale_stats mem_stats;
 
@@ -282,6 +282,8 @@ void simulate( config_wrapper & cfg, population_type & pop, population_type & bu
         computeScaleStats( cfg, parent, mem_stats );
 
         add_value_array( l_fit, e_fit);
+        add_value_array( l_gen, i);
+        add_value_array( l_fam, cfg.alleles.family_size() );
 
         add_value_array( perf_run, run_t );
         add_value_array( perf_fit, fit_t);
@@ -297,14 +299,16 @@ void simulate( config_wrapper & cfg, population_type & pop, population_type & bu
 
     const double h = timer_type::hertz;
     const string sim_path = "simulation.performance.data";
-    _log.put( sim_path + ".runtimes.scale", h );
-    _log.add_child( sim_path + ".runtimes.total", perf_run );
-    _log.add_child( sim_path + ".runtimes.fitness", perf_fit );
-    _log.add_child( sim_path + ".runtimes.reproduction", perf_repro );
-    _log.add_child( sim_path + ".runtimes.reset", perf_reset );
-    _log.add_child( sim_path + ".runtimes.stats", perf_stats );
+    _log.put( sim_path + ".runtime.scale", h );
+    _log.add_child( sim_path + ".generations", l_gen );
+    _log.add_child( sim_path + ".runtime.total", perf_run );
+    _log.add_child( sim_path + ".runtime.fitness", perf_fit );
+    _log.add_child( sim_path + ".runtime.reproduction", perf_repro );
+    _log.add_child( sim_path + ".runtime.reset", perf_reset );
+    _log.add_child( sim_path + ".runtime.stats", perf_stats );
+    _log.add_child( sim_path + ".family_size", l_fam );
 
-    _log.add_child("simulation.data.fitness", l_fit );
+    _log.add_child(sim_path + ".e_fitness", l_fit );
 
     add_node( _log, sim_path, mem_stats );
 }
@@ -344,7 +348,7 @@ void computeScaleStats( config_wrapper & cfg, population_type * p, scale_stats &
 }
 
 void add_node( boost::property_tree::ptree & r, const string & path, const scale_stats & s ) {
-    add_node( r, path + ".memory.family_size", s.family_size );
+    add_node( r, path + ".memory.table_size", s.family_size );
     add_node( r, path + ".memory.alleles_size", s.alleles_size );
     add_node( r, path + ".memory.max_alleles", s.max_alleles );
 }
@@ -647,10 +651,10 @@ void write_log( config_wrapper & cfg, unsigned int log_idx ) {
     } else {
         boost::property_tree::ptree _c;
         add_config( _c, cfg);
+        cfg.m_log.add_child( CONFIG_BLOCK_K, _c );
 
         std::ostringstream oss;
         oss << cfg.out_path << "_" << log_idx;
-        boost::property_tree::write_json( oss.str() + "_config.json", _c );
         boost::property_tree::write_json( oss.str() + "_log.json", cfg.m_log );
     }
 }
