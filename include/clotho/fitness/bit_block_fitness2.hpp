@@ -46,9 +46,7 @@ public:
         combineBits( _bits, ref_bits, &m_rhoms );
 
         typedef clotho::utility::bit_block_iterator< Block, clotho::utility::walk_iterator_tag >    iterator;
-        static iterator it;
-
-        it.reset( _bits );
+        iterator it( _bits );
 
         while( !it.done() ) {
             unsigned int idx = (*it);
