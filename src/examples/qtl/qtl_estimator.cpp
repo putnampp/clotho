@@ -11,29 +11,11 @@
 #include "clotho/utility/timer.hpp"
 #include "simulate_engine.hpp"
 
-//#include "clotho/powerset/variable_subset.hpp"
-//#include "clotho/powerset/powerset_no_dup_pred.hpp"
-//#include "clotho/powerset/variable_subset_recombination.hpp"
-//#include "clotho/powerset/variable_subset_fitness.hpp"
-//#include "clotho/mutation/infinite_site_pred.hpp"
-
-//#include "clotho/classifiers/region_classifier.hpp"
-
 #include <boost/random/mersenne_twister.hpp>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
-
-//#include "recombiner.hpp"
-
-//#include "sequence_generator.hpp"
-//#include "sequence_mutator.hpp"
-//#include "individual_initializer.hpp"
-//#include "individual_fitness.hpp"
-//#include "individual_selector.hpp"
-//#include "individual_reproduction.hpp"
-//#include "individual_generator.hpp"
 
 typedef boost::random::mt19937                                              rng_type;
 typedef qtl_allele                                                          allele_type;
@@ -69,17 +51,22 @@ int main( int argc, char ** argv ) {
     if( res ) {
         return res;
     }
-
     
     const unsigned int nRep = config.get< unsigned int >( CONFIG_BLOCK_K + "." + REPEAT_K, 1 );
     const unsigned int nGen = config.get< unsigned int >( CONFIG_BLOCK_K + "." + GEN_BLOCK_K + "." + SIZE_K, 1);
-    const unsigned int nLog = config.get< unsigned int >( CONFIG_BLOCK_K + "." + LOG_FREQUENCY_K, -1);
+    const unsigned int nLog = config.get< unsigned int >( CONFIG_BLOCK_K + "." + LOG_BLOCK_K + "." + PERIOD_K, -1);
+    const unsigned int seed = config.get< unsigned int >( CONFIG_BLOCK_K + "." + RNG_BLOCK_K + "." + SEED_K, 0 );
 
-    std::cerr << nRep << "; " << nGen << "; " << nLog << std::endl;
-
-    log_type log;
+    rng_type rng(seed);
 
     for( unsigned int i = 0; i < nRep; ++i ) {
+        log_type log;
+
+        // change the seed value of the random number generator
+        rng.discard( 15 );
+        const unsigned int tmp_seed = rng();
+        config.put( CONFIG_BLOCK_K + "." + RNG_BLOCK_K + "." + SEED_K, tmp_seed );
+
         simulate_type sim( config );
 
         unsigned int log_period = ((nGen < nLog) ? nGen : nLog);
@@ -100,23 +87,23 @@ int main( int argc, char ** argv ) {
             }
         }
 
-        if( !sim.getLog().empty() ) {
-            std::ostringstream oss;
-            oss << i;
-            log.add_child( oss.str(), sim.getLog() );
+        // combine simulation log and configuration log into single object
+        BOOST_FOREACH( auto& upd, sim.getLog() ) {
+            log.put_child( upd.first, upd.second );
         }
-    }
 
-    string out_path = config.get<string>( CONFIG_BLOCK_K + "." + OUTPUT_K, "");
+        BOOST_FOREACH( auto& upd, config ) {
+            log.put_child(upd.first, upd.second );
+        }
 
-    BOOST_FOREACH( auto& upd, config ) {
-        log.put_child(upd.first, upd.second );
-    }
-
-    if( out_path.empty() ) {
-        boost::property_tree::write_json( std::cout, log );
-    } else {
-        boost::property_tree::write_json( out_path + "_log.json", log );
+        string out_path = config.get<string>( CONFIG_BLOCK_K + "." + OUTPUT_K, "");
+        if( out_path.empty() ) {
+            boost::property_tree::write_json( std::cout, log );
+        } else {
+            std::ostringstream oss;
+            oss << out_path << "." << i << ".json";
+            boost::property_tree::write_json( oss.str(), log );
+        }
     }
 
     return 0;
