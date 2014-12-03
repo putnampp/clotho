@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
+#include <ostream>
 
 namespace clotho {
 namespace classifiers {
@@ -36,7 +37,11 @@ public:
     typedef std::vector< element_type > region_upper_bounds;
     typedef typename region_upper_bounds::const_iterator iterator;
 
-    region_classifier( const region_upper_bounds & bounds ) {
+    typedef region_upper_bounds     param_type;
+
+    region_classifier() {}
+
+    region_classifier( const param_type & bounds ) {
         reset_bounds( bounds );
     }
 
@@ -68,6 +73,21 @@ public:
             std::sort( tmp.begin(), tmp.end() );
             std::unique_copy( tmp.begin(), tmp.end(), std::back_inserter( m_ubounds ) );
         }
+    }
+
+    size_t  region_count() const { return m_ubounds.size() + 1; }
+
+    friend std::ostream & operator<<( std::ostream & os, const region_classifier & r ) {
+        typename region_upper_bounds::const_iterator it = r.m_ubounds.begin();
+        os << "{";
+        if( it != r.m_ubounds.end() ) {
+            os << *it;
+            while( ++it != r.m_ubounds.end() ) {
+                os << "," << *it;
+            }
+        }
+        os << "}";
+        return os;
     }
 
     virtual ~region_classifier() {

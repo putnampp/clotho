@@ -29,5 +29,6 @@ extern const string CONFIG_K;
 
 int parse_commandline( int argc, char ** argv, po::variables_map & vm );
 int parse_commandline( int argc, char ** argv, simulation_config & cfg );
+int parse_commandline( int argc, char ** argv, boost::property_tree::ptree & cfg );
 
 #endif  // CLOTHO_COMMANDLINE_H_

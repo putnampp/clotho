@@ -37,7 +37,7 @@ public:
 
     bool                isSameFamily( pointer other ) const;
 
-    void                addElement( const value_type & elem );
+    std::pair< typename powerset_type::element_index_type, bool >   addElement( const value_type & elem );
     void                removeElement( const value_type & elem );
 
     /**
@@ -174,15 +174,17 @@ bool    SUBSET_SPECIALIZATION::operator[]( const value_type & elem ) {
 }
 
 TEMPLATE_HEADER
-void    SUBSET_SPECIALIZATION::addElement( const value_type & elem ) {
+std::pair< typename SUBSET_SPECIALIZATION::powerset_type::element_index_type, bool >   SUBSET_SPECIALIZATION::addElement( const value_type & elem ) {
     std::pair< typename powerset_type::element_index_type, bool > res = m_parent->find_or_create( elem );
 
-    if( res.first == powerset_type::npos ) return;
+    if( res.first == powerset_type::npos ) return res;
 
     if( res.first >= m_data.size() ) {
         m_data.resize( res.first + 1, false );
     }
     m_data[ res.first ] = true;
+
+    return res;
 }
 
 TEMPLATE_HEADER

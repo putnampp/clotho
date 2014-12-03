@@ -27,4 +27,9 @@ extern const string   LOG_FREQUENCY_K;
 extern const string   OPT_BLOCK_K;
 extern const string   CHECK_SELECTED_K;
 
+// other keys
+extern const string   MAX_K;
+extern const string   MEAN_K;
+extern const string   SIGMA_K;
+
 #endif  // SIMULATION_CONFIG_JSON_H_

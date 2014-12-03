@@ -1,4 +1,5 @@
 #include "simulation_config.h"
+#include "common_commandline.h"
 
 #include <sstream>
 #include <boost/algorithm/string.hpp>
@@ -30,7 +31,7 @@ void parse_config( simulation_config & cfg ) {
 
     RESET_SS(oss)
     oss << CONFIG_BLOCK_K << "." << REC_BLOCK_K << "." << RATE_PER_REGION_K;
-    cfg.mu = jfile.get< double >( oss.str(), DEFAULT_RECOMB_RATE );
+    cfg.rho = jfile.get< double >( oss.str(), DEFAULT_RECOMB_RATE );
 
     RESET_SS(oss)
 
@@ -50,11 +51,11 @@ void add_config( boost::property_tree::ptree & log, const simulation_config & si
     std::ostringstream oss;
 
     // NOTE: config_file and output_file are expected to be command line parameters
-    oss  << "config_file";
+    oss  << CONFIG_K;
     log.put( oss.str(), sim.cfg_path );
 
     RESET_SS( oss )
-    oss << "output_path";
+    oss << OUTPUT_K;
     log.put( oss.str(), sim.out_path );
 
     RESET_SS(oss)

@@ -13,3 +13,5 @@ TARGET_LINK_LIBRARIES(benchmark_all_neutral ${COMMON_LIBRARIES} ${PROJECT_NAME}_
 
 ADD_EXECUTABLE( benchmark_selected benchmark.cpp )
 TARGET_LINK_LIBRARIES(benchmark_selected ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline)
+
+ADD_SUBDIRECTORY(qtl)

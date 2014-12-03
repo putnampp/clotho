@@ -28,10 +28,33 @@ public:
     typedef typename subset_type::bitset_type                           bit_sequence_type;
     typedef Block                                                       block_type;
 
-
     static const unsigned int bits_per_block = sizeof( block_type ) * 8;
 
+    recombination( ) :
+        m_classifier()
+        , m_swap(false) 
+    {}
+
+    recombination( const classifier_type & c, bool sw = false ) :
+        m_classifier( c )
+        , m_swap( sw ) {
+    }
+
+    void operator()( sequence_type base, sequence_type alt ) {
+        if( m_swap ) {
+            execute( alt, base, m_classifier );
+
+            std::swap( m_match_base, m_match_alt );
+        } else {
+            execute( base, alt, m_classifier );
+        }
+    }
+
     void operator()( sequence_type base, sequence_type alt, classifier_type & elem_classifier ) {
+        execute( base, alt, elem_classifier );
+    }
+
+    void execute( sequence_type base, sequence_type alt, classifier_type & elem_classifier ) {
         m_match_base = m_match_alt = m_empty = true;
         m_res_seq.reset();
 
@@ -160,6 +183,8 @@ public:
 
     virtual ~recombination() {}
 protected:
+    classifier_type     m_classifier;
+    bool                m_swap;
     bit_sequence_type   m_res_seq;
     bool    m_match_base, m_match_alt, m_empty;
 };

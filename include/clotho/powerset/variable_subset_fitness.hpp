@@ -22,6 +22,10 @@ public:
 
     static const unsigned int bits_per_block = sizeof(Block) * 8;
 
+    result_type operator()( sequence_type base, sequence_type alt, typename subset_type::cblock_iterator sel_it, typename subset_type::cblock_iterator sel_end ) {
+        return operator()( default_value(), base, alt, sel_it, sel_end );
+    }
+
     result_type operator()( result_type f, sequence_type base, sequence_type alt, typename subset_type::cblock_iterator sel_it, typename subset_type::cblock_iterator sel_end ) {
         if( base == alt ) {
             // pointers match
@@ -119,6 +123,8 @@ public:
 
         return res;
     }
+
+    result_type default_value() const { return (result_type) 1; }
 };
 
 }   // namespace fitness

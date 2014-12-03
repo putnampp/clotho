@@ -21,3 +21,7 @@ const string   LOG_FREQUENCY_K = "log_frequency";
 
 const string   OPT_BLOCK_K = "compiled_optimizations";
 const string   CHECK_SELECTED_K = "check_selected";
+
+const string   MAX_K = "max";
+const string   MEAN_K = "mean";
+const string   SIGMA_K = "sigma";
