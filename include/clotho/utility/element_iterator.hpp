@@ -39,11 +39,11 @@ public:
         return (*m_it);
     }
 
-    bool operator==( const self_type & rhs ) {
+    bool operator==( const self_type & rhs ) const {
         return (m_it == rhs.m_it);
     }
 
-    bool operator!=( const self_type & rhs ) {
+    bool operator!=( const self_type & rhs ) const {
         return (m_it != rhs.m_it);
     }
 
@@ -103,11 +103,11 @@ public:
         return ((m_state == FIRST) ? m_elements->first : m_elements->second);
     }
 
-    bool operator==( const element_iterator< Element > & rhs ) {
+    bool operator==( const self_type & rhs ) const {
         return m_elements == rhs.m_elements && m_state == rhs.m_state;
     }
 
-    bool operator!=( const element_iterator< Element > & rhs ) {
+    bool operator!=( const self_type & rhs ) const {
         return ( m_elements != rhs.m_elements || m_state != rhs.m_state);
     }
     
