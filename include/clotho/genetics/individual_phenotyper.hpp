@@ -1,46 +1,58 @@
 #ifndef INDIVIDUAL_PHENOTYPER_HPP_
 #define INDIVIDUAL_PHENOTYPER_HPP_
 
-#include "iterator_helper.hpp"
+//#include "iterator_helper.hpp"
+//
+#include "individual_trait_accumulator.hpp"
 
-template < class TraitMatrix, class Environment >
+template < class IndividualType, class Environment >
 class individual_phenotyper {
 public:
-    typedef individual_phenotyper< Genotyper, Environment > self_type;
-    typedef Genotyper                                       genotyper_type;
+    typedef individual_phenotyper< IndividualType, Environment > self_type;
+    typedef IndividualType                                  individual_type;
+    typedef individual_trait_accumulator< IndividualType >  individual_trait_acc_type;
     typedef Environment                                     environment_type;
-    typedef Value                                           value_type;
 
-    class result_type {
-    public:
-        friend class individual_phenotyper< Genotyper, Environment, Value >;
+    typedef typename individual_trait_acc_type::result_type result_type;
 
-        
-    };
+    individual_phenotyper( environment_type & env ) : m_env(env) {}
 
-    individual_phenotyper( genotyper_type & geno, environment_type & env ) :
-        m_geno( geno )
-        , m_env( env ) 
-    {}
+    result_type operator()( individual_type & ind ) {
+        individual_trait_acc_type acc;
+        result_type res = acc( ind );
 
-    template < class Individual >
-    result_type operator()( Individual & ind ) {
-        typedef iterator_helper< Individual > _iterator_helper;
-        typedef typename _iterator_helper::type sequence_iterator;
-        sequence_iterator first = iterator_helper::make_first(ind), last = iterator_helper::make_last( ind );
+        typename result_type::iterator it = res.begin();
+        while( it != res.end() ) {
+            (*it) += m_env( );
+            ++it;
+        }
 
-        result_type res;
-        genotyper_type geno( res );
-
-        std::for_each( first, last, geno );
-
-        res += m_env(  );
         return res;
     }
-    
 protected:
-    genotyper_type m_geno;
-    environment_type m_env;
+    environment_type    m_env;
+};
+
+struct no_type {};
+
+template < class IndividualType >
+class individual_phenotyper< IndividualType, no_type > {
+public:
+    typedef individual_phenotyper< IndividualType, no_type > self_type;
+    typedef IndividualType                                  individual_type;
+    typedef individual_trait_accumulator< IndividualType >  individual_trait_acc_type;
+    typedef no_type                                         environment_type;
+
+    typedef typename individual_trait_acc_type::result_type result_type;
+
+    individual_phenotyper( ) {}
+
+    result_type operator()( individual_type & ind ) {
+        individual_trait_acc_type acc;
+        result_type res = acc( ind );
+
+        return res;
+    }
 };
 
 #endif  // INDIVIDUAL_PHENOTYPER_HPP_
