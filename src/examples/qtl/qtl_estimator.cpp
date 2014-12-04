@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <map>
 
-#include "log_helper.hpp"
+#include "clotho/utility/log_helper.hpp"
 #include "common_commandline.h"
 
 #include "clotho/genetics/qtl_allele.h"
@@ -16,6 +16,17 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
+
+#include "clotho/powerset/variable_subset_iterator.hpp"
+#include "clotho/genetics/individual_phenotyper.hpp"
+
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics/stats.hpp>
+#include <boost/accumulators/statistics/weighted_mean.hpp>
+#include <boost/accumulators/statistics/weighted_median.hpp>
+#include <boost/accumulators/statistics/weighted_variance.hpp>
+
+namespace accum=boost::accumulators;
 
 typedef boost::random::mt19937                                              rng_type;
 typedef qtl_allele                                                          allele_type;
@@ -30,12 +41,15 @@ typedef typename simulate_type::sequence_pointer sequence_pointer;
 typedef typename simulate_type::allele_set_type allele_set_type;
 
 // population typedefs
+typedef typename simulate_type::individual_type                        individual_type;
 typedef typename simulate_type::population_type                        population_type;
 typedef typename population_type::iterator                             population_iterator;
 
 typedef std::map< sequence_pointer, unsigned int >  ref_map_type;
 typedef typename ref_map_type::iterator             ref_map_iterator;
 typedef std::vector< unsigned int >                 allele_dist_type;
+
+typedef individual_phenotyper< individual_type, no_type >    individual_phenotyper_type;
 
 const string BASE_SEQUENCE_BIAS_K = "base_bias";
 const string TRAIT_BLOCK_K = "traits";
@@ -59,9 +73,8 @@ int main( int argc, char ** argv ) {
 
     rng_type rng(seed);
 
+    string out_path = config.get<string>( CONFIG_BLOCK_K + "." + OUTPUT_K, "");
     for( unsigned int i = 0; i < nRep; ++i ) {
-        log_type log;
-
         // change the seed value of the random number generator
         rng.discard( 15 );
         const unsigned int tmp_seed = rng();
@@ -77,32 +90,42 @@ int main( int argc, char ** argv ) {
             if( !(--log_period) ) {
                 log_type stat_log;
                 statsPopulation(sim.getParentPopulation(), sim.getAlleles(), stat_log );
+
+                individual_phenotyper_type ind_pheno;
+                std::vector< typename individual_phenotyper_type::result_type > pop_phenotypes;
+
+                std::transform( sim.getParentPopulation()->begin(), sim.getParentPopulation()->end(), std::back_inserter( pop_phenotypes ), ind_pheno );
+
+                log_type pheno_log;
+                BOOST_FOREACH( auto& v, pop_phenotypes ) {
+                    clotho::utility::add_value_array( pheno_log, v );
+                }
+
+                stat_log.add_child( "phenotypes", pheno_log);
+
+                // combine simulation log and configuration log into single object
+                BOOST_FOREACH( auto& upd, sim.getLog() ) {
+                    stat_log.put_child( upd.first, upd.second );
+                }
+                sim.clearLog();
+
+                BOOST_FOREACH( auto& upd, config ) {
+                    stat_log.put_child(upd.first, upd.second );
+                }
+
                 log_period = ((j + log_period < nGen) ? nLog : (nGen - j - 1) );
 
                 if( !stat_log.empty() ) {
-                    std::ostringstream oss;
-                    oss << "stats." << j;
-                    log.add_child( oss.str(), stat_log);
+                    if( out_path.empty() ) {
+                        boost::property_tree::write_json( std::cout, stat_log );
+                    } else {
+                        std::ostringstream oss;
+                        oss << out_path << "." << i << "." << j << ".json";
+
+                        boost::property_tree::write_json( oss.str(), stat_log );
+                    }
                 }
             }
-        }
-
-        // combine simulation log and configuration log into single object
-        BOOST_FOREACH( auto& upd, sim.getLog() ) {
-            log.put_child( upd.first, upd.second );
-        }
-
-        BOOST_FOREACH( auto& upd, config ) {
-            log.put_child(upd.first, upd.second );
-        }
-
-        string out_path = config.get<string>( CONFIG_BLOCK_K + "." + OUTPUT_K, "");
-        if( out_path.empty() ) {
-            boost::property_tree::write_json( std::cout, log );
-        } else {
-            std::ostringstream oss;
-            oss << out_path << "." << i << ".json";
-            boost::property_tree::write_json( oss.str(), log );
         }
     }
 
@@ -150,15 +173,10 @@ void statsPopulation( population_type * p, allele_set_type * alleles, boost::pro
     buildPopulationRefMap( p, seq_ref_counts, allele_dist );
 
     unsigned int nExpSeq = 0;
-    unsigned int nSeq = seq_ref_counts.size(); // - ((nExpSeq > 0)? 1 : 0); // remove null sequence
-    double nAlleles = 0;
-
-    bool usual_average = ( nSeq % 2 == 0);
-    unsigned int median_idx = nSeq / 2, med_allele = 0, prev_allele = 0;
-    unsigned int mode_allele = 0, mode_seq = 0;
-    for( ref_map_iterator sit = seq_ref_counts.begin(); sit != seq_ref_counts.end(); sit++ ) {
-        unsigned int acnt = (( sit->first ) ? sit->first->count() : 0 );
-        unsigned int e_rcnt = sit->second;
+    accum::accumulator_set< double, accum::stats< accum::tag::weighted_mean, accum::tag::weighted_median, accum::tag::weighted_variance >, double > acc;
+    BOOST_FOREACH( auto& v, seq_ref_counts ) {
+        double acnt = (( v.first ) ? v.first->count() : 0 );
+        double e_rcnt = v.second;
 
         count_iterator a_it = allele_counts.find( acnt );
         if( a_it == allele_counts.end() ) {
@@ -166,28 +184,14 @@ void statsPopulation( population_type * p, allele_set_type * alleles, boost::pro
         } else {
             a_it->second += e_rcnt;
         }
-        nAlleles += (acnt * e_rcnt);
 
-        unsigned int ubound = nExpSeq + e_rcnt;
-        if(nExpSeq <= median_idx && median_idx < ubound) {
-            if( !usual_average || ( nExpSeq <= median_idx - 1) ) {
-                med_allele = acnt;
-            } else {
-                med_allele = (acnt + prev_allele) / 2;
-            }
-        } else {
-            prev_allele = acnt;
-        }
-
-        if( e_rcnt > mode_seq ) {
-            mode_allele = acnt;
-            mode_seq = e_rcnt;
-        }
-
-        nExpSeq = ubound;
+        acc( acnt, accum::weight = e_rcnt );
+        nExpSeq += e_rcnt;
     }
 
-    double ave_alleles_per_sequence = (nAlleles / (double) nExpSeq);
+    double ave_alleles_per_sequence = accum::weighted_mean(acc);
+    double med_allele = accum::weighted_median( acc );
+    double var_allele = accum::weighted_variance( acc );
 
     // for validation purposes
     allele_set_type::cfamily_iterator f_it = alleles->family_begin(), f_end = alleles->family_end();
@@ -202,7 +206,7 @@ void statsPopulation( population_type * p, allele_set_type * alleles, boost::pro
 
     boost::property_tree::ptree all_dist, all_freq;
     for( count_iterator c_it = allele_counts.begin(); c_it != allele_counts.end(); ++c_it) {
-        add_value_array( all_dist, *c_it );
+        clotho::utility::add_value_array( all_dist, *c_it );
     }
 
     typename allele_set_type::cvariable_iterator e_it = alleles->variable_begin();
@@ -210,7 +214,9 @@ void statsPopulation( population_type * p, allele_set_type * alleles, boost::pro
         if( (*a_it) > 0 ) {
             std::ostringstream oss;
             oss << *e_it;
-            add_value_array( all_freq, std::make_pair(oss.str(), (*a_it)));
+            clotho::utility::add_value_array( all_freq, std::make_pair(oss.str(), (*a_it)));
+        } else {
+            clotho::utility::add_value_array( all_freq, "");
         }
     }
 
@@ -219,18 +225,18 @@ void statsPopulation( population_type * p, allele_set_type * alleles, boost::pro
     _log.put( "population.reference_sequences", ((allele_counts.find(0) != allele_counts.end())? allele_counts[0] : 0 ) );
 
     _log.put( "population.total_sequences", nExpSeq );
-    _log.put( "sequences.allele_count_distribution_format", "[alleles per sequence, number of sequences in population]" );
-    _log.add_child( "sequences.allele_count_distribution", all_dist );
+    _log.put( "sequences.allele_count_distribution.format", "[alleles per sequence, number of sequences in population]" );
+    _log.add_child( "sequences.allele_count_distribution.value", all_dist );
     _log.put( "sequences.alleles_per.mean", ave_alleles_per_sequence);
     _log.put( "sequences.alleles_per.min", allele_counts.begin()->first );
     _log.put( "sequences.alleles_per.max", allele_counts.rbegin()->first );
     _log.put( "sequences.alleles_per.median", med_allele );
-    _log.put( "sequences.alleles_per.mode", mode_allele );
+    _log.put( "sequences.alleles_per.variance", var_allele );
 
     _log.put( "alleles.variable_count", alleles->variable_size() );
     _log.put( "alleles.fixed_count", alleles->fixed_size() );
     _log.put( "alleles.free_size", alleles->free_size() );
 
-    _log.put( "alleles.frequencies_format", "[allele, count in population]" );
-    _log.add_child( "alleles.frequencies", all_freq );
+    _log.put( "alleles.frequencies.format", "[allele, count in population]" );
+    _log.add_child( "alleles.frequencies.value", all_freq );
 }
