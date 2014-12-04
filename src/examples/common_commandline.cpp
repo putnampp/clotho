@@ -75,15 +75,7 @@ int parse_commandline( int argc, char ** argv, simulation_config & cfg ) {
     if( !cfg.cfg_path.empty() ) {
         parse_config( cfg );
     } else {
-        cfg.nGen = vm[ GENERATIONS_K ].as< unsigned int >();
-        cfg.nPop = vm[ FOUNDER_SIZE_K ].as< unsigned int >();
-        cfg.nRep = vm[ REPEAT_K ].as< unsigned int >();
-
-        cfg.mu = vm[ MUTATION_RATE_K ].as< double >();
-        cfg.rho = vm[ RECOMBINATION_RATE_K ].as< double >();
-
-        cfg.seed = vm[ RNG_SEED_K ].as< unsigned int >();
-        cfg.log_period = vm[ LOG_PERIOD_K ].as< unsigned int >();
+        update_config( vm, cfg );
     }
 
     return res;
@@ -104,26 +96,39 @@ int parse_commandline( int argc, char ** argv, boost::property_tree::ptree & cfg
         assert( boost::algorithm::iends_with( cfg_path, ".json") );
         boost::property_tree::read_json(cfg_path, cfg);
 
-        cfg.put( CONFIG_BLOCK_K + "." + CONFIG_K, cfg_path);
-        cfg.put( CONFIG_BLOCK_K + "." + OUTPUT_K, out_path);
+        cfg.put( CONFIG_BLOCK_K + "." + CONFIG_K, cfg_path );
+        cfg.put( CONFIG_BLOCK_K + "." + OUTPUT_K, out_path );
     } else {
-        simulation_config tmp_cfg;
-        tmp_cfg.cfg_path = cfg_path;
-        tmp_cfg.out_path = out_path;
-        tmp_cfg.nGen = vm[ GENERATIONS_K ].as< unsigned int >();
-        tmp_cfg.nPop = vm[ FOUNDER_SIZE_K ].as< unsigned int >();
-        tmp_cfg.nRep = vm[ REPEAT_K ].as< unsigned int >();
-
-        tmp_cfg.mu = vm[ MUTATION_RATE_K ].as< double >();
-        tmp_cfg.rho = vm[ RECOMBINATION_RATE_K ].as< double >();
-
-        tmp_cfg.seed = vm[ RNG_SEED_K ].as< unsigned int >();
-        tmp_cfg.log_period = vm[ LOG_PERIOD_K ].as< unsigned int >();
-
-        boost::property_tree::ptree t;
-        add_config( t, tmp_cfg );
-        cfg.add_child( CONFIG_BLOCK_K, t );
+        update_config( vm, cfg );
     }
 
     return res;
+}
+
+void update_config( po::variables_map & vm, simulation_config & cfg ) {
+    cfg.nGen = vm[ GENERATIONS_K ].as< unsigned int >();
+    cfg.nPop = vm[ FOUNDER_SIZE_K ].as< unsigned int >();
+    cfg.nRep = vm[ REPEAT_K ].as< unsigned int >();
+
+    cfg.mu = vm[ MUTATION_RATE_K ].as< double >();
+    cfg.rho = vm[ RECOMBINATION_RATE_K ].as< double >();
+
+    cfg.seed = vm[ RNG_SEED_K ].as< unsigned int >();
+    cfg.log_period = vm[ LOG_PERIOD_K ].as< unsigned int >();
+
+    cfg.cfg_path = vm[ CONFIG_K ].as<string>();
+    cfg.out_path = vm[ OUTPUT_K ].as<string>();
+}
+
+void update_config( po::variables_map & vm, boost::property_tree::ptree & cfg ) {
+    simulation_config tmp;
+    update_config( vm, tmp );
+
+    if( cfg.get_child_optional( CONFIG_BLOCK_K ) == boost::none ) {
+        add_config(cfg.get_child( CONFIG_BLOCK_K ), tmp);
+    } else {
+        boost::property_tree::ptree t;
+        add_config( t, tmp );
+        cfg.put_child( CONFIG_BLOCK_K, t );
+    }
 }
