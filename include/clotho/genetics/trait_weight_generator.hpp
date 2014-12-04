@@ -11,12 +11,11 @@ namespace utility {
 template < class URNG >
 class random_generator< URNG, trait_weight< double > > {
 public:
-    typedef random_generator< URNG, trait_weight< double > > self_type;
-
     typedef double real_type;
-    typedef boost::random::normal_distribution< real_type >    dist_type;
-
     typedef real_type   result_type;
+    typedef random_generator< URNG, trait_weight< real_type > > self_type;
+
+    typedef boost::random::normal_distribution< real_type >    dist_type;
 
     class param_type {
     public:
