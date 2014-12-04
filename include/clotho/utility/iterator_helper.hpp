@@ -14,36 +14,37 @@ struct iterator_helper {
         return type( con );
     }
 
-    static type make_second( Container & con ) {
+    static type make_last( Container & con ) {
         return type( con );
     }
 };
 
 template < class Element >
 struct iterator_helper< std::pair< Element, Element > > {
-    typedef element_iterator< std::pair< Element, Element > > type;
+    typedef clotho::utility::element_iterator< std::pair< Element, Element > > type;
 
     static type    make_first( std::pair< Element, Element > & ind ) {
-        return element_iterator< Element >( ind, pair_iterator_state::FIRST);
+        return type( ind, pair_iterator_state::FIRST);
     }
 
     static type    make_last( std::pair< Element, Element > & ind ) {
-        return element_iterator< Element >( ind );
+        return type( ind );
     }
 };
 
-#include <memory>
-
 template < class Element >
-struct iterator_helper< std::shared_ptr< Element > > {
-    typedef typename iterator_helper< Element >::type type;
+struct iterator_helper< std::shared_ptr< Element > > : 
+    public iterator_helper< Element > 
+{
+    typedef iterator_helper< Element > base_type;
+    typedef typename base_type::type type;
 
     static type make_first( std::shared_ptr< Element > s ) {
-        return iterator_helper< Element >::make_first( *s );
+        return base_type::make_first( *s );
     }
 
     static type make_last( std::shared_ptr< Element > s ) {
-        return iterator_helper< Element >::make_last( *s );
+        return base_type::make_last( *s );
     }
 };
 
