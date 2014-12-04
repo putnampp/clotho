@@ -26,6 +26,8 @@
 #include "clotho/powerset/variable_subset_recombination.hpp"
 #include "clotho/powerset/variable_subset_fitness.hpp"
 
+#include "clotho/utility/parameter_space.hpp"
+
 template < class URNG, class AlleleType, class LogType, class TimerType >
 class simulate_engine {
 public:
@@ -49,10 +51,10 @@ public:
     typedef clotho::utility::random_generator< rng_type, recombination_method > recombination_method_generator;
     typedef typename base_type::population_type population_type;
 
-    typedef clotho::utility::random_generator< rng_type, infinite_site< sequence_type > >      mutation_generator_type;
-    typedef sequence_generator< sequence_pointer >                          sequence_generator_type;
-    typedef sequence_mutator< sequence_type, mutation_generator_type >   sequence_mutator_type;
-    typedef clotho::utility::random_generator< rng_type, sequence_mutator_type > sequence_mutator_generator;
+    typedef clotho::utility::random_generator< rng_type, infinite_site< sequence_type > >       mutation_generator_type;
+    typedef sequence_generator< sequence_pointer >                                              sequence_generator_type;
+    typedef sequence_mutator< sequence_type, mutation_generator_type >                          sequence_mutator_type;
+    typedef clotho::utility::random_generator< rng_type, sequence_mutator_type >                sequence_mutator_generator;
     typedef individual_initializer< individual_type, sequence_generator< sequence_pointer > >   individual_initializer_type;
     typedef individual_selector< rng_type >             individual_selector_type;
     typedef individual_reproduction< individual_type
@@ -127,6 +129,23 @@ public:
 
     log_type &          getLog() { return m_log; }
 
+    void                clearLog() { m_log.clear(); }
+
+    log_type            getState() {
+        log_type state;
+
+        log_type p, c, a;
+//        state_of< population_type >::record( *m_parent, p );
+//        state_of< population_type >::record( *m_child, c );
+//        state_of< allele_set_type >::record( m_alleles, a );
+
+        state.put( "population.parent", p );
+        state.put( "population.child", c );
+
+        state.put( "alleles", a);
+        return state;
+    }
+
 protected:
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
@@ -175,5 +194,23 @@ protected:
 
     allele_set_type m_alleles;
 };
+
+namespace clotho {
+namespace utility {
+
+template < class URNG, class AlleleType, class LogType, class TimerType >
+struct parameter_space< simulate_engine< URNG, AlleleType, LogType, TimerType > > {
+
+    static void build_parameters( boost::property_tree::ptree & params ) {
+        std::ostringstream oss;
+        oss << CONFIG_BLOCK_K << "." << POP_BLOCK_K << "." << SIZE_K;
+        params.put( oss.str() + ".value", 1000 );
+        params.put( oss.str() + ".type", "uint");
+        params.put( oss.str() + ".description", "Founder Population Size" );
+    }
+};
+
+}   // namespace utility
+}   // namespace clotho
 
 #endif  // SIMULATE_ENGINE_HPP_
