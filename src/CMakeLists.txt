@@ -1,7 +1,7 @@
 
 LIST(APPEND DIRS clotho)
 LIST(APPEND DIRS examples)
-#LIST(APPEND DIRS tools)
+LIST(APPEND DIRS tools)
 
 FOREACH( D ${DIRS} )
     ADD_SUBDIRECTORY( ${D} )
