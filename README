@@ -1,13 +1,12 @@
-Project:   <clotho> 
+Project:   <clotho>
+Author: Patrick Putnam
 
 DESCRIPTION
     
-    <clotho> is a forward-time population genetics simulation engine.  The
-goal of the project is to provide a powerful and flexible simulation engine.
-The project should be able to take full advantage of the hardware resources
-available at the time of execution.
-
-    The engine is written in C/C++.
+    <clotho> is a forward-time population genetics simulation C/C++ template library.
+The goal of the project is to provide flexible objects which can be used to 
+form the basis of a population genetic simulator.  The project should be able to
+take full advantage of the hardware resources available at the time of execution.
 
     Clotho was one of the Three Fates in Greek mythology.  She spun the thread
 of human life, and was responsible for deciding when a person was born, and 
