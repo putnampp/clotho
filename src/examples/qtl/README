@@ -45,3 +45,6 @@ if applicable the selection and dominance coefficients, are also re-generated.
 
 The recombination events are also generated following a Poisson distribution with a
 configurable mean, rho.  The event positions are randomly selected uniformly from [0, 1).
+The selection a child sequence is controlled by a Bernoulli process with a configurable
+p value.  The default p-value is 0.5 meaning either child sequence is equally likely
+to be passed along.
