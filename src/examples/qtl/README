@@ -1,0 +1,47 @@
+The QTL Estimator is a Forward Time Population Genetic Simulator designed to
+explore the phenotypic effects of individual mutations.  It is designed to be
+equally an example of how one could utilize the objects provided in the Clotho
+template library, as well as a simulator.
+
+Simulation Scenario:
+
+The scenario being simulated considers a fixed-size population of N
+diploid individuals under random mating (panmixia). 
+
+This simulator is designed to consider each mutation as affecting the phenotype of
+individuals possessing it.  We term the phenotypic effect as a trait weight.  That is,
+each mutation has a weight value for each of the traits being studied.  The trait weights
+are generated from a configurable Normal distribution.  In effect, each allele is a row 
+in a weight matrix, W.  Each column of W represents a trait.  For simplicity, this simulator
+was designed to consider scenarios with fixed maximum number of traits, T.
+
+The phenotype of an individual is measured by summing the trait weights of both sequences
+which define an individual.  In this simulation, environmental factors are not considered.
+Therefore, P = G + E = G + 0 = G, where G is the weighted genotype of the individual.
+
+P = [1] * I * W = [ 1, 1 ]_[1 x 2] * [s_0; s_1]_[2 x M ] * [ m_0; m_1; m_3; ...; m_M ]_[M x T]
+
+Each mutation may also affect the selection of an individual.  The selection of an allele
+is controlled by selection and dominance coefficients from a uniform [0,1) distribution.
+Whether a mutation affects selection is controlled by a Bernoulli process with a
+configurable value of p.  By setting p=1, all new mutations are neutral (no selection); a
+p=0 value means all mutations affect selection.
+
+Mating pairs are chosen randomly from a Discrete distribution using the fitness vector
+of the population as the weight vector.  When all mutations are neutral, the fitness
+of each individual is equal to 1.  Technically, this is equivalent to Uniform distribution.
+It is worth noting that "selfing" is allowed to occur under this mating model.
+
+The reproduction procedure considers an Infinite Site Mutation model.  Mutation events
+are generated following a Poisson distribution with a configurable mean, mu.  The site
+of a mutation is randomly generated from a uniformly between [0,1).  There can be at most
+1 mutation for a site with in the current generation of population.  That is, if a randomly
+generated site is either fixed or variable for the current generation, then the site is
+re-generated.  
+
+Lost mutations are not considered to be a "reoccurrence" of the mutation.
+Rather, lost mutations are re-generated each time they occur.  The phenotypic effects, and
+if applicable the selection and dominance coefficients, are also re-generated.
+
+The recombination events are also generated following a Poisson distribution with a
+configurable mean, rho.  The event positions are randomly selected uniformly from [0, 1).
