@@ -13,15 +13,17 @@ of human life, and was responsible for deciding when a person was born, and
 therefore their lives.
 
 OVERVIEW
-    - System Requirements
+    - Dependencies
+    - Compilation
     - Useful Commands
 
 
-SYSTEM REQUIREMENTS
+DEPENDENCIES
+    - CMake 2.8 (or higher)
     - Boost 1.54.0 (or higher)
     - TCMalloc (https://code.google.com/p/gperftools/)
 
-EXAMPLE PROGRAM COMPILATION
+COMPILATION
     Execute the following commands in the main project directory:
         mkdir build
         cd build
