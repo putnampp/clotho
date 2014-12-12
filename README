@@ -21,6 +21,22 @@ SYSTEM REQUIREMENTS
     - Boost 1.54.0 (or higher)
     - TCMalloc (https://code.google.com/p/gperftools/)
 
+EXAMPLE PROGRAM COMPILATION
+    Execute the following commands in the main project directory:
+        mkdir build
+        cd build
+        cmake ..
+        make
+
+    - The example programs will be in the bin sub-directory.
+
+    - The 'build' directory is ment to keep the compiled object files from being created in the main
+    project directory (ie. to keep the project directories clean).
+
+    - Executing 'make doc' will create the Doxygen files for the project in the 'docs' sub-directory.
+        * The Doxygen files are work in progress
+
+
 USEFUL COMMANDS:
 
 Compilation Variable: MAX_ALLELES
