@@ -1,6 +1,7 @@
 #ifndef INDIVIDUAL_PHENOTYPER_HPP_
 #define INDIVIDUAL_PHENOTYPER_HPP_
 
+#include <boost/property_tree/ptree.hpp>
 //#include "iterator_helper.hpp"
 //
 #include "individual_trait_accumulator.hpp"
@@ -15,6 +16,7 @@ public:
 
     typedef typename individual_trait_acc_type::result_type result_type;
 
+    individual_phenotyper( boost::property_tree::ptree & config ) : m_env(config) {}
     individual_phenotyper( environment_type & env ) : m_env(env) {}
 
     result_type operator()( individual_type & ind ) {
@@ -46,6 +48,7 @@ public:
     typedef typename individual_trait_acc_type::result_type result_type;
 
     individual_phenotyper( ) {}
+    individual_phenotyper( boost::property_tree::ptree & config ) {}
 
     result_type operator()( individual_type & ind ) {
         individual_trait_acc_type acc;
