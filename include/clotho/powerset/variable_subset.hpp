@@ -295,4 +295,7 @@ std::ostream & operator<<( std::ostream & lhs, const SUBSET_SPECIALIZATION & rhs
 
 }   // namespace powersets
 }   // namespace clotho
+
+#include "clotho/powerset/variable_subset_iterator.hpp"
+
 #endif  // VARIABLE_SUBSET_HPP_
