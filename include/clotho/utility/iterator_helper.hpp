@@ -8,7 +8,8 @@ namespace utility {
 
 template < class Container >
 struct iterator_helper {
-    typedef clotho::utility::element_iterator< Container > type;
+    typedef clotho::utility::element_iterator< Container >  type;
+    typedef std::pair< type, type >                         range_type;
 
     static type make_first( Container & con ) {
         return type( con );
@@ -17,11 +18,16 @@ struct iterator_helper {
     static type make_last( Container & con ) {
         return type( con );
     }
+
+    static range_type make_range( Container & con ) {
+        return std::make_pair( type(con), type(con) );
+    }
 };
 
 template < class Element >
 struct iterator_helper< std::pair< Element, Element > > {
     typedef clotho::utility::element_iterator< std::pair< Element, Element > > type;
+    typedef std::pair< type, type >                                            range_type;
 
     static type    make_first( std::pair< Element, Element > & ind ) {
         return type( ind, pair_iterator_state::FIRST);
@@ -30,14 +36,19 @@ struct iterator_helper< std::pair< Element, Element > > {
     static type    make_last( std::pair< Element, Element > & ind ) {
         return type( ind );
     }
+
+    static range_type make_range( std::pair< Element, Element > & ind ) {
+        return std::make_pair( type(ind, pair_iterator_state::FIRST), type(ind) );
+    }
 };
 
 template < class Element >
 struct iterator_helper< std::shared_ptr< Element > > : 
     public iterator_helper< Element > 
 {
-    typedef iterator_helper< Element > base_type;
-    typedef typename base_type::type type;
+    typedef iterator_helper< Element >      base_type;
+    typedef typename base_type::type        type;
+    typedef typename base_type::range_type  range_type;
 
     static type make_first( std::shared_ptr< Element > s ) {
         return base_type::make_first( *s );
@@ -45,6 +56,10 @@ struct iterator_helper< std::shared_ptr< Element > > :
 
     static type make_last( std::shared_ptr< Element > s ) {
         return base_type::make_last( *s );
+    }
+
+    static range_type make_range( std::shared_ptr< Element > s ) {
+        return base_type::make_range( *s );
     }
 };
 
