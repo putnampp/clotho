@@ -49,7 +49,7 @@ typedef std::map< sequence_pointer, unsigned int >  ref_map_type;
 typedef typename ref_map_type::iterator             ref_map_iterator;
 typedef std::vector< unsigned int >                 allele_dist_type;
 
-typedef individual_phenotyper< individual_type, no_type >    individual_phenotyper_type;
+//typedef individual_phenotyper< individual_type, no_type >    individual_phenotyper_type;
 
 const string BASE_SEQUENCE_BIAS_K = "base_bias";
 const string TRAIT_BLOCK_K = "traits";
@@ -57,6 +57,10 @@ const string ALLELE_BLOCK_K = "allele";
 const string NEUTRAL_P_K = "neutral.p";
 
 const string SAMPLING_K = "sampling_size";
+
+const string FITNESS_BLOCK_K = "fitness";
+const string QUADRATIC_SCALE_K = "quadratic.scale";
+const string CONSTANT_K = "constant";
 /*
 void random_sample( rng_type * rng, population_type * p, allele_set_type * alleles, unsigned int nSamples, boost::property_tree::ptree & _log );
 void statsPopulation( population_type * p, allele_set_type * alleles, boost::property_tree::ptree & _log );
