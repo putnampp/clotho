@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 
@@ -20,7 +21,9 @@
 #include "clotho/genetics/individual_generator.hpp"
 #include "clotho/genetics/individual_fitness.hpp"
 #include "clotho/genetics/individual_resetter.hpp"
-#include "clotho/genetics/individual_phenotyper.hpp"
+//#include "clotho/genetics/individual_phenotyper.hpp"
+
+#include "clotho/genetics/population_phenotyper.hpp"
 
 #include "infinite_site.hpp"
 
@@ -39,6 +42,8 @@
 #include <boost/accumulators/statistics/weighted_mean.hpp>
 #include <boost/accumulators/statistics/weighted_median.hpp>
 #include <boost/accumulators/statistics/weighted_variance.hpp>
+
+#include "fitness_generator.hpp"
 
 namespace accum=boost::accumulators;
 
@@ -72,24 +77,42 @@ public:
     typedef sequence_generator< sequence_pointer >                                              sequence_generator_type;
     typedef sequence_mutator< sequence_type, mutation_generator_type >                          sequence_mutator_type;
     typedef clotho::utility::random_generator< rng_type, sequence_mutator_type >                sequence_mutator_generator;
-    typedef individual_initializer< individual_type, sequence_generator< sequence_pointer > >   individual_initializer_type;
+    typedef individual_initializer< individual_type, sequence_generator_type >   individual_initializer_type;
     typedef individual_selector< rng_type >             individual_selector_type;
     typedef individual_reproduction< individual_type
                 , sequence_mutator_generator
                 , recombination_method_generator > individual_reproduction_type;
     typedef individual_generator< population_type, individual_selector_type, individual_reproduction_type >     individual_generator_type;
 
-    typedef individual_resetter< individual_type >  individual_resetter_type;
-    typedef individual_phenotyper< individual_type, no_type >    individual_phenotyper_type;
+    typedef individual_resetter< individual_type >                  individual_resetter_type;
+//    typedef individual_phenotyper< individual_type, no_type >       individual_phenotyper_type;
+//
+//    typedef std::vector< typename individual_phenotyper_type::result_type > population_phenotypes;
+
+    typedef population_phenotyper< population_type >                population_phenotyper_type;
+    typedef typename population_phenotyper_type::phenotype_type     phenotype_type;
+    typedef typename population_phenotyper_type::result_type        population_phenotypes;
 
     // fitness typedefs
-    typedef clotho::fitness::fitness_method< double, clotho::fitness::multiplicative_heterozygous_tag > het_fit_type;
-    typedef clotho::fitness::fitness_method< double, clotho::fitness::multiplicative_homozygous_tag >    alt_hom_fit_type;
-    typedef clotho::fitness::no_fit                                             ref_hom_fit_type;
-    typedef clotho::fitness::fitness< sequence_type, het_fit_type, alt_hom_fit_type, ref_hom_fit_type, double > fitness_type;
-    typedef typename fitness_type::result_type                                  fitness_result_type;
-    typedef std::vector< fitness_result_type >                                  population_fitness_type;
-    typedef individual_fitness< fitness_type >                                  fitness_operator;
+//    typedef clotho::fitness::fitness_method< double, clotho::fitness::multiplicative_heterozygous_tag > het_fit_type;
+//    typedef clotho::fitness::fitness_method< double, clotho::fitness::multiplicative_homozygous_tag >    alt_hom_fit_type;
+//    typedef clotho::fitness::no_fit                                             ref_hom_fit_type;
+//    typedef clotho::fitness::fitness< sequence_type, het_fit_type, alt_hom_fit_type, ref_hom_fit_type, double > fitness_type;
+//    typedef typename fitness_type::result_type                                  fitness_result_type;
+//    typedef individual_fitness< fitness_type >                                  fitness_operator;
+//
+#ifdef CONSTFIT
+    typedef constant_fitness_generator  fitness_generator_type;
+#elif defined QFIT
+    typedef quadratic_fitness_generator fitness_generator_type;
+#else
+    typedef normal_fitness_generator    fitness_generator_type;
+#endif  // QFIT
+
+
+    typedef typename fitness_generator_type::result_type                        fitness_operator;
+    typedef typename fitness_operator::result_type                              fitness_result_type;
+    typedef std::vector< fitness_result_type >                                  population_fitnesses;
 
     // statistic typedefs
     typedef std::map< sequence_pointer, unsigned int >  ref_map_type;
@@ -102,8 +125,13 @@ public:
         , m_seq_mut_gen( m_rng, config )
         , m_rec_met_gen( m_rng, config )
         , m_repro( m_seq_mut_gen, m_rec_met_gen )
+        , m_fit_gen( config )
         , m_parent( &m_pop )
         , m_child( &m_buffer )
+        , m_parent_pheno( &m_pheno_buff1 )
+        , m_child_pheno( &m_pheno_buff2 )
+        , m_parent_fit( &m_fit_buff1 )
+        , m_child_fit( &m_fit_buff2 )
     {
         parseConfig( config );
         initialize();
@@ -114,7 +142,8 @@ public:
     }
 
     void simulate( unsigned int p_size ) {
-        population_fitness_type pfit;
+/*
+        population_fitnesses pfit;
         pfit.reserve( m_parent->size() );
 
         fitness_type fit;
@@ -130,19 +159,29 @@ public:
 //            tot_fit = fit_op.total_fitness();
 //            exp_fit = fit_op.expected_fitness();
         }
+*/
+//       individual_selector_type sel( m_rng, pfit.begin(), pfit.end() );
 
-        individual_selector_type sel( m_rng, pfit.begin(), pfit.end() );
+        individual_selector_type sel( m_rng, m_parent_fit->begin(), m_parent_fit->end() );
         individual_generator_type ind_gen( m_parent, sel, m_repro );
 
         std::generate_n( std::back_inserter( *m_child ), p_size, ind_gen );
+
+        updatePhenotypes( *m_child_pheno, *m_child );
+        updateFitness( *m_child_fit, *m_child_pheno );
     }
 
     void reset_parent() {
         m_parent->clear();
 
         std::swap( m_parent, m_child );
+        std::swap( m_parent_pheno, m_child_pheno );
+        std::swap( m_parent_fit, m_child_fit );
 
-        m_alleles.pruneSpace(); 
+        m_alleles.pruneSpace();
+
+        m_child_pheno->clear();
+        m_child_fit->clear();
     }
 
     population_type *   getParentPopulation() { return m_parent; }
@@ -170,31 +209,51 @@ public:
     }
 
     void computeStats( boost::property_tree::ptree & log ) {
-
-        individual_phenotyper_type ind_pheno;
-        std::vector< typename individual_phenotyper_type::result_type > pop_phenotypes;
-        std::transform( m_parent->begin(), m_parent->end(), std::back_inserter( pop_phenotypes ), ind_pheno );
-
         boost::property_tree::ptree pheno_log;
-        BOOST_FOREACH( auto& v, pop_phenotypes ) {
+        BOOST_FOREACH( auto& v, *m_parent_pheno ) {
             clotho::utility::add_value_array( pheno_log, v );
         }
 
         log.add_child( "phenotypes", pheno_log);
 
+        boost::property_tree::ptree fit_log;
+        BOOST_FOREACH( auto& v, *m_parent_fit ) {
+            clotho::utility::add_value_array( fit_log, v );
+        }
+
+        log.add_child( "fitness", fit_log );
+
         population_statistics( m_parent, &m_alleles, log );
+        unsigned int i = 0;
         BOOST_FOREACH( auto& v, m_sampling_sizes ) {
             boost::property_tree::ptree l;
-            random_sampler( m_parent, v, l );
+            random_sampler( m_parent, m_parent_pheno, m_parent_fit, v, l );
+
+            l.put("size", v );
 
             std::ostringstream oss;
-            oss << "sub_population." << v;
+            oss << "sample." << (i++);
 
             log.add_child( oss.str(), l );
         }
     }
 
 protected:
+
+    inline void updatePhenotypes( population_phenotypes & phenos, population_type & p ) {
+        population_phenotyper_type ppheno;
+        BOOST_FOREACH( auto& i, p ) {
+            phenos.push_back( ppheno(i) );
+        }
+    }
+
+    inline void updateFitness( population_fitnesses & fit, population_phenotypes & phenos ) {
+        fitness_operator pfit = m_fit_gen( phenos.begin(), phenos.end() );
+        BOOST_FOREACH( auto& p, phenos ) {
+            fit.push_back( pfit(p) );
+        }
+    }
+
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
         oss << CONFIG_BLOCK_K << "." << RNG_BLOCK_K << "." << SEED_K;
@@ -241,18 +300,31 @@ protected:
         m_pop.reserve( m_founder_size );
         m_buffer.reserve( m_founder_size );
 
+        // results in the existence of multiple 'empty' sequences in the family
         sequence_generator_type sgen( m_alleles );
         individual_initializer_type igen( sgen );
         std::generate_n( std::back_inserter( m_pop ), m_founder_size, igen );
+
+        //sequence_pointer empty_seq = m_alleles.create_subset();
+
+        //std::fill_n( std::back_inserter( *m_parent ), m_founder_size, empty_seq );
+        std::fill_n( std::back_inserter( *m_parent_pheno ), m_founder_size, phenotype_type(1, 0.) );
+        updateFitness( *m_parent_fit, *m_parent_pheno );
     }
 
-    void random_sampler( population_type * p, unsigned int size, log_type & l ) {
+    void random_sampler( population_type * p, population_phenotypes * phenos, population_fitnesses * fits, unsigned int size, log_type & l ) {
         population_type sub_pop;
-        boost::random::uniform_int_distribution< unsigned int > ind_rand(0, p->size() );
+        boost::property_tree::ptree pheno_log, fit_log;
+        boost::random::uniform_int_distribution< unsigned int > ind_rand(0, p->size() - 1 );
         for( unsigned int i = 0; i < size; ++i ) {
             unsigned int idx = ind_rand( m_rng );
             sub_pop.push_back( p->at(idx) );
+            clotho::utility::add_value_array( pheno_log, phenos->at(idx) );
+            clotho::utility::add_value_array( fit_log, fits->at(idx) );
         }
+
+        l.add_child( "phenotypes", pheno_log);
+        l.add_child( "fitness", fit_log );
 
         population_statistics( &sub_pop, &m_alleles, l );
     }
@@ -319,19 +391,6 @@ protected:
         double med_allele = accum::weighted_median( acc );
         double var_allele = accum::weighted_variance( acc );
 
-/*
-        // for validation purposes
-        typename allele_set_type::cfamily_iterator f_it = alleles->family_begin(), f_end = alleles->family_end();
-        unsigned int nNotInPop = 0;
-        while( f_it != f_end ) {
-            if( seq_ref_counts.find( *f_it++ ) == seq_ref_counts.end()) {
-                ++nNotInPop;
-            }
-        }
-
-        assert( nNotInPop == 0 );
-*/
-
         boost::property_tree::ptree all_dist, all_freq;
         for( count_iterator c_it = allele_counts.begin(); c_it != allele_counts.end(); ++c_it) {
             clotho::utility::add_value_array( all_dist, *c_it );
@@ -348,11 +407,14 @@ protected:
             }
         }
 
-        _log.put( "population.family_size", alleles->family_size() );
+        //_log.put( "population.family_size", seq_ref_counts.size() );
+        //_log.put( "population.reference_sequences", ((allele_counts.find(0) != allele_counts.end())? allele_counts[0] : 0 ) );
+        //_log.put( "population.total_sequences", nExpSeq );
+        //
+        _log.put( "population.sequences.unique", seq_ref_counts.size() );
+        _log.put( "population.sequences.num_empty", ((allele_counts.find(0) != allele_counts.end() )?allele_counts[0] : 0));
+        _log.put( "population.size", p->size() );
 
-        _log.put( "population.reference_sequences", ((allele_counts.find(0) != allele_counts.end())? allele_counts[0] : 0 ) );
-
-        _log.put( "population.total_sequences", nExpSeq );
         _log.put( "sequences.allele_count_distribution.format", "[alleles per sequence, number of sequences in population]" );
         _log.add_child( "sequences.allele_count_distribution.value", all_dist );
         _log.put( "sequences.alleles_per.mean", ave_alleles_per_sequence);
@@ -374,11 +436,18 @@ protected:
     sequence_mutator_generator m_seq_mut_gen;
     recombination_method_generator m_rec_met_gen;
 
-    individual_reproduction_type m_repro;
+    individual_reproduction_type    m_repro;
+    fitness_generator_type          m_fit_gen;
 
     log_type            m_log;
     population_type     m_pop, m_buffer;
     population_type     * m_parent, * m_child;
+
+    population_phenotypes   m_pheno_buff1, m_pheno_buff2;
+    population_phenotypes   * m_parent_pheno, * m_child_pheno;
+
+    population_fitnesses m_fit_buff1, m_fit_buff2;
+    population_fitnesses * m_parent_fit, * m_child_fit;
 
     allele_set_type m_alleles;
 
