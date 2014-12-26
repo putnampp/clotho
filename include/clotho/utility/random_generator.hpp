@@ -15,7 +15,7 @@ public:
     //random_generator( URNG & rng, boost::property_tree::ptree & config ) : m_rng( &rng ) {}
 
     result_type operator()() {
-        return result_type( *m_rng );
+        return result_type( );
     }
 
 protected:
