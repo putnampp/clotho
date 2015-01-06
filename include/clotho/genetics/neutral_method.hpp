@@ -3,7 +3,9 @@
 
 struct neutral_method {
     template < class E >
-    static bool test( const E & elem ) { return true; }
+    static bool test( const E & elem ) {
+        return true;
+    }
 };
 
 #endif  // NEUTRAL_METHOD_HPP_

@@ -26,27 +26,26 @@ public:
     random_generator( rng_type & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
         , m_cgen( rng, config )
-        , m_dist( 0.5 )
-    {
+        , m_dist( 0.5 ) {
         parseConfig( config );
     }
 
     random_generator( rng_type & rng, classifier_generator_type & cgen, real_type p = 0.5 ) :
         m_rng( &rng )
         , m_cgen( cgen )
-        , m_dist( p )
-    {}
+        , m_dist( p ) {
+    }
 
     result_type operator()() {
         classifier_type cfier = m_cgen();
-        return result_type( cfier, m_dist( *m_rng ) );   
+        return result_type( cfier, m_dist( *m_rng ) );
     }
 
 protected:
 
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
-        oss << CONFIG_BLOCK_K << "." << REC_BLOCK_K << "." << BASE_SEQUENCE_BIAS_K;
+        oss /*<< CONFIG_BLOCK_K << "."*/ << REC_BLOCK_K << "." << BASE_SEQUENCE_BIAS_K;
 
         if( config.get_child_optional( oss.str() ) == boost::none ) {
             config.put( oss.str(), m_dist.p() );

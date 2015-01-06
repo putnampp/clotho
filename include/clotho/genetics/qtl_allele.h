@@ -12,18 +12,26 @@ struct qtl_allele : public basic_allele {
     typedef typename trait_weights::const_iterator weight_citerator;
 
     qtl_allele( double k, double sel, double dom, bool neut, const trait_weights & coeff ) :
-        basic_allele( k, sel, dom, neut ), m_weights( coeff )
-    {}
+        basic_allele( k, sel, dom, neut ), m_weights( coeff ) {
+    }
 
     qtl_allele( const basic_allele & all, const trait_weights & coeff ) :
-        basic_allele( all ), m_weights( coeff )
-    {}
+        basic_allele( all ), m_weights( coeff ) {
+    }
 
-    weight_iterator    begin() { return m_weights.begin(); }
-    weight_citerator   begin() const { return m_weights.begin(); }
+    weight_iterator    begin() {
+        return m_weights.begin();
+    }
+    weight_citerator   begin() const {
+        return m_weights.begin();
+    }
 
-    weight_iterator    end() { return m_weights.end(); }
-    weight_citerator   end() const { return m_weights.end(); }
+    weight_iterator    end() {
+        return m_weights.end();
+    }
+    weight_citerator   end() const {
+        return m_weights.end();
+    }
 
     virtual ~qtl_allele() {}
 
@@ -117,6 +125,8 @@ void fitness_method< double, additive_homozygous_tag >::operator()< qtl_allele >
 #include "neutral_method.hpp"
 
 template < >
-bool neutral_method::test< qtl_allele >( const qtl_allele & all ) { return all.isNeutral(); }
+bool neutral_method::test< qtl_allele >( const qtl_allele & all ) {
+    return all.isNeutral();
+}
 
 #endif  // QTL_ALLELE_H_

@@ -29,13 +29,13 @@ public:
 
     individual_reproduction( mutation_generator_type & mut, recombination_generator_type & rec ) :
         m_mut_gen( mut )
-        , m_rec_gen( rec )
-    {}
+        , m_rec_gen( rec ) {
+    }
 
     result_type operator()( individual_type & p0, individual_type & p1 ) {
         mutation_type   mut0 = m_mut_gen();
         recombination_type rec0 = m_rec_gen();
-        
+
         sequence_type   c0 = rec0( p0, mut0.event_count() == 0 );
         mut0( c0 );
 

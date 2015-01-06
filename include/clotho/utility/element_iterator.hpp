@@ -17,13 +17,13 @@ public:
 
     element_iterator( container_type & con ) :
         m_container(&con)
-        , m_it( con.begin() )
-    {}
+        , m_it( con.begin() ) {
+    }
 
     element_iterator( const self_type & other) :
         m_container( other.m_container )
-        , m_it( other.m_it )
-    {}
+        , m_it( other.m_it ) {
+    }
 
     element_iterator< Container > & operator++() {
         ++m_it;
@@ -66,18 +66,18 @@ public:
 
     element_iterator( pair_type & p, pair_iterator_state s = pair_iterator_state::DONE ) :
         m_elements( &p )
-        , m_state( s )
-    {}
+        , m_state( s ) {
+    }
 
     element_iterator( pair_type * p, pair_iterator_state s = pair_iterator_state::DONE ) :
         m_elements( p )
-        , m_state( s )
-    {}
+        , m_state( s ) {
+    }
 
     element_iterator( const self_type & other ) :
         m_elements( other.m_elements )
-        , m_state( other.m_state )
-    {}
+        , m_state( other.m_state ) {
+    }
 
     self_type & operator++() {
         switch( m_state ) {
@@ -110,7 +110,7 @@ public:
     bool operator!=( const self_type & rhs ) const {
         return ( m_elements != rhs.m_elements || m_state != rhs.m_state);
     }
-    
+
 protected:
     pair_type   * m_elements;
     pair_iterator_state m_state;

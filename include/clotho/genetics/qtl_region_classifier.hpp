@@ -21,14 +21,13 @@ public:
 
     random_generator( URNG & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
-        , m_dist( DEFAULT_RECOMB_RATE )
-    {
+        , m_dist( DEFAULT_RECOMB_RATE ) {
         parseConfig( config );
     }
 
     random_generator( URNG & rng, double mu = DEFAULT_RECOMB_RATE ) :
-        m_rng( &rng ), m_dist( mu )
-    {}
+        m_rng( &rng ), m_dist( mu ) {
+    }
 
     result_type operator()() {
         typename result_type::param_type p;
@@ -49,7 +48,7 @@ public:
 protected:
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
-        oss << CONFIG_BLOCK_K << "." << REC_BLOCK_K << "." << RATE_PER_REGION_K;
+        oss /*<< CONFIG_BLOCK_K << "."*/ << REC_BLOCK_K << "." << RATE_PER_REGION_K;
 
         if( config.get_child_optional( oss.str() ) == boost::none ) {
             config.put( oss.str(), m_dist.mean() );

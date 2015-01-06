@@ -26,6 +26,8 @@
 #include <boost/accumulators/statistics/weighted_median.hpp>
 #include <boost/accumulators/statistics/weighted_variance.hpp>
 
+#include "clotho/genetics/fitness_toolkit.hpp"
+
 namespace accum=boost::accumulators;
 
 typedef boost::random::mt19937                                              rng_type;
@@ -49,8 +51,6 @@ typedef std::map< sequence_pointer, unsigned int >  ref_map_type;
 typedef typename ref_map_type::iterator             ref_map_iterator;
 typedef std::vector< unsigned int >                 allele_dist_type;
 
-//typedef individual_phenotyper< individual_type, no_type >    individual_phenotyper_type;
-
 const string BASE_SEQUENCE_BIAS_K = "base_bias";
 const string TRAIT_BLOCK_K = "traits";
 const string ALLELE_BLOCK_K = "allele";
@@ -58,13 +58,13 @@ const string NEUTRAL_P_K = "neutral.p";
 
 const string SAMPLING_K = "sampling_size";
 
-const string FITNESS_BLOCK_K = "fitness";
+//const string FITNESS_BLOCK_K = "fitness";
 const string QUADRATIC_SCALE_K = "quadratic.scale";
 const string CONSTANT_K = "constant";
-/*
-void random_sample( rng_type * rng, population_type * p, allele_set_type * alleles, unsigned int nSamples, boost::property_tree::ptree & _log );
-void statsPopulation( population_type * p, allele_set_type * alleles, boost::property_tree::ptree & _log );
-*/
+
+const string SIZE_K = "size";
+const string PAIRWISE_K = "pairwise";
+
 int main( int argc, char ** argv ) {
 
     log_type config;
@@ -72,23 +72,34 @@ int main( int argc, char ** argv ) {
     if( res ) {
         return res;
     }
-    
-    const unsigned int nRep = config.get< unsigned int >( CONFIG_BLOCK_K + "." + REPEAT_K, 1 );
-    const unsigned int nGen = config.get< unsigned int >( CONFIG_BLOCK_K + "." + GEN_BLOCK_K + "." + SIZE_K, 1);
-    const unsigned int nLog = config.get< unsigned int >( CONFIG_BLOCK_K + "." + LOG_BLOCK_K + "." + PERIOD_K, -1);
-    const unsigned int seed = config.get< unsigned int >( CONFIG_BLOCK_K + "." + RNG_BLOCK_K + "." + SEED_K, 0 );
+
+    log_type conf_child = ( (config.get_child_optional( CONFIG_BLOCK_K) == boost::none) ? config : config.get_child( CONFIG_BLOCK_K ));
+
+    const unsigned int nRep = conf_child.get< unsigned int >( REPEAT_K, 1 );
+    const unsigned int nGen = conf_child.get< unsigned int >( GEN_BLOCK_K + "." + SIZE_K, 1);
+    const unsigned int nLog = conf_child.get< unsigned int >( LOG_BLOCK_K + "." + PERIOD_K, -1);
+    const unsigned int seed = conf_child.get< unsigned int >( RNG_BLOCK_K + "." + SEED_K, 0 );
+    string out_path = conf_child.get<string>( OUTPUT_K, "");
 
     rng_type rng(seed);
-
-    string out_path = config.get<string>( CONFIG_BLOCK_K + "." + OUTPUT_K, "");
 
     for( unsigned int i = 0; i < nRep; ++i ) {
         // change the seed value of the random number generator
         rng.discard( 15 );
         const unsigned int tmp_seed = rng();
-        config.put( CONFIG_BLOCK_K + "." + RNG_BLOCK_K + "." + SEED_K, tmp_seed );
+        log_type rep_child_conf = conf_child;
 
-        simulate_type sim( config );
+        rep_child_conf.put( RNG_BLOCK_K + "." + SEED_K, tmp_seed );
+
+        simulate_type sim( rep_child_conf );
+
+        if( nGen == 0 ) {
+            fitness_toolkit::getInstance()->tool_configurations( rep_child_conf );
+
+            log_type tmp;
+            tmp.add_child( CONFIG_BLOCK_K, rep_child_conf );
+            boost::property_tree::write_json( std::cerr, tmp );
+        }
 
         unsigned int log_period = ((nGen < nLog) ? nGen : nLog);
         for( unsigned int j = 0; j < nGen; ++j ) {
@@ -105,9 +116,10 @@ int main( int argc, char ** argv ) {
                 }
                 sim.clearLog();
 
-                BOOST_FOREACH( auto& upd, config ) {
-                    stat_log.put_child(upd.first, upd.second );
-                }
+//                BOOST_FOREACH( auto& upd, config ) {
+//                    stat_log.put_child(upd.first, upd.second );
+//                }
+                stat_log.put_child( CONFIG_BLOCK_K, rep_child_conf);
 
                 log_period = ((j + log_period < nGen) ? nLog : (nGen - j - 1) );
 

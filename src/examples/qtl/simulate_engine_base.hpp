@@ -17,9 +17,11 @@ public:
     typedef LogType                                                     log_type;
     typedef TimerType                                                   timer_type;
 
+    typedef unsigned long                                               block_type;
+
     typedef clotho::utility::random_generator< rng_type, allele_type >  allele_generator;
 
-    typedef clotho::powersets::variable_subset< allele_type, unsigned long > sequence_type;
+    typedef clotho::powersets::variable_subset< allele_type, block_type > sequence_type;
     typedef typename sequence_type::pointer                                  sequence_pointer;
     typedef typename sequence_type::powerset_type                            allele_set_type;
 

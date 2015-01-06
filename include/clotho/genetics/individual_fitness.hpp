@@ -18,8 +18,12 @@ public:
         return (result_type) 1;
     }
 
-    result_type total_fitness() const { return (result_type) m_N; }
-    result_type expected_fitness() const { return (result_type) 1; }
+    result_type total_fitness() const {
+        return (result_type) m_N;
+    }
+    result_type expected_fitness() const {
+        return (result_type) 1;
+    }
 
 protected:
     double m_N;
@@ -33,14 +37,14 @@ protected:
 template < class E, class B, class BM, class EK, class Result, class HetMethod, class AltHomMethod, class RefHomMethod >
 class individual_fitness<
     clotho::fitness::fitness< clotho::powersets::variable_subset< E, B, BM, EK >,
-        HetMethod, AltHomMethod, RefHomMethod, Result > > {
+    HetMethod, AltHomMethod, RefHomMethod, Result > > {
 public:
     typedef individual_fitness<
-                clotho::fitness::fitness< clotho::powersets::variable_subset< E, B, BM, EK >,
-                HetMethod, AltHomMethod, RefHomMethod, Result > > self_type;
+    clotho::fitness::fitness< clotho::powersets::variable_subset< E, B, BM, EK >,
+           HetMethod, AltHomMethod, RefHomMethod, Result > > self_type;
 
     typedef clotho::fitness::fitness< clotho::powersets::variable_subset< E, B, BM, EK >,
-        HetMethod, AltHomMethod, RefHomMethod, Result > fitness_type;
+            HetMethod, AltHomMethod, RefHomMethod, Result > fitness_type;
     typedef Result                                      result_type;
     typedef clotho::powersets::variable_subset< E, B, BM, EK >  sequence_type;
     typedef typename  sequence_type::powerset_type              set_type;
@@ -48,15 +52,16 @@ public:
 
     //typedef neutral_method< E >                                 neutral_type;
 
-    individual_fitness( set_type & s, const fitness_type & fit ) : 
+    individual_fitness( set_type & s, const fitness_type & fit ) :
         m_set(&s)
         , m_fit( fit )
         , m_selected_mask()
         , m_default_value(fit.default_value())
         , m_tot_fit((result_type)0)
         , m_N((result_type)0)
-        , m_nSelected(0)
-    { initialize(); }
+        , m_nSelected(0) {
+        initialize();
+    }
 
     individual_fitness( const self_type & other ) :
         m_set( other.m_set )
@@ -65,8 +70,8 @@ public:
         , m_default_value(other.m_default_value )
         , m_tot_fit(other.m_tot_fit )
         , m_N(other.m_N )
-        , m_nSelected( other.m_nSelected )
-    {}
+        , m_nSelected( other.m_nSelected ) {
+    }
 
     template < class Individual >
     result_type operator()( Individual & ind );
@@ -83,9 +88,15 @@ public:
         return res;
     }
 
-    result_type total_fitness() const { return m_tot_fit; }
-    result_type expected_fitness() const { return m_tot_fit / ((m_N != 0) ? m_N : (result_type)1); }
-    typename bitset_type::size_type selected_count() const { return m_nSelected; }
+    result_type total_fitness() const {
+        return m_tot_fit;
+    }
+    result_type expected_fitness() const {
+        return m_tot_fit / ((m_N != 0) ? m_N : (result_type)1);
+    }
+    typename bitset_type::size_type selected_count() const {
+        return m_nSelected;
+    }
 
 protected:
     void initialize() {

@@ -10,19 +10,18 @@ public:
     typedef normal_fitness_metric   result_type;
 
     normal_fitness_generator( boost::property_tree::ptree & config ) :
-        m_mu(1.)
-    {
+        m_mu(1.) {
         parseConfig( config );
     }
 
     template < class Iter >
     result_type operator()( Iter first, Iter last ) {
         // theoretical standard deviation:
-        // sqrt( 2 * N * mu), where 
+        // sqrt( 2 * N * mu), where
         //  N - is the haploid sequence count
         //  mu - mutation rate per sequence
         // distance(,) - number of individuals in population (N_p) => N = 2 * (N_p); hence:  4.0 * N_p
-        double n = 4.0 * (double)std::distance(first, last); 
+        double n = 4.0 * (double)std::distance(first, last);
 
         n *= m_mu;
         n = sqrt(n);    // theoretical standard deviation
@@ -54,23 +53,22 @@ public:
 
     quadratic_fitness_generator( boost::property_tree::ptree & config ) :
         m_scale(1.)
-        , m_mu( 1. )
-    {
+        , m_mu( 1. ) {
         parseConfig( config );
     }
 
     template < class Iter >
     result_type operator()( Iter first, Iter last ) {
         // theoretical standard deviation:
-        // sqrt( 2 * N * mu), where 
+        // sqrt( 2 * N * mu), where
         //  N - is the haploid sequence count
         //  mu - mutation rate per sequence
         // distance(,) - number of individuals in population (N_p) => N = 2 * (N_p); hence:  4.0 * N_p
-        double res = 4.0 * (double)std::distance( first, last ); 
+        double res = 4.0 * (double)std::distance( first, last );
 
         res *= m_mu;
         res = sqrt( res );  // theoretical standard deviation
-        
+
         return result_type( m_scale * res );
     }
 
@@ -107,8 +105,7 @@ public:
     typedef constant_fitness_metric   result_type;
 
     constant_fitness_generator( boost::property_tree::ptree & config ) :
-        m_val( 1. )
-    {
+        m_val( 1. ) {
         parseConfig( config );
     }
 

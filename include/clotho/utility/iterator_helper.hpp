@@ -43,9 +43,8 @@ struct iterator_helper< std::pair< Element, Element > > {
 };
 
 template < class Element >
-struct iterator_helper< std::shared_ptr< Element > > : 
-    public iterator_helper< Element > 
-{
+struct iterator_helper< std::shared_ptr< Element > > :
+        public iterator_helper< Element > {
     typedef iterator_helper< Element >      base_type;
     typedef typename base_type::type        type;
     typedef typename base_type::range_type  range_type;

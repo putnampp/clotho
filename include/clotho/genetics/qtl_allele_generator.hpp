@@ -32,8 +32,7 @@ public:
         m_rng( &rng )
         , m_alleles(rng, config )
         , m_traits( rng, config )
-        , m_nTraits( 1 )
-    {
+        , m_nTraits( 1 ) {
         parseConfig( config );
     }
 
@@ -41,8 +40,8 @@ public:
         m_rng( &rng )
         , m_alleles( rng )
         , m_traits(rng, trait_mean, trait_sigma)
-        , m_nTraits(n)
-    {}
+        , m_nTraits(n) {
+    }
 
     result_type operator()() {
         basic_allele all = m_alleles();
@@ -56,7 +55,7 @@ public:
 protected:
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
-        oss << CONFIG_BLOCK_K << "." << TRAIT_BLOCK_K << "." << MAX_K;
+        oss /*<< CONFIG_BLOCK_K << "."*/ << TRAIT_BLOCK_K << "." << MAX_K;
 
         if( config.get_child_optional( oss.str() ) == boost::none ) {
             config.put( oss.str(), m_nTraits );

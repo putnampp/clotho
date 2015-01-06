@@ -5,51 +5,39 @@
 #include <vector>
 #include <cmath>
 
+#include "clotho/genetics/ifitness.hpp"
+
+extern const std::string NORM_NAME;
+
 /**
  * univariate normal distribution function
  *
- * Note: for k-dimensional vector the fitness is that of the first component
+ * Note: for k-dimensional trait vector the fitness is based on the phenotype of
+ * only the first trait
  */
-class normal_fitness_metric {
+class normal_fitness_metric : public ifitness {
 public:
     typedef double      real_type;
     typedef real_type   result_type;
 
-    normal_fitness_metric( real_type mu = 0., real_type sigma = 1. ) :
-        m_mean( mu )
-        , m_sigma( sigma )
-        , _coeff( (1.0/sigma) * boost::math::double_constants::one_div_root_two_pi)
-        , _denom( 2.0 * sigma * sigma )
-    {}
+    normal_fitness_metric( real_type mu = 0., real_type sigma = 1. );
 
-    result_type operator()( real_type x ) {
-        double ex = (x - m_mean);
-        ex *= ex;
-        ex /= _denom;
-        return _coeff * exp( -ex );
+    result_type operator()( real_type x );
+    result_type operator()( real_type x, real_type mu, real_type sigma );
+
+    inline result_type operator()( const std::vector< real_type > & multi_variate ) {
+        return ((multi_variate.empty()) ? operator()( 0. ) : operator()( multi_variate.front() ));
     }
 
-    result_type operator()( real_type x, real_type mu, real_type sigma ) {
-        double ex = (x - mu);
-        ex *= ex;
-        ex /= (2.0 * sigma * sigma );
-
-        double coeff = (1.0/sigma) * boost::math::double_constants::one_div_root_two_pi;
-
-        return coeff * exp(-ex);
+    inline result_type operator()( const std::vector< real_type > & multi_variate, real_type mu, real_type sigma ) {
+        return ((multi_variate.empty()) ? operator()( 0., mu, sigma ) : operator()( multi_variate.front(), mu, sigma ));
     }
 
-    result_type operator()( const std::vector< real_type > & multi_variate ) {
-        if( multi_variate.empty() ) return operator()( 0. );
+    const std::string name() const;
 
-        return operator()( multi_variate.front() );
-    }
+    void log( std::ostream & out ) const;
 
-    result_type operator()( const std::vector< real_type > & multi_variate, real_type mu, real_type sigma ) {
-        if( multi_variate.empty() ) return operator()( 0., mu, sigma );
-
-        return operator()( multi_variate.front(), mu, sigma );
-    }
+    virtual ~normal_fitness_metric();
 
 protected:
     real_type m_mean;

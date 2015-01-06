@@ -20,8 +20,8 @@ public:
     individual_generator( population_type * pop, selection_type & sel, reproduction_type & repro ) :
         m_pop( pop )
         , m_sel( sel )
-        , m_repro( repro )
-    {}
+        , m_repro( repro ) {
+    }
 
     result_type operator()() {
         individual_type p0 = m_pop->at(m_sel()), p1 = m_pop->at( m_sel());

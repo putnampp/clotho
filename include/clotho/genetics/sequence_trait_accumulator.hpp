@@ -34,7 +34,7 @@ protected:
 };
 
 template < class SequenceType >
-class sequence_trait_accumulator< std::shared_ptr< SequenceType > > : 
+class sequence_trait_accumulator< std::shared_ptr< SequenceType > > :
     public sequence_trait_accumulator< SequenceType > {
 public:
     typedef sequence_trait_accumulator< std::shared_ptr< SequenceType > > self_type;

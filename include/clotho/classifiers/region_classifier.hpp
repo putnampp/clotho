@@ -75,7 +75,9 @@ public:
         }
     }
 
-    size_t  region_count() const { return m_ubounds.size() + 1; }
+    size_t  region_count() const {
+        return m_ubounds.size() + 1;
+    }
 
     friend std::ostream & operator<<( std::ostream & os, const region_classifier & r ) {
         typename region_upper_bounds::const_iterator it = r.m_ubounds.begin();

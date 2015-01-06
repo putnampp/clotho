@@ -173,16 +173,14 @@ public:
     bit_block_iterator( block_type b = (block_type)0) :
         m_val(b)
         , m_index(0)
-        , m_max(0)
-    {
+        , m_max(0) {
         fill();
     }
 
     bit_block_iterator( const self_type & rhs ) :
         m_val( rhs.m_val )
         , m_index(0)
-        , m_max(0)
-    {
+        , m_max(0) {
         memcpy( m_indices, rhs.m_indices, sizeof( unsigned int) * bits_per_block);
     }
 

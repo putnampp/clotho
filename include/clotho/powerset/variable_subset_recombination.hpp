@@ -32,8 +32,8 @@ public:
 
     recombination( ) :
         m_classifier()
-        , m_swap(false) 
-    {}
+        , m_swap(false) {
+    }
 
     recombination( const classifier_type & c, bool sw = false ) :
         m_classifier( c )

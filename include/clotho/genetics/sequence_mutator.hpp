@@ -29,7 +29,9 @@ public:
         }
     }
 
-    unsigned int event_count() const { return m_events; }
+    unsigned int event_count() const {
+        return m_events;
+    }
 
 protected:
     generator_type   m_gen;
@@ -56,8 +58,7 @@ public:
     random_generator( rng_type & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
         , m_mgen( rng, config )
-        , m_dist( DEFAULT_MUTATION_RATE )
-    {
+        , m_dist( DEFAULT_MUTATION_RATE ) {
         parseConfig( config );
     }
 
@@ -70,7 +71,7 @@ protected:
 
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
-        oss << CONFIG_BLOCK_K << "." << MUT_BLOCK_K << "." << RATE_PER_REGION_K;
+        oss /*<< CONFIG_BLOCK_K << "."*/ << MUT_BLOCK_K << "." << RATE_PER_REGION_K;
 
         if( config.get_child_optional( oss.str() ) == boost::none ) {
             config.put( oss.str(), m_dist.mean() );
@@ -83,7 +84,7 @@ protected:
 
     rng_type    * m_rng;
     mutation_generator_type m_mgen;
-    dist_type   m_dist;    
+    dist_type   m_dist;
 };
 
 }   // namespace utility {

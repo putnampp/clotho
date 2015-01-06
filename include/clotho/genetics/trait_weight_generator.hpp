@@ -22,29 +22,32 @@ public:
         real_type          _mean, _sigma;
 
         param_type( real_type m = 0., real_type s = 1. ) :
-            _mean(m), _sigma(s)
-        {}
+            _mean(m), _sigma(s) {
+        }
 
-        double mean()   const { return _mean; }
-        double sigma()  const { return _sigma; }
+        double mean()   const {
+            return _mean;
+        }
+        double sigma()  const {
+            return _sigma;
+        }
     };
 
     random_generator( URNG & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
-        , m_dist( )
-    {
+        , m_dist( ) {
         parseConfig( config );
     }
 
     random_generator( URNG & rng, real_type mean = 0.0, real_type sigma = 1.0 ) :
         m_rng( &rng )
-        , m_dist( mean, sigma )
-    {}
+        , m_dist( mean, sigma ) {
+    }
 
     random_generator( const self_type & other ) :
         m_rng( other.m_rng )
-        , m_dist( other.m_dist.param() )
-    {}
+        , m_dist( other.m_dist.param() ) {
+    }
 
     result_type operator()() {
         return m_dist(*m_rng);
@@ -54,7 +57,7 @@ protected:
 
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
-        oss << CONFIG_BLOCK_K << "." << TRAIT_BLOCK_K << "." << MEAN_K;
+        oss /*<< CONFIG_BLOCK_K << "."*/ << TRAIT_BLOCK_K << "." << MEAN_K;
 
         real_type m = m_dist.mean(), s = m_dist.sigma();
         if( config.get_child_optional( oss.str() ) == boost::none ) {
@@ -66,7 +69,7 @@ protected:
         oss.str("");
         oss.clear();
 
-        oss << CONFIG_BLOCK_K << "." << TRAIT_BLOCK_K << "." << SIGMA_K;
+        oss /*<< CONFIG_BLOCK_K << "."*/ << TRAIT_BLOCK_K << "." << SIGMA_K;
 
         if( config.get_child_optional( oss.str() ) == boost::none ) {
             config.put( oss.str(), s );

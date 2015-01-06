@@ -1,41 +1,45 @@
 #ifndef QUADRATIC_FITNESS_METRIC_HPP_
 #define QUADRATIC_FITNESS_METRIC_HPP_
 
-class quadratic_fitness_metric {
+#include "clotho/genetics/ifitness.hpp"
+
+extern const std::string QUAD_NAME;
+
+/**
+ * Fitness is the scaled phenotype
+ *
+ * f( x ) = g( x; s ), if g(x ; s) > 0;
+ *        = 0, otherwise
+ *
+ * g( x; s ) = 1.0 - (x / s)^2
+ *
+ * x - specific trait's phenotype   (double)
+ * s - scaling factor               (double)
+ *
+ */
+class quadratic_fitness_metric : public ifitness {
 public:
     typedef double real_type;
     typedef real_type result_type;
 
-    quadratic_fitness_metric( real_type s = 1. ) : m_scale(s) {}
+    quadratic_fitness_metric( real_type s = 1. );
 
-    inline result_type operator()( real_type x ) {
-        return operator()( x, m_scale );
-    }
-
-    inline result_type operator()( real_type x, real_type s ) {
-        assert( s != 0 );
-
-        result_type res = x / s;
-        res *= res;
-
-        res = 1.0 - res;
-
-        if( res < 0.0 ) {
-            return 0.0;
-        }
-
-        return res;
-    }
+    result_type operator()( real_type x );
+    result_type operator()( real_type x, real_type s );
 
     inline result_type operator()( const std::vector< real_type > & multi_variate ) {
-        return operator()( multi_variate, m_scale );
+        return ((multi_variate.empty()) ? 0.0 :  operator()( multi_variate.front() ));
     }
 
     inline result_type operator()( const std::vector< real_type > & multi_variate, real_type s ) {
-        if( multi_variate.empty() ) return 1.0;
-
-        return operator()( multi_variate.front(), s );
+        return ((multi_variate.empty()) ? 0.0 : operator()( multi_variate.front(), s ));
     }
+
+    const std::string name() const;
+
+    void log( std::ostream & out ) const;
+
+    virtual ~quadratic_fitness_metric();
 
 protected:
     real_type m_scale;

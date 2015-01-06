@@ -7,8 +7,8 @@ public:
     typedef real_type   result_type;
 
     constant_fitness_metric( real_type c = 1. ) :
-        m_val( c )
-    {}
+        m_val( c ) {
+    }
 
     result_type operator()() {
         return m_val;

@@ -43,11 +43,70 @@
 #include <boost/accumulators/statistics/weighted_median.hpp>
 #include <boost/accumulators/statistics/weighted_variance.hpp>
 
-#include "fitness_generator.hpp"
+#include "clotho/genetics/fitness_toolkit.hpp"
 
 namespace accum=boost::accumulators;
 
 extern const string SAMPLING_K;
+extern const string SIZE_K;
+extern const string PAIRWISE_K;
+
+struct sample_log_params {
+    unsigned int    sample_size;
+    bool            pairwise;
+
+    sample_log_params( unsigned int ss = 100, bool p = false ) : sample_size(ss), pairwise(p) {}
+
+    sample_log_params( boost::property_tree::ptree & params ) : sample_size(100), pairwise(false) {
+        if( params.empty() ) {
+            // done for backwards compatiability
+            std::ostringstream tmp;
+            tmp << params.data();
+
+            if(! tmp.str().empty() ) {
+                sample_size = boost::lexical_cast< unsigned int >( tmp.str() );
+            }
+            return;
+        }
+
+        if( params.get_child_optional( SIZE_K ) != boost::none ) {
+            sample_size = params.get< unsigned int >( SIZE_K, sample_size );
+        } else {
+            params.put( SIZE_K, sample_size );
+        }
+
+        if( params.get_child_optional( PAIRWISE_K ) != boost::none ) {
+            pairwise = params.get< bool >( PAIRWISE_K, pairwise );
+        } else {
+            params.put( PAIRWISE_K, pairwise );
+        }
+    }
+
+    sample_log_params( const sample_log_params & slp ) : 
+        sample_size( slp.sample_size )
+        , pairwise( slp.pairwise )
+    {}
+};
+
+// Popcount algorithm found on Hamming Weight wiki page:
+// http://en.wikipedia.org/wiki/Hamming_weight
+// (date 1/1/2015)
+//
+const uint64_t m1  = 0x5555555555555555; //binary: 0101...
+const uint64_t m2  = 0x3333333333333333; //binary: 00110011..
+const uint64_t m4  = 0x0f0f0f0f0f0f0f0f; //binary:  4 zeros,  4 ones ...
+const uint64_t m8  = 0x00ff00ff00ff00ff; //binary:  8 zeros,  8 ones ...
+const uint64_t m16 = 0x0000ffff0000ffff; //binary: 16 zeros, 16 ones ...
+const uint64_t m32 = 0x00000000ffffffff; //binary: 32 zeros, 32 ones
+const uint64_t hff = 0xffffffffffffffff; //binary: all ones
+const uint64_t h01 = 0x0101010101010101; //the sum of 256 to the power of 0,1,2,3...
+
+inline unsigned int popcount( unsigned long x ) {
+    x -= (x >> 1) & m1;
+    x = (x & m2) + ((x >> 2) & m2);
+    x = (x + (x >> 4) ) & m4;
+    return ( x * h01) >> 56;
+}
 
 template < class URNG, class AlleleType, class LogType, class TimerType >
 class simulate_engine {
@@ -57,6 +116,7 @@ public:
     typedef typename base_type::log_type            log_type;
 
     typedef typename base_type::rng_type            rng_type;
+    typedef typename base_type::block_type          block_type;
     typedef typename base_type::allele_type         allele_type;
     typedef typename base_type::allele_set_type     allele_set_type;
     typedef typename base_type::sequence_type       sequence_type;
@@ -80,8 +140,8 @@ public:
     typedef individual_initializer< individual_type, sequence_generator_type >   individual_initializer_type;
     typedef individual_selector< rng_type >             individual_selector_type;
     typedef individual_reproduction< individual_type
-                , sequence_mutator_generator
-                , recombination_method_generator > individual_reproduction_type;
+    , sequence_mutator_generator
+    , recombination_method_generator > individual_reproduction_type;
     typedef individual_generator< population_type, individual_selector_type, individual_reproduction_type >     individual_generator_type;
 
     typedef individual_resetter< individual_type >                  individual_resetter_type;
@@ -101,17 +161,9 @@ public:
 //    typedef typename fitness_type::result_type                                  fitness_result_type;
 //    typedef individual_fitness< fitness_type >                                  fitness_operator;
 //
-#ifdef CONSTFIT
-    typedef constant_fitness_generator  fitness_generator_type;
-#elif defined QFIT
-    typedef quadratic_fitness_generator fitness_generator_type;
-#else
-    typedef normal_fitness_generator    fitness_generator_type;
-#endif  // QFIT
-
-
-    typedef typename fitness_generator_type::result_type                        fitness_operator;
-    typedef typename fitness_operator::result_type                              fitness_result_type;
+    typedef std::shared_ptr< ifitness_generator >                               fitness_generator_type;
+    typedef std::shared_ptr< ifitness >                                         fitness_operator;
+    typedef typename ifitness::result_type                                      fitness_result_type;
     typedef std::vector< fitness_result_type >                                  population_fitnesses;
 
     // statistic typedefs
@@ -125,14 +177,12 @@ public:
         , m_seq_mut_gen( m_rng, config )
         , m_rec_met_gen( m_rng, config )
         , m_repro( m_seq_mut_gen, m_rec_met_gen )
-        , m_fit_gen( config )
         , m_parent( &m_pop )
         , m_child( &m_buffer )
         , m_parent_pheno( &m_pheno_buff1 )
         , m_child_pheno( &m_pheno_buff2 )
         , m_parent_fit( &m_fit_buff1 )
-        , m_child_fit( &m_fit_buff2 )
-    {
+        , m_child_fit( &m_fit_buff2 ) {
         parseConfig( config );
         initialize();
     }
@@ -142,26 +192,6 @@ public:
     }
 
     void simulate( unsigned int p_size ) {
-/*
-        population_fitnesses pfit;
-        pfit.reserve( m_parent->size() );
-
-        fitness_type fit;
-        fitness_operator fit_op( m_alleles, fit );
-
-//        fitness_result_type tot_fit = 0., exp_fit = 0.;
-        if( !fit_op.selected_count() ) {
-            std::fill_n( std::back_inserter(pfit), m_parent->size(), 1. );
-//            tot_fit = (fitness_result_type)m_parent->size();
-//            exp_fit = 1.;
-        } else {
-            std::transform( m_parent->begin(), m_parent->end(), std::back_inserter(pfit), fit_op );
-//            tot_fit = fit_op.total_fitness();
-//            exp_fit = fit_op.expected_fitness();
-        }
-*/
-//       individual_selector_type sel( m_rng, pfit.begin(), pfit.end() );
-
         individual_selector_type sel( m_rng, m_parent_fit->begin(), m_parent_fit->end() );
         individual_generator_type ind_gen( m_parent, sel, m_repro );
 
@@ -184,14 +214,24 @@ public:
         m_child_fit->clear();
     }
 
-    population_type *   getParentPopulation() { return m_parent; }
-    population_type *   getChildPopulation() { return m_child; }
+    population_type *   getParentPopulation() {
+        return m_parent;
+    }
+    population_type *   getChildPopulation() {
+        return m_child;
+    }
 
-    allele_set_type *   getAlleles() { return &m_alleles; }
+    allele_set_type *   getAlleles() {
+        return &m_alleles;
+    }
 
-    log_type &          getLog() { return m_log; }
+    log_type &          getLog() {
+        return m_log;
+    }
 
-    void                clearLog() { m_log.clear(); }
+    void                clearLog() {
+        m_log.clear();
+    }
 
     log_type            getState() {
         log_type state;
@@ -223,13 +263,14 @@ public:
 
         log.add_child( "fitness", fit_log );
 
-        population_statistics( m_parent, &m_alleles, log );
+        population_statistics( m_parent, &m_alleles, log, false );
         unsigned int i = 0;
-        BOOST_FOREACH( auto& v, m_sampling_sizes ) {
+//        BOOST_FOREACH( auto& v, m_sampling_sizes ) {
+        BOOST_FOREACH( auto& v, m_sampling ) {
             boost::property_tree::ptree l;
-            random_sampler( m_parent, m_parent_pheno, m_parent_fit, v, l );
+            random_sampler( m_parent, m_parent_pheno, m_parent_fit, v.sample_size, l, v.pairwise );
 
-            l.put("size", v );
+            l.put(SIZE_K, v.sample_size );
 
             std::ostringstream oss;
             oss << "sample." << (i++);
@@ -248,15 +289,21 @@ protected:
     }
 
     inline void updateFitness( population_fitnesses & fit, population_phenotypes & phenos ) {
-        fitness_operator pfit = m_fit_gen( phenos.begin(), phenos.end() );
-        BOOST_FOREACH( auto& p, phenos ) {
-            fit.push_back( pfit(p) );
+//        fitness_operator pfit = m_fit_gen( phenos.begin(), phenos.end() );
+        if( m_fit_gen ) {
+            fitness_operator pfit = m_fit_gen->generate( phenos );
+            pfit->log( std::cerr );
+            BOOST_FOREACH( auto& p, phenos ) {
+                fit.push_back( pfit->operator()(p) );
+            }
+        } else {
+            std::fill_n( std::back_inserter( fit ), phenos.size(), 1.);
         }
     }
 
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
-        oss << CONFIG_BLOCK_K << "." << RNG_BLOCK_K << "." << SEED_K;
+        oss /*<< CONFIG_BLOCK_K << "."*/ << RNG_BLOCK_K << "." << SEED_K;
 
         if( config.get_child_optional( oss.str() ) == boost::none ) {
             config.put( oss.str(), 0 );
@@ -268,7 +315,7 @@ protected:
         oss.str("");
         oss.clear();
 
-        oss << CONFIG_BLOCK_K << "." << POP_BLOCK_K << "." << SIZE_K;
+        oss /*<< CONFIG_BLOCK_K << "." */<< POP_BLOCK_K << "." << SIZE_K;
         if( config.get_child_optional( oss.str() ) == boost::none ) {
             config.put( oss.str(), m_founder_size );
         } else {
@@ -278,19 +325,24 @@ protected:
         oss.str("");
         oss.clear();
 
-        oss << CONFIG_BLOCK_K << "." << LOG_BLOCK_K << "." << SAMPLING_K;
+        oss /*<< CONFIG_BLOCK_K << "."*/ << LOG_BLOCK_K << "." << SAMPLING_K;
 
         if( config.get_child_optional( oss.str() ) == boost::none ) {
             config.put( oss.str(), "" );
         } else {
             BOOST_FOREACH( auto& v, config.get_child( oss.str() ) ) {
-                std::ostringstream tmp;
-                tmp << v.second.data();
-
-                unsigned int s = boost::lexical_cast< unsigned int >( tmp.str() );
-                m_sampling_sizes.push_back(s);
+//                std::ostringstream tmp;
+//                tmp << v.second.data();
+//
+//                unsigned int s = boost::lexical_cast< unsigned int >( tmp.str() );
+//                m_sampling_sizes.push_back(s);
+                sample_log_params sl(v.second);
+                m_sampling.push_back( sl );
             }
         }
+
+        m_fit_gen = fitness_toolkit::getInstance()->get_tool( config );
+        if( m_fit_gen ) m_fit_gen->log( std::cerr );
     }
 
     void initialize( ) {
@@ -312,7 +364,7 @@ protected:
         updateFitness( *m_parent_fit, *m_parent_pheno );
     }
 
-    void random_sampler( population_type * p, population_phenotypes * phenos, population_fitnesses * fits, unsigned int size, log_type & l ) {
+    void random_sampler( population_type * p, population_phenotypes * phenos, population_fitnesses * fits, unsigned int size, log_type & l, bool pairwise ) {
         population_type sub_pop;
         boost::property_tree::ptree pheno_log, fit_log;
         boost::random::uniform_int_distribution< unsigned int > ind_rand(0, p->size() - 1 );
@@ -326,7 +378,77 @@ protected:
         l.add_child( "phenotypes", pheno_log);
         l.add_child( "fitness", fit_log );
 
-        population_statistics( &sub_pop, &m_alleles, l );
+        population_statistics( &sub_pop, &m_alleles, l, pairwise );
+    }
+
+    void pairwise_stats( ref_map_type & rmap, boost::property_tree::ptree & l ) {
+        
+        accum::accumulator_set< double, accum::stats< accum::tag::weighted_mean, accum::tag::weighted_variance >, double > acc_diff, acc_int, acc_un;
+ 
+        unsigned int tech_dup = 0;
+        for( ref_map_iterator it = rmap.begin(); it != rmap.end(); ++it ) {
+            sequence_pointer s0 = it->first;
+            double w0 = (double)it->second;
+
+            ref_map_iterator it2 = it;
+            for( ++it2; it2 != rmap.end(); ++it2 ) {
+                sequence_pointer s1 = it2->first;
+                double w1 = (double)it2->second;
+                double _diff = 0, _int = 0, _un = 0;
+
+                typename sequence_type::cblock_iterator sit = s0->begin(), sit2 = s1->begin();
+
+                while( true ) {
+                    if( sit == s0->end() ) {
+                        while( sit2 != s1->end() ) {
+                            block_type b = *sit2;
+                            double res = (double)popcount( b );
+                            _diff += res;
+                            _un += res;
+                            ++sit2;
+                        }
+                        break;
+                    }
+
+                    if( sit2 == s1->end() ) {
+                        while( sit != s0->end() ) {
+                            block_type b = *sit;
+                            double res = (double)popcount( b );
+                            _diff += res;
+                            _un += res;
+                            ++sit;
+                        }
+                        break;
+                    }
+
+                    block_type b0 = *sit, b1 = *sit2;
+                    _diff += popcount( b0 ^ b1 );
+                    _int += popcount( b0 & b1 );
+                    _un += popcount( b0 | b1 );
+
+                    ++sit;
+                    ++sit2;
+                }
+
+                if( _diff > 0. ) {
+                    double w = (w0 * w1);
+                    acc_diff( _diff, accum::weight = w );
+                    acc_int( _int, accum::weight = w );
+                    acc_un( _un, accum::weight = w );
+                } else {
+                    // technical duplicate
+                    ++tech_dup;
+                }
+            }
+        }
+
+        l.put( "population.sequences.technical_duplicates", tech_dup );
+        l.put( "sequences.pairwise.difference.mean", accum::weighted_mean(acc_diff));
+        l.put( "sequences.pairwise.difference.variance", accum::weighted_variance(acc_diff));
+        l.put( "sequences.pairwise.intersection.mean", accum::weighted_mean(acc_int));
+        l.put( "sequences.pairwise.intersection.variance", accum::weighted_variance(acc_int));
+        l.put( "sequences.pairwise.union.mean", accum::weighted_mean(acc_un));
+        l.put( "sequences.pairwise.union.variance", accum::weighted_variance(acc_un));
     }
 
     void buildRefMap( population_type * p, ref_map_type & m, allele_dist_type & a ) {
@@ -352,14 +474,14 @@ protected:
         for( ref_map_iterator rit = m.begin(); rit != m.end(); ++rit ) {
             unsigned int n = rit->second;
             size_t idx = rit->first->find_first();
-            while( idx !=  sequence_type::bitset_type::npos ) {
+            while( idx != sequence_type::bitset_type::npos ) {
                 a[ idx ] += n;
                 idx = rit->first->find_next( idx );
             }
         }
     }
 
-    void population_statistics( population_type * p, allele_set_type * alleles, boost::property_tree::ptree & _log ) {
+    void population_statistics( population_type * p, allele_set_type * alleles, boost::property_tree::ptree & _log, bool pairwise ) {
 
         typedef std::map< unsigned int, unsigned int >  count_map;
         typedef count_map::iterator                     count_iterator;
@@ -407,6 +529,10 @@ protected:
             }
         }
 
+        if (pairwise) {
+            pairwise_stats( seq_ref_counts, _log);
+        }
+
         //_log.put( "population.family_size", seq_ref_counts.size() );
         //_log.put( "population.reference_sequences", ((allele_counts.find(0) != allele_counts.end())? allele_counts[0] : 0 ) );
         //_log.put( "population.total_sequences", nExpSeq );
@@ -451,7 +577,8 @@ protected:
 
     allele_set_type m_alleles;
 
-    std::vector< unsigned int > m_sampling_sizes;
+//    std::vector< unsigned int > m_sampling_sizes;
+    std::vector< sample_log_params > m_sampling;
 };
 
 namespace clotho {
@@ -462,7 +589,7 @@ struct parameter_space< simulate_engine< URNG, AlleleType, LogType, TimerType > 
 
     static void build_parameters( boost::property_tree::ptree & params ) {
         std::ostringstream oss;
-        oss << CONFIG_BLOCK_K << "." << POP_BLOCK_K << "." << SIZE_K;
+        oss /*<< CONFIG_BLOCK_K << "."*/ << POP_BLOCK_K << "." << SIZE_K;
         params.put( oss.str() + ".value", 1000 );
         params.put( oss.str() + ".type", "uint");
         params.put( oss.str() + ".description", "Founder Population Size" );

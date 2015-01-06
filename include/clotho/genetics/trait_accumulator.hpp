@@ -32,7 +32,8 @@ public:
                 break;
             }
             (*it) += (*first);
-            ++first; ++it;
+            ++first;
+            ++it;
         }
     }
 

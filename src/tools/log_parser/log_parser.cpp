@@ -209,7 +209,7 @@ void combine_op_json( boost::property_tree::ptree & params ) {
                 BOOST_FOREACH( auto& k, keys ) {
                     if( infile.get_child_optional( k ) != boost::none ) {
                         string tmp = tmp_path + "." + k;
-                        results.add_child( tmp, infile.get_child( k ) ); 
+                        results.add_child( tmp, infile.get_child( k ) );
                     }
                 }
             }
@@ -305,7 +305,7 @@ void transpose_op( boost::property_tree::ptree & params ) {
                     }
                     std::cout << std::endl;
                 }
-            } 
+            }
         }
     }
 }
@@ -345,7 +345,7 @@ void combine_op( boost::property_tree::ptree & params ) {
                 BOOST_FOREACH( auto& k, keys ) {
                     if( infile.get_child_optional( k ) != boost::none ) {
                         string tmp = tmp_path + "." + k;
-                        results.add_child( tmp, infile.get_child( k ) ); 
+                        results.add_child( tmp, infile.get_child( k ) );
                     }
                 }
             }

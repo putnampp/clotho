@@ -16,8 +16,8 @@ struct individual_selector {
 
     individual_selector( const individual_selector< URNG > & other ) :
         m_rng( other.m_rng )
-        , m_dist( other.m_dist.param() )
-    {}
+        , m_dist( other.m_dist.param() ) {
+    }
 
     template < class Iter >
     individual_selector( rng_type & rng, Iter first, Iter last ) : m_rng( &rng ), m_dist( first, last ) {}

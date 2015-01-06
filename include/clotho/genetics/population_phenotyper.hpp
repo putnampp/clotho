@@ -21,7 +21,7 @@ public:
 
     typedef typename phenotype_accum_type::sequence_accumulator_type    sequence_effect;
     typedef typename sequence_effect::result_type                       effect_type;
-    
+
     typedef typename phenotype_accum_type::sequence_helper_type sequence_helper_type;
     typedef typename sequence_helper_type::sequence_type        sequence_type;
     typedef typename sequence_helper_type::iterator_helper_type seq_iterator_helper;
@@ -38,7 +38,7 @@ public:
     population_phenotyper( const self_type & other ) : m_pop_res( other.m_pop_res ) {}
 
     phenotype_type operator()( IndividualType & ind ) {
-    //    seq_iterator first = seq_iterator_helper::make_first(ind), last = seq_iterator_helper::make_last(ind);
+        //    seq_iterator first = seq_iterator_helper::make_first(ind), last = seq_iterator_helper::make_last(ind);
 
         seq_iterator_range ran = seq_iterator_helper::make_range( ind );
         phenotype_type                  pheno_res;

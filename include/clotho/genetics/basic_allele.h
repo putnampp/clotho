@@ -108,6 +108,8 @@ void fitness_method< double, additive_homozygous_tag >::operator()< basic_allele
 #include "neutral_method.hpp"
 
 template <>
-bool neutral_method::test< basic_allele >( const basic_allele & ba ) { return ba.isNeutral(); }
+bool neutral_method::test< basic_allele >( const basic_allele & ba ) {
+    return ba.isNeutral();
+}
 
 #endif  // BASIC_ALLELE_H_

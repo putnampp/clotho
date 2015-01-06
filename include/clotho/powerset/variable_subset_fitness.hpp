@@ -124,7 +124,9 @@ public:
         return res;
     }
 
-    result_type default_value() const { return (result_type) 1; }
+    result_type default_value() const {
+        return (result_type) 1;
+    }
 };
 
 }   // namespace fitness

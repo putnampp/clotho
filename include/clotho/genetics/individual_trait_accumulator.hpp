@@ -31,7 +31,7 @@ public:
 
         sequence_accumulator_type acc( res );
         std::for_each( first, last, acc );
-        
+
         return res;
     }
 

@@ -24,8 +24,8 @@ public:
 
     random_generator( URNG & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
-        , m_gen( rng, config )
-    {}
+        , m_gen( rng, config ) {
+    }
 
     result_type operator()( std::shared_ptr< sequence_type > & seq ) {
         return operator()( *seq );

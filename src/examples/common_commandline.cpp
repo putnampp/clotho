@@ -124,7 +124,7 @@ void update_config( po::variables_map & vm, boost::property_tree::ptree & cfg ) 
     simulation_config tmp;
     update_config( vm, tmp );
 
-    if( cfg.get_child_optional( CONFIG_BLOCK_K ) == boost::none ) {
+    if( cfg.get_child_optional( CONFIG_BLOCK_K ) != boost::none ) {
         add_config(cfg.get_child( CONFIG_BLOCK_K ), tmp);
     } else {
         boost::property_tree::ptree t;

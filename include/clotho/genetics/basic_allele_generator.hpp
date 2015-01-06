@@ -29,20 +29,19 @@ public:
 
     random_generator( URNG & rng ) :
         m_rng( &rng )
-        , m_neutral()
-    {}
-    random_generator( URNG & rng, boost::property_tree::ptree & config ) : 
+        , m_neutral() {
+    }
+    random_generator( URNG & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
-        , m_neutral()
-    {
+        , m_neutral() {
         parseConfig( config );
     }
 
-    random_generator( const self_type & other ) : 
+    random_generator( const self_type & other ) :
         m_rng( other.m_rng )
-        , m_neutral( other.m_neutral.param() )
-    {}
-    
+        , m_neutral( other.m_neutral.param() ) {
+    }
+
     result_type operator()( ) {
         key_type k = m_uniform( *m_rng );
 
@@ -61,7 +60,7 @@ public:
 protected:
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
-        oss << CONFIG_BLOCK_K << "." << ALLELE_BLOCK_K << "." << NEUTRAL_P_K;
+        oss /*<< CONFIG_BLOCK_K << "."*/ << ALLELE_BLOCK_K << "." << NEUTRAL_P_K;
         if( config.get_child_optional( oss.str() ) == boost::none ) {
             config.put( oss.str(), m_neutral.p() );
         } else {

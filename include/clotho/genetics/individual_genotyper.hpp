@@ -8,7 +8,9 @@
 
 struct add {
     template < class ResultType >
-    ResultType operator()( ResultType a, ResultType b ) { return a + b; }
+    ResultType operator()( ResultType a, ResultType b ) {
+        return a + b;
+    }
 };
 
 template < class SetType, class ValueType = double, class OP = add >
@@ -31,11 +33,19 @@ public:
         result_type ( size_t n = 1 ) : m_values( n ) {}
         result_type ( const result_type & r ) : m_values( r.m_values ) {}
 
-        iterator    begin() { return m_values.begin(); }
-        citerator   begin() const { return m_values.begin(); }
+        iterator    begin() {
+            return m_values.begin();
+        }
+        citerator   begin() const {
+            return m_values.begin();
+        }
 
-        iterator    end() { return m_values.end(); }
-        citerator   end() const { return m_values.end(); }
+        iterator    end() {
+            return m_values.end();
+        }
+        citerator   end() const {
+            return m_values.end();
+        }
 
     protected:
         values_type m_values;

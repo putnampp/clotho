@@ -21,14 +21,14 @@ public:
     element_iterator( container_type & con, size_type idx = container_type::bitset_type::npos ) :
         m_container( &con )
         , m_idx(idx)
-        , m_var(con.getParent()->variable_begin())
-    { }
+        , m_var(con.getParent()->variable_begin()) {
+    }
 
     element_iterator( const self_type & other ) :
         m_container( other.m_container )
         , m_idx( other.m_idx )
-        , m_var( other.m_var )
-    {}
+        , m_var( other.m_var ) {
+    }
 
     self_type & operator++() {
         if( m_idx != container_type::bitset_type::npos ) {
