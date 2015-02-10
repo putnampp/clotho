@@ -21,7 +21,9 @@ public:
 
     random_generator( URNG & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
-        , m_dist( DEFAULT_RECOMB_RATE ) {
+        , m_dist( DEFAULT_RECOMB_RATE )
+        , m_bSkip(false)
+    {
         parseConfig( config );
     }
 
@@ -32,12 +34,12 @@ public:
     result_type operator()() {
         typename result_type::param_type p;
 
-        unsigned int n = m_dist( *m_rng );
+        unsigned int n = ((m_bSkip)? 0 : m_dist( *m_rng ));
 
         for( unsigned int i = 0; i < n; ++i ) {
             double k = m_uniform( *m_rng );
             qtl_allele::trait_weights coeff;
-
+    
             p.push_back( qtl_allele( k, DEFAULT_SELECTION, DEFAULT_DOMINANCE, DEFAULT_NEUTRAL, coeff) );
         }
 
@@ -46,6 +48,7 @@ public:
     }
 
 protected:
+
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
         oss /*<< CONFIG_BLOCK_K << "."*/ << REC_BLOCK_K << "." << RATE_PER_REGION_K;
@@ -54,6 +57,15 @@ protected:
             config.put( oss.str(), m_dist.mean() );
         } else {
             double m = config.get< double >( oss.str() );
+
+            m_bSkip = (m == 0.0);
+
+            if( m_bSkip ) {
+                m = 0.00000000001;
+            } else if( m < 0.0 ) {
+                m = std::abs( m ); 
+            }
+
             typename dist_type::param_type p( m );
 
             m_dist.param( p );
@@ -63,6 +75,7 @@ protected:
     URNG        * m_rng;
     uniform_type    m_uniform;
     dist_type       m_dist;
+    bool        m_bSkip;
 };
 
 }   // namespace utility {
