@@ -292,7 +292,7 @@ protected:
 //        fitness_operator pfit = m_fit_gen( phenos.begin(), phenos.end() );
         if( m_fit_gen ) {
             fitness_operator pfit = m_fit_gen->generate( phenos );
-            pfit->log( std::cerr );
+//            pfit->log( std::cerr );
             BOOST_FOREACH( auto& p, phenos ) {
                 fit.push_back( pfit->operator()(p) );
             }
@@ -385,7 +385,8 @@ protected:
         
         accum::accumulator_set< double, accum::stats< accum::tag::weighted_mean, accum::tag::weighted_variance >, double > acc_diff, acc_int, acc_un;
  
-        unsigned int tech_dup = 0;
+        unsigned int tech_dup = 0, pairs = 0;
+        double tot = 0.;
         for( ref_map_iterator it = rmap.begin(); it != rmap.end(); ++it ) {
             sequence_pointer s0 = it->first;
             double w0 = (double)it->second;
@@ -402,10 +403,10 @@ protected:
                     if( sit == s0->end() ) {
                         while( sit2 != s1->end() ) {
                             block_type b = *sit2;
+                            ++sit2;
                             double res = (double)popcount( b );
                             _diff += res;
                             _un += res;
-                            ++sit2;
                         }
                         break;
                     }
@@ -413,21 +414,20 @@ protected:
                     if( sit2 == s1->end() ) {
                         while( sit != s0->end() ) {
                             block_type b = *sit;
+                            ++sit;
                             double res = (double)popcount( b );
                             _diff += res;
                             _un += res;
-                            ++sit;
                         }
                         break;
                     }
 
                     block_type b0 = *sit, b1 = *sit2;
+                    ++sit;
+                    ++sit2;
                     _diff += popcount( b0 ^ b1 );
                     _int += popcount( b0 & b1 );
                     _un += popcount( b0 | b1 );
-
-                    ++sit;
-                    ++sit2;
                 }
 
                 if( _diff > 0. ) {
@@ -435,6 +435,8 @@ protected:
                     acc_diff( _diff, accum::weight = w );
                     acc_int( _int, accum::weight = w );
                     acc_un( _un, accum::weight = w );
+                    tot += w;
+                    ++pairs;
                 } else {
                     // technical duplicate
                     ++tech_dup;
@@ -443,6 +445,8 @@ protected:
         }
 
         l.put( "population.sequences.technical_duplicates", tech_dup );
+        l.put( "sequences.pairwise.size", tot );
+        l.put( "sequences.pairwise.unique_pairs", pairs );
         l.put( "sequences.pairwise.difference.mean", accum::weighted_mean(acc_diff));
         l.put( "sequences.pairwise.difference.variance", accum::weighted_variance(acc_diff));
         l.put( "sequences.pairwise.intersection.mean", accum::weighted_mean(acc_int));
