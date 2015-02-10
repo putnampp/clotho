@@ -381,28 +381,36 @@ void write( ostream * out, boost::property_tree::ptree::value_type  & node ) {
 
 void write_data( ostream * out, boost::property_tree::ptree & data ) {
     unsigned int i = 0;
-    BOOST_FOREACH( auto& c, data ) {
-        if( c.second.empty() ) {
-            std::ostringstream oss;
-            oss << c.second.data();
-            (*out) << "," << oss.str();
-        } else {
-            (*out) << ++i;
-            write_data( out, c.second);
-            (*out) << "\n";
+
+    if( data.empty() ) {
+        (*out) << i << "," << data.data() << "\n";
+    } else {
+        BOOST_FOREACH( auto& c, data ) {
+            if( c.second.empty() ) {
+                (*out) << "," << c.second.data();
+            } else {
+                (*out) << ++i;
+                write_data( out, c.second);
+                (*out) << "\n";
+            }
         }
     }
 }
 
 void write( ostream * out, string path, boost::property_tree::ptree & tr ) {
     unsigned int i = 0;
-    BOOST_FOREACH( auto& c, tr ) {
-        if( c.first.empty() ) {
-            (*out) << ++i;
-            write_data(out, c.second);
-            (*out) << "\n";
-        } else {
-            write( out, path + "." + c.first, c.second );
+
+    if( tr.empty() ) {
+        (*out) << ++i << "," << tr.data() << "\n";
+    } else {
+        BOOST_FOREACH( auto& c, tr ) {
+            if( c.first.empty() ) {
+                (*out) << ++i;
+                write_data(out, c.second);
+                (*out) << "\n";
+            } else {
+                write( out, path + "." + c.first, c.second );
+            }
         }
     }
 }
