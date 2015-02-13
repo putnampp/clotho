@@ -2,47 +2,76 @@
 #include <cuda.h>
 #include <iostream>
 
-//#include "clotho/utility/timer.hpp"
+#include <boost/random/mersenne_twister.hpp>
+
+#include "clotho/utility/timer.hpp"
 
 #include "square.h"
 
-//typedef clotho::utility::timer  timer_type;
+typedef clotho::utility::timer  timer_type;
+typedef boost::random::mt19937  rng_type;
+
+typedef Square::int_type        int_type;
+
+void square_it( int_type N ) {
+
+    timer_type t;
+    int_type * a = new int_type[ N ];
+
+    for(int_type i = 0; i < N; ++i ) {
+        a[i] = i*i;
+    }
+    
+    delete [] a;
+    t.stop();
+    std::cout << "host lapse:   " << t.elapsed().count() << std::endl;
+}
+
+void square_list_rand( int_type N ) {
+    timer_type t;
+
+    int_type * a = new int_type[ N ];
+    rng_type rand(1234);
+
+    for(int_type i = 0; i < N; ++i ) {
+        unsigned int r = rand();
+
+        a[i] = r * r;
+    }
+
+    t.stop();
+    std::cout << "host random lapse: " << t.elapsed().count() << std::endl;
+
+    std::cerr << "BEGIN HOST" << std::endl;
+    for( unsigned int i = 0; i < N; ++i ) {
+        std::cerr << i << " -> " << a[i] << std::endl;
+    }
+    delete [] a;
+}
 
 int main( int argc, char ** argv ) {
 
-//    unsigned int * a_h, * a_d;
-//
-//    size_t size = N * sizeof(unsigned int);
-//    a = (unsigned int *) malloc(size);
-//    a_h = new unsigned int[N];
-//
-//    timer_type t;
-//
-//    cudaMalloc( (void **) &a_d, size);
-//
-//    t.stop();
-//
-//    std::cout << "Malloc: " << t.elasped().count() << std::endl;
-// 
-//    t.start();
-//    square<<<1,N>>>(a_d, N);
-//    t.stop();
-//
-//    std::cout << "Square: " << t.elapsed().count() << std::endl;
-//
-//    cudaMemcpy(a_h, a_d, size, cudaMemcpyDeviceToHost);
-
-//    for( unsigned int i = 0; i < N; ++i ) {
-//        std::cout << i << " -> " << a_h[i] << std::endl;
-//    }
-//
-//    cudaFree(a_d);
-//  free( a_h );
-//    delete [] a_h;
-
+    timer_type t;
     Square s;
-    s();
-    std::cout << s;
+    t.stop();
+
+    std::cout << "Init: " << t.elapsed().count() << std::endl;
+
+    //t.start();
+    //s();
+    //t.stop();
+
+    //std::cout << "device lapse: " << t.elapsed().count() << std::endl;
+
+    t.start();
+    s.random_list();
+    t.stop();
+    std::cout << "device random lapse: " << t.elapsed().count() << std::endl;
+    std::cerr << s;
+
+    square_it( s.size() );
+
+    square_list_rand( s.size() );
 
     return 0;
 }
