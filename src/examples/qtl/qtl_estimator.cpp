@@ -99,14 +99,25 @@ int main( int argc, char ** argv ) {
             log_type tmp;
             tmp.add_child( CONFIG_BLOCK_K, rep_child_conf );
             boost::property_tree::write_json( std::cerr, tmp );
+
+            continue;
         }
 
         unsigned int log_period = ((nGen < nLog) ? nGen : nLog);
+        log_type sim_times, stat_times;
+
+        timer_type rep_time;
         for( unsigned int j = 0; j < nGen; ++j ) {
+            timer_type sim_time;
             sim.simulate();
+            sim_time.stop();
+
+            clotho::utility::add_value_array( sim_times, sim_time );
 
             sim.reset_parent();
             if( !(--log_period) ) {
+                timer_type stat_time;
+
                 log_type stat_log;
                 sim.computeStats( stat_log );
 
@@ -133,7 +144,24 @@ int main( int argc, char ** argv ) {
                         boost::property_tree::write_json( oss.str(), stat_log );
                     }
                 }
-            }
+                stat_time.stop();
+                clotho::utility::add_value_array( stat_times, stat_time );
+            } 
+        }
+        rep_time.stop();
+
+        log_type perform_log;
+        perform_log.add( "performance.runtime", rep_time.elapsed().count() );
+        perform_log.put_child( "performance.simulate", sim_times );
+        perform_log.put_child( "performance.stats", stat_times );
+
+        if( out_path.empty() ) {
+            boost::property_tree::write_json( std::cout, perform_log );
+        } else {
+            std::ostringstream oss;
+            oss << out_path << "." << i << ".performance.json";
+
+            boost::property_tree::write_json( oss.str(), perform_log );
         }
     }
 
