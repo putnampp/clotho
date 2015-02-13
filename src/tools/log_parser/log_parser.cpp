@@ -383,14 +383,15 @@ void write_data( ostream * out, boost::property_tree::ptree & data ) {
     unsigned int i = 0;
 
     if( data.empty() ) {
-        (*out) << i << "," << data.data() << "\n";
+        //(*out) << i << "," << data.data() << "\n";
+        (*out) << "," << data.data();
     } else {
         BOOST_FOREACH( auto& c, data ) {
             if( c.second.empty() ) {
                 (*out) << "," << c.second.data();
             } else {
                 (*out) << ++i;
-                write_data( out, c.second);
+                 write_data( out, c.second);
                 (*out) << "\n";
             }
         }
