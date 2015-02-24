@@ -1,9 +1,7 @@
 #ifndef SEQUENCE_MUTATOR_HPP_
 #define SEQUENCE_MUTATOR_HPP_
 
-template < class Sequence, class Generator >
-class sequence_mutator;
-
+#include "clotho/genetics/sequence_mutator_def.hpp"
 #include "clotho/powerset/variable_subset.hpp"
 
 template < class E, class B, class BM, class EK, class Generator >
