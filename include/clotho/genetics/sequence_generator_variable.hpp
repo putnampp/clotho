@@ -1,8 +1,6 @@
 #ifndef SEQUENCE_GENERATOR_HPP_
 #define SEQUENCE_GENERATOR_HPP_
 
-template < class Sequence >
-class sequence_generator;
 
 #include "clotho/powerset/variable_subset.hpp"
 
