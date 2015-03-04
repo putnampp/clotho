@@ -1,8 +1,8 @@
 #ifndef BIT_BLOCK_RECOMBINER_HPP_
 #define BIT_BLOCK_RECOMBINER_HPP_
 
-#include "clotho/utility/bit_block_iterator.hpp"
-#include "clotho/utility/bit_fill.hpp"
+//#include "clotho/utility/bit_block_iterator.hpp"
+//#include "clotho/utility/bit_fill.hpp"
 
 namespace clotho {
 namespace recombine {
@@ -19,64 +19,12 @@ public:
     template < class Block, class ElementIterator >
     Block operator()( Block b0, Block b1, ElementIterator first ) {
         typedef Block block_type;
-//        typedef clotho::utility::bit_block_iterator< block_type > iterator;
-/*
-        // b0 = 01001
-        // b1 = 10101
-        block_type matching = (b0 & b1); // = 00001
-        block_type mismatch = (b0 ^ b1); // = 11100
-
-        block_type b0_mask = (block_type)0;
-        if( mismatch ) {
-            iterator bit_it( mismatch ), bit_end;
-            do { 
-                unsigned int bit_idx = (*bit_it);
-                if( m_cfier(first, bit_idx) ) {
-                    b0_mask |= ((block_type)1 << (bit_idx));
-                }
-            } while( ++bit_it != bit_end);
-            // assume:
-            // classify( bit_idx = 2 ) true
-            // classify( bit_idx = 3 ) true
-            // classify( bit_idx = 4 ) false
-            // => b0_mask = 01100
-        }
-
-        // ~b0_mask & mismatch = ~01100 & 11100 = 10011 & 11100 = 10000
-        // b1_mismatch = (10000 & 10101) = 10000
-        // res = (matching | b1_mismatch) = (00001 | 10000) = 10001
-        // res = res | (b0_mask & b0) = (10001 | (01100 & 01001)) = (10001 | (01000)) = 11001
-        block_type b1_mismatch = ((~b0_mask & mismatch) & b1);
-        block_type res = (matching | b1_mismatch);
-        res |= (b0_mask & b0);
-        return  res;
-*/
         // Simplified Logic:
         // b0 = 01001
         // b1 = 10101
         block_type hets = (b0 ^ b1);    // = 11100
         block_type b0_mask = (block_type)0;
         if( hets ) {
-//            iterator bit_it( hets ), bit_end;
-//            do {
-//               unsigned int bit_idx = (*bit_it);
-//                if( m_cfier(first, bit_idx ) ) {
-//                    b0_mask |= ((block_type)1 << bit_idx);
-//                }
-//            } while( ++bit_it != bit_end );
-
-//            unsigned int indices[ sizeof( block_type ) * 8];
-
-            // preprocess set bits 
-            //
-//            unsigned int max_index = fill_set_bits( hets, indices );
-//
-//            for( unsigned int offset = 0; offset < max_index; ++offset ) {
-//                unsigned int idx = indices[offset];
-//                if( m_cfier( *(first + idx ) ) ) {
-//                    b0_mask |= ((block_type) 1 << idx);
-//                }
-//            }
             // assume:
             // classify( bit_idx = 2 ) true
             // classify( bit_idx = 3 ) true
