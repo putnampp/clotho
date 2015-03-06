@@ -49,14 +49,21 @@ public:
 
     bit_block_recombiner( const classifier_type & cfier ) : m_cfier( cfier ) {}
 
-    template < class ElementIterator >
-    unsigned int operator( const unsigned int b0, const unsigned int b1, const ElementIterator first ) {
-        typedef unsigned int Block;
-
-        Block res = (Block)0;
-
+    template < class Block, class ElementIterator >
+    Block operator()( const Block b0, const Block b1, const ElementIterator first ) {
         Block b = InspectMethodTag::select(b0, b1);
 
+        Block mask = walk( b, first );
+
+        Block rec = ((b0 & mask) | (b1 & ~mask));
+
+        return rec;
+    }
+
+protected:
+    template < class ElementIterator >
+    unsigned int walk( unsigned int b, const ElementIterator first ) {
+        unsigned int res = 0;
         while( b ) {
             unsigned int tmp = LEAST_SIG_BIT( b );
             unsigned int offset = DEBRUIJNBIT_HASH_LOOKUP( tmp );
@@ -65,50 +72,30 @@ public:
             }
             b ^= tmp;
         }
-        Block rec = ((b0 & res) | (b1 & ~res));
 
-        return rec;
+        return res;
     }
 
     template < class ElementIterator >
-    unsigned long operator()( const unsigned long b0, const unsigned long b1, const ElementIterator first ) {
-        typedef unsigned long Block;
+    unsigned long walk( unsigned long b, const ElementIterator first ) {
+        unsigned long res = (unsigned long)0;
+        unsigned int lo = (unsigned int) b;
 
-        Block res = (Block)0;
+        if( lo ) {
+            res = (unsigned long) walk( lo, first );
+        }
 
-        Block b = InspectMethodTag::select(b0, b1);
-        if( b ) {
-            unsigned int lo = (unsigned int) b;
+        lo = (unsigned int)( b >> 32 );
 
-            while( lo ) {
-                unsigned int tmp = LEAST_SIG_BIT( lo );
-                unsigned int offset = DEBRUIJNBIT_HASH_LOOKUP( tmp );
-                if( m_cfier( *(first + offset) ) ) {
-                    res |= ((Block)1 << offset);
-                }
-                lo ^= tmp;
-            }
-
-            lo = (unsigned int) (b >> 32);
-            Block hi_mask = (Block)0;
-            while( lo ) {
-                unsigned int tmp = LEAST_SIG_BIT( lo );
-                unsigned int offset = DEBRUIJNBIT_HASH_LOOKUP( tmp );
-                if( m_cfier( *(first + offset) ) ) {
-                    hi_mask |= ((Block)1 << offset);
-                }
-                lo ^= tmp;
-            }
+        if( lo ) {
+            ElementIterator tmp = (first + 32);
+            unsigned long hi_mask = (unsigned long)walk( lo, tmp );
 
             res |= (hi_mask << 32);
         }
-
-        Block rec = ((b0 & res) | (b1 & ~res));
-
-        return rec;
+        return res;
     }
 
-protected:
     classifier_type m_cfier;
 };
 
