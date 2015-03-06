@@ -1,493 +1,463 @@
 #ifndef BIT_BLOCK_RECOMBINER_HPP_
 #define BIT_BLOCK_RECOMBINER_HPP_
 
-//#include "clotho/utility/bit_block_iterator.hpp"
-//#include "clotho/utility/bit_fill.hpp"
+#include "clotho/recombination/iterate_bit_block_recombiner.hpp"
+#include "clotho/recombination/scan_classify_bit_block_recombiner.hpp"
+#include "clotho/recombination/scan_classify_switch_bit_block_recombiner.hpp"
+#include "clotho/recombination/inline_bit_block_recombiner.hpp"
 
-namespace clotho {
-namespace recombine {
-
-struct copy_matching_classify_mismatch {};
-
-template < class Classifier, class Tag = copy_matching_classify_mismatch >
-class bit_block_recombiner {
-public:
-    typedef Classifier classifier_type;
-
-    bit_block_recombiner( const classifier_type & cfier ) : m_cfier( cfier ) {}
-
-    template < class Block, class ElementIterator >
-    Block operator()( Block b0, Block b1, ElementIterator first ) {
-        typedef Block block_type;
-        // Simplified Logic:
-        // b0 = 01001
-        // b1 = 10101
-        block_type hets = (b0 ^ b1);    // = 11100
-        block_type b0_mask = (block_type)0;
-        if( hets ) {
-            // assume:
-            // classify( bit_idx = 2 ) true
-            // classify( bit_idx = 3 ) true
-            // classify( bit_idx = 4 ) false
-            // => b0_mask = 01100
-
-            b0_mask = block_logic256( hets, first );
-        }
-        // b0 & b0_mask = (01001  &  01100) = 01000
-        // b1 & ~b0_mask = (10101 & ~01100) = (10101 & 10011) = 10001
-        // res = (01000 | 10001) = 11001
-        block_type res = ((b0 & b0_mask) | (b1 & ~b0_mask));
-
-        return res;
-    }
-
-    virtual ~bit_block_recombiner() {}
-
-protected:
-    classifier_type m_cfier;
-
-#define BIT_SET_EVEN_1( z )                     \
-    first += z;                                 \
-    if( m_cfier( *first ) ) { res |= (m << z); }\
-    first += (8 - z);                           \
-    break;
-
-#define BIT_SET_ODD_2( z )                          \
-    if( m_cfier( *first ) ) { res |= m; }           \
-    first += z;                                     \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-#define BIT_SET_EVEN_2( y, z )                      \
-    first += y;                                     \
-    if( m_cfier( *first ) ) { res |= (m << y); }    \
-    first += (z - y);                               \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-#define BIT_SET_ODD_3( y, z )                       \
-    if( m_cfier( *first ) ) { res |= m; }           \
-    first += y;                                     \
-    if( m_cfier( *first ) ) { res |= (m << y); }    \
-    first += (z - y);                               \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-#define BIT_SET_EVEN_3( x, y, z )                   \
-    first += x;                                     \
-    if( m_cfier( *first ) ) { res |= (m << x); }    \
-    first += (y - x);                               \
-    if( m_cfier( *first ) ) { res |= (m << y); }    \
-    first += (z - y);                               \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-#define BIT_SET_ODD_4( x, y, z )                    \
-    if( m_cfier( *first ) ) { res |= m; }           \
-    first += x;                                     \
-    if( m_cfier( *first ) ) { res |= (m << x); }    \
-    first += (y - x);                               \
-    if( m_cfier( *first ) ) { res |= (m << y); }    \
-    first += (z - y);                               \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-
-#define BIT_SET_EVEN_4( w, x, y, z )                \
-    first += w;                                     \
-    if( m_cfier( *first ) ) { res |= (m << w); }    \
-    first += (x - w);                               \
-    if( m_cfier( *first ) ) { res |= (m << x); }    \
-    first += (y - x);                               \
-    if( m_cfier( *first ) ) { res |= (m << y); }    \
-    first += (z - y);                               \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-#define BIT_SET_ODD_5( w, x, y, z )                 \
-    if( m_cfier( *first ) ) { res |= m; }           \
-    first += w;                                     \
-    if( m_cfier( *first ) ) { res |= (m << w); }    \
-    first += (x - w);                               \
-    if( m_cfier( *first ) ) { res |= (m << x); }    \
-    first += (y - x);                               \
-    if( m_cfier( *first ) ) { res |= (m << y); }    \
-    first += (z - y);                               \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-#define BIT_SET_EVEN_5(v, w, x, y, z )              \
-    first += v;                                     \
-    if( m_cfier( *first ) ) { res |= (m << v); }    \
-    first += (w - v);                               \
-    if( m_cfier( *first ) ) { res |= (m << w); }    \
-    first += (x - w);                               \
-    if( m_cfier( *first ) ) { res |= (m << x); }    \
-    first += (y - x);                               \
-    if( m_cfier( *first ) ) { res |= (m << y); }    \
-    first += (z - y);                               \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-#define BIT_SET_ODD_6( v, w, x, y, z )              \
-    if( m_cfier( *first ) ) { res |= m; }           \
-    first += v;                                     \
-    if( m_cfier( *first ) ) { res |= (m << v); }    \
-    first += (w - v);                               \
-    if( m_cfier( *first ) ) { res |= (m << w); }    \
-    first += (x - w);                               \
-    if( m_cfier( *first ) ) { res |= (m << x); }    \
-    first += (y - x);                               \
-    if( m_cfier( *first ) ) { res |= (m << y); }    \
-    first += (z - y);                               \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-#define BIT_SET_EVEN_6(u, v, w, x, y, z )           \
-    first += u;                                     \
-    if( m_cfier( *first ) ) { res |= (m << u); }    \
-    first += (v - u);                               \
-    if( m_cfier( *first ) ) { res |= (m << v); }    \
-    first += (w - v);                               \
-    if( m_cfier( *first ) ) { res |= (m << w); }    \
-    first += (x - w);                               \
-    if( m_cfier( *first ) ) { res |= (m << x); }    \
-    first += (y - x);                               \
-    if( m_cfier( *first ) ) { res |= (m << y); }    \
-    first += (z - y);                               \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-#define BIT_SET_ODD_7( u, v, w, x, y, z )           \
-    if( m_cfier( *first ) ) { res |= m; }           \
-    first += u;                                     \
-    if( m_cfier( *first ) ) { res |= (m << u); }    \
-    first += (v - u);                               \
-    if( m_cfier( *first ) ) { res |= (m << v); }    \
-    first += (w - v);                               \
-    if( m_cfier( *first ) ) { res |= (m << w); }    \
-    first += (x - w);                               \
-    if( m_cfier( *first ) ) { res |= (m << x); }    \
-    first += (y - x);                               \
-    if( m_cfier( *first ) ) { res |= (m << y); }    \
-    first += (z - y);                               \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-#define BIT_SET_EVEN_7(t, u, v, w, x, y, z )        \
-    first += t;                                     \
-    if( m_cfier( *first ) ) { res |= (m << t); }    \
-    first += (u - t);                               \
-    if( m_cfier( *first ) ) { res |= (m << u); }    \
-    first += (v - u);                               \
-    if( m_cfier( *first ) ) { res |= (m << v); }    \
-    first += (w - v);                               \
-    if( m_cfier( *first ) ) { res |= (m << w); }    \
-    first += (x - w);                               \
-    if( m_cfier( *first ) ) { res |= (m << x); }    \
-    first += (y - x);                               \
-    if( m_cfier( *first ) ) { res |= (m << y); }    \
-    first += (z - y);                               \
-    if( m_cfier( *first ) ) { res |= (m << z); }    \
-    first += (8 - z);                               \
-    break;
-
-    template < class Block, class ElementIterator >
-    inline Block block_logic256( Block b, ElementIterator first ) {
-        Block res = (Block)0, m = (Block)1;
-        while( b ) {
-            switch( b & 255 ) {
-            case 0: 
-                first += 8;
-                break;
-            case 1:
-                if( m_cfier( *first ) ) { res |= m; }
-                first += 8;
-                break;
-
-            case 2:  BIT_SET_EVEN_1(1)
-            case 3:  BIT_SET_ODD_2(1)
-            case 4:  BIT_SET_EVEN_1(2)
-            case 5:  BIT_SET_ODD_2(2)
-            case 6:  BIT_SET_EVEN_2(1,2)
-            case 7:  BIT_SET_ODD_3(1,2)
-            case 8:  BIT_SET_EVEN_1(3)
-            case 9:  BIT_SET_ODD_2(3)
-            case 10:  BIT_SET_EVEN_2(1,3)
-            case 11:  BIT_SET_ODD_3(1,3)
-            case 12:  BIT_SET_EVEN_2(2,3)
-            case 13:  BIT_SET_ODD_3(2,3)
-            case 14:  BIT_SET_EVEN_3(1,2,3)
-            case 15:  BIT_SET_ODD_4(1,2,3)
-            case 16:  BIT_SET_EVEN_1(4)
-            case 17:  BIT_SET_ODD_2(4)
-            case 18:  BIT_SET_EVEN_2(1,4)
-            case 19:  BIT_SET_ODD_3(1,4)
-            case 20:  BIT_SET_EVEN_2(2,4)
-            case 21:  BIT_SET_ODD_3(2,4)
-            case 22:  BIT_SET_EVEN_3(1,2,4)
-            case 23:  BIT_SET_ODD_4(1,2,4)
-            case 24:  BIT_SET_EVEN_2(3,4)
-            case 25:  BIT_SET_ODD_3(3,4)
-            case 26:  BIT_SET_EVEN_3(1,3,4)
-            case 27:  BIT_SET_ODD_4(1,3,4)
-            case 28:  BIT_SET_EVEN_3(2,3,4)
-            case 29:  BIT_SET_ODD_4(2,3,4)
-            case 30:  BIT_SET_EVEN_4(1,2,3,4)
-            case 31:  BIT_SET_ODD_5(1,2,3,4)
-            case 32:  BIT_SET_EVEN_1(5)
-            case 33:  BIT_SET_ODD_2(5)
-            case 34:  BIT_SET_EVEN_2(1,5)
-            case 35:  BIT_SET_ODD_3(1,5)
-            case 36:  BIT_SET_EVEN_2(2,5)
-            case 37:  BIT_SET_ODD_3(2,5)
-            case 38:  BIT_SET_EVEN_3(1,2,5)
-            case 39:  BIT_SET_ODD_4(1,2,5)
-            case 40:  BIT_SET_EVEN_2(3,5)
-            case 41:  BIT_SET_ODD_3(3,5)
-            case 42:  BIT_SET_EVEN_3(1,3,5)
-            case 43:  BIT_SET_ODD_4(1,3,5)
-            case 44:  BIT_SET_EVEN_3(2,3,5)
-            case 45:  BIT_SET_ODD_4(2,3,5)
-            case 46:  BIT_SET_EVEN_4(1,2,3,5)
-            case 47:  BIT_SET_ODD_5(1,2,3,5)
-            case 48:  BIT_SET_EVEN_2(4,5)
-            case 49:  BIT_SET_ODD_3(4,5)
-            case 50:  BIT_SET_EVEN_3(1,4,5)
-            case 51:  BIT_SET_ODD_4(1,4,5)
-            case 52:  BIT_SET_EVEN_3(2,4,5)
-            case 53:  BIT_SET_ODD_4(2,4,5)
-            case 54:  BIT_SET_EVEN_4(1,2,4,5)
-            case 55:  BIT_SET_ODD_5(1,2,4,5)
-            case 56:  BIT_SET_EVEN_3(3,4,5)
-            case 57:  BIT_SET_ODD_4(3,4,5)
-            case 58:  BIT_SET_EVEN_4(1,3,4,5)
-            case 59:  BIT_SET_ODD_5(1,3,4,5)
-            case 60:  BIT_SET_EVEN_4(2,3,4,5)
-            case 61:  BIT_SET_ODD_5(2,3,4,5)
-            case 62:  BIT_SET_EVEN_5(1,2,3,4,5)
-            case 63:  BIT_SET_ODD_6(1,2,3,4,5)
-            case 64:  BIT_SET_EVEN_1(6)
-            case 65:  BIT_SET_ODD_2(6)
-            case 66:  BIT_SET_EVEN_2(1,6)
-            case 67:  BIT_SET_ODD_3(1,6)
-            case 68:  BIT_SET_EVEN_2(2,6)
-            case 69:  BIT_SET_ODD_3(2,6)
-            case 70:  BIT_SET_EVEN_3(1,2,6)
-            case 71:  BIT_SET_ODD_4(1,2,6)
-            case 72:  BIT_SET_EVEN_2(3,6)
-            case 73:  BIT_SET_ODD_3(3,6)
-            case 74:  BIT_SET_EVEN_3(1,3,6)
-            case 75:  BIT_SET_ODD_4(1,3,6)
-            case 76:  BIT_SET_EVEN_3(2,3,6)
-            case 77:  BIT_SET_ODD_4(2,3,6)
-            case 78:  BIT_SET_EVEN_4(1,2,3,6)
-            case 79:  BIT_SET_ODD_5(1,2,3,6)
-            case 80:  BIT_SET_EVEN_2(4,6)
-            case 81:  BIT_SET_ODD_3(4,6)
-            case 82:  BIT_SET_EVEN_3(1,4,6)
-            case 83:  BIT_SET_ODD_4(1,4,6)
-            case 84:  BIT_SET_EVEN_3(2,4,6)
-            case 85:  BIT_SET_ODD_4(2,4,6)
-            case 86:  BIT_SET_EVEN_4(1,2,4,6)
-            case 87:  BIT_SET_ODD_5(1,2,4,6)
-            case 88:  BIT_SET_EVEN_3(3,4,6)
-            case 89:  BIT_SET_ODD_4(3,4,6)
-            case 90:  BIT_SET_EVEN_4(1,3,4,6)
-            case 91:  BIT_SET_ODD_5(1,3,4,6)
-            case 92:  BIT_SET_EVEN_4(2,3,4,6)
-            case 93:  BIT_SET_ODD_5(2,3,4,6)
-            case 94:  BIT_SET_EVEN_5(1,2,3,4,6)
-            case 95:  BIT_SET_ODD_6(1,2,3,4,6)
-            case 96:  BIT_SET_EVEN_2(5,6)
-            case 97:  BIT_SET_ODD_3(5,6)
-            case 98:  BIT_SET_EVEN_3(1,5,6)
-            case 99:  BIT_SET_ODD_4(1,5,6)
-            case 100:  BIT_SET_EVEN_3(2,5,6)
-            case 101:  BIT_SET_ODD_4(2,5,6)
-            case 102:  BIT_SET_EVEN_4(1,2,5,6)
-            case 103:  BIT_SET_ODD_5(1,2,5,6)
-            case 104:  BIT_SET_EVEN_3(3,5,6)
-            case 105:  BIT_SET_ODD_4(3,5,6)
-            case 106:  BIT_SET_EVEN_4(1,3,5,6)
-            case 107:  BIT_SET_ODD_5(1,3,5,6)
-            case 108:  BIT_SET_EVEN_4(2,3,5,6)
-            case 109:  BIT_SET_ODD_5(2,3,5,6)
-            case 110:  BIT_SET_EVEN_5(1,2,3,5,6)
-            case 111:  BIT_SET_ODD_6(1,2,3,5,6)
-            case 112:  BIT_SET_EVEN_3(4,5,6)
-            case 113:  BIT_SET_ODD_4(4,5,6)
-            case 114:  BIT_SET_EVEN_4(1,4,5,6)
-            case 115:  BIT_SET_ODD_5(1,4,5,6)
-            case 116:  BIT_SET_EVEN_4(2,4,5,6)
-            case 117:  BIT_SET_ODD_5(2,4,5,6)
-            case 118:  BIT_SET_EVEN_5(1,2,4,5,6)
-            case 119:  BIT_SET_ODD_6(1,2,4,5,6)
-            case 120:  BIT_SET_EVEN_4(3,4,5,6)
-            case 121:  BIT_SET_ODD_5(3,4,5,6)
-            case 122:  BIT_SET_EVEN_5(1,3,4,5,6)
-            case 123:  BIT_SET_ODD_6(1,3,4,5,6)
-            case 124:  BIT_SET_EVEN_5(2,3,4,5,6)
-            case 125:  BIT_SET_ODD_6(2,3,4,5,6)
-            case 126:  BIT_SET_EVEN_6(1,2,3,4,5,6)
-            case 127:  BIT_SET_ODD_7(1,2,3,4,5,6)
-            case 128:  BIT_SET_EVEN_1(7)
-            case 129:  BIT_SET_ODD_2(7)
-            case 130:  BIT_SET_EVEN_2(1,7)
-            case 131:  BIT_SET_ODD_3(1,7)
-            case 132:  BIT_SET_EVEN_2(2,7)
-            case 133:  BIT_SET_ODD_3(2,7)
-            case 134:  BIT_SET_EVEN_3(1,2,7)
-            case 135:  BIT_SET_ODD_4(1,2,7)
-            case 136:  BIT_SET_EVEN_2(3,7)
-            case 137:  BIT_SET_ODD_3(3,7)
-            case 138:  BIT_SET_EVEN_3(1,3,7)
-            case 139:  BIT_SET_ODD_4(1,3,7)
-            case 140:  BIT_SET_EVEN_3(2,3,7)
-            case 141:  BIT_SET_ODD_4(2,3,7)
-            case 142:  BIT_SET_EVEN_4(1,2,3,7)
-            case 143:  BIT_SET_ODD_5(1,2,3,7)
-            case 144:  BIT_SET_EVEN_2(4,7)
-            case 145:  BIT_SET_ODD_3(4,7)
-            case 146:  BIT_SET_EVEN_3(1,4,7)
-            case 147:  BIT_SET_ODD_4(1,4,7)
-            case 148:  BIT_SET_EVEN_3(2,4,7)
-            case 149:  BIT_SET_ODD_4(2,4,7)
-            case 150:  BIT_SET_EVEN_4(1,2,4,7)
-            case 151:  BIT_SET_ODD_5(1,2,4,7)
-            case 152:  BIT_SET_EVEN_3(3,4,7)
-            case 153:  BIT_SET_ODD_4(3,4,7)
-            case 154:  BIT_SET_EVEN_4(1,3,4,7)
-            case 155:  BIT_SET_ODD_5(1,3,4,7)
-            case 156:  BIT_SET_EVEN_4(2,3,4,7)
-            case 157:  BIT_SET_ODD_5(2,3,4,7)
-            case 158:  BIT_SET_EVEN_5(1,2,3,4,7)
-            case 159:  BIT_SET_ODD_6(1,2,3,4,7)
-            case 160:  BIT_SET_EVEN_2(5,7)
-            case 161:  BIT_SET_ODD_3(5,7)
-            case 162:  BIT_SET_EVEN_3(1,5,7)
-            case 163:  BIT_SET_ODD_4(1,5,7)
-            case 164:  BIT_SET_EVEN_3(2,5,7)
-            case 165:  BIT_SET_ODD_4(2,5,7)
-            case 166:  BIT_SET_EVEN_4(1,2,5,7)
-            case 167:  BIT_SET_ODD_5(1,2,5,7)
-            case 168:  BIT_SET_EVEN_3(3,5,7)
-            case 169:  BIT_SET_ODD_4(3,5,7)
-            case 170:  BIT_SET_EVEN_4(1,3,5,7)
-            case 171:  BIT_SET_ODD_5(1,3,5,7)
-            case 172:  BIT_SET_EVEN_4(2,3,5,7)
-            case 173:  BIT_SET_ODD_5(2,3,5,7)
-            case 174:  BIT_SET_EVEN_5(1,2,3,5,7)
-            case 175:  BIT_SET_ODD_6(1,2,3,5,7)
-            case 176:  BIT_SET_EVEN_3(4,5,7)
-            case 177:  BIT_SET_ODD_4(4,5,7)
-            case 178:  BIT_SET_EVEN_4(1,4,5,7)
-            case 179:  BIT_SET_ODD_5(1,4,5,7)
-            case 180:  BIT_SET_EVEN_4(2,4,5,7)
-            case 181:  BIT_SET_ODD_5(2,4,5,7)
-            case 182:  BIT_SET_EVEN_5(1,2,4,5,7)
-            case 183:  BIT_SET_ODD_6(1,2,4,5,7)
-            case 184:  BIT_SET_EVEN_4(3,4,5,7)
-            case 185:  BIT_SET_ODD_5(3,4,5,7)
-            case 186:  BIT_SET_EVEN_5(1,3,4,5,7)
-            case 187:  BIT_SET_ODD_6(1,3,4,5,7)
-            case 188:  BIT_SET_EVEN_5(2,3,4,5,7)
-            case 189:  BIT_SET_ODD_6(2,3,4,5,7)
-            case 190:  BIT_SET_EVEN_6(1,2,3,4,5,7)
-            case 191:  BIT_SET_ODD_7(1,2,3,4,5,7)
-            case 192:  BIT_SET_EVEN_2(6,7)
-            case 193:  BIT_SET_ODD_3(6,7)
-            case 194:  BIT_SET_EVEN_3(1,6,7)
-            case 195:  BIT_SET_ODD_4(1,6,7)
-            case 196:  BIT_SET_EVEN_3(2,6,7)
-            case 197:  BIT_SET_ODD_4(2,6,7)
-            case 198:  BIT_SET_EVEN_4(1,2,6,7)
-            case 199:  BIT_SET_ODD_5(1,2,6,7)
-            case 200:  BIT_SET_EVEN_3(3,6,7)
-            case 201:  BIT_SET_ODD_4(3,6,7)
-            case 202:  BIT_SET_EVEN_4(1,3,6,7)
-            case 203:  BIT_SET_ODD_5(1,3,6,7)
-            case 204:  BIT_SET_EVEN_4(2,3,6,7)
-            case 205:  BIT_SET_ODD_5(2,3,6,7)
-            case 206:  BIT_SET_EVEN_5(1,2,3,6,7)
-            case 207:  BIT_SET_ODD_6(1,2,3,6,7)
-            case 208:  BIT_SET_EVEN_3(4,6,7)
-            case 209:  BIT_SET_ODD_4(4,6,7)
-            case 210:  BIT_SET_EVEN_4(1,4,6,7)
-            case 211:  BIT_SET_ODD_5(1,4,6,7)
-            case 212:  BIT_SET_EVEN_4(2,4,6,7)
-            case 213:  BIT_SET_ODD_5(2,4,6,7)
-            case 214:  BIT_SET_EVEN_5(1,2,4,6,7)
-            case 215:  BIT_SET_ODD_6(1,2,4,6,7)
-            case 216:  BIT_SET_EVEN_4(3,4,6,7)
-            case 217:  BIT_SET_ODD_5(3,4,6,7)
-            case 218:  BIT_SET_EVEN_5(1,3,4,6,7)
-            case 219:  BIT_SET_ODD_6(1,3,4,6,7)
-            case 220:  BIT_SET_EVEN_5(2,3,4,6,7)
-            case 221:  BIT_SET_ODD_6(2,3,4,6,7)
-            case 222:  BIT_SET_EVEN_6(1,2,3,4,6,7)
-            case 223:  BIT_SET_ODD_7(1,2,3,4,6,7)
-            case 224:  BIT_SET_EVEN_3(5,6,7)
-            case 225:  BIT_SET_ODD_4(5,6,7)
-            case 226:  BIT_SET_EVEN_4(1,5,6,7)
-            case 227:  BIT_SET_ODD_5(1,5,6,7)
-            case 228:  BIT_SET_EVEN_4(2,5,6,7)
-            case 229:  BIT_SET_ODD_5(2,5,6,7)
-            case 230:  BIT_SET_EVEN_5(1,2,5,6,7)
-            case 231:  BIT_SET_ODD_6(1,2,5,6,7)
-            case 232:  BIT_SET_EVEN_4(3,5,6,7)
-            case 233:  BIT_SET_ODD_5(3,5,6,7)
-            case 234:  BIT_SET_EVEN_5(1,3,5,6,7)
-            case 235:  BIT_SET_ODD_6(1,3,5,6,7)
-            case 236:  BIT_SET_EVEN_5(2,3,5,6,7)
-            case 237:  BIT_SET_ODD_6(2,3,5,6,7)
-            case 238:  BIT_SET_EVEN_6(1,2,3,5,6,7)
-            case 239:  BIT_SET_ODD_7(1,2,3,5,6,7)
-            case 240:  BIT_SET_EVEN_4(4,5,6,7)
-            case 241:  BIT_SET_ODD_5(4,5,6,7)
-            case 242:  BIT_SET_EVEN_5(1,4,5,6,7)
-            case 243:  BIT_SET_ODD_6(1,4,5,6,7)
-            case 244:  BIT_SET_EVEN_5(2,4,5,6,7)
-            case 245:  BIT_SET_ODD_6(2,4,5,6,7)
-            case 246:  BIT_SET_EVEN_6(1,2,4,5,6,7)
-            case 247:  BIT_SET_ODD_7(1,2,4,5,6,7)
-            case 248:  BIT_SET_EVEN_5(3,4,5,6,7)
-            case 249:  BIT_SET_ODD_6(3,4,5,6,7)
-            case 250:  BIT_SET_EVEN_6(1,3,4,5,6,7)
-            case 251:  BIT_SET_ODD_7(1,3,4,5,6,7)
-            case 252:  BIT_SET_EVEN_6(2,3,4,5,6,7)
-            case 253:  BIT_SET_ODD_7(2,3,4,5,6,7)
-            case 254:  BIT_SET_EVEN_7(1,2,3,4,5,6,7)
-
-            case 255:
-                for( unsigned int i = 0; i < 8; ++i) {
-                    if( m_cfier( *first ) ) {
-                        res |= (m << i);
-                    }
-                    ++first;
-                }
-                break;
-            }
-            m <<= 8;
-            b >>= 8;
-        }
-
-        return res;
-    }
-};
-
-}   // namespace recombinations {
-}   // namespace clotho {
+//#if defined( USE_SCAN_AND_CLASSIFY )
+//#define BIT_WALK_METHOD scan_and_classify
+//#elif  defined( USE_SCAN_AND_CLASSIFY_SWITCH )
+//#define BIT_WALK_METHOD scan_and_classify_switch
+//#elif  defined( USE_INLINE_AND_CLASSIFY )
+//#define BIT_WALK_METHOD inline_classify
+//#else   // default is to perform classification inline
+//#define BIT_WALK_METHOD iterate_and_classify
+//#endif  // classification procedure
+//
+//namespace clotho {
+//namespace recombine {
+//
+//#define CHECK_0()   if( m_cfier( *first ) ) { res |= (Block) OFFSET( 0 ); }
+//#define CHECK( x )  if( m_cfier( *(first + x) ) ) { res |= (Block) OFFSET( x ); }
+//
+//struct copy_matching_classify_mismatch {};
+//
+//template < class Classifier, class Tag = copy_matching_classify_mismatch >
+//class bit_block_recombiner {
+//public:
+//    typedef Classifier classifier_type;
+//
+//    bit_block_recombiner( const classifier_type & cfier ) : m_cfier( cfier ) {}
+//
+//    template < class Block, class ElementIterator >
+//    Block operator()( Block b0, Block b1, ElementIterator first ) {
+//        return BIT_WALK_METHOD(b0, b1, first);
+//    }
+//
+//    template < class Block, class ElementIterator >
+//    Block iterate_and_classify( const Block b0, const Block b1, const ElementIterator first ) {
+//        typedef clotho::utility::bit_block_iterator< Block, clotho::utility::tag::linear_iterator_tag > iterator;
+//
+//        Block mask = (Block)0;
+//        iterator bit_it( (b0 ^ b1) ), bit_end;
+//        while( bit_it != bit_end ) {
+//            unsigned int idx = (*bit_it++);
+//            if( m_cfier( *(first + idx) ) ) {
+//                mask |= ((Block)1 << idx );
+//            }
+//        }
+//
+//        Block res = ((b0 & mask) | (b1 & ~ mask) );
+//        return res;
+//    }
+//
+//    /**
+//     *  Inline classification walks each set bit in a block performing
+//     *  the classification step inline
+//     *
+//     *  This results in:
+//     *      - a single loop per 32-bit block (assuming 32 bit deBruijn hashing function)
+//     *      - uses a switch to jump between hashed keys
+//     *      - requires less bit shifting as mask offset bits can be inlined into case logic
+//     *  Empirically performs efficiently, though slightly less efficiently than earlier linear bit block iterator
+//     *  Still not as efficient as vector< index > approach.
+//     *
+//     *  Thought process:
+//     *      - a 'single' iteration per 32-bit block is more efficient than multiple
+//     *      - requires less memory as offsets are processed inline
+//     *
+//     *  Concerns:
+//     *      - Inline analysis of bit positions may result in less streamline execution (more context switching)
+//     */
+//    template < class Block, class ElementIterator >
+//    Block inline_classify( const Block b0, const Block b1, const ElementIterator first ) {
+//        typedef Block block_type;
+//        // Simplified Logic:
+//        // b0 = 01001
+//        // b1 = 10101
+//        // (b0 ^ b1) = 11100
+//        //
+//        // assume:
+//        // classify( bit_idx = 2 ) true
+//        // classify( bit_idx = 3 ) true
+//        // classify( bit_idx = 4 ) false
+//        // => b0_mask = 01100
+//        block_type b0_mask = (block_type) block_logic( (b0 ^ b1), first );
+//
+//        // b0 & b0_mask = (01001  &  01100) = 01000
+//        // b1 & ~b0_mask = (10101 & ~01100) = (10101 & 10011) = 10001
+//        // res = (01000 | 10001) = 11001
+//        block_type res = ((b0 & b0_mask) | (b1 & ~b0_mask));
+//
+//        return res;
+//    }
+//
+//    /**
+//     * Scan and Classify walks the set bits in a block and stores their
+//     * index (explodes the block into list of bit indices). The list of
+//     * indices is iterated and the elements at these offsets are classified.
+//     *
+//     * This results in:
+//     *      - a single bit walking loop per 32-bit block
+//     *      - a simple loop over offsets
+//     *      - switch over the bit indices
+//     *
+//     * Thought process:
+//     *      - Bit scanning could more streamline (less context switching)
+//     *      - Requires more memory (64 * 4 = 256 Bytes)
+//     *      - Second loop could be more streamline
+//     *      - Switch logic allows mask bits sets to be defined inline rather than computed
+//     *
+//     *  Concern:
+//     *      - Doubles the number of iterative steps
+//     */
+//    template < class Block, class ElementIterator >
+//    Block   scan_and_classify_switch( const Block b0, const Block b1, const ElementIterator first ) {
+//        // Only compute the hash of each set bit
+//        // In effect, delay the offset lookup to be performed by the switching logic
+//        // Goal is to eliminate a 'double-lookup' (lookup from hash table, lookup based upon hash)
+//        // This assumes switch logic results in a 'jump table'
+//        unsigned int count = clotho::utility::hash_set_bits( (b0 ^ b1), indices );
+//
+//        Block res = (Block)0;
+//        unsigned int * idx = indices;
+//        while( count-- ) {
+//            switch( *idx++ ) {
+//            case 0:
+//                CHECK_0() break;
+//            case 1:
+//                CHECK(1) break;
+//            case 2:
+//                CHECK(28) break;
+//            case 3:
+//                CHECK(2) break;
+//            case 4:
+//                CHECK(29) break;
+//            case 5:
+//                CHECK(14) break;
+//            case 6:
+//                CHECK(24) break;
+//            case 7:
+//                CHECK(3) break;
+//            case 8:
+//                CHECK(30) break;
+//            case 9:
+//                CHECK(22) break;
+//            case 10:
+//                CHECK(20) break;
+//            case 11:
+//                CHECK(15) break;
+//            case 12:
+//                CHECK(25) break;
+//            case 13:
+//                CHECK(17) break;
+//            case 14:
+//                CHECK(4) break;
+//            case 15:
+//                CHECK(8) break;
+//            case 16:
+//                CHECK(31) break;
+//            case 17:
+//                CHECK(27) break;
+//            case 18:
+//                CHECK(13) break;
+//            case 19:
+//                CHECK(23) break;
+//            case 20:
+//                CHECK(21) break;
+//            case 21:
+//                CHECK(19) break;
+//            case 22:
+//                CHECK(16) break;
+//            case 23:
+//                CHECK(7) break;
+//            case 24:
+//                CHECK(26) break;
+//            case 25:
+//                CHECK(12) break;
+//            case 26:
+//                CHECK(18) break;
+//            case 27:
+//                CHECK(6) break;
+//            case 28:
+//                CHECK(11) break;
+//            case 29:
+//                CHECK(5) break;
+//            case 30:
+//                CHECK(10) break;
+//            case 31:
+//                CHECK(9) break;
+//            case 32:
+//                CHECK(32) break;    // 0
+//            case 33:
+//                CHECK(33) break;    // 1
+//            case 34:
+//                CHECK(60) break;    // 28
+//            case 35:
+//                CHECK(34) break;    // 2
+//            case 36:
+//                CHECK(61) break;    // 29
+//            case 37:
+//                CHECK(46) break;    // 14
+//            case 38:
+//                CHECK(56) break;    // 24
+//            case 39:
+//                CHECK(35) break;    // 3
+//            case 40:
+//                CHECK(62) break;    // 30
+//            case 41:
+//                CHECK(54) break;    // 22
+//            case 42:
+//                CHECK(52) break;    // 20
+//            case 43:
+//                CHECK(47) break;    // 15
+//            case 44:
+//                CHECK(57) break;    // 25
+//            case 45:
+//                CHECK(49) break;    // 17
+//            case 46:
+//                CHECK(36) break;    // 4
+//            case 47:
+//                CHECK(40) break;    // 8
+//            case 48:
+//                CHECK(63) break;    // 31
+//            case 49:
+//                CHECK(59) break;    // 27
+//            case 50:
+//                CHECK(45) break;    // 13
+//            case 51:
+//                CHECK(55) break;    // 23
+//            case 52:
+//                CHECK(53) break;    // 21
+//            case 53:
+//                CHECK(51) break;    // 19
+//            case 54:
+//                CHECK(48) break;    // 16
+//            case 55:
+//                CHECK(39) break;    // 7
+//            case 56:
+//                CHECK(58) break;    // 26
+//            case 57:
+//                CHECK(44) break;    // 12
+//            case 58:
+//                CHECK(50) break;    // 18
+//            case 59:
+//                CHECK(38) break;    //  6
+//            case 60:
+//                CHECK(43) break;    // 11
+//            case 61:
+//                CHECK(37) break;    //  5
+//            case 62:
+//                CHECK(42) break;    // 10
+//            case 63:
+//                CHECK(41) break;    //  9
+//            default:
+//                break;
+//            }
+//        }
+//
+//        Block rec = ((b0 & res) | (b1 & ~res));
+//        return rec;
+//    }
+//
+///**
+// *  Same logic as previous scan and classify
+// *
+// *  Thought process:
+// *      - Simpler classification loop (indices will be ordered as a result of scan)
+// *
+// *  Concern:
+// *      - Bit mask computation dependent upon index (adds bit shifting step)
+// */
+//    template < class Block, class ElementIterator >
+//    Block scan_and_classify( const Block b0, const Block b1, const ElementIterator first ) {
+//        unsigned int count = clotho::utility::scan_set_bits( (b0 ^ b1), indices );
+//        unsigned int * idx = indices;
+//
+//        Block res = (Block)0;
+//        while( count-- ) {
+//            unsigned int tmp = *idx++;
+//            if( m_cfier( *(first + tmp) ) ) {
+//                res |= ((Block)1 << tmp);
+//            }
+//        }
+//
+//        Block rec = ((b0 & res) | (b1 & ~res));
+//        return rec;
+//    }
+//
+//    virtual ~bit_block_recombiner() {}
+//
+//protected:
+//    classifier_type m_cfier;
+//    unsigned int indices[ 64 ];
+//
+//    template < class ElementIterator >
+//    inline unsigned long block_logic( unsigned long b, const ElementIterator first ) {
+//        typedef unsigned long Block;
+//
+//        Block res = (Block)0;
+//
+//        if( !b ) return res;
+//
+//        unsigned int lo = (unsigned int) b;
+//
+//        while( lo ) {
+//            unsigned int tmp = LEAST_SIG_BIT( lo );
+//            switch( DEBRUIJNBIT_HASH( tmp ) ) {
+//            case 0:
+//                CHECK_0() break;
+//            case 1:
+//                CHECK(1) break;
+//            case 2:
+//                CHECK(28) break;
+//            case 3:
+//                CHECK(2) break;
+//            case 4:
+//                CHECK(29) break;
+//            case 5:
+//                CHECK(14) break;
+//            case 6:
+//                CHECK(24) break;
+//            case 7:
+//                CHECK(3) break;
+//            case 8:
+//                CHECK(30) break;
+//            case 9:
+//                CHECK(22) break;
+//            case 10:
+//                CHECK(20) break;
+//            case 11:
+//                CHECK(15) break;
+//            case 12:
+//                CHECK(25) break;
+//            case 13:
+//                CHECK(17) break;
+//            case 14:
+//                CHECK(4) break;
+//            case 15:
+//                CHECK(8) break;
+//            case 16:
+//                CHECK(31) break;
+//            case 17:
+//                CHECK(27) break;
+//            case 18:
+//                CHECK(13) break;
+//            case 19:
+//                CHECK(23) break;
+//            case 20:
+//                CHECK(21) break;
+//            case 21:
+//                CHECK(19) break;
+//            case 22:
+//                CHECK(16) break;
+//            case 23:
+//                CHECK(7) break;
+//            case 24:
+//                CHECK(26) break;
+//            case 25:
+//                CHECK(12) break;
+//            case 26:
+//                CHECK(18) break;
+//            case 27:
+//                CHECK(6) break;
+//            case 28:
+//                CHECK(11) break;
+//            case 29:
+//                CHECK(5) break;
+//            case 30:
+//                CHECK(10) break;
+//            case 31:
+//                CHECK(9) break;
+//            default:
+//                break;
+//            }
+//            lo ^= tmp;
+//        }
+//
+//        lo = (unsigned int) (b >> 32);
+//        while( lo ) {
+//            unsigned int tmp = LEAST_SIG_BIT( lo );
+//            switch( DEBRUIJNBIT_HASH( tmp ) ) {
+//            case 0:
+//                CHECK(32) break;    // 0
+//            case 1:
+//                CHECK(33) break;    // 1
+//            case 2:
+//                CHECK(60) break;    // 28
+//            case 3:
+//                CHECK(34) break;    // 2
+//            case 4:
+//                CHECK(61) break;    // 29
+//            case 5:
+//                CHECK(46) break;    // 14
+//            case 6:
+//                CHECK(56) break;    // 24
+//            case 7:
+//                CHECK(35) break;    // 3
+//            case 8:
+//                CHECK(62) break;    // 30
+//            case 9:
+//                CHECK(54) break;    // 22
+//            case 10:
+//                CHECK(52) break;    // 20
+//            case 11:
+//                CHECK(47) break;    // 15
+//            case 12:
+//                CHECK(57) break;    // 25
+//            case 13:
+//                CHECK(49) break;    // 17
+//            case 14:
+//                CHECK(36) break;    // 4
+//            case 15:
+//                CHECK(40) break;    // 8
+//            case 16:
+//                CHECK(63) break;    // 31
+//            case 17:
+//                CHECK(59) break;    // 27
+//            case 18:
+//                CHECK(45) break;    // 13
+//            case 19:
+//                CHECK(55) break;    // 23
+//            case 20:
+//                CHECK(53) break;    // 21
+//            case 21:
+//                CHECK(51) break;    // 19
+//            case 22:
+//                CHECK(48) break;    // 16
+//            case 23:
+//                CHECK(39) break;    // 7
+//            case 24:
+//                CHECK(58) break;    // 26
+//            case 25:
+//                CHECK(44) break;    // 12
+//            case 26:
+//                CHECK(50) break;    // 18
+//            case 27:
+//                CHECK(38) break;    //  6
+//            case 28:
+//                CHECK(43) break;    // 11
+//            case 29:
+//                CHECK(37) break;    //  5
+//            case 30:
+//                CHECK(42) break;    // 10
+//            case 31:
+//                CHECK(41) break;    //  9
+//            default:
+//                break;
+//            }
+//            lo ^= tmp;
+//        }
+//        return res;
+//    }
+//};
+//
+//#undef CHECK_0
+//#undef CHECK
+//
+//}   // namespace recombinations {
+//}   // namespace clotho {
 
 #endif  // BLOCK_RECOMBINER_HPP_
