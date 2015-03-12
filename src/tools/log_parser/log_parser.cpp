@@ -391,7 +391,7 @@ void write_data( ostream * out, boost::property_tree::ptree & data ) {
                 (*out) << "," << c.second.data();
             } else {
                 (*out) << ++i;
-                 write_data( out, c.second);
+                write_data( out, c.second);
                 (*out) << "\n";
             }
         }
