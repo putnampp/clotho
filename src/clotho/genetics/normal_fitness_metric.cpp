@@ -32,10 +32,10 @@ const std::string normal_fitness_metric::name() const {
 }
 
 void normal_fitness_metric::log( std::ostream & out ) const {
-    out << "{" << NORM_NAME 
-        << ", " << m_mean 
-        << ", " << m_sigma 
-        << ", " << _coeff 
+    out << "{" << NORM_NAME
+        << ", " << m_mean
+        << ", " << m_sigma
+        << ", " << _coeff
         << ", " << _denom
         << "}\n";
 }
