@@ -16,14 +16,13 @@ public:
     typedef random_generator< URNG, clotho::classifiers::region_classifier< qtl_allele, Result, Tag > > self_type;
     typedef clotho::classifiers::region_classifier< qtl_allele, Result, Tag >   result_type;
 
-    typedef boost::random::uniform_01< double >                                 uniform_type;
-    typedef boost::random::poisson_distribution< unsigned int, double >         dist_type;
+    typedef boost::random::uniform_01< double >                                 uniform_type;   // key distribution
+    typedef boost::random::poisson_distribution< unsigned int, double >         dist_type;      // region distribution
 
     random_generator( URNG & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
         , m_dist( DEFAULT_RECOMB_RATE )
-        , m_bSkip(false)
-    {
+        , m_bSkip(false) {
         parseConfig( config );
     }
 
@@ -39,7 +38,7 @@ public:
         for( unsigned int i = 0; i < n; ++i ) {
             double k = m_uniform( *m_rng );
             qtl_allele::trait_weights coeff;
-    
+
             p.push_back( qtl_allele( k, DEFAULT_SELECTION, DEFAULT_DOMINANCE, DEFAULT_NEUTRAL, coeff) );
         }
 
@@ -63,7 +62,7 @@ protected:
             if( m_bSkip ) {
                 m = 0.00000000001;
             } else if( m < 0.0 ) {
-                m = std::abs( m ); 
+                m = std::abs( m );
             }
 
             typename dist_type::param_type p( m );
