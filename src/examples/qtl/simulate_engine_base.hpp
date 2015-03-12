@@ -1,10 +1,7 @@
 #ifndef SIMULATE_ENGINE_BASE_HPP_
 #define SIMULATE_ENGINE_BASE_HPP_
 
-#include "clotho/powerset/variable_subset.hpp"
-#include "clotho/utility/random_generator.hpp"
-
-#include "clotho/classifiers/region_classifier.hpp"
+#include "qtl_config.hpp"
 
 #include <vector>
 #include <utility>
@@ -17,16 +14,16 @@ public:
     typedef LogType                                                     log_type;
     typedef TimerType                                                   timer_type;
 
-    typedef unsigned long                                               block_type;
+    typedef BLOCK_UNIT_TYPE                                             block_type;
 
     typedef clotho::utility::random_generator< rng_type, allele_type >  allele_generator;
 
-    typedef clotho::powersets::variable_subset< allele_type, block_type > sequence_type;
-    typedef typename sequence_type::pointer                                  sequence_pointer;
-    typedef typename sequence_type::powerset_type                            allele_set_type;
+    typedef SUBSETTYPE< allele_type, block_type >   sequence_type;
+    typedef typename sequence_type::pointer         sequence_pointer;
+    typedef typename sequence_type::powerset_type   allele_set_type;
 
-    typedef clotho::classifiers::region_classifier< allele_type >            classifier_type;
-    typedef clotho::utility::random_generator< rng_type, classifier_type >   classifier_generator;
+    typedef RECOMBTYPE                              classifier_type;
+    typedef clotho::utility::random_generator< rng_type, classifier_type >  classifier_generator;
 
     typedef std::pair< sequence_pointer, sequence_pointer >                  individual_type;
     typedef std::vector< individual_type >                                   population_type;
