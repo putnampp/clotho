@@ -1,4 +1,5 @@
 #include "config.h"
+#include "qtl_config.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -27,6 +28,9 @@
 #include <boost/accumulators/statistics/weighted_variance.hpp>
 
 #include "clotho/genetics/fitness_toolkit.hpp"
+
+#define XSTR( x ) #x
+#define STR( x )  XSTR( x )
 
 namespace accum=boost::accumulators;
 
@@ -65,6 +69,14 @@ const string CONSTANT_K = "constant";
 const string SIZE_K = "size";
 const string PAIRWISE_K = "pairwise";
 
+const string ENGINE_BLOCK_K = "engine";
+const string POWERSET_BLOCK_K = "powerset";
+const string SUBSET_BLOCK_K = "subset";
+const string CLASSIFIER_BLOCK_K = "classifier";
+const string TYPE_K = "type";
+
+void get_engine_config( const std::string & out_path );
+
 int main( int argc, char ** argv ) {
 
     log_type config;
@@ -80,6 +92,8 @@ int main( int argc, char ** argv ) {
     const unsigned int nLog = conf_child.get< unsigned int >( LOG_BLOCK_K + "." + PERIOD_K, -1);
     const unsigned int seed = conf_child.get< unsigned int >( RNG_BLOCK_K + "." + SEED_K, 0 );
     string out_path = conf_child.get<string>( OUTPUT_K, "");
+
+    get_engine_config( out_path );
 
     rng_type rng(seed);
 
@@ -132,7 +146,7 @@ int main( int argc, char ** argv ) {
 //                }
                 stat_log.put_child( CONFIG_BLOCK_K, rep_child_conf);
 
-                log_period = ((j + log_period < nGen) ? nLog : (nGen - j - 1) );
+                log_period = ((j + nLog < nGen) ? nLog : (nGen - j - 1) );
 
                 if( !stat_log.empty() ) {
                     if( out_path.empty() ) {
@@ -146,7 +160,7 @@ int main( int argc, char ** argv ) {
                 }
                 stat_time.stop();
                 clotho::utility::add_value_array( stat_times, stat_time );
-            } 
+            }
         }
         rep_time.stop();
 
@@ -166,4 +180,26 @@ int main( int argc, char ** argv ) {
     }
 
     return 0;
+}
+
+void get_engine_config( const std::string & out_path ) {
+    boost::property_tree::ptree compile_log;
+
+    compile_log.put( ENGINE_BLOCK_K + ".description", "Simulator compiled objects; READ ONLY");
+
+    compile_log.put(ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K  +"." + TYPE_K, STR( SUBSETTYPE ) );
+    compile_log.put(ENGINE_BLOCK_K + "." + REC_BLOCK_K + "." + TYPE_K, STR( RECOMBTYPE ) );
+    compile_log.put(ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K +"." + SIZE_K, BLOCK_UNIT_SIZE );
+
+    compile_log.put( ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K + "." + REC_BLOCK_K + ".tag0", STR( RECOMBINE_INSPECT_METHOD ) );
+    compile_log.put( ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K + "." + REC_BLOCK_K + ".tag1", STR( BIT_WALK_METHOD ) );
+
+    if( out_path.empty() ) {
+        boost::property_tree::write_json( std::cout, compile_log );
+    } else {
+        std::ostringstream oss;
+        oss << out_path << ".engine_compilation.json";
+
+        boost::property_tree::write_json( oss.str(), compile_log );
+    }
 }
