@@ -7,7 +7,7 @@ const std::string METRIC_K = "metric";
 fitness_toolkit::fitness_toolkit() {}
 
 void fitness_toolkit::tool_configurations( boost::property_tree::ptree & config ) {
-    
+
     for( generator_citerator it = m_tools.begin(); it != m_tools.end(); ++it ) {
         boost::property_tree::ptree c;
         std::shared_ptr< ifitness_generator > tmp( it->second->create(c) );
