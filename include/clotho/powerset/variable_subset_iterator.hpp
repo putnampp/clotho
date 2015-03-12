@@ -10,8 +10,8 @@ namespace utility {
 template < class E, class B, class BK, class EK >
 class element_iterator< clotho::powersets::variable_subset< E, B, BK, EK > > {
 public:
-    typedef clotho::powersets::variable_subset< E, B, BK, EK > container_type;
-    typedef element_iterator< container_type > self_type;
+    typedef clotho::powersets::variable_subset< E, B, BK, EK >  container_type;
+    typedef element_iterator< container_type >                  self_type;
     typedef E       value_type;
 
     typedef typename container_type::bitset_type::size_type size_type;
@@ -55,6 +55,10 @@ public:
 
     bool operator!=( const self_type & rhs ) const {
         return (m_container != rhs.m_container || m_idx != rhs.m_idx);
+    }
+
+    size_type print_index() const {
+        return m_idx;
     }
 
     virtual ~element_iterator() {}
@@ -127,7 +131,7 @@ struct iterator_helper< clotho::powersets::variable_subset< E, B, BK, EK > > {
     typedef element_iterator< subset_type > type;
 
     static type make_first( subset_type & s ) {
-        return type( s, s.find_first() );
+        return type( s, s.find_first_index() );
     }
 
     static type make_last( subset_type & s ) {
