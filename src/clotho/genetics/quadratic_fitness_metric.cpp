@@ -4,8 +4,7 @@
 const std::string QUAD_NAME = "quadratic";
 
 quadratic_fitness_metric::quadratic_fitness_metric( real_type s ) :
-    m_scale(s)
-{
+    m_scale(s) {
     assert( m_scale != 0 );
 }
 

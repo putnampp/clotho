@@ -6,15 +6,13 @@ const std::string MU_K = "mu";
 
 quadratic_fitness_generator::quadratic_fitness_generator() :
     m_scale( 1. )
-    , m_mu( 1. )
-{
+    , m_mu( 1. ) {
     fitness_toolkit::getInstance()->register_tool( this );
 }
 
 quadratic_fitness_generator::quadratic_fitness_generator( boost::property_tree::ptree & config ) :
     m_scale(1.)
-    , m_mu( 1. )
-{
+    , m_mu( 1. ) {
     parseConfig( config );
 }
 
