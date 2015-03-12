@@ -23,14 +23,14 @@ struct individual_param {
  */
 struct individual {
 
-/**
- * pointer to the parent from which sequence(s) are inheritted
- */
+    /**
+     * pointer to the parent from which sequence(s) are inheritted
+     */
     virtual std::shared_ptr< individual > get_parent( unsigned int ) = 0;
 
-/**
- * pointer to the sequence which was inheritted from a parent.
- */
+    /**
+     * pointer to the sequence which was inheritted from a parent.
+     */
     virtual std::shared_ptr< sequence > get_sequence( unsigned int ) = 0;
 };
 
