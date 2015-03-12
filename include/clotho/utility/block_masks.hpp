@@ -6,7 +6,6 @@
 namespace clotho {
 namespace utility {
 
-
 template < class Block >
 class block_masks {
 public:
