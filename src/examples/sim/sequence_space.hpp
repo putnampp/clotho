@@ -9,7 +9,7 @@
 
 class SequenceSpace {
 public:
-    typedef boost::dynamic_bitset< unsigned long >  sequence_type; 
+    typedef boost::dynamic_bitset< unsigned long >  sequence_type;
     typedef std::shared_ptr< sequence_type >        sequence_ptr;
 
     SequenceSpace( boost::property_tree::ptree & config );
