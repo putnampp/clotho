@@ -1,13 +1,13 @@
-#ifndef SEQUENCE_GENERATOR_VARIABLE_HPP_
-#define SEQUENCE_GENERATOR_VARIABLE_HPP_
+#ifndef SEQUENCE_GENERATOR_VECTOR_HPP_
+#define SEQUENCE_GENERATOR_VECTOR_HPP_
 
 #include "clotho/genetics/sequence_generator_def.hpp"
-#include "clotho/powerset/variable_subset.hpp"
+#include "clotho/powerset/vector_subset.hpp"
 
 template < class E, class B, class BM, class EK >
-class sequence_generator< std::shared_ptr< clotho::powersets::variable_subset< E, B, BM, EK > > > {
+class sequence_generator< std::shared_ptr< clotho::powersets::vector_subset< E, B, BM, EK > > > {
 public:
-    typedef clotho::powersets::variable_subset< E, B, BM, EK >  sequence_type;
+    typedef clotho::powersets::vector_subset< E, B, BM, EK >  sequence_type;
     typedef std::shared_ptr< sequence_type >                    result_type;
     typedef typename sequence_type::powerset_type               set_type;
     typedef sequence_generator< result_type >                   self_type;
@@ -27,4 +27,4 @@ protected:
 };
 
 // sequence_generator< Sequence, sequence_generator< Sequence, recombine > >;
-#endif  // SEQUENCE_GENERATOR_VARIABLE_HPP_
+#endif  // SEQUENCE_GENERATOR_VECTOR_HPP_
