@@ -27,15 +27,13 @@ public:
 
     bit_block_iterator( block_type b = (block_type)0) :
         m_val(b),
-        m_lsb(0)
-    {
+        m_lsb(0) {
         next();
     }
 
     bit_block_iterator( const self_type & rhs ) :
         m_val( rhs.m_val )
-        , m_lsb( rhs.m_lsb )
-    {
+        , m_lsb( rhs.m_lsb ) {
     }
 
     bit_block_iterator & operator++() {
