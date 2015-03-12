@@ -54,7 +54,7 @@ public:
         Block b = InspectMethodTag::select(b0, b1);
 
         Block mask = walk(b, first);
-        
+
         Block rec = ((b0 & mask) | (b1 & ~mask));
 
         return rec;
@@ -64,6 +64,8 @@ protected:
 
     template < class ElementIterator >
     unsigned int walk( unsigned int lo, const ElementIterator first ) {
+        typedef unsigned int Block;
+
         unsigned int res = 0;
         while( lo ) {
             unsigned int tmp = LEAST_SIG_BIT( lo );
@@ -162,6 +164,8 @@ protected:
 
     template < class ElementIterator >
     unsigned long unrolled_walk( unsigned long b, const ElementIterator first ) {
+        typedef unsigned long Block;
+
         unsigned long res = (unsigned long)0;
         unsigned int lo = (unsigned int) b;
 
