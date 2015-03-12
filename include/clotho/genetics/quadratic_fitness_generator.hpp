@@ -6,7 +6,7 @@
 
 /**
  * Computes the phenotype scaling factor based upon:
- * -  the current population's size (N) 
+ * -  the current population's size (N)
  * -  population mutation rate (mu)
  * -  user-defined scaling factor (s)
  *
