@@ -4,7 +4,7 @@
 namespace clotho {
 namespace recombine {
 
-template < class Sequence, class Classifier >
+template < class Sequence, class Classifier, class Tag0, class Tag1 >
 class recombination;
 
 }   // namespace recombine
