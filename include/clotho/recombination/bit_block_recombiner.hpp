@@ -5,5 +5,6 @@
 #include "clotho/recombination/scan_classify_bit_block_recombiner.hpp"
 #include "clotho/recombination/scan_classify_switch_bit_block_recombiner.hpp"
 #include "clotho/recombination/inline_bit_block_recombiner.hpp"
+#include "clotho/recombination/inline_dynamic_bit_block_recombiner.hpp"
 
 #endif  // BLOCK_RECOMBINER_HPP_
