@@ -6,11 +6,11 @@
 
 #define POW2_0 0x0000000000000001
 #define POW2_1 0x0000000000000002
-#define POW2_2 0x0000000000000004 
+#define POW2_2 0x0000000000000004
 #define POW2_3 0x0000000000000008
-#define POW2_4 0x0000000000000010 
-#define POW2_5 0x0000000000000020 
-#define POW2_6 0x0000000000000040 
+#define POW2_4 0x0000000000000010
+#define POW2_5 0x0000000000000020
+#define POW2_6 0x0000000000000040
 #define POW2_7 0x0000000000000080
 #define POW2_8 0x0000000000000100
 #define POW2_9 0x0000000000000200
@@ -73,14 +73,25 @@
 #define OFFSET( x ) CAT(POW2_, x )
 
 #define DEBRUIJN32 0x077CB531U
+// hashed bit offsets for bits [0,31]
 static const unsigned int deBruijn_bit_position[ 32 ] = {
-  0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 
-  31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
+    0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8,
+    31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6, 11, 5, 10, 9
 };
 
-#define DEBRUIJNBIT_HASH( LSB ) ((LSB * DEBRUIJN32) >> 27) 
+// hashed bit offsets for bits [32,63]
+static const unsigned int deBruijn_bit_position_hi[ 32 ] = {
+    32, 33, 60, 34, 61, 46, 56, 35, 62, 54, 52, 47, 57, 49, 36, 40,
+    63, 59, 45, 55, 53, 51, 48, 39, 58, 44, 50, 38, 43, 37, 42, 41
+};
+
+#define LEAST_SIG_BIT( x ) (x & (-x))
+
+#define DEBRUIJNBIT_HASH( LSB ) ((LSB * DEBRUIJN32) >> 27)
 
 #define DEBRUIJNBIT_HASH_LOOKUP( LSB ) (deBruijn_bit_position[ DEBRUIJNBIT_HASH( LSB ) ])
+
+#define DEBRUIJNBIT_HASH_LOOKUP_HI( LSB ) (deBruijn_bit_position_hi[ DEBRUIJNBIT_HASH( LSB ) ])
 
 #endif  // POWER2S
 
@@ -89,25 +100,29 @@ namespace utility {
 
 // 64 * 8 = 512 bytes
 static const unsigned long bit_masks[ 64 ] = {
-POW2_0, POW2_1, POW2_2, POW2_3,
-POW2_4, POW2_5, POW2_6, POW2_7,
-POW2_8, POW2_9, POW2_10, POW2_11,
-POW2_12, POW2_13, POW2_14, POW2_15,
-POW2_16, POW2_17, POW2_18, POW2_19,
-POW2_20, POW2_21, POW2_22, POW2_23,
-POW2_24, POW2_25, POW2_26, POW2_27,
-POW2_28, POW2_29, POW2_30, POW2_31,
-POW2_32, POW2_33, POW2_34, POW2_35,
-POW2_36, POW2_37, POW2_38, POW2_39,
-POW2_40, POW2_41, POW2_42, POW2_43,
-POW2_44, POW2_45, POW2_46, POW2_47,
-POW2_48, POW2_49, POW2_50, POW2_51,
-POW2_52, POW2_53, POW2_54, POW2_55,
-POW2_56, POW2_57, POW2_58, POW2_59,
-POW2_60, POW2_61, POW2_62, POW2_63
+    POW2_0, POW2_1, POW2_2, POW2_3,
+    POW2_4, POW2_5, POW2_6, POW2_7,
+    POW2_8, POW2_9, POW2_10, POW2_11,
+    POW2_12, POW2_13, POW2_14, POW2_15,
+    POW2_16, POW2_17, POW2_18, POW2_19,
+    POW2_20, POW2_21, POW2_22, POW2_23,
+    POW2_24, POW2_25, POW2_26, POW2_27,
+    POW2_28, POW2_29, POW2_30, POW2_31,
+    POW2_32, POW2_33, POW2_34, POW2_35,
+    POW2_36, POW2_37, POW2_38, POW2_39,
+    POW2_40, POW2_41, POW2_42, POW2_43,
+    POW2_44, POW2_45, POW2_46, POW2_47,
+    POW2_48, POW2_49, POW2_50, POW2_51,
+    POW2_52, POW2_53, POW2_54, POW2_55,
+    POW2_56, POW2_57, POW2_58, POW2_59,
+    POW2_60, POW2_61, POW2_62, POW2_63
 };
 
-unsigned char low_bit_decode( unsigned char & b );
+unsigned int scan_set_bits( unsigned int b, unsigned int * indices );
+unsigned int scan_set_bits( unsigned long b, unsigned int * indices );
+
+unsigned int hash_set_bits( unsigned int b, unsigned int * indices );
+unsigned int hash_set_bits( unsigned long b, unsigned int * indices );
 
 }   // namespace utility
 }   // namespace clotho
