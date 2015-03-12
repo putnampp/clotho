@@ -16,13 +16,22 @@ public:
     typedef Element value_type;
 
     typedef clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer > powerset_type;
-    typedef boost::dynamic_bitset< unsigned long > bitset_type;
-    typedef size_t index_type;
+    typedef boost::dynamic_bitset< Block > bitset_type;
+    typedef boost::dynamic_bitset< Block > data_container_type;
 
-    typedef std::vector< bitset_type::block_type, bitset_type::allocator_type >::iterator block_iterator;
-    typedef std::vector< bitset_type::block_type, bitset_type::allocator_type >::const_iterator cblock_iterator;
+    typedef typename powerset_type::element_index_type element_index_type;
+
+    typedef std::pair< element_index_type, size_t > index_type;
+
+    typedef typename std::vector< Block >::iterator block_iterator;
+    typedef typename std::vector< Block >::const_iterator cblock_iterator;
+
+    typedef block_iterator  data_iterator;
+    typedef cblock_iterator data_citerator;
 
     typedef typename powerset_type::subset_ptr pointer;
+
+    static const size_t npos = (size_t) -1;
 
     friend class clotho::powersets::powerset< Element, variable_subset< Element, Block, BlockMap, ElementKeyer >, Block, BlockMap, ElementKeyer >;
 
@@ -37,7 +46,7 @@ public:
 
     bool                isSameFamily( pointer other ) const;
 
-    std::pair< typename powerset_type::element_index_type, bool >   addElement( const value_type & elem );
+    std::pair< element_index_type, bool >   addElement( const value_type & elem );
     void                removeElement( const value_type & elem );
 
     /**
@@ -49,7 +58,7 @@ public:
      *  Returns whether bit index is set; equivalent to determining whether
      *  a known element is a member of this subset
      */
-    bool                check_state( index_type idx ) const;
+    bool                check_state( element_index_type idx ) const;
 
     /**
      *  Returns number of blocks allocated for bitset
@@ -82,7 +91,10 @@ public:
     cblock_iterator begin() const;
     cblock_iterator end() const;
 
-    size_t find_first() const;
+    index_type find_first() const;
+    index_type find_next( index_type idx ) const;
+
+    size_t find_first_index( ) const;
     size_t find_next( size_t idx ) const;
 
     template < class E, class B, class BM, class EK >
@@ -165,7 +177,7 @@ typename SUBSET_SPECIALIZATION::pointer SUBSET_SPECIALIZATION::clone() const {
 
 TEMPLATE_HEADER
 bool    SUBSET_SPECIALIZATION::operator[]( const value_type & elem ) {
-    typename powerset_type::element_index_type idx = m_parent->find( elem );
+    element_index_type idx = m_parent->find( elem );
 
     if( 0 <=  idx && idx < m_data.size() ) {
         return m_data[idx];
@@ -175,7 +187,7 @@ bool    SUBSET_SPECIALIZATION::operator[]( const value_type & elem ) {
 
 TEMPLATE_HEADER
 std::pair< typename SUBSET_SPECIALIZATION::powerset_type::element_index_type, bool >   SUBSET_SPECIALIZATION::addElement( const value_type & elem ) {
-    std::pair< typename powerset_type::element_index_type, bool > res = m_parent->find_or_create( elem );
+    std::pair< element_index_type, bool > res = m_parent->find_or_create( elem );
 
     if( res.first == powerset_type::npos ) return res;
 
@@ -189,7 +201,7 @@ std::pair< typename SUBSET_SPECIALIZATION::powerset_type::element_index_type, bo
 
 TEMPLATE_HEADER
 void SUBSET_SPECIALIZATION::removeElement( const value_type & elem ) {
-    typename powerset_type::element_index_type idx = m_parent->find( elem );
+    element_index_type idx = m_parent->find( elem );
 
     if( idx == powerset_type::npos || m_data.size() <= idx ) return;
 
@@ -217,7 +229,7 @@ size_t SUBSET_SPECIALIZATION::max_size() const {
 }
 
 TEMPLATE_HEADER
-bool SUBSET_SPECIALIZATION::check_state( index_type idx ) const {
+bool SUBSET_SPECIALIZATION::check_state( element_index_type idx ) const {
     return m_data[idx];
 }
 
@@ -242,10 +254,21 @@ typename SUBSET_SPECIALIZATION::cblock_iterator SUBSET_SPECIALIZATION::end() con
 }
 
 TEMPLATE_HEADER
-size_t SUBSET_SPECIALIZATION::find_first() const {
-    return m_data.find_first();
+typename SUBSET_SPECIALIZATION::index_type SUBSET_SPECIALIZATION::find_first() const {
+    size_t i = m_data.find_first();
+    return std::make_pair(i,i);
 }
 
+TEMPLATE_HEADER
+typename SUBSET_SPECIALIZATION::index_type SUBSET_SPECIALIZATION::find_next( index_type idx ) const {
+    size_t i = m_data.find_next( idx.first );
+    return std::make_pair(i,i);
+}
+
+TEMPLATE_HEADER
+size_t SUBSET_SPECIALIZATION::find_first_index( ) const {
+    return m_data.find_first();
+}
 TEMPLATE_HEADER
 size_t SUBSET_SPECIALIZATION::find_next( size_t idx ) const {
     return m_data.find_next( idx );
@@ -292,6 +315,10 @@ std::ostream & operator<<( std::ostream & lhs, const SUBSET_SPECIALIZATION & rhs
     lhs << "{" << rhs.m_data << "; " << rhs.m_data.count() << "}";
     return lhs;
 }
+
+#undef TEMPLATE_HEADER
+#undef SUBSET_SPECIALIZATION
+#undef POWERSET_SPECIALIZATION
 
 }   // namespace powersets
 }   // namespace clotho
