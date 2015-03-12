@@ -4,7 +4,6 @@
 #include <memory>
 
 #include "locus.hpp"
-#include 
 
 class Allele {
 public:
