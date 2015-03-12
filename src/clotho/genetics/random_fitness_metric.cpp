@@ -4,8 +4,7 @@
 const std::string RAND_NAME = "random";
 
 random_fitness_metric::random_fitness_metric( real_type s ) :
-    m_scale(s)
-{
+    m_scale(s) {
     assert( m_scale != 0 );
 }
 
