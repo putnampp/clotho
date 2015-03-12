@@ -44,6 +44,7 @@
 #include <boost/accumulators/statistics/weighted_variance.hpp>
 
 #include "clotho/genetics/fitness_toolkit.hpp"
+#include "clotho/genetics/pairwise_statistic.hpp"
 
 namespace accum=boost::accumulators;
 
@@ -82,31 +83,13 @@ struct sample_log_params {
         }
     }
 
-    sample_log_params( const sample_log_params & slp ) : 
+    sample_log_params( const sample_log_params & slp ) :
         sample_size( slp.sample_size )
-        , pairwise( slp.pairwise )
-    {}
+        , pairwise( slp.pairwise ) {
+    }
 };
 
-// Popcount algorithm found on Hamming Weight wiki page:
-// http://en.wikipedia.org/wiki/Hamming_weight
-// (date 1/1/2015)
-//
-const uint64_t m1  = 0x5555555555555555; //binary: 0101...
-const uint64_t m2  = 0x3333333333333333; //binary: 00110011..
-const uint64_t m4  = 0x0f0f0f0f0f0f0f0f; //binary:  4 zeros,  4 ones ...
-const uint64_t m8  = 0x00ff00ff00ff00ff; //binary:  8 zeros,  8 ones ...
-const uint64_t m16 = 0x0000ffff0000ffff; //binary: 16 zeros, 16 ones ...
-const uint64_t m32 = 0x00000000ffffffff; //binary: 32 zeros, 32 ones
-const uint64_t hff = 0xffffffffffffffff; //binary: all ones
-const uint64_t h01 = 0x0101010101010101; //the sum of 256 to the power of 0,1,2,3...
-
-inline unsigned int popcount( unsigned long x ) {
-    x -= (x >> 1) & m1;
-    x = (x & m2) + ((x >> 2) & m2);
-    x = (x + (x >> 4) ) & m4;
-    return ( x * h01) >> 56;
-}
+#include "clotho/utility/popcount.hpp"
 
 template < class URNG, class AlleleType, class LogType, class TimerType >
 class simulate_engine {
@@ -127,9 +110,9 @@ public:
 
     // recombination typedefs
     typedef typename base_type::classifier_type     classifier_type;
-    typedef clotho::recombine::recombination< sequence_type, classifier_type >  recombination_engine_type;
-    typedef recombiner< sequence_type, recombination_engine_type >              recombination_method;
-    typedef clotho::utility::random_generator< rng_type, recombination_method > recombination_method_generator;
+    typedef clotho::recombine::recombination< sequence_type, classifier_type, RECOMBINE_INSPECT_METHOD, BIT_WALK_METHOD >   recombination_engine_type;
+    typedef recombiner< sequence_type, recombination_engine_type >               recombination_method;
+    typedef clotho::utility::random_generator< rng_type, recombination_method >  recombination_method_generator;
     typedef typename base_type::population_type                                 population_type;
     typedef typename population_type::iterator                                  population_iterator;
 
@@ -382,78 +365,102 @@ protected:
     }
 
     void pairwise_stats( ref_map_type & rmap, boost::property_tree::ptree & l ) {
-        
-        accum::accumulator_set< double, accum::stats< accum::tag::weighted_mean, accum::tag::weighted_variance >, double > acc_diff, acc_int, acc_un;
- 
-        unsigned int tech_dup = 0, pairs = 0;
-        double tot = 0.;
-        for( ref_map_iterator it = rmap.begin(); it != rmap.end(); ++it ) {
-            sequence_pointer s0 = it->first;
-            double w0 = (double)it->second;
+        typename pairwise_statistic< sequence_type >::accum_type global_diff, global_int, global_un;
 
-            ref_map_iterator it2 = it;
-            for( ++it2; it2 != rmap.end(); ++it2 ) {
-                sequence_pointer s1 = it2->first;
-                double w1 = (double)it2->second;
-                double _diff = 0, _int = 0, _un = 0;
-
-                typename sequence_type::cblock_iterator sit = s0->begin(), sit2 = s1->begin();
-
-                while( true ) {
-                    if( sit == s0->end() ) {
-                        while( sit2 != s1->end() ) {
-                            block_type b = *sit2;
-                            ++sit2;
-                            double res = (double)popcount( b );
-                            _diff += res;
-                            _un += res;
-                        }
-                        break;
-                    }
-
-                    if( sit2 == s1->end() ) {
-                        while( sit != s0->end() ) {
-                            block_type b = *sit;
-                            ++sit;
-                            double res = (double)popcount( b );
-                            _diff += res;
-                            _un += res;
-                        }
-                        break;
-                    }
-
-                    block_type b0 = *sit, b1 = *sit2;
-                    ++sit;
-                    ++sit2;
-                    _diff += popcount( b0 ^ b1 );
-                    _int += popcount( b0 & b1 );
-                    _un += popcount( b0 | b1 );
-                }
-
-                if( _diff > 0. ) {
-                    double w = (w0 * w1);
-                    acc_diff( _diff, accum::weight = w );
-                    acc_int( _int, accum::weight = w );
-                    acc_un( _un, accum::weight = w );
-                    tot += w;
-                    ++pairs;
-                } else {
-                    // technical duplicate
-                    ++tech_dup;
-                }
+        ref_map_iterator it = rmap.begin();
+        for( ++it; it != rmap.end(); ++it ) {
+            pairwise_statistic< sequence_type > pstat( *(it->first), global_diff, global_int, global_un, it->second );
+            for( ref_map_iterator it2 = rmap.begin(); it2 != it; ++it2 ) {
+                pstat.update( *(it2->first), it2->second );
             }
         }
 
-        l.put( "population.sequences.technical_duplicates", tech_dup );
-        l.put( "sequences.pairwise.size", tot );
-        l.put( "sequences.pairwise.unique_pairs", pairs );
-        l.put( "sequences.pairwise.difference.mean", accum::weighted_mean(acc_diff));
-        l.put( "sequences.pairwise.difference.variance", accum::weighted_variance(acc_diff));
-        l.put( "sequences.pairwise.intersection.mean", accum::weighted_mean(acc_int));
-        l.put( "sequences.pairwise.intersection.variance", accum::weighted_variance(acc_int));
-        l.put( "sequences.pairwise.union.mean", accum::weighted_mean(acc_un));
-        l.put( "sequences.pairwise.union.variance", accum::weighted_variance(acc_un));
+        //l.put( "population.sequences.technical_duplicates", tech_dup );
+        l.put( "sequences.pairwise.size", accum::count(global_diff) );
+        l.put( "sequences.pairwise.unique_pairs", accum::count(global_diff) );
+        l.put( "sequences.pairwise.difference.mean", accum::weighted_mean(global_diff));
+        l.put( "sequences.pairwise.difference.variance", accum::weighted_variance(global_diff));
+        l.put( "sequences.pairwise.intersection.mean", accum::weighted_mean(global_int));
+        l.put( "sequences.pairwise.intersection.variance", accum::weighted_variance(global_int));
+        l.put( "sequences.pairwise.union.mean", accum::weighted_mean(global_un));
+        l.put( "sequences.pairwise.union.variance", accum::weighted_variance(global_un));
     }
+
+    /*    void pairwise_stats( ref_map_type & rmap, boost::property_tree::ptree & l ) {
+
+            accum::accumulator_set< double, accum::stats< accum::tag::weighted_mean, accum::tag::weighted_variance >, double > acc_diff, acc_int, acc_un;
+
+            unsigned int tech_dup = 0, pairs = 0;
+            double tot = 0.;
+            for( ref_map_iterator it = rmap.begin(); it != rmap.end(); ++it ) {
+                sequence_pointer s0 = it->first;
+                double w0 = (double)it->second;
+
+                ref_map_iterator it2 = it;
+                for( ++it2; it2 != rmap.end(); ++it2 ) {
+                    sequence_pointer s1 = it2->first;
+                    double w1 = (double)it2->second;
+                    double _diff = 0, _int = 0, _un = 0;
+
+    //                typename sequence_type::cblock_iterator sit = s0->begin(), sit2 = s1->begin();
+
+                    typename sequence_type::data_citerator sit = s0->begin(), sit2 = s1->begin();
+
+                    while( true ) {
+                        if( sit == s0->end() ) {
+                            while( sit2 != s1->end() ) {
+                                block_type b = *sit2;
+                                ++sit2;
+                                double res = (double)popcount( b );
+                                _diff += res;
+                                _un += res;
+                            }
+                            break;
+                        }
+
+                        if( sit2 == s1->end() ) {
+                            while( sit != s0->end() ) {
+                                block_type b = *sit;
+                                ++sit;
+                                double res = (double)popcount( b );
+                                _diff += res;
+                                _un += res;
+                            }
+                            break;
+                        }
+
+                        block_type b0 = *sit, b1 = *sit2;
+                        ++sit;
+                        ++sit2;
+                        _diff += popcount( b0 ^ b1 );
+                        _int += popcount( b0 & b1 );
+                        _un += popcount( b0 | b1 );
+                    }
+
+                    if( _diff > 0. ) {
+                        double w = (w0 * w1);
+                        acc_diff( _diff, accum::weight = w );
+                        acc_int( _int, accum::weight = w );
+                        acc_un( _un, accum::weight = w );
+                        tot += w;
+                        ++pairs;
+                    } else {
+                        // technical duplicate
+                        ++tech_dup;
+                    }
+                }
+            }
+
+            l.put( "population.sequences.technical_duplicates", tech_dup );
+            l.put( "sequences.pairwise.size", tot );
+            l.put( "sequences.pairwise.unique_pairs", pairs );
+            l.put( "sequences.pairwise.difference.mean", accum::weighted_mean(acc_diff));
+            l.put( "sequences.pairwise.difference.variance", accum::weighted_variance(acc_diff));
+            l.put( "sequences.pairwise.intersection.mean", accum::weighted_mean(acc_int));
+            l.put( "sequences.pairwise.intersection.variance", accum::weighted_variance(acc_int));
+            l.put( "sequences.pairwise.union.mean", accum::weighted_mean(acc_un));
+            l.put( "sequences.pairwise.union.variance", accum::weighted_variance(acc_un));
+        }*/
 
     void buildRefMap( population_type * p, ref_map_type & m, allele_dist_type & a ) {
 
@@ -477,9 +484,10 @@ protected:
 
         for( ref_map_iterator rit = m.begin(); rit != m.end(); ++rit ) {
             unsigned int n = rit->second;
-            size_t idx = rit->first->find_first();
-            while( idx != sequence_type::bitset_type::npos ) {
-                a[ idx ] += n;
+            typename sequence_type::index_type idx = rit->first->find_first();
+            while( idx.second != sequence_type::npos ) {
+                //std::cerr << idx.first << "," << idx.second << "," << sequence_type::npos << std::endl;
+                a[ idx.first ] += n;
                 idx = rit->first->find_next( idx );
             }
         }
