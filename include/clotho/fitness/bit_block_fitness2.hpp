@@ -45,7 +45,7 @@ public:
         combineBits( _bits, hom_bits, &m_ahoms );
         combineBits( _bits, ref_bits, &m_rhoms );
 
-        typedef clotho::utility::bit_block_iterator< Block, clotho::utility::walk_iterator_tag >    iterator;
+        typedef clotho::utility::bit_block_iterator< Block, clotho::utility::tag::debruijn_iterator_tag >    iterator;
         iterator it( _bits );
 
         while( !it.done() ) {
@@ -141,7 +141,7 @@ public:
 protected:
     template < class Block, class ElementIterator, class FitOp >
     inline void computeFitness(result_type & res, Block b, ElementIterator first, FitOp * op ) {
-        typedef clotho::utility::bit_block_iterator< Block, clotho::utility::walk_iterator_tag >    iterator;
+        typedef clotho::utility::bit_block_iterator< Block, clotho::utility::tag::debruijn_iterator_tag >    iterator;
 
         iterator it( b );
         while( !it.done() ) {
