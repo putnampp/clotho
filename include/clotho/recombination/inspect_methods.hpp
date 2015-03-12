@@ -6,8 +6,6 @@ namespace recombine {
 namespace inspection {
 namespace tag {
 
-struct copy_matching_classify_less { };
-
 struct copy_matching_classify_mismatch {
     template < class Block >
     static Block select( const Block b0, const Block b1 ) {
