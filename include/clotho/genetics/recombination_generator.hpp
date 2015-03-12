@@ -6,16 +6,22 @@
 
 #include <boost/random/bernoulli_distribution.hpp>
 
+// Base Sequence Bias allows one to specify
+// whether a parental sequence is more likely
+// to be the base sequence to be passed along
+// For example, the maternally inheritted sequence
+// is more likely to be passed along than the
+// paternal.
 extern const string BASE_SEQUENCE_BIAS_K;
 
 namespace clotho {
 namespace utility {
 
-template < class URNG, class Sequence, class Classifier >
-class random_generator< URNG, clotho::recombine::recombination< Sequence, Classifier > > {
+template < class URNG, class Sequence, class Classifier, class T0, class T1 >
+class random_generator< URNG, clotho::recombine::recombination< Sequence, Classifier, T0, T1 > > {
 public:
     typedef URNG                                                        rng_type;
-    typedef clotho::recombine::recombination< Sequence, Classifier >    result_type;
+    typedef clotho::recombine::recombination< Sequence, Classifier, T0, T1 >    result_type;
 
     typedef clotho::utility::random_generator< URNG, Classifier >       classifier_generator_type;
     typedef typename classifier_generator_type::result_type             classifier_type;
