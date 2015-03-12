@@ -52,11 +52,132 @@ public:
 
     template < class Block, class ElementIterator >
     Block operator()( const Block b0, const Block b1, const ElementIterator first ) {
+
+        Block mask = walk( InspectMethodTag::select(b0, b1), first );
+
+        Block rec = ((b0 & mask) | (b1 & ~mask));
+        return rec;
+    }
+
+protected:
+    classifier_type m_cfier;
+    unsigned int indices[ 64 ];
+
+    template < class ElementIterator >
+    unsigned int walk( unsigned int b, const ElementIterator first ) {
         // Only compute the hash of each set bit
         // In effect, delay the offset lookup to be performed by the switching logic
         // Goal is to eliminate a 'double-lookup' (lookup from hash table, lookup based upon hash)
         // This assumes switch logic results in a 'jump table'
-        unsigned int count = clotho::utility::hash_set_bits( InspectMethodTag::select(b0, b1), indices );
+        //
+        typedef unsigned int Block;
+        unsigned int count = clotho::utility::hash_set_bits( b, indices );
+
+        Block res = (Block)0;
+        unsigned int * idx = indices;
+        while( count-- ) {
+            switch( *idx++ ) {
+            case 0:
+                CHECK_0() break;
+            case 1:
+                CHECK(1) break;
+            case 2:
+                CHECK(28) break;
+            case 3:
+                CHECK(2) break;
+            case 4:
+                CHECK(29) break;
+            case 5:
+                CHECK(14) break;
+            case 6:
+                CHECK(24) break;
+            case 7:
+                CHECK(3) break;
+            case 8:
+                CHECK(30) break;
+            case 9:
+                CHECK(22) break;
+            case 10:
+                CHECK(20) break;
+            case 11:
+                CHECK(15) break;
+            case 12:
+                CHECK(25) break;
+            case 13:
+                CHECK(17) break;
+            case 14:
+                CHECK(4) break;
+            case 15:
+                CHECK(8) break;
+            case 16:
+                CHECK(31) break;
+            case 17:
+                CHECK(27) break;
+            case 18:
+                CHECK(13) break;
+            case 19:
+                CHECK(23) break;
+            case 20:
+                CHECK(21) break;
+            case 21:
+                CHECK(19) break;
+            case 22:
+                CHECK(16) break;
+            case 23:
+                CHECK(7) break;
+            case 24:
+                CHECK(26) break;
+            case 25:
+                CHECK(12) break;
+            case 26:
+                CHECK(18) break;
+            case 27:
+                CHECK(6) break;
+            case 28:
+                CHECK(11) break;
+            case 29:
+                CHECK(5) break;
+            case 30:
+                CHECK(10) break;
+            case 31:
+                CHECK(9) break;
+            default:
+                break;
+            }
+        }
+        return res;
+    }
+
+    template < class ElementIterator >
+    unsigned long walk( unsigned long b, const ElementIterator first ) {
+        // Only compute the hash of each set bit
+        // In effect, delay the offset lookup to be performed by the switching logic
+        // Goal is to eliminate a 'double-lookup' (lookup from hash table, lookup based upon hash)
+        // This assumes switch logic results in a 'jump table'
+        //
+
+        unsigned int lo = (unsigned int)b;
+        unsigned long mask = (unsigned long)walk( lo, first );
+
+        lo = (unsigned int) ( b >> 32 );
+        if( lo ) {
+            ElementIterator tmp = (first + 32);
+            unsigned long hi_mask = (unsigned long)walk(lo, tmp );
+            mask |= (hi_mask << 32);
+        }
+
+        return mask;
+    }
+
+    template < class ElementIterator >
+    unsigned long unrolled_walk( unsigned long b, const ElementIterator first ) {
+        // Only compute the hash of each set bit
+        // In effect, delay the offset lookup to be performed by the switching logic
+        // Goal is to eliminate a 'double-lookup' (lookup from hash table, lookup based upon hash)
+        // This assumes switch logic results in a 'jump table'
+        //
+        typedef unsigned long Block;
+        unsigned int count = clotho::utility::hash_set_bits( b, indices );
 
         Block res = (Block)0;
         unsigned int * idx = indices;
@@ -194,14 +315,8 @@ public:
                 break;
             }
         }
-
-        Block rec = ((b0 & res) | (b1 & ~res));
-        return rec;
+        return res;
     }
-
-protected:
-    classifier_type m_cfier;
-    unsigned int indices[ 64 ];
 };
 
 #undef CHECK_0
