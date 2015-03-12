@@ -1,5 +1,5 @@
-#ifndef INLINE_BIT_BLOCK_RECOMBINER_HPP_
-#define INLINE_BIT_BLOCK_RECOMBINER_HPP_
+#ifndef INLINE_DYNAMIC_BIT_BLOCK_RECOMBINER_HPP_
+#define INLINE_DYNAMIC_BIT_BLOCK_RECOMBINER_HPP_
 
 #include "clotho/recombination/bit_block_recombiner_def.hpp"
 #include "clotho/recombination/inspect_methods.hpp"
@@ -39,9 +39,6 @@ struct inline_dynamic_classify {};
 namespace clotho {
 namespace recombine {
 
-#define CHECK_0()   if( m_cfier( *first ) ) { res |= (Block) OFFSET( 0 ); }
-#define CHECK( x )  if( m_cfier( *(first + x) ) ) { res |= (Block) OFFSET( x ); }
-
 template < class Classifier, class InspectMethodTag >
 class bit_block_recombiner< Classifier, InspectMethodTag, clotho::recombine::walker::tag::inline_dynamic_classify > {
 public:
@@ -68,7 +65,7 @@ protected:
             unsigned int tmp = LEAST_SIG_BIT( b );
             unsigned int offset = DEBRUIJNBIT_HASH_LOOKUP( tmp );
             if( m_cfier( *(first + offset) ) ) {
-                res |= ((Block)1 << offset);
+                res |= ((unsigned int)1 << offset);
             }
             b ^= tmp;
         }
@@ -99,9 +96,6 @@ protected:
     classifier_type m_cfier;
 };
 
-#undef CHECK_0
-#undef CHECK
-
 }   // namespace recombine
 }   // namespace clotho
-#endif  // INLINE_BIT_BLOCK_RECOMBINER_HPP_
+#endif  // INLINE_DYNAMIC_BIT_BLOCK_RECOMBINER_HPP_
