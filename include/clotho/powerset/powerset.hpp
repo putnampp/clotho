@@ -47,31 +47,34 @@ public:
     typedef clotho::utility::block_masks< block_type > masks;
 
     static const unsigned int       max_elements = (std::numeric_limits< element_index_type >::max() / 2);
-    static const element_index_type npos = -1;
-    static const unsigned int       fixed_flag = (npos ^ ((npos)>> 1));
+    //static const unsigned int       npos = -1;
+    static const size_t             npos = -1;
+    static const unsigned int       fixed_flag = ((element_index_type)npos ^ (((element_index_type)npos)>> 1));
     static const unsigned int       bits_per_block = masks::bits_per_block;
 
     typedef Subset                              subset_type;
-    typedef std::shared_ptr< Subset >            subset_ptr;
+    typedef std::shared_ptr< subset_type >            subset_ptr;
     typedef boost::dynamic_bitset< block_type > bitset_type;
 
     typedef std::set< subset_ptr >       family_type;
     typedef typename family_type::iterator  family_iterator;
     typedef typename family_type::const_iterator  cfamily_iterator;
 
-    typedef typename bitset_type::block_type bitset_block_type;
+    typedef block_type                           bitset_block_type;
     typedef typename bitset_type::allocator_type bitset_allocator_type;
     typedef std::vector< bitset_block_type, bitset_allocator_type > bitset_buffer_type;
 
     typedef typename bitset_buffer_type::iterator free_block_iterator;
     typedef typename bitset_buffer_type::const_iterator cfree_block_iterator;
 
+    typedef typename subset_type::data_container_type dc_type;
+
     powerset();
 
     subset_ptr   empty_set() const;
 
     subset_ptr  create_subset();
-    subset_ptr  create_subset( const typename subset_type::bitset_type & b );
+    subset_ptr  create_subset( const dc_type & b );
 
 //    subset_ptr  clone_subset( subset_ptr t );
 
@@ -165,9 +168,15 @@ public:
 
     element_index_type findFreeIndex( const value_type & v );
 
+    unsigned int updateFixed();
+
     void updateFreeElements( subset_ptr s );
+    void updateFreeElements( bitset_type & seq_data );
+    void updateFreeElements( std::vector< element_index_type > & seq_data );
+
     void updateSubsetFree( subset_ptr s );
-    void updateFixed();
+    void updateSubsetFree( std::vector< element_index_type > & seq_data );
+    void updateSubsetFree( bitset_type & seq_data );
 
     void updateFreeIndex( element_index_type idx, bool state);
 
@@ -266,7 +275,7 @@ typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::create_sub
 }
 
 TEMPLATE_HEADER
-typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::create_subset( const typename subset_type::bitset_type & b ) {
+typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::create_subset( const dc_type & b ) {
     subset_ptr sub( new subset_type( this, b ) );
     m_family.insert( sub );
     return sub;
@@ -301,7 +310,7 @@ typename POWERSET_SPECIALIZATION::subset_ptr POWERSET_SPECIALIZATION::create_sub
 
 TEMPLATE_HEADER
 std::pair< typename POWERSET_SPECIALIZATION::element_index_type, bool > POWERSET_SPECIALIZATION::find_or_create( const value_type & v ) {
-    std::pair< element_index_type, bool > res = std::make_pair( npos, false );
+    std::pair< element_index_type, bool > res = std::make_pair( (element_index_type) npos, false );
     lookup_iterator it = m_lookup.find( element_keyer_type::get_key( v ) );
 
     if( it == m_lookup.end() ) {
@@ -319,21 +328,21 @@ TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::find_by_key( const key_type & k ) {
     lookup_iterator it = m_lookup.find( k );
 
-    return (( it == m_lookup.end() ) ? npos : it->second);
+    return (( it == m_lookup.end() ) ? (element_index_type)npos : it->second);
 }
 
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::find( const value_type & v ) {
     lookup_iterator it = m_lookup.find( element_keyer_type::get_key( v ) );
 
-    return (( it == m_lookup.end() ) ? npos : it->second);
+    return (( it == m_lookup.end() ) ? (element_index_type)npos : it->second);
 }
 
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::addElement( const value_type & v ) {
     element_index_type idx = findFreeIndex(v);
 
-    if( idx == npos ) {
+    if( idx == (element_index_type) npos ) {
         idx = appendElement(v);
         m_lookup.insert( std::make_pair( element_keyer_type::get_key( v ), encode_index(idx, false)));
     } else {
@@ -352,6 +361,7 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::ad
     }
 
 //    m_variable[ idx ] = v;
+    assert( idx != (element_index_type) npos );
 
     updateFreeIndex( idx, false );
 
@@ -361,7 +371,7 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::ad
 TEMPLATE_HEADER
 typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::findFreeIndex( const value_type & v ) {
     element_index_type _offset = m_block_map( v );
-    if( _offset == npos ) {
+    if( _offset == (element_index_type) npos ) {
         element_index_type idx = m_free_list.find_first();
         return idx;
     }
@@ -391,7 +401,7 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::fi
         }
         _offset += range_idx * bits_per_block;
     } else {
-        _offset = npos;
+        _offset = (element_index_type) npos;
     }
 
     return _offset;
@@ -402,7 +412,7 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::ap
     element_index_type idx = m_variable.size();
     element_index_type _offset = m_block_map( v );
 
-    idx += ((_offset != npos ) ? _offset : 0 );
+    idx += ((_offset != (element_index_type) npos ) ? _offset : 0 );
 
     unsigned int i = bits_per_block;
     while( i-- ) {
@@ -539,12 +549,14 @@ void POWERSET_SPECIALIZATION::pruneSpace() {
         m_family.erase( tmp );
     }
 
-    updateFixed();
 
-    it = m_family.begin();
-    while( it != m_family.end() ) {
-        updateSubsetFree( *it );
-        ++it;
+    unsigned int fcount = updateFixed();
+    if( fcount ) {
+        it = m_family.begin();
+        while( it != m_family.end() ) {
+            updateSubsetFree( *it );
+            ++it;
+        }
     }
 
     buildFreeRanges();
@@ -552,48 +564,102 @@ void POWERSET_SPECIALIZATION::pruneSpace() {
 
 TEMPLATE_HEADER
 void POWERSET_SPECIALIZATION::updateSubsetFree( subset_ptr s ) {
+    updateSubsetFree( s->m_data );
+}
+
+TEMPLATE_HEADER
+void POWERSET_SPECIALIZATION::updateSubsetFree( bitset_type & seq_data ) {
     typedef typename bitset_buffer_type::iterator       buffer_iterator;
     typedef typename bitset_buffer_type::const_iterator buffer_citerator;
 
-//    if( s == empty_set() ) return;
-
-    assert( s->m_data.num_blocks() <= m_variable_mask.num_blocks() );
+    assert( seq_data.num_blocks() <= m_variable_mask.num_blocks() );
 
     buffer_citerator fit = m_variable_mask.m_bits.begin();
-    buffer_iterator  sit = s->m_data.m_bits.begin(), send = s->m_data.m_bits.end();
+    buffer_iterator  sit = seq_data.m_bits.begin(), send = seq_data.m_bits.end();
 
     while( sit != send ) {
-        //(*fit++) &= (*sit++);
-        (*sit++) &= (*fit++);
+        (*sit) &= (*fit);
+        ++sit;
+        ++fit;
     }
 }
 
 TEMPLATE_HEADER
+void POWERSET_SPECIALIZATION::updateSubsetFree( std::vector< element_index_type > & seq_data ) {
+
+    typedef std::vector< element_index_type >::iterator data_iterator;
+
+    data_iterator res = seq_data.begin(), first = seq_data.begin(), last = seq_data.end();
+
+    while( first != last ) {
+        if( m_variable_mask[ *first ] ) {
+            *res = *first;
+            ++res;
+        }
+        ++first;
+    }
+
+    seq_data.erase( res, seq_data.end() );
+}
+
+TEMPLATE_HEADER
 void POWERSET_SPECIALIZATION::updateFreeElements( subset_ptr s ) {
+    updateFreeElements( s->m_data );
+}
+
+TEMPLATE_HEADER
+void POWERSET_SPECIALIZATION::updateFreeElements( bitset_type & seq_data ) {
     typedef typename bitset_buffer_type::iterator       buffer_iterator;
     typedef typename bitset_buffer_type::const_iterator buffer_citerator;
 
     // don't need b/c empty_set not stored in family
     //if( s == empty_set() ) return;
 
-    buffer_citerator cit = s->m_data.m_bits.begin(), cend = s->m_data.m_bits.end();
+    buffer_citerator cit = seq_data.m_bits.begin(), cend = seq_data.m_bits.end();
 
-    assert( s->m_data.num_blocks() <= m_fixed_variable.num_blocks() );
+    assert( seq_data.num_blocks() <= m_fixed_variable.num_blocks() );
 
     buffer_iterator int_it = m_fixed_variable.m_bits.begin(), int_end = m_fixed_variable.m_bits.end();
     buffer_iterator un_it = m_lost_variable.m_bits.begin();
 
     // handle common prefix
     while( cit != cend ) {
-        block_type b = (*cit++);
-        (*int_it++) &= b;
-        (*un_it++) |= b;
+        block_type b = (*cit);
+        ++cit;
+
+        (*int_it) &= b;
+        ++int_it;
+
+        (*un_it) |= b;
+        ++un_it;
     }
 
     // handle suffix
     while( int_it != int_end ) {
-        (*int_it++) = 0;
+        (*int_it) = 0;
+        ++int_it;
     }
+}
+
+TEMPLATE_HEADER
+void POWERSET_SPECIALIZATION::updateFreeElements( std::vector< element_index_type > & seq_data ) {
+    if( seq_data.empty() ) {
+        m_fixed_variable.reset();
+        return;
+    }
+
+    typedef std::vector< element_index_type >::const_iterator data_citerator;
+    data_citerator it = seq_data.begin();
+
+    bitset_type _set( m_variable.size(), 0 );
+
+    // explode the index set into a bit map
+    do {
+        _set[ *it ] = true;
+    } while( ++it != seq_data.end() );
+
+    m_fixed_variable &= _set;
+    m_lost_variable |= _set;
 }
 
 TEMPLATE_HEADER
@@ -677,9 +743,10 @@ typename POWERSET_SPECIALIZATION::cfree_block_iterator POWERSET_SPECIALIZATION::
 }
 
 TEMPLATE_HEADER
-void POWERSET_SPECIALIZATION::updateFixed() {
+unsigned int POWERSET_SPECIALIZATION::updateFixed() {
     typename bitset_type::size_type idx = m_fixed_variable.find_first();
 
+    unsigned int fcount = 0;
     while( idx != bitset_type::npos ) {
         element_index_type eid = m_fixed.size();
         m_fixed.push_back( m_variable[ idx ] );
@@ -689,7 +756,10 @@ void POWERSET_SPECIALIZATION::updateFixed() {
 
         it->second = encode_index( eid, true );
         idx = m_fixed_variable.find_next(idx);
+        ++fcount;
     }
+
+    return fcount;
 }
 
 TEMPLATE_HEADER
