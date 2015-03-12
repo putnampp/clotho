@@ -11,6 +11,12 @@ __global__ void initRNG( curandState * rngStates, const unsigned int seed ) {
     curand_init( seed, idx, 0, &rngStates[idx] );
 }
 
+__global__ void initRNG( curandStateMRG32k3a * rngStates, const unsigned int seed ) {
+    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+
+    curand_init( seed, idx, 0, &rngStates[idx] );
+}
+
 __global__ void square( Square::int_type * a, int N ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if( idx < N ) a[idx] = idx * idx;
@@ -19,12 +25,15 @@ __global__ void square( Square::int_type * a, int N ) {
 __global__ void squareRNG( Square::int_type * a, int N, curandState * rngStates ) {
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    curandState lState = rngStates[idx];
 
-    Square::int_type r = curand(&lState);
+//    Square::int_type r = curand_uniform(&rngStates[idx]);
     if( idx < N ) {
-        a[idx] = r;
+        a[idx] = curand(&rngStates[idx]);
     }
+}
+
+__global__ void squareRNG( Square::int_type * a, int N, curandStateMtpg32_t * rngStates ) {
+
 }
 
 Square::Square() : m_a(NULL), m_size(1), m_maxBlocks(1), m_maxThreadsPerBlock(256) {

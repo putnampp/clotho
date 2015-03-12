@@ -21,7 +21,7 @@ void square_it( int_type N ) {
     for(int_type i = 0; i < N; ++i ) {
         a[i] = i*i;
     }
-    
+
     delete [] a;
     t.stop();
     std::cout << "host lapse:   " << t.elapsed().count() << std::endl;
