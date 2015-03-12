@@ -15,15 +15,15 @@
 namespace clotho {
 namespace recombine {
 
-template < class Element, class Block, class BlockMap, class ElementKeyer, class Classifier >
-class recombination< clotho::powersets::variable_subset< Element, Block, BlockMap, ElementKeyer >, Classifier > {
+template < class Element, class Block, class BlockMap, class ElementKeyer, class Classifier, class InspectTag, class WalkerTag >
+class recombination< clotho::powersets::variable_subset< Element, Block, BlockMap, ElementKeyer >, Classifier, InspectTag, WalkerTag > {
 public:
     typedef clotho::powersets::variable_subset< Element, Block, BlockMap, ElementKeyer >   subset_type;
     typedef typename subset_type::pointer                               sequence_type;
 
     typedef Classifier                                                  classifier_type;
 
-    typedef clotho::recombine::bit_block_recombiner< Classifier >        recombiner_type;
+    typedef clotho::recombine::bit_block_recombiner< Classifier, InspectTag, WalkerTag >        recombiner_type;
 
     typedef typename subset_type::bitset_type                           bit_sequence_type;
     typedef Block                                                       block_type;
@@ -125,14 +125,17 @@ public:
             if( alt_it == alt_end ) {
                 while( base_it != base_end ) {
                     assert( elem_it != elem_end );
-                    block_type _base = (*base_it++);
+                    block_type _base = (*base_it);
+                    ++base_it;
+
                     block_type r = brecombiner( _base, (block_type)0, elem_it );
 
                     m_match_base = (m_match_base && (_base == r) );
                     m_match_alt = (m_match_alt && ((block_type)0 == r) );
                     m_empty = (m_empty && (r == (block_type)0) );
 
-                    (*res_it++) = r;
+                    (*res_it) = r;
+                    ++res_it;
                     elem_it += bits_per_block;
                 }
                 break;
@@ -141,28 +144,35 @@ public:
             if( base_it == base_end ) {
                 while( alt_it != alt_end ) {
                     assert( elem_it != elem_end );
-                    block_type _alt = (*alt_it++);
+                    block_type _alt = (*alt_it);
+                    ++alt_it;
+
                     block_type r = brecombiner( (block_type)0, _alt, elem_it );
 
                     m_match_base = (m_match_base && ((block_type)0 == r) );
                     m_match_alt = (m_match_alt && (_alt == r) );
                     m_empty = (m_empty && (r == (block_type)0) );
 
-                    (*res_it++) = r;
+                    (*res_it) = r;
+                    ++res_it;
                     elem_it += bits_per_block;
                 }
                 break;
             }
 
             assert( elem_it != elem_end );
-            block_type _base = (*base_it++), _alt = (*alt_it++);
+            block_type _base = (*base_it), _alt = (*alt_it);
+            ++base_it;
+            ++alt_it;
+
             block_type r = brecombiner( _base, _alt, elem_it );
 
             m_match_base = (m_match_base && (_base == r) );
             m_match_alt = (m_match_alt && (_alt == r) );
             m_empty = (m_empty && (r == 0) );
 
-            (*res_it++) = r;
+            (*res_it) = r;
+            ++res_it;
             elem_it += bits_per_block;
         }
     }
