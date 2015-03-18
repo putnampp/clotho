@@ -43,8 +43,8 @@ public:
         , m_nTraits(n) {
     }
 
-    result_type operator()() {
-        basic_allele all = m_alleles();
+    result_type operator()( unsigned int age = 0 ) {
+        basic_allele all = m_alleles( age );
         typename qtl_allele::trait_weights W;
 
         std::generate_n( std::back_inserter(W), m_nTraits, m_traits);
