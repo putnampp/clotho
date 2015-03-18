@@ -170,13 +170,13 @@ public:
         initialize();
     }
 
-    void simulate() {
-        simulate( m_founder_size );
+    void simulate( unsigned int gen = 0) {
+        simulate( m_founder_size, gen );
     }
 
-    void simulate( unsigned int p_size ) {
+    void simulate( unsigned int p_size, unsigned int gen ) {
         individual_selector_type sel( m_rng, m_parent_fit->begin(), m_parent_fit->end() );
-        individual_generator_type ind_gen( m_parent, sel, m_repro );
+        individual_generator_type ind_gen( m_parent, sel, m_repro, gen );
 
         std::generate_n( std::back_inserter( *m_child ), p_size, ind_gen );
 
