@@ -12,6 +12,7 @@
 
 #include "clotho/utility/timer.hpp"
 
+#include "clotho/utility/bit_block_iterator.hpp"
 #include "clotho/powerset/variable_subset.hpp"
 #include "clotho/powerset/powerset_no_dup_pred.hpp"
 #include "clotho/powerset/variable_subset_recombination.hpp"
@@ -49,7 +50,7 @@ typedef clotho::fitness::fitness_method< double, clotho::fitness::multiplicative
 typedef clotho::fitness::fitness_method< double, clotho::fitness::multiplicative_homozygous_tag >    alt_hom_fit_type;
 typedef clotho::fitness::no_fit                                             ref_hom_fit_type;
 
-typedef clotho::recombine::recombination< sequence_type, classifier_type >    recombination_type;
+typedef clotho::recombine::recombination< sequence_type, classifier_type, clotho::recombine::inspection::tag::copy_matching_classify_mismatch, clotho::recombine::walker::tag::inline_dynamic_classify >    recombination_type;
 
 typedef clotho::fitness::fitness< sequence_type, het_fit_type, alt_hom_fit_type, ref_hom_fit_type, double > fitness_type;
 typedef typename fitness_type::result_type                                  fitness_result_type;
@@ -538,9 +539,9 @@ void buildPopulationRefMap( population_type * p, ref_map_type & m, allele_dist_t
 
     for( ref_map_iterator rit = m.begin(); rit != m.end(); ++rit ) {
         unsigned int n = rit->second;
-        size_t idx = rit->first->find_first();
-        while( idx !=  sequence_type::bitset_type::npos ) {
-            a[ idx ] += n;
+        typename sequence_type::index_type idx = rit->first->find_first();
+        while( idx.second !=  sequence_type::npos ) {
+            a[ idx.first ] += n;
             idx = rit->first->find_next( idx );
         }
     }
