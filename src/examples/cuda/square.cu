@@ -32,7 +32,7 @@ __global__ void squareRNG( Square::int_type * a, int N, curandState * rngStates 
     }
 }
 
-__global__ void squareRNG( Square::int_type * a, int N, curandStateMtpg32_t * rngStates ) {
+__global__ void squareRNG( Square::int_type * a, int N, curandStateMtgp32_t * rngStates ) {
 
 }
 
