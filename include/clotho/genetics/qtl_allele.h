@@ -11,8 +11,8 @@ struct qtl_allele : public basic_allele {
     typedef typename trait_weights::iterator    weight_iterator;
     typedef typename trait_weights::const_iterator weight_citerator;
 
-    qtl_allele( double k, double sel, double dom, bool neut, const trait_weights & coeff ) :
-        basic_allele( k, sel, dom, neut ), m_weights( coeff ) {
+    qtl_allele( double k, double sel, double dom, bool neut, unsigned int age, const trait_weights & coeff ) :
+        basic_allele( k, sel, dom, neut, age ), m_weights( coeff ) {
     }
 
     qtl_allele( const basic_allele & all, const trait_weights & coeff ) :
@@ -35,7 +35,7 @@ struct qtl_allele : public basic_allele {
 
     virtual ~qtl_allele() {}
 
-    trait_weights m_weights;
+    trait_weights   m_weights;
 };
 
 inline bool operator<( const qtl_allele & lhs, const qtl_allele & rhs ) {
@@ -59,7 +59,7 @@ inline std::ostream & operator<<( std::ostream & os, const qtl_allele & qtl ) {
             os << "," << *it;
         }
     }
-    os << ">}";
+    os << ">;" << qtl.m_age << "}";
     return os;
 }
 
