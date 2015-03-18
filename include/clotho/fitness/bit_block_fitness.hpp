@@ -41,7 +41,7 @@ protected:
 
     template < class Block, class ElementIterator, class FitOp >
     void computeFitness(result_type & res, Block b, ElementIterator first, FitOp * op ) {
-        typedef clotho::utility::bit_block_iterator< Block, clotho::utility::walk_iterator_tag >    iterator;
+        typedef clotho::utility::bit_block_iterator< Block, clotho::utility::tag::walk_iterator_tag >    iterator;
 
         iterator it( b );
         while( !it.done()  ) {
@@ -92,7 +92,7 @@ public:
 protected:
     template < class Block, class ElementIterator, class FitOp >
     inline void computeFitness(result_type & res, Block b, ElementIterator first, FitOp * op ) {
-        typedef clotho::utility::bit_block_iterator< Block >    iterator;
+        typedef clotho::utility::bit_block_iterator< Block, clotho::utility::tag::walk_iterator_tag >    iterator;
 
         iterator it( b );
         while( !it.done() ) {
