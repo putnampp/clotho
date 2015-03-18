@@ -8,6 +8,8 @@
 #include "clotho/utility/bit_walker.hpp"
 #include "clotho/utility/bit_block_iterator.hpp"
 
+#include "clotho/utility/preprocess_bit_block_iterator.hpp"
+
 typedef unsigned long block_type;
 typedef unsigned short sub_block_type;
 typedef clotho::utility::block_walker< block_type, sub_block_type > walker_type;
@@ -116,7 +118,7 @@ BOOST_AUTO_TEST_CASE( test_other_bit_walker_set_bits ) {
  *
  */
 BOOST_AUTO_TEST_CASE( test_bit_block_iterator_walk ) {
-    typedef clotho::utility::bit_block_iterator< block_type, clotho::utility::walk_iterator_tag > bit_iterator;
+    typedef clotho::utility::bit_block_iterator< block_type, clotho::utility::tag::walk_iterator_tag > bit_iterator;
 
     block_type val = (block_type)0x10A10000;
     unsigned int e_bit_count = 4;
@@ -140,7 +142,7 @@ BOOST_AUTO_TEST_CASE( test_bit_block_iterator_walk ) {
 }
 
 BOOST_AUTO_TEST_CASE( test_bit_block_iterator_preprocess ) {
-    typedef clotho::utility::bit_block_iterator< block_type, clotho::utility::preprocess_iterator_tag > bit_iterator;
+    typedef clotho::utility::bit_block_iterator< block_type, clotho::utility::tag::preprocess_iterator_tag > bit_iterator;
 
     block_type val = (block_type)0x10A10000;
     unsigned int e_bit_count = 4;
