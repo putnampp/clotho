@@ -19,7 +19,7 @@ namespace utility {
 template < class Block >
 class bit_block_iterator < Block, clotho::utility::tag::preprocess_iterator_tag, typename std::enable_if< std::is_integral< Block >::value >::type > {
 public:
-    typedef bit_block_iterator< Block, preprocess_iterator_tag, void > self_type;
+    typedef bit_block_iterator< Block, clotho::utility::tag::preprocess_iterator_tag, void > self_type;
     typedef Block block_type;
 
     static const unsigned int bits_per_block = sizeof( block_type ) * 8;
