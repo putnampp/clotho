@@ -3,6 +3,7 @@
 #include "../unittest_config.h"
 
 #include "test_element.h"
+#include "clotho/utility/bit_block_iterator.hpp"
 #include "clotho/powerset/variable_subset.hpp"
 #include "clotho/powerset/variable_subset_recombination.hpp"
 
