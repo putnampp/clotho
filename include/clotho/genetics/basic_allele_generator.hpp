@@ -31,6 +31,7 @@ public:
         m_rng( &rng )
         , m_neutral() {
     }
+
     random_generator( URNG & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
         , m_neutral() {
@@ -42,7 +43,7 @@ public:
         , m_neutral( other.m_neutral.param() ) {
     }
 
-    result_type operator()( ) {
+    result_type operator()( unsigned int age = 0 ) {
         key_type k = m_uniform( *m_rng );
 
         selection_type s = DEFAULT_SELECTION;
@@ -53,7 +54,7 @@ public:
             d = m_uniform( *m_rng );
         }
 
-        return basic_allele(k, s, d, is_neutral );
+        return basic_allele(k, s, d, is_neutral, age );
     }
 
     virtual ~random_generator() {}
