@@ -17,21 +17,23 @@ public:
     typedef individual_selector< URNG >     selection_type;
     typedef individual_reproduction< IndividualType, MutationModel, RecombinationModel > reproduction_type;
 
-    individual_generator( population_type * pop, selection_type & sel, reproduction_type & repro ) :
+    individual_generator( population_type * pop, selection_type & sel, reproduction_type & repro, unsigned int age = 0 ) :
         m_pop( pop )
         , m_sel( sel )
-        , m_repro( repro ) {
+        , m_repro( repro )
+        , m_gen( age ) {
     }
 
     result_type operator()() {
         individual_type p0 = m_pop->at(m_sel()), p1 = m_pop->at( m_sel());
 
-        return m_repro(p0, p1);
+        return m_repro(p0, p1, m_gen);
     }
 protected:
     population_type * m_pop;
     selection_type  m_sel;
     reproduction_type m_repro;
+    unsigned int    m_gen;
 };
 
 
