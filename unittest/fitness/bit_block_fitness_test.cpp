@@ -2,6 +2,7 @@
 
 #include "../unittest_config.h"
 
+#include "clotho/utility/bit_block_iterator.hpp"
 #include "clotho/fitness/bit_block_fitness.hpp"
 
 #include <vector>
