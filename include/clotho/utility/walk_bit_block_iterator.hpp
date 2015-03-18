@@ -18,9 +18,9 @@ namespace clotho {
 namespace utility {
 
 template < class Block >
-class bit_block_iterator < Block, walk_iterator_tag, typename std::enable_if< std::is_integral< Block >::value >::type > {
+class bit_block_iterator < Block, clotho::utility::tag::walk_iterator_tag, typename std::enable_if< std::is_integral< Block >::value >::type > {
 public:
-    typedef bit_block_iterator< Block, walk_iterator_tag, void > self_type;
+    typedef bit_block_iterator< Block, clotho::utility::tag::walk_iterator_tag, void > self_type;
     typedef Block block_type;
 
     bit_block_iterator( block_type b = (block_type)0) :
