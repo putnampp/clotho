@@ -3,6 +3,7 @@
 #include "../unittest_config.h"
 
 #include "test_element.h"
+#include "clotho/utility/bit_block_iterator.hpp"
 #include "clotho/powerset/variable_subset.hpp"
 #include "clotho/powerset/variable_subset_recombination.hpp"
 
@@ -27,10 +28,16 @@ struct odd_from_base_classifier {
     bool operator()( ElementIterator it, size_t idx ) const {
         return (idx & 1);
     }
+
+    bool operator()( const test_element & elem ) const {
+        return (elem.idx & 1);
+    }
 };
 
+typedef clotho::recombine::inspection::tag::copy_matching_classify_mismatch inspection_type;
+typedef clotho::recombine::walker::tag::inline_dynamic_classify             block_walker_type;
 typedef odd_from_base_classifier classifier_type;
-typedef clotho::recombine::recombination< subset_type, classifier_type > recombination_type;
+typedef clotho::recombine::recombination< subset_type, classifier_type, inspection_type, block_walker_type > recombination_type;
 
 /**
  * A range based classifier.
@@ -50,7 +57,7 @@ typedef clotho::recombine::recombination< subset_type, classifier_type > recombi
  */
 
 typedef clotho::classifiers::region_classifier< test_element > classifier2_type;
-typedef clotho::recombine::recombination< subset_type, classifier2_type > recombination2_type;
+typedef clotho::recombine::recombination< subset_type, classifier2_type, inspection_type, block_walker_type > recombination2_type;
 
 BOOST_AUTO_TEST_SUITE( test_recombination )
 
@@ -77,7 +84,8 @@ BOOST_AUTO_TEST_CASE( recombine_empty ) {
     BOOST_REQUIRE_MESSAGE( rec.isMatchBase(), "Expected that with p0 and p1 being empty, recombination should match base");
     BOOST_REQUIRE_MESSAGE( rec.isMatchAlt(), "Expected that with p0 and p1 being empty, recombination should match alt");
 
-    test_element te( 0.5, 1.0 );
+    unsigned int index = 0;
+    test_element te( 0.5, 1.0, index++ );
     c1_exp->addElement( te );
 
     rec( p0, c1_exp, cfier );
@@ -135,7 +143,7 @@ BOOST_AUTO_TEST_CASE( recombine_simple ) {
         unsigned int s = (i / bmap::bits_per_block );
         
         double k = v / (double) bmap::bits_per_block + (double)s*div_offset;
-        test_element te(k, 1.0);
+        test_element te(k, 1.0, i);
         if( i & 1 ) {
             p1->addElement( te );
         } else {
