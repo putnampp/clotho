@@ -123,7 +123,7 @@ int main( int argc, char ** argv ) {
         timer_type rep_time;
         for( unsigned int j = 0; j < nGen; ++j ) {
             timer_type sim_time;
-            sim.simulate();
+            sim.simulate(j);
             sim_time.stop();
 
             clotho::utility::add_value_array( sim_times, sim_time );
