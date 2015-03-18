@@ -7,9 +7,10 @@
 
 struct test_element {
     double k, v;
+    unsigned int idx;
 
-    test_element( double _k = 0., double _v = 0.) : k (_k), v(_v) {}
-    test_element( const test_element & t ) : k(t.k), v(t.v) {}
+    test_element( double _k = 0., double _v = 0., unsigned int i = 0) : k (_k), v(_v), idx(i) {}
+    test_element( const test_element & t ) : k(t.k), v(t.v), idx(t.idx) {}
 
     friend bool operator<( const test_element & lhs, const test_element & rhs );
     friend bool operator==( const test_element & lhs, const test_element & rhs ); 
