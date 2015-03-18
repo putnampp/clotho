@@ -25,9 +25,9 @@ public:
         parseConfig( config );
     }
 
-    result_type operator()() {
+    result_type operator()( unsigned int age = 0) {
         unsigned int nEvents = m_dist(*m_rng);
-        return result_type( m_mgen, nEvents );
+        return result_type( m_mgen, nEvents, age );
     }
 
 protected:
