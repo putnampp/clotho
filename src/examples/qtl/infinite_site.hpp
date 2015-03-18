@@ -28,12 +28,12 @@ public:
         , m_gen( rng, config ) {
     }
 
-    result_type operator()( std::shared_ptr< sequence_type > & seq ) {
-        return operator()( *seq );
+    result_type operator()( std::shared_ptr< sequence_type > & seq, unsigned int age = 0 ) {
+        return operator()( *seq, age );
     }
 
-    result_type operator()( const sequence_type & seq ) {
-        result_type res = m_gen();
+    result_type operator()( const sequence_type & seq, unsigned int age = 0 ) {
+        result_type res = m_gen(age);
 
         no_dup_type tester( seq.getParent() );
         while( !tester( res ) ) {
@@ -62,12 +62,12 @@ public:
         , m_gen( rng, config ) {
     }
 
-    result_type operator()( std::shared_ptr< sequence_type > & seq ) {
-        return operator()( *seq );
+    result_type operator()( std::shared_ptr< sequence_type > & seq, unsigned int age = 0 ) {
+        return operator()( *seq, age );
     }
 
-    result_type operator()( const sequence_type & seq ) {
-        result_type res = m_gen();
+    result_type operator()( const sequence_type & seq, unsigned int age = 0 ) {
+        result_type res = m_gen( age );
 
         no_dup_type tester( seq.getParent() );
         while( !tester( res ) ) {
