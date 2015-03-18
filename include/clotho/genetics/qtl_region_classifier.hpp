@@ -39,7 +39,7 @@ public:
             double k = m_uniform( *m_rng );
             qtl_allele::trait_weights coeff;
 
-            p.push_back( qtl_allele( k, DEFAULT_SELECTION, DEFAULT_DOMINANCE, DEFAULT_NEUTRAL, coeff) );
+            p.push_back( qtl_allele( k, DEFAULT_SELECTION, DEFAULT_DOMINANCE, DEFAULT_NEUTRAL, 0, coeff) );
         }
 
         std::sort( p.begin(), p.end() );
