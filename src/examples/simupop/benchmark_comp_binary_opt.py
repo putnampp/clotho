@@ -214,11 +214,11 @@ def harmonic_number( s ):
 ###################################################################################
 
 log_period=100
-nGen=100             # generations
+nGen=100000             # generations
 popSize=10000           # population size
 mu=0.001                # mutation per chromosome
 mu_base=1e-8            # mutation per base
-rho=30.0                # recombination rate per chromosome
+rho=0.001               # recombination rate per chromosome
 
 chromLen= int(mu / mu_base)  # (mutation/chromosome) / (mutation/base) = (base/chromosome)
 
