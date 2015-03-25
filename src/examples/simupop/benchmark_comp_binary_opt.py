@@ -204,6 +204,11 @@ class RegionRecombinator( sim.PyOperator ):
             # Therefore, we slice off the portion of the list after the last locus to have a non-zero allele
             # Although, the benefit of this 'early breaking' may be limited, if the number of segregations
             # sites approaches the padded size
+            # It may be more efficient, in general, to simply assume that the padding will always be 'small'
+            #  (ie. we have chosen the padding size such that it only increases the amount of work by a small
+            #   amount)
+            # Therefore iterating over the padded portion, although unnecessary, is more efficient because
+            # it removes any additional conditional checking performed to determine 'early break' case
             for lociIdx,(x,y,z) in enumerate(islice(izip(parent.genotype((srcIdx % 2)), parent.genotype((srcIdx + 1) % 2), pop.dvars().variable_sites), 0, pop.dvars().max_locus)):
 
                 # skip locus if the locus is free (z == 0) or parent is homozygous at locus (x == y)
