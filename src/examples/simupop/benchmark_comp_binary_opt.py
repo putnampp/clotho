@@ -245,7 +245,7 @@ def harmonic_number( s ):
 ###################################################################################
 
 log_period=100
-nGen=100             # generations
+nGen=100000             # generations
 popSize=10000           # population size
 mu=0.001                # mutation per chromosome
 mu_base=1e-8            # mutation per base
