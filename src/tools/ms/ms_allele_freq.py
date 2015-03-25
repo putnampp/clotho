@@ -39,6 +39,13 @@ for line in f:
         distributions[nReps]['allele_num'] = { x:y for x,y in enumerate(allele_dist) if y != 0 }
         distributions[nReps]['seq_dist'] = seq_dist
         distributions[nReps]['sequence_count'] = nSeqs
+
+        tmp = [0] * nSeqs
+        for y in allele_dist:
+            tmp[y] += 1
+
+        distributions[nReps]['allele_dist'] = { x:y for x,y in enumerate(tmp) if y != 0}
+
         nSeqs=0
         seq_dist = {}
         allele_dist = []
