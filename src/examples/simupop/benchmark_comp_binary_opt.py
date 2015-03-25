@@ -188,9 +188,8 @@ class RegionRecombinator( sim.PyOperator ):
         nEvents = sim.getRNG().randPoisson( self.rate )
         srcIdx = sim.getRNG().randInt( 2 )
 
-        if nEvents == 0:
-            self.copier.copyChromosomes(parent, srcIdx , off, ploidy)
-        else:
+        self.copier.copyChromosomes(parent, srcIdx , off, ploidy)
+        if nEvents != 0:
             seen = set()
             while len(seen) < nEvents:
                 seen.add( sim.getRNG().randInt( self.chromLen ) )
@@ -198,14 +197,15 @@ class RegionRecombinator( sim.PyOperator ):
             breaks = list(seen)
             parent_ploidy = [ ((srcIdx + i) % 2) for i in range( nEvents + 1) ]
 
-            lociIdx=0
-            for (x,y,z) in izip(parent.genotype(0), parent.genotype(1), pop.dvars().allele_id):
-                if x == y or parent_ploidy[ bisect(breaks,z) ] == 0:
-                    off.setAllele( x, lociIdx, ploidy=ploidy)
-                else:
+            for lociIdx,(x,y,z) in enumerate(izip(parent.genotype((srcIdx % 2)), parent.genotype((srcIdx + 1) % 2), pop.dvars().allele_id)):
+                # skip locus if the locus is free (z == 0) or parent is homozygous at locus (x == y)
+                if z == 0 or x == y:
+                    continue
+
+                # if the allele falls within a recombination region not from the source chromosome
+                if parent_ploidy[ bisect(breaks,z) ] != srcIdx:
                     off.setAllele( y, lociIdx, ploidy=ploidy)
 
-                lociIdx += 1
 #                if lociIdx >= pop.dvars().max_locus:
 #                    break
 
@@ -235,7 +235,7 @@ def harmonic_number( s ):
 ###################################################################################
 
 log_period=100
-nGen=100000             # generations
+nGen=100             # generations
 popSize=10000           # population size
 mu=0.001                # mutation per chromosome
 mu_base=1e-8            # mutation per base
