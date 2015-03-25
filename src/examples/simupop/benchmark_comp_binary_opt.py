@@ -9,6 +9,7 @@ simuOpt.setOptions(optimized=True, alleleType='binary')
 import simuPOP as sim
 import random
 from itertools import izip
+from itertools import islice
 
 from pprint import pprint
 from bisect import bisect
@@ -35,16 +36,16 @@ def infSitesMutate(pop, param):
 
 #    print "Generating %d mutation events" % nEvents
     max_size = pop.popSize()
-    if len( pop.dvars().allele_id ) == 0:
-        pop.dvars().allele_id = [0] * pop.totNumLoci()
+    if len( pop.dvars().variable_sites ) == 0:
+        pop.dvars().variable_sites = [0] * pop.totNumLoci()
 
-    lociset=set( pop.dvars().allele_id )
+    lociset=set( pop.dvars().variable_sites )
     while nEvents > 0:
         nEvents -= 1
         # select an individual at random
         next_avail_idx = 0
         try:
-            next_avail_idx = pop.dvars().allele_id.index(0)
+            next_avail_idx = pop.dvars().variable_sites.index(0)
         except ValueError:
             print('Insufficient loci allocated %d; %d; %d' % (pop.totNumLoci(), pop.ancestralGens(), nEvents) )
             raise
@@ -60,14 +61,12 @@ def infSitesMutate(pop, param):
 
         pop.individual( indIdx ).setAllele( 1, next_avail_idx, ploidy=pIdx )
 
-        # allele_id serves a dual purpose
+        # variable_sites serves a dual purpose
         # 1) it is a list of the genetic positions which have mutant alleles within the population
         # 2) those indices which are '0' in the list amount to 'free' loci within the population which can
         #    be used for new alleles
-        pop.dvars().allele_id[ next_avail_idx ] = loc
+        pop.dvars().variable_sites[ next_avail_idx ] = loc
         lociset.add(loc)
-#        if( next_avail_idx >= pop.dvars().max_locus ):
-#            pop.dvars().max_locus = next_avail_idx + 1
 
     return True
 
@@ -77,17 +76,19 @@ class updateAlleleFreq(sim.PyOperator):
 
     def update(self, pop):
         flist = []
+        m = 0
         for x, y in pop.dvars().alleleNum.iteritems():
-#            if x >= pop.dvars().max_locus:
-#                break
-
             if (1 not in y) or (y[1] == 0): # lost
-                pop.dvars().allele_id[x] = 0
+                pop.dvars().variable_sites[x] = 0
             elif (y[0] == 0):               # fixed
-                pop.dvars().allele_id[x] = 0
+                pop.dvars().variable_sites[x] = 0
                 pop.dvars().nFixed += 1
                 flist.append(x)
                 print "Fixed %d" % x
+            else:   # variable
+                m = x   # m = last variable locus index
+
+        pop.dvars().max_locus = m + 1 # variable locus index range = [0, max_locus) => contains all variable loci within population
 
         # loci with fixed alleles have to be reset
         # before loci can be re-used for next allele
@@ -197,7 +198,14 @@ class RegionRecombinator( sim.PyOperator ):
             breaks = list(seen)
             parent_ploidy = [ ((srcIdx + i) % 2) for i in range( nEvents + 1) ]
 
-            for lociIdx,(x,y,z) in enumerate(izip(parent.genotype((srcIdx % 2)), parent.genotype((srcIdx + 1) % 2), pop.dvars().allele_id)):
+            # This loop iterates over all possible loci which have a variable allele
+            # The list of loci padded to be larger than the expected number of loci (segregation sites)
+            # In effect, we iterate over a longer list than is actually necessary
+            # Therefore, we slice off the portion of the list after the last locus to have a non-zero allele
+            # Although, the benefit of this 'early breaking' may be limited, if the number of segregations
+            # sites approaches the padded size
+            for lociIdx,(x,y,z) in enumerate(islice(izip(parent.genotype((srcIdx % 2)), parent.genotype((srcIdx + 1) % 2), pop.dvars().variable_sites), 0, pop.dvars().max_locus)):
+
                 # skip locus if the locus is free (z == 0) or parent is homozygous at locus (x == y)
                 if z == 0 or x == y:
                     continue
@@ -205,9 +213,6 @@ class RegionRecombinator( sim.PyOperator ):
                 # if the allele falls within a recombination region not from the source chromosome
                 if parent_ploidy[ bisect(breaks,z) ] != srcIdx:
                     off.setAllele( y, lociIdx, ploidy=ploidy)
-
-#                if lociIdx >= pop.dvars().max_locus:
-#                    break
 
         return True
         
@@ -250,17 +255,17 @@ exp_seg_sites = 4 * popSize * mu * harmonic_number( popSize )   # Tajima's D
 print "Expected number of segregation sites: %d" % exp_seg_sites
 print "Chromosome Length: %d" % chromLen
 
- # pad the number of expected segregation sites by 50%
+# padding the number of expected segregation sites by 50%
 pop=sim.Population( size=popSize, ploidy=2, loci=int(1.5 * exp_seg_sites), infoFields=['fitness'] )
 
 # Generate Population
 
-# allele_id serves a dual purpose
+# variable_sites serves a dual purpose
 # 1) it is a list of the genetic positions which have mutant alleles within the population
 # 2) those indices which are '0' in the list amount to 'free' loci within the population which can
 #    be used for new alleles
 pop.evolve(
-    initOps=[sim.InitGenotype( genotype=0 ), sim.PyExec('nFixed=0'), sim.PyExec('max_locus=0'), sim.PyExec('allele_id=[]'), sim.PyExec( 'perform=[]')],
+    initOps=[sim.InitGenotype( genotype=0 ), sim.PyExec('nFixed=0'), sim.PyExec('max_locus=0'), sim.PyExec('variable_sites=[]'), sim.PyExec( 'perform=[]')],
     preOps=[ sim.PyOperator( func=record_time ), sim.PySelector(func=eq_fit) ], 
     matingScheme=sim.HeteroMating([
                                     sim.HomoMating( sim.PyParentsChooser( myParentChooser ), sim.OffspringGenerator(ops=RegionRecombinator(rate=rho, param=(1, chromLen))), subPopSize=popSize)] ),
