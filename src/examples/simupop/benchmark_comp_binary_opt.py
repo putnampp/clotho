@@ -17,6 +17,15 @@ from bisect import bisect
 def eq_fit():
     return 1
 
+def record_time(pop, param=False):
+    t = time.clock()
+    if param:
+        pop.dvars().perform[-1] = t - pop.dvars().perform[-1]
+    else:
+        pop.dvars().perform.append(t)
+    return True
+    
+
 # modified version of model provided in User Guide (pg. 86-87)
 def infSitesMutate(pop, param):
     (startPos, endPos, rate) = param
@@ -51,11 +60,14 @@ def infSitesMutate(pop, param):
 
         pop.individual( indIdx ).setAllele( 1, next_avail_idx, ploidy=pIdx )
 
-#        sites_ind.setAllele( loc, next_avail_idx, ploidy=0) # use metadata population individual as a 'free list' tracker
+        # allele_id serves a dual purpose
+        # 1) it is a list of the genetic positions which have mutant alleles within the population
+        # 2) those indices which are '0' in the list amount to 'free' loci within the population which can
+        #    be used for new alleles
         pop.dvars().allele_id[ next_avail_idx ] = loc
         lociset.add(loc)
-        if( next_avail_idx >= pop.dvars().max_locus ):
-            pop.dvars().max_locus = next_avail_idx + 1
+#        if( next_avail_idx >= pop.dvars().max_locus ):
+#            pop.dvars().max_locus = next_avail_idx + 1
 
     return True
 
@@ -64,26 +76,36 @@ class updateAlleleFreq(sim.PyOperator):
         sim.PyOperator.__init__(self, func=self.update, *args, **kwargs)
 
     def update(self, pop):
-#        site_ind = pop.individual(0, pop.subPopByName("metadata"))
-
+        flist = []
         for x, y in pop.dvars().alleleNum.iteritems():
-            if x >= pop.dvars().max_locus:
-                break
+#            if x >= pop.dvars().max_locus:
+#                break
 
             if (1 not in y) or (y[1] == 0): # lost
                 pop.dvars().allele_id[x] = 0
-            elif (y[0] == 0): # fixed
+            elif (y[0] == 0):               # fixed
                 pop.dvars().allele_id[x] = 0
                 pop.dvars().nFixed += 1
+                flist.append(x)
+                print "Fixed %d" % x
+
+        # loci with fixed alleles have to be reset
+        # before loci can be re-used for next allele
+        if len(flist) > 0:
+            for ind in pop.individuals():
+                for p in range(pop.ploidy()):
+                    for x in flist:
+                        ind.setAllele(0, x, ploidy=p)
 
         return True
 
 class logPopulation(sim.PyOperator):
-    def __init__(self, step=1, output="", *args, **kwargs):
+    def __init__(self, step=1, output="", final=False, *args, **kwargs):
         self.step=step
         self.called=step
         self.block=0
         self.output=output
+        self.final=final
         sim.PyOperator.__init__(self, func=self.log, *args, **kwargs)
 
     def log(self, pop):
@@ -96,6 +118,9 @@ class logPopulation(sim.PyOperator):
         tmp_dict['summary'] = self.population_summary(pop,0)
         tmp_dict['loci'] = self.allele_summary(pop, 0)
         tmp_dict['loci']['fixed'] = pop.dvars().nFixed
+
+        if self.final:
+            tmp_dict['perform'] = pop.dvars().perform
         
         lfile=open( self.output + "." + str(int(self.block * self.step)) + ".json", 'w')
         pprint( tmp_dict, lfile )
@@ -105,13 +130,11 @@ class logPopulation(sim.PyOperator):
         return True
 
     def allele_summary( self, pop, subPop ):
-        dist = {}
+        tmp = [0] * pop.popSize() * pop.ploidy()
         for x in range(pop.totNumLoci()):
-            n = pop.dvars().alleleNum[x][1]
-            if n in dist:
-                dist[n] = dist[n] + 1
-            else:
-                dist[n] = 1
+            tmp[int(pop.dvars().alleleNum[x][1])] += 1
+
+        dist = { x: y for x,y in enumerate(tmp) if y != 0 }
         return { 'allele_distribution': dist, 'alleles_per_locus': pop.dvars().alleleNum }
 
     def population_summary(self, pop, subPop, genotypes=False, site_distribution=True):
@@ -121,7 +144,6 @@ class logPopulation(sim.PyOperator):
         genos = {}
         sites = {}
 
-#        idx = 0
         for idx, x in enumerate(pop.individuals(subPop)):
             for y in range( pop.ploidy() ):
                 count=sum(x.genotype(y))    # assumes alleles are 0 or 1; summation results in count of non-wildtype (mutated) loci
@@ -136,7 +158,6 @@ class logPopulation(sim.PyOperator):
                         sites[count] = sites[count] + 1
                     else:
                         sites[count] = 1
-#            idx += 1
 
         tmp = {}
         if genotypes:
@@ -185,8 +206,8 @@ class RegionRecombinator( sim.PyOperator ):
                     off.setAllele( y, lociIdx, ploidy=ploidy)
 
                 lociIdx += 1
-                if lociIdx >= pop.dvars().max_locus:
-                    break
+#                if lociIdx >= pop.dvars().max_locus:
+#                    break
 
         return True
         
@@ -233,18 +254,23 @@ print "Chromosome Length: %d" % chromLen
 pop=sim.Population( size=popSize, ploidy=2, loci=int(1.5 * exp_seg_sites), infoFields=['fitness'] )
 
 # Generate Population
+
+# allele_id serves a dual purpose
+# 1) it is a list of the genetic positions which have mutant alleles within the population
+# 2) those indices which are '0' in the list amount to 'free' loci within the population which can
+#    be used for new alleles
 pop.evolve(
-    initOps=[sim.InitGenotype( genotype=0 ), sim.PyExec('nFixed=0'), sim.PyExec('max_locus=0'), sim.PyExec('allele_id=[]')],
-#    preOps=[ sim.PyOperator( func=infSitesMutate, param=(1, chromLen, theta)),  sim.PySelector(func=eq_fit) ], 
-    preOps=[ sim.PySelector(func=eq_fit) ], 
+    initOps=[sim.InitGenotype( genotype=0 ), sim.PyExec('nFixed=0'), sim.PyExec('max_locus=0'), sim.PyExec('allele_id=[]'), sim.PyExec( 'perform=[]')],
+    preOps=[ sim.PyOperator( func=record_time ), sim.PySelector(func=eq_fit) ], 
     matingScheme=sim.HeteroMating([
-                                    #sim.HomoMating( sim.PyParentsChooser( myParentChooser ), sim.OffspringGenerator(ops=sim.MendelianGenoTransmitter(subPops=0)), subPopSize=popSize, subPops=0),
                                     sim.HomoMating( sim.PyParentsChooser( myParentChooser ), sim.OffspringGenerator(ops=RegionRecombinator(rate=rho, param=(1, chromLen))), subPopSize=popSize)] ),
     postOps=[ sim.PyOperator( func=infSitesMutate, param=(1, chromLen, theta)),     # apply mutation after recombination
                 sim.Stat( alleleFreq=sim.ALL_AVAIL, vars=['alleleNum'] ),
                 updateAlleleFreq(),
+                sim.PyOperator(func=record_time, param=True ),
                 logPopulation( step=log_period, output="data/test" )
              ],
+    finalOps=[ logPopulation( step=1, output="data/test.final", final=True) ],
     gen=nGen
 )
 
