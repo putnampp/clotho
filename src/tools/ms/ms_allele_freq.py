@@ -12,7 +12,8 @@ from pprint import pprint
 
 parser = OptionParser()
 parser.add_option("-i", "--input", dest="file_path", help="Input MS formatted file" )
-parser.add_option("-g", "--gnu", dest="gnu_path", help="Path GNU Plot format")
+parser.add_option("-g", "--gnu", dest="gnu_path", help="Path for CSV format (as GNU Plot tables)")
+parser.add_option("-j", "--json", dest="json_path", help="Path JSON format")
 
 (options, args) = parser.parse_args()
 
@@ -90,13 +91,15 @@ if in_sample:
 
 print nReps
 
-#pprint(distributions)
+if len( options.json_path) != 0:
+    w=open( options.json_path + ".json", "w")
+    pprint(distributions,w)
+    w.close()
 
 if len( options.gnu_path ) != 0:
     for x,y in distributions.iteritems():
         # x = repeat
         # y = {...}
-        print x
         if 'allele_num' in y:
             path = options.gnu_path + ".allele_num." + str(x) + ".csv"
             w=open( path, 'w')
