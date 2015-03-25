@@ -13,6 +13,7 @@ from itertools import islice
 
 from pprint import pprint
 from bisect import bisect
+from optparse import OptionParser
 
 # equal fitness function
 def eq_fit():
@@ -244,12 +245,22 @@ def harmonic_number( s ):
 ##  Main program
 ###################################################################################
 
-log_period=100
-nGen=100000             # generations
-popSize=10000           # population size
-mu=0.001                # mutation per chromosome
-mu_base=1e-8            # mutation per base
-rho=0.001               # recombination rate per chromosome
+parser = OptionParser()
+parser.add_option( "-G", "--generations", dest="generations", help="Generations", default=100)
+parser.add_option( "-P", "--pop_size", dest="pop_size", help="Population size", default=10000)
+parser.add_option( "-m", "--mu", dest="mu", help="Mutation Rate per chromosome", default=0.001)
+parser.add_option( "-r", "--rho", dest="rho", help="Recombination Rate per chromosome", default=0.001)
+parser.add_option( "-l", "--log_period", dest="log_period", help="Logging step size", default=100)
+parser.add_option( "-p", "--prefix", dest="log_prefix", help="Log path prefix", default='data/test')
+
+(options, args) = parser.parse_args()
+
+log_period=options.log_period   # log period
+nGen=options.generations        # generations
+popSize=options.pop_size        # population size
+mu=options.mu                   # mutation per chromosome
+mu_base=1e-8                    # mutation per base
+rho=options.rho                 # recombination rate per chromosome
 
 chromLen= int(mu / mu_base)  # (mutation/chromosome) / (mutation/base) = (base/chromosome)
 
