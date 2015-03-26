@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 
-import simuOpt, os, sys, time
+import simuOpt, os, sys, time, json
 
 # use 'binary module' for representing long sequences 
 simuOpt.setOptions(optimized=True, alleleType='binary')
@@ -102,11 +102,12 @@ class updateAlleleFreq(sim.PyOperator):
         return True
 
 class logPopulation(sim.PyOperator):
-    def __init__(self, step=1, output="", final=False, *args, **kwargs):
+    def __init__(self, step=1, output="", config_opts=[], final=False, *args, **kwargs):
         self.step=step
         self.called=step
         self.block=0
         self.output=output
+        self.config_opts=config_opts
         self.final=final
         sim.PyOperator.__init__(self, func=self.log, *args, **kwargs)
 
@@ -123,10 +124,13 @@ class logPopulation(sim.PyOperator):
 
         if self.final:
             tmp_dict['perform'] = pop.dvars().perform
+            tmp_dict['configuration'] = { x:y for x,y in self.config_opts.__dict__.iteritems() }
         
-        lfile=open( self.output + "." + str(int(self.block * self.step)) + ".json", 'w')
-        pprint( tmp_dict, lfile )
-        lfile.close()
+#        lfile=open( self.output + "." + str(int(self.block * self.step)) + ".json", 'w')
+#        pprint( tmp_dict, lfile )
+#        lfile.close()
+        with open( self.output + "." + str(int(self.block * self.step)) + ".json", 'wt') as lfile:
+            res = json.dump( tmp_dict, lfile)
 
         self.called = self.step
         return True
@@ -246,12 +250,12 @@ def harmonic_number( s ):
 ###################################################################################
 
 parser = OptionParser()
-parser.add_option( "-G", "--generations", dest="generations", help="Generations", default=100)
-parser.add_option( "-P", "--pop_size", dest="pop_size", help="Population size", default=10000)
-parser.add_option( "-m", "--mu", dest="mu", help="Mutation Rate per chromosome", default=0.001)
-parser.add_option( "-r", "--rho", dest="rho", help="Recombination Rate per chromosome", default=0.001)
-parser.add_option( "-l", "--log_period", dest="log_period", help="Logging step size", default=100)
-parser.add_option( "-p", "--prefix", dest="log_prefix", help="Log path prefix", default='data/test')
+parser.add_option( "-G", "--generations", dest="generations", help="Generations", default=100, type="int")
+parser.add_option( "-P", "--pop_size", dest="pop_size", help="Population size", default=10000, type="int")
+parser.add_option( "-m", "--mu", dest="mu", help="Mutation Rate per chromosome", default=0.001, type="float")
+parser.add_option( "-r", "--rho", dest="rho", help="Recombination Rate per chromosome", default=0.001, type="float")
+parser.add_option( "-l", "--log_period", dest="log_period", help="Logging step size", default=100, type="int")
+parser.add_option( "-p", "--prefix", dest="log_prefix", help="Log path prefix", default='data/test', type="string")
 
 (options, args) = parser.parse_args()
 
@@ -289,9 +293,9 @@ pop.evolve(
                 sim.Stat( alleleFreq=sim.ALL_AVAIL, vars=['alleleNum'] ),
                 updateAlleleFreq(),
                 sim.PyOperator(func=record_time, param=True ),
-                logPopulation( step=log_period, output="data/test" )
+                logPopulation( step=log_period, output=options.log_prefix )
              ],
-    finalOps=[ logPopulation( step=1, output="data/test.final", final=True) ],
+    finalOps=[ logPopulation( step=1, output=options.log_prefix + ".final", config_opts=options, final=True) ],
     gen=nGen
 )
 
