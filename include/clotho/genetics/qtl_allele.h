@@ -42,6 +42,10 @@ inline bool operator<( const qtl_allele & lhs, const qtl_allele & rhs ) {
     return lhs.m_key < rhs.m_key;
 }
 
+inline bool operator<( const qtl_allele & lhs, const double & k ) {
+    return lhs.m_key < k;
+}
+
 inline bool operator==( const qtl_allele & lhs, const qtl_allele & rhs ) {
     return lhs.m_key == rhs.m_key;
 }
