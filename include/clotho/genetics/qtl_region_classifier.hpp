@@ -6,6 +6,7 @@
 #include "clotho/classifiers/region_classifier.hpp"
 
 #include <boost/random/poisson_distribution.hpp>
+#include <set>
 
 namespace clotho {
 namespace utility {
@@ -35,14 +36,17 @@ public:
 
         unsigned int n = ((m_bSkip)? 0 : m_dist( *m_rng ));
 
-        for( unsigned int i = 0; i < n; ++i ) {
-            double k = m_uniform( *m_rng );
+        if( n ) {
+            std::set< double > positions;
+            while( positions.size() < n ) {
+                positions.insert( m_uniform( *m_rng ) );
+            }
+
             qtl_allele::trait_weights coeff;
-
-            p.push_back( qtl_allele( k, DEFAULT_SELECTION, DEFAULT_DOMINANCE, DEFAULT_NEUTRAL, 0, coeff) );
+            for( std::set< double >::iterator it = positions.begin(); it != positions.end(); ++it ) {
+                p.push_back( qtl_allele( *it, DEFAULT_SELECTION, DEFAULT_DOMINANCE, DEFAULT_NEUTRAL, 0, coeff) );
+            }
         }
-
-        std::sort( p.begin(), p.end() );
         return result_type( p );
     }
 
