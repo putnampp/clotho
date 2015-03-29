@@ -11,11 +11,14 @@ from optparse import OptionParser
 from pprint import pprint
 
 parser = OptionParser()
-parser.add_option("-i", "--input", dest="file_path", help="Input MS formatted file" )
-parser.add_option("-g", "--gnu", dest="gnu_path", help="Path for CSV format (as GNU Plot tables)")
-parser.add_option("-j", "--json", dest="json_path", help="Path JSON format")
+parser.add_option("-i", "--input", dest="file_path", help="Input MS formatted file", type="string", default="" )
+parser.add_option("-g", "--gnu", dest="gnu_path", help="Path for CSV format (as GNU Plot tables)", type="string", default="")
+parser.add_option("-j", "--json", dest="json_path", help="Path JSON format", type="string", default="")
 
 (options, args) = parser.parse_args()
+
+if len(options.file_path) == 0:
+    sys.exit(1)
 
 print options
 
