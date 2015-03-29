@@ -521,8 +521,8 @@ void POWERSET_SPECIALIZATION::pruneSpace() {
         m_lost_variable.resize( m_variable.size(), false );
     }
 
-    m_fixed_variable.reset().flip();
-    m_lost_variable.reset();
+    m_fixed_variable.reset().flip();    // assume all elements are fixed
+    m_lost_variable.reset();            // assume no elements are variable
 
     std::vector< family_iterator > to_remove;
 
@@ -540,7 +540,7 @@ void POWERSET_SPECIALIZATION::pruneSpace() {
 
     m_free_list = (m_fixed_variable | m_lost_variable);
     m_variable_mask = m_free_list;
-    m_variable_mask.flip();
+    m_variable_mask.flip();         // not fixed and not lost
 
     // remove un-referenced subsets
     while( !to_remove.empty() ) {
