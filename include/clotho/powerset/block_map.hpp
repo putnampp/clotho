@@ -17,7 +17,7 @@ struct block_map {
     static const unsigned int       bits_per_block = sizeof( size_type ) * 8;
 
     size_type operator()( const element_type & elem ) {
-        return -1;
+        return (size_type)-1;
     }
 };
 
