@@ -398,20 +398,29 @@ void write_data( ostream * out, boost::property_tree::ptree & data ) {
     }
 }
 
-void write( ostream * out, string path, boost::property_tree::ptree & tr ) {
-    unsigned int i = 0;
+void write( ostream * out, string path, boost::property_tree::ptree & tr, unsigned int level = 0 ) {
+//    unsigned int i = 0;
 
     if( tr.empty() ) {
-        (*out) << ++i << "," << tr.data() << "\n";
+        if (level) 
+            (*out) << "," << tr.data();
+        else
+            (*out) << tr.data();
+
     } else {
+        unsigned int row_index = 0;
         BOOST_FOREACH( auto& c, tr ) {
-            if( c.first.empty() ) {
-                (*out) << ++i;
-                write_data(out, c.second);
-                (*out) << "\n";
-            } else {
-                write( out, path + "." + c.first, c.second );
+            if(!level && c.first.empty())
+                (*out) << ++row_index;
+
+            if( !c.first.empty() ) {
+                (*out) << "," << c.first;
             }
+
+            write(out, path + "." + c.first, c.second, level + 1 );
+
+            if( !level )
+                (*out) << "\n";
         }
     }
 }
