@@ -39,7 +39,7 @@ void add_value_array( boost::property_tree::ptree & array, const std::vector< A 
     }
 
     array.push_back( std::make_pair("", n));
-};
+}
 
 inline void add_value_array( boost::property_tree::ptree & array, const clotho::utility::timer & t ) {
     boost::property_tree::ptree node;
