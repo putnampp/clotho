@@ -130,7 +130,7 @@ class logPopulation(sim.PyOperator):
 #        pprint( tmp_dict, lfile )
 #        lfile.close()
         with open( self.output + "." + str(int(self.block * self.step)) + ".json", 'wt') as lfile:
-            res = json.dump( tmp_dict, lfile)
+            res = json.dump( tmp_dict, lfile, sort_keys=True, indent=1)
 
         self.called = self.step
         return True
