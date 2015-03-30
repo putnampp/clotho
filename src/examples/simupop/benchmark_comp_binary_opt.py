@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 
-import simuOpt, os, sys, time, json
+import simuOpt, os, sys, json
 
 # use 'binary module' for representing long sequences 
 simuOpt.setOptions(optimized=True, alleleType='binary')
@@ -15,18 +15,21 @@ from pprint import pprint
 from bisect import bisect
 from optparse import OptionParser
 
+import my_timer
+
 # equal fitness function
 def eq_fit():
     return 1
 
-def record_time(pop, param=False):
-    t = time.clock()
-    if param:
-        pop.dvars().perform[-1] = t - pop.dvars().perform[-1]
-    else:
-        pop.dvars().perform.append(t)
+tt = my_timer.timer()
+def record_start(pop):
+    tt.start()
     return True
-    
+
+def record_stop(pop):
+    tt.stop()
+    pop.dvars().perform.append( tt.elapsed_long() )
+    return True
 
 # modified version of model provided in User Guide (pg. 86-87)
 def infSitesMutate(pop, param):
@@ -126,9 +129,6 @@ class logPopulation(sim.PyOperator):
             tmp_dict['perform'] = pop.dvars().perform
             tmp_dict['configuration'] = { x:y for x,y in self.config_opts.__dict__.iteritems() }
         
-#        lfile=open( self.output + "." + str(int(self.block * self.step)) + ".json", 'w')
-#        pprint( tmp_dict, lfile )
-#        lfile.close()
         with open( self.output + "." + str(int(self.block * self.step)) + ".json", 'wt') as lfile:
             res = json.dump( tmp_dict, lfile, sort_keys=True, indent=1)
 
@@ -137,11 +137,18 @@ class logPopulation(sim.PyOperator):
 
     def allele_summary( self, pop, subPop ):
         tmp = [0] * pop.popSize() * pop.ploidy()
-        for x in range(pop.totNumLoci()):
-            tmp[int(pop.dvars().alleleNum[x][1])] += 1
+        mut_loci = {}
+        
+        tmp[0] = pop.popSize() * pop.ploidy()
+        for x,y in pop.dvars().alleleNum.iteritems():
+            if 1 in y:
+                n = int(y[1])
+                tmp[n] += 1
+                tmp[0] -= n
+                mut_loci[x] = y
 
         dist = { x: y for x,y in enumerate(tmp) if y != 0 }
-        return { 'allele_distribution': dist, 'alleles_per_locus': pop.dvars().alleleNum }
+        return { 'allele_distribution': dist, 'alleles_per_locus': mut_loci}
 
     def population_summary(self, pop, subPop, genotypes=False, site_distribution=True):
         if not (genotypes or site_distribution):
@@ -285,14 +292,21 @@ pop=sim.Population( size=popSize, ploidy=2, loci=int(1.5 * exp_seg_sites), infoF
 # 2) those indices which are '0' in the list amount to 'free' loci within the population which can
 #    be used for new alleles
 pop.evolve(
-    initOps=[sim.InitGenotype( genotype=0 ), sim.PyExec('nFixed=0'), sim.PyExec('max_locus=0'), sim.PyExec('variable_sites=[]'), sim.PyExec( 'perform=[]')],
-    preOps=[ sim.PyOperator( func=record_time ), sim.PySelector(func=eq_fit) ], 
-    matingScheme=sim.HeteroMating([
-                                    sim.HomoMating( sim.PyParentsChooser( myParentChooser ), sim.OffspringGenerator(ops=RegionRecombinator(rate=rho, param=(1, chromLen))), subPopSize=popSize)] ),
+    initOps=[ sim.InitGenotype( genotype=0 ),
+                sim.PyExec('nFixed=0'),
+                sim.PyExec('max_locus=0'),
+                sim.PyExec('variable_sites=[]'),
+                sim.PyExec( 'perform=[]')],
+    preOps=[ sim.PyOperator( func=record_start ),
+                sim.PySelector(func=eq_fit) ],
+    matingScheme=sim.HeteroMating([ sim.HomoMating( sim.PyParentsChooser( myParentChooser ), 
+                                    sim.OffspringGenerator(ops=RegionRecombinator(rate=rho, param=(1, chromLen))), 
+                                    subPopSize=popSize)] ),
+#    matingScheme=sim.RandomSelection( ops=RegionRecombinator(rate=rho, param=(1,chromLen)) ),
     postOps=[ sim.PyOperator( func=infSitesMutate, param=(1, chromLen, theta)),     # apply mutation after recombination
                 sim.Stat( alleleFreq=sim.ALL_AVAIL, vars=['alleleNum'] ),
                 updateAlleleFreq(),
-                sim.PyOperator(func=record_time, param=True ),
+                sim.PyOperator(func=record_stop ),
                 logPopulation( step=log_period, output=options.log_prefix )
              ],
     finalOps=[ logPopulation( step=1, output=options.log_prefix + ".final", config_opts=options, final=True) ],
