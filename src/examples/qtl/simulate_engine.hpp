@@ -265,9 +265,21 @@ public:
 protected:
 
     inline void updatePhenotypes( population_phenotypes & phenos, population_type & p ) {
-        population_phenotyper_type ppheno;
-        BOOST_FOREACH( auto& i, p ) {
-            phenos.push_back( ppheno(i) );
+        bool all_neutral = true;
+        for( typename allele_set_type::cvariable_iterator it = m_alleles.variable_begin(); all_neutral && it != m_alleles.variable_end(); ++it ) {
+            all_neutral = it->isNeutral();
+        }
+
+        if( all_neutral ) {
+            typename population_phenotypes::value_type r;
+            while( phenos.size() < p.size() ) {
+                phenos.push_back( r );
+            }
+        } else {
+            population_phenotyper_type ppheno;
+            BOOST_FOREACH( auto& i, p ) {
+                phenos.push_back( ppheno(i) );
+            }
         }
     }
 
