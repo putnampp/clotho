@@ -53,7 +53,7 @@ ELSE (NOT ${PROJECT_NAME}_EXTERNALLY_CONFIGURED )
 ENDIF (NOT ${PROJECT_NAME}_EXTERNALLY_CONFIGURED )
 
 ################################################################################
-FIND_PACKAGE( Boost COMPONENTS program_options filesystem system thread unit_test_framework chrono REQUIRED )
+FIND_PACKAGE( Boost COMPONENTS program_options filesystem system thread unit_test_framework chrono python REQUIRED )
 IF( Boost_FOUND )
     INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
     MESSAGE (STATUS "Boost Include: " ${Boost_INCLUDE_DIR} )
@@ -61,6 +61,14 @@ IF( Boost_FOUND )
 ENDIF( Boost_FOUND )
 LIST( APPEND COMMON_LIBRARIES ${Boost_LIBRARIES} )
 
+FIND_PACKAGE( PythonLibs 2.7 REQUIRED )
+IF( PYTHONLIBS_FOUND )
+    INCLUDE_DIRECTORIES( ${PYTHON_INCLUDE_DIRS} )
+    MESSAGE( STATUS "Python Include: " ${PYTHON_INCLUDE_DIRS} )
+    MESSAGE( STATUS "Python Libraries: " ${PYTHON_INCLUDE_DIRS} )
+ENDIF( PYTHONLIBS_FOUND )
+#LIST( APPEND COMMON_LIBRARIES ${PYTHON_LIBRARIES})
+     
 FIND_PACKAGE( GSL )
 IF( GSL_FOUND )
     MESSAGE( STATUS "GSL Library: " ${GSL_LIBRARIES} )
