@@ -48,6 +48,11 @@ public:
         return (t - m_start);
     }
 
+    unsigned long elapsed_long() const {
+        time_point_type t = ((m_end == time_point_type::max()) ? clock_type::now() : m_end);
+        return (t - m_start).count();
+    }
+
     virtual ~timer() {}
 protected:
     time_point_type m_start, m_end;
