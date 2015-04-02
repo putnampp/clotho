@@ -7,15 +7,15 @@ class individual_generator;
 #include "individual_selector.hpp"
 #include "individual_reproduction.hpp"
 
-template < class IndividualType, class URNG, class MutationModel, class RecombinationModel >
-class individual_generator< std::vector< IndividualType >, individual_selector< URNG >, individual_reproduction< IndividualType, MutationModel, RecombinationModel > > {
+template < class IndividualType, class URNG, class MutationModel, class RecombinationModel, class ReproMethodTag >
+class individual_generator< std::vector< IndividualType >, individual_selector< URNG >, individual_reproduction< IndividualType, MutationModel, RecombinationModel, ReproMethodTag > > {
 public:
     typedef std::vector< IndividualType >   population_type;
     typedef IndividualType                  individual_type;
     typedef IndividualType                  result_type;
 
     typedef individual_selector< URNG >     selection_type;
-    typedef individual_reproduction< IndividualType, MutationModel, RecombinationModel > reproduction_type;
+    typedef individual_reproduction< IndividualType, MutationModel, RecombinationModel, ReproMethodTag > reproduction_type;
 
     individual_generator( population_type * pop, selection_type & sel, reproduction_type & repro, unsigned int age = 0 ) :
         m_pop( pop )
