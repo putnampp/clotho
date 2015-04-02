@@ -2,6 +2,7 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_SRC_DIR}/examples )
 
 ADD_EXECUTABLE( qtl_estimator qtl_estimator.cpp )
+SET_TARGET_PROPERTIES( qtl_estimator PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_INLINE_DYNAMIC_AND_CLASSIFY" )   # binary sequence combination determined by experimentation
 TARGET_LINK_LIBRARIES( qtl_estimator ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline ${PROJECT_NAME}_fitmetric )
 
 LIST(APPEND PROG_NAME "iterate")
@@ -43,36 +44,6 @@ endforeach(wsize)
 
 ADD_CUSTOM_TARGET(test_targets DEPENDS ${TEST_TARGETS})
 
-
-#ADD_EXECUTABLE( qtl_estimator32 qtl_estimator.cpp )
-#SET_TARGET_PROPERTIES(qtl_estimator32 PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_32")
-#TARGET_LINK_LIBRARIES( qtl_estimator32 ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline ${PROJECT_NAME}_fitmetric )
-#
-#ADD_EXECUTABLE( qtl_estimator_bern qtl_estimator.cpp )
-#SET_TARGET_PROPERTIES(qtl_estimator_bern PROPERTIES COMPILE_DEFINITIONS "USE_BERNOULLI_RECOMB")
-#TARGET_LINK_LIBRARIES( qtl_estimator_bern ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline ${PROJECT_NAME}_fitmetric)
-#
-#ADD_EXECUTABLE( qtl_estimator_vector qtl_estimator.cpp )
-#SET_TARGET_PROPERTIES(qtl_estimator_vector PROPERTIES COMPILE_DEFINITIONS "USE_VECTOR_SUBSET")
-#TARGET_LINK_LIBRARIES( qtl_estimator_vector ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline ${PROJECT_NAME}_fitmetric)
-#
-#ADD_EXECUTABLE( qtl_estimator_scan_classify qtl_estimator.cpp )
-#SET_TARGET_PROPERTIES(qtl_estimator_scan_classify PROPERTIES COMPILE_DEFINITIONS "USE_SCAN_AND_CLASSIFY")
-#TARGET_LINK_LIBRARIES( qtl_estimator_scan_classify ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline ${PROJECT_NAME}_fitmetric)
-#
-#ADD_EXECUTABLE( qtl_estimator_scan_classify_switch qtl_estimator.cpp )
-#SET_TARGET_PROPERTIES(qtl_estimator_scan_classify_switch PROPERTIES COMPILE_DEFINITIONS "USE_SCAN_AND_CLASSIFY_SWITCH")
-#TARGET_LINK_LIBRARIES( qtl_estimator_scan_classify_switch ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline ${PROJECT_NAME}_fitmetric)
-#
-#ADD_EXECUTABLE( qtl_estimator_inline_classify qtl_estimator.cpp )
-#SET_TARGET_PROPERTIES(qtl_estimator_inline_classify PROPERTIES COMPILE_DEFINITIONS "USE_INLINE_AND_CLASSIFY")
-#TARGET_LINK_LIBRARIES( qtl_estimator_inline_classify ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline ${PROJECT_NAME}_fitmetric)
-#
-#ADD_EXECUTABLE( qtl_estimator_inline_dynamic_classify qtl_estimator.cpp )
-#SET_TARGET_PROPERTIES(qtl_estimator_inline_dynamic_classify PROPERTIES COMPILE_DEFINITIONS "USE_INLINE_DYNAMIC_AND_CLASSIFY")
-#TARGET_LINK_LIBRARIES( qtl_estimator_inline_dynamic_classify ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline ${PROJECT_NAME}_fitmetric)
-
-#
-#ADD_EXECUTABLE( qtl_estimator_no_fit qtl_estimator.cpp )
-#SET_TARGET_PROPERTIES(qtl_estimator_no_fit PROPERTIES COMPILE_DEFINITIONS "CONSTFIT")
-#TARGET_LINK_LIBRARIES( qtl_estimator_no_fit ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline )
+ADD_EXECUTABLE( qtl_estimator_mutrec qtl_estimator.cpp )
+SET_TARGET_PROPERTIES( qtl_estimator_mutrec PROPERTIES COMPILE_DEFINITIONS "USE_MUTATE_AND_RECOMBINE")
+TARGET_LINK_LIBRARIES( qtl_estimator_mutrec ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline ${PROJECT_NAME}_fitmetric )
