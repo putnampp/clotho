@@ -32,24 +32,34 @@ public:
         m_rng( &rng )
         , m_alleles(rng, config )
         , m_traits( rng, config )
-        , m_nTraits( 1 ) {
+        , m_nTraits( 1 )
+        , m_check_neutral(false) {
         parseConfig( config );
     }
 
-    random_generator( URNG & rng, unsigned int n = 1, double trait_mean = 0.0, double trait_sigma = 1.0 ) :
+    random_generator( URNG & rng, unsigned int n = 1, double trait_mean = 0.0, double trait_sigma = 1.0, bool check_neutral = false ) :
         m_rng( &rng )
         , m_alleles( rng )
         , m_traits(rng, trait_mean, trait_sigma)
-        , m_nTraits(n) {
+        , m_nTraits(n)
+        , m_check_neutral(check_neutral) {
     }
 
     result_type operator()( unsigned int age = 0 ) {
         basic_allele all = m_alleles( age );
         typename qtl_allele::trait_weights W;
 
-        std::generate_n( std::back_inserter(W), m_nTraits, m_traits);
+        qtl_allele q(all, W );
 
-        return qtl_allele(all, W );
+        if( m_check_neutral && q.isNeutral() ) {
+            // neutral alleles, by definition, do not contribute 
+            // to traits (phenotype)
+            std::fill_n( std::back_inserter(W), m_nTraits, 0);
+        } else {
+            std::generate_n( std::back_inserter(W), m_nTraits, m_traits);
+        }
+
+        return q;
     }
 
 protected:
@@ -62,6 +72,16 @@ protected:
         } else {
             m_nTraits = config.get< unsigned int >( oss.str(), 1 );
         }
+
+        oss.str("");
+        oss.clear();
+
+        oss << TRAIT_BLOCK_K << ".check_neutral";
+        if( config.get_child_optional( oss.str() ) == boost::none ) {
+            config.put( oss.str(), m_check_neutral );
+        } else {
+            m_check_neutral = config.get< bool >(oss.str(), false );
+        }
     }
 
     URNG            * m_rng;
@@ -69,6 +89,7 @@ protected:
     random_traits   m_traits;
 
     unsigned int    m_nTraits;
+    bool            m_check_neutral;
 };
 
 }   // namespace utility {
