@@ -122,9 +122,11 @@ public:
     typedef clotho::utility::random_generator< rng_type, sequence_mutator_type >                sequence_mutator_generator;
     typedef individual_initializer< individual_type, sequence_generator_type >   individual_initializer_type;
     typedef individual_selector< rng_type >             individual_selector_type;
+
     typedef individual_reproduction< individual_type
     , sequence_mutator_generator
-    , recombination_method_generator > individual_reproduction_type;
+    , recombination_method_generator, REPRODUCTION_METHOD_TAG > individual_reproduction_type;
+
     typedef individual_generator< population_type, individual_selector_type, individual_reproduction_type >     individual_generator_type;
 
     typedef individual_resetter< individual_type >                  individual_resetter_type;
