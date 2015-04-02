@@ -47,6 +47,12 @@
 #define RECOMBTYPE clotho::classifiers::region_classifier< allele_type >
 #endif  // USE_BERNOULLI_RECOMB
 
+#ifdef USE_MUTATE_AND_RECOMBINE
+#define REPRODUCTION_METHOD_TAG mutate_recombine_tag
+#else
+#define REPRODUCTION_METHOD_TAG recombine_mutate_tag
+#endif  //MUTATE_AND_RECOMBINE
+
 
 #ifdef USE_BLOCK_SIZE_32
 #define BLOCK_UNIT_TYPE unsigned int
