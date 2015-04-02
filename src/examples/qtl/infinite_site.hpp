@@ -29,21 +29,24 @@ public:
     }
 
     result_type operator()( std::shared_ptr< sequence_type > & seq, unsigned int age = 0 ) {
-        return operator()( *seq, age );
+        no_dup_type tester( seq->getParent() );
+        return generate( tester, age );
     }
 
     result_type operator()( const sequence_type & seq, unsigned int age = 0 ) {
-        result_type res = m_gen(age);
-
         no_dup_type tester( seq.getParent() );
-        while( !tester( res ) ) {
-            res = m_gen();
-        }
-
-        return res;
+        return generate( tester, age );
     }
 
 protected:
+    inline result_type generate( no_dup_type & tester, unsigned int age ) {
+        result_type res = m_gen(age);
+        while( !tester(res) ) {
+            res = m_gen(age);
+        }
+        return res;
+    }
+
     URNG * m_rng;
     random_element m_gen;
 };
@@ -63,21 +66,24 @@ public:
     }
 
     result_type operator()( std::shared_ptr< sequence_type > & seq, unsigned int age = 0 ) {
-        return operator()( *seq, age );
+        no_dup_type tester(seq->getParent());
+        return generate(tester, age);
     }
 
     result_type operator()( const sequence_type & seq, unsigned int age = 0 ) {
-        result_type res = m_gen( age );
-
-        no_dup_type tester( seq.getParent() );
-        while( !tester( res ) ) {
-            res = m_gen();
-        }
-
-        return res;
+        no_dup_type tester(seq.getParent());
+        return generate( tester, age);
     }
 
 protected:
+
+    inline result_type generate( no_dup_type & tester, unsigned int age ) {
+        result_type res = m_gen(age);
+        while( !tester(res) ) {
+            res = m_gen(age);
+        }
+        return res;
+    }
     URNG * m_rng;
     random_element m_gen;
 };
