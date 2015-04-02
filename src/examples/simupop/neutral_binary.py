@@ -4,8 +4,7 @@
 import simuOpt, os, sys, json
 
 # use 'binary module' for representing long sequences 
-#simuOpt.setOptions(optimized=True, alleleType='binary')
-simuOpt.setOptions(optimized=True, alleleType='mutant')
+simuOpt.setOptions(optimized=True, alleleType='binary')
 
 import simuPOP as sim
 import random
@@ -22,16 +21,27 @@ import my_timer
 def eq_fit():
     return 1
 
+full_t= my_timer.timer()
 tt = my_timer.timer()
 
 def record_stop(pop):
     tt.stop()
-    pop.dvars().perform.append( tt.elapsed_long())
+    pop.dvars().perform.append(tt.elapsed_long())
     return True
 
 def record_start(pop):
+    global tt
     tt.start()
     return True
+
+def record_full_start(pop):
+    global full_t
+    full_t.start()
+    return True
+
+def record_full_stop(pop):
+    full_t.stop()
+    pop.dvars().rt=full_t.elapsed_long()
 
 def myParentChooser(pop, subPop):
     psize=pop.subPopSize( subPop )
@@ -75,6 +85,7 @@ class logPopulation(sim.PyOperator):
         if self.final:
             tmp_dict['perform'] = pop.dvars().perform
             tmp_dict['configuration'] = { x:y for x,y in self.config_opts.__dict__.iteritems() }
+            tmp_dict['runtime'] = pop.dvars().rt
         
         with open( self.output + "." + str(int(self.block * self.step)) + ".json", 'wt') as lfile:
             res = json.dump( tmp_dict, lfile, sort_keys=True, indent=1)
@@ -83,7 +94,7 @@ class logPopulation(sim.PyOperator):
         return True
 
     def allele_summary( self, pop, subPop ):
-        tmp = [0] * pop.popSize() * pop.ploidy()
+        tmp = [0] * (pop.popSize() * pop.ploidy() + 1)
         mut_loci={}
 
         tmp[0] = pop.popSize() * pop.ploidy()
@@ -162,8 +173,10 @@ pop=sim.Population( size=popSize, ploidy=2, loci=chromLen, infoFields=['fitness'
 
 
 pop.evolve(
-    initOps=[ sim.InitGenotype( genotype=0 ), 
-                sim.PyExec( 'perform=[]')
+    initOps=[   sim.PyExec( 'perform=[]'),
+                sim.PyExec( 'rt=0' ),
+                sim.InitGenotype( genotype=0 ), # increases start up cost
+                sim.PyOperator(func=record_full_start)
             ],
     preOps=[    sim.PyOperator( func=record_start ),
                 sim.PySelector(func=eq_fit) ], 
@@ -172,6 +185,8 @@ pop.evolve(
                 sim.PyOperator(func=record_stop )#,
 #                logPopulation( step=log_period, output=options.log_prefix )
              ],
-    finalOps=[ logPopulation( step=1, output=options.log_prefix + ".final", config_opts=options, final=True) ],
+    finalOps=[  sim.PyOperator(func=record_full_stop ),
+                logPopulation( step=1, output=options.log_prefix + ".final", config_opts=options, final=True)
+            ],
     gen=nGen
 )
