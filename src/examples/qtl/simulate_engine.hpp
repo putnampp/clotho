@@ -382,15 +382,25 @@ protected:
         typename pairwise_statistic< sequence_type >::accum_type global_diff, global_int, global_un;
 
         ref_map_iterator it = rmap.begin();
-        for( ++it; it != rmap.end(); ++it ) {
-            pairwise_statistic< sequence_type > pstat( *(it->first), global_diff, global_int, global_un, it->second );
-            for( ref_map_iterator it2 = rmap.begin(); it2 != it; ++it2 ) {
-                pstat.update( *(it2->first), it2->second );
+
+        std::vector< sequence_pointer > keys;
+        for( ; it != rmap.end(); ++it ) {
+            unsigned int c = it->second;
+            while( c-- ) {
+                keys.push_back(it->first);
+            }
+        }
+        
+        typename std::vector< sequence_pointer >::iterator kit = keys.begin();
+        for( ; kit != keys.end(); ++kit ) {
+            pairwise_statistic< sequence_type > pstat( **kit, global_diff, global_int, global_un, 1.0 );
+            for( typename std::vector< sequence_pointer >::iterator  kit2 = kit + 1; kit2 != keys.end(); ++kit2 ) {
+                pstat.update( **kit2, 1.0 );
             }
         }
 
         //l.put( "population.sequences.technical_duplicates", tech_dup );
-        l.put( "sequences.pairwise.size", accum::count(global_diff) );
+        l.put( "sequences.pairwise.size", accum::count(global_int) );
         l.put( "sequences.pairwise.unique_pairs", accum::count(global_diff) );
         l.put( "sequences.pairwise.difference.mean", accum::weighted_mean(global_diff));
         l.put( "sequences.pairwise.difference.variance", accum::weighted_variance(global_diff));
