@@ -167,7 +167,8 @@ public:
         , m_parent_pheno( &m_pheno_buff1 )
         , m_child_pheno( &m_pheno_buff2 )
         , m_parent_fit( &m_fit_buff1 )
-        , m_child_fit( &m_fit_buff2 ) {
+        , m_child_fit( &m_fit_buff2 )
+        , m_pairwise_pop(false) {
         parseConfig( config );
         initialize();
     }
@@ -248,12 +249,18 @@ public:
 
         log.add_child( "fitness", fit_log );
 
-        population_statistics( m_parent, &m_alleles, log, false );
+        population_statistics( m_parent, &m_alleles, log, m_pairwise_pop );
         unsigned int i = 0;
 //        BOOST_FOREACH( auto& v, m_sampling_sizes ) {
         BOOST_FOREACH( auto& v, m_sampling ) {
             boost::property_tree::ptree l;
             random_sampler( m_parent, m_parent_pheno, m_parent_fit, v.sample_size, l, v.pairwise );
+
+            if( v.pairwise ) {
+                boost::property_tree::ptree r;
+                random_pairwise_stats( m_parent, 2 * v.sample_size, r);
+                l.add_child("independent.pairwise", r);
+            }
 
             l.put(SIZE_K, v.sample_size );
 
@@ -338,6 +345,16 @@ protected:
             }
         }
 
+        oss.str("");
+        oss.clear();
+        oss << LOG_BLOCK_K << ".population_pairwise";
+
+        if( config.get_child_optional( oss.str() ) == boost::none ) {
+            config.put(oss.str(), m_pairwise_pop );
+        } else {
+            m_pairwise_pop = config.get< bool >( oss.str(), m_pairwise_pop);
+        }
+
         m_fit_gen = fitness_toolkit::getInstance()->get_tool( config );
         if( m_fit_gen ) m_fit_gen->log( std::cerr );
     }
@@ -376,6 +393,29 @@ protected:
         l.add_child( "fitness", fit_log );
 
         population_statistics( &sub_pop, &m_alleles, l, pairwise );
+    }
+
+    void random_pairwise_stats( population_type * p, unsigned int size, boost::property_tree::ptree & l ) {
+        ref_map_type seq_map;
+        boost::random::uniform_int_distribution< unsigned int > ind_rand(0, 2 * p->size() - 1);
+        while( size-- ) {
+            unsigned int idx = ind_rand( m_rng );
+
+            sequence_pointer tmp = ((idx % 2) ? (p->at(idx/2).second) : (p->at(idx/2).first));
+            ref_map_iterator it = seq_map.find(tmp);
+            if( it == seq_map.end() ) {
+                seq_map.insert( std::make_pair( tmp, 1));
+            } else {
+                it->second += 1;
+            }
+        }
+
+        allele_dist_type allele_dist( m_alleles.variable_allocated_size(), 0);
+        unsigned int nAlleles = buildAlleleDistribution( seq_map, allele_dist);
+
+        l.put("segregation_sites", nAlleles);
+
+        pairwise_stats( seq_map, l);
     }
 
     void pairwise_stats( ref_map_type & rmap, boost::property_tree::ptree & l ) {
@@ -486,7 +526,8 @@ protected:
             l.put( "sequences.pairwise.union.variance", accum::weighted_variance(acc_un));
         }*/
 
-    void buildRefMap( population_type * p, ref_map_type & m, allele_dist_type & a ) {
+//    void buildRefMap( population_type * p, ref_map_type & m, allele_dist_type & a ) {
+    void buildRefMap( population_type * p, ref_map_type & m ) {
 
         population_iterator pit = p->begin();
         while( pit != p->end() ) {
@@ -506,15 +547,22 @@ protected:
             ++pit;
         }
 
+//        buildAlleleDistribution(m,a);
+    }
+
+    inline unsigned int buildAlleleDistribution( ref_map_type & m, allele_dist_type & a) {
+        unsigned int nAlleles = 0;
         for( ref_map_iterator rit = m.begin(); rit != m.end(); ++rit ) {
             unsigned int n = rit->second;
             typename sequence_type::index_type idx = rit->first->find_first();
             while( idx.second != sequence_type::npos ) {
                 //std::cerr << idx.first << "," << idx.second << "," << sequence_type::npos << std::endl;
+                if( a[idx.first] == 0 ) ++nAlleles;
                 a[ idx.first ] += n;
                 idx = rit->first->find_next( idx );
             }
         }
+        return nAlleles;
     }
 
     void population_statistics( population_type * p, allele_set_type * alleles, boost::property_tree::ptree & _log, bool pairwise ) {
@@ -525,8 +573,7 @@ protected:
         count_map allele_counts;
 
         ref_map_type seq_ref_counts;
-        allele_dist_type allele_dist( alleles->variable_allocated_size(), 0);
-        buildRefMap(p, seq_ref_counts, allele_dist );
+        buildRefMap(p, seq_ref_counts );
 
         unsigned int nExpSeq = 0;
         accum::accumulator_set< double, accum::stats< accum::tag::weighted_mean, accum::tag::weighted_median, accum::tag::weighted_variance >, double > acc;
@@ -554,16 +601,25 @@ protected:
             clotho::utility::add_value_array( all_dist, *c_it );
         }
 
+        allele_dist_type allele_dist( alleles->variable_allocated_size(), 0);
+        unsigned int nSites = buildAlleleDistribution(seq_ref_counts, allele_dist);
+
+        _log.put("segregation_sites", nSites );
+
+        unsigned int n=0;
         typename allele_set_type::cvariable_iterator e_it = alleles->variable_begin();
         for( allele_dist_type::iterator a_it = allele_dist.begin(); a_it != allele_dist.end(); ++a_it, ++e_it ) {
             if( (*a_it) > 0 ) {
                 std::ostringstream oss;
                 oss << *e_it;
                 clotho::utility::add_value_array( all_freq, std::make_pair(oss.str(), (*a_it)));
+                ++n;
             } else {
                 clotho::utility::add_value_array( all_freq, "");
             }
         }
+
+        assert( n == nSites );
 
         if (pairwise) {
             pairwise_stats( seq_ref_counts, _log);
@@ -615,6 +671,8 @@ protected:
 
 //    std::vector< unsigned int > m_sampling_sizes;
     std::vector< sample_log_params > m_sampling;
+
+    bool m_pairwise_pop;
 };
 
 namespace clotho {

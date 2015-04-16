@@ -13,6 +13,8 @@
 #include <boost/accumulators/statistics/weighted_median.hpp>
 #include <boost/accumulators/statistics/weighted_variance.hpp>
 
+#include <algorithm>
+
 namespace accum=boost::accumulators;
 
 template < class E, class B, class BM, class EK >
@@ -28,6 +30,7 @@ struct pairwise_statistic< clotho::powersets::vector_subset< E, B, BM, EK > > {
         , m_global_int( NULL )
         , m_global_un( NULL )
         , m_tech_dup(0) {
+        b.order_data();
     }
 
     pairwise_statistic( sequence_type & b, accum_type & d, accum_type & i, accum_type & u, double w = 1.0 ) :
@@ -37,19 +40,21 @@ struct pairwise_statistic< clotho::powersets::vector_subset< E, B, BM, EK > > {
         , m_global_int( &i )
         , m_global_un( &u )
         , m_tech_dup(0) {
+        b.order_data();
     }
 
     void update( sequence_type & seq, double w = 1.0 ) {
+        seq.order_data();
         typename sequence_type::data_citerator sit = _base->begin(), sit2 = seq.begin();
 
-        unsigned int _diff = 0, _int = 0, _un = 0;
+        unsigned int _diff = 0, _int = 0;
 
         while( true ) {
             if( sit == _base->end() ) {
                 while( sit2 != seq.end() ) {
                     ++sit2;
                     ++_diff;
-                    ++_un;
+//                    ++_un;
                 }
                 break;
             }
@@ -58,7 +63,7 @@ struct pairwise_statistic< clotho::powersets::vector_subset< E, B, BM, EK > > {
                 while( sit != _base->end() ) {
                     ++sit;
                     ++_diff;
-                    ++_un;
+//                    ++_un;
                 }
                 break;
             }
@@ -66,18 +71,19 @@ struct pairwise_statistic< clotho::powersets::vector_subset< E, B, BM, EK > > {
             if( *sit < *sit2 ) {
                 ++sit;
                 ++_diff;
-                ++_un;
+//                ++_un;
             } else if( *sit2 < *sit ) {
                 ++sit2;
                 ++_diff;
-                ++_un;
+//                ++_un;
             } else {
                 ++_int;
-                ++_un;
+//                ++_un;
                 ++sit;
                 ++sit2;
             }
         }
+        unsigned int _un = _diff + _int;
 
         double _w = (base_weight * w);
 

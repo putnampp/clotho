@@ -21,7 +21,7 @@ struct basic_allele {
     bool    m_neutral;
     unsigned int m_age;
 
-    basic_allele( double k, double sel = 0.0, double dom = 1.0, bool neut = true, unsigned int age = 0 ) :
+    basic_allele( double k= 0.0, double sel = 0.0, double dom = 1.0, bool neut = true, unsigned int age = 0 ) :
         m_key(k), m_select(sel), m_dom(dom), m_neutral( neut ), m_age(age) {
     }
 

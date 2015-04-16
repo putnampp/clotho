@@ -11,7 +11,7 @@ namespace clotho {
 namespace utility {
 
 template < class URNG >
-class random_generator< URNG, qtl_allele > {
+class random_generator< URNG, qtl_allele > : public clotho::utility::random_generator< URNG, basic_allele > {
 public:
     typedef random_generator< URNG, qtl_allele >    self_type;
     typedef qtl_allele                              result_type;
@@ -29,40 +29,45 @@ public:
     typedef typename random_traits::param_type  param_type;
 
     random_generator( URNG & rng, boost::property_tree::ptree & config ) :
-        m_rng( &rng )
-        , m_alleles(rng, config )
+//        m_rng( &rng )
+//        , m_alleles(rng, config )
+        random_allele(rng, config )
         , m_traits( rng, config )
-        , m_nTraits( 1 )
-        , m_check_neutral(false) {
+        , m_nTraits( 1 ) {
         parseConfig( config );
     }
 
-    random_generator( URNG & rng, unsigned int n = 1, double trait_mean = 0.0, double trait_sigma = 1.0, bool check_neutral = false ) :
-        m_rng( &rng )
-        , m_alleles( rng )
+    random_generator( URNG & rng, unsigned int n = 1, double trait_mean = 0.0, double trait_sigma = 1.0 ) :
+//        m_rng( &rng )
+//        , m_alleles( rng )
+        random_allele( rng )
         , m_traits(rng, trait_mean, trait_sigma)
-        , m_nTraits(n)
-        , m_check_neutral(check_neutral) {
+        , m_nTraits(n) {
     }
 
     result_type operator()( unsigned int age = 0 ) {
-        basic_allele all = m_alleles( age );
-        typename qtl_allele::trait_weights W;
+//        basic_allele all = m_alleles( age );
+//        typename qtl_allele::trait_weights W;
+//
+//        qtl_allele q(all, W );
+//
+        qtl_allele q;
 
-        qtl_allele q(all, W );
+        random_allele::generate(q, age);
 
-        if( m_check_neutral && q.isNeutral() ) {
+        if( q.isNeutral() ) {
             // neutral alleles, by definition, do not contribute 
             // to traits (phenotype)
-            std::fill_n( std::back_inserter(W), m_nTraits, 0);
+            std::fill_n( std::back_inserter(q.m_weights), m_nTraits, 0);
         } else {
-            std::generate_n( std::back_inserter(W), m_nTraits, m_traits);
+            std::generate_n( std::back_inserter(q.m_weights), m_nTraits, m_traits);
         }
 
         return q;
     }
 
 protected:
+
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
         oss /*<< CONFIG_BLOCK_K << "."*/ << TRAIT_BLOCK_K << "." << MAX_K;
@@ -72,24 +77,13 @@ protected:
         } else {
             m_nTraits = config.get< unsigned int >( oss.str(), 1 );
         }
-
-        oss.str("");
-        oss.clear();
-
-        oss << TRAIT_BLOCK_K << ".check_neutral";
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put( oss.str(), m_check_neutral );
-        } else {
-            m_check_neutral = config.get< bool >(oss.str(), false );
-        }
     }
 
-    URNG            * m_rng;
-    random_allele   m_alleles;
+//    URNG            * m_rng;
+//    random_allele   m_alleles;
     random_traits   m_traits;
 
     unsigned int    m_nTraits;
-    bool            m_check_neutral;
 };
 
 }   // namespace utility {

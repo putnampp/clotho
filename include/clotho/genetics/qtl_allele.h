@@ -11,6 +11,8 @@ struct qtl_allele : public basic_allele {
     typedef typename trait_weights::iterator    weight_iterator;
     typedef typename trait_weights::const_iterator weight_citerator;
 
+    qtl_allele() : basic_allele(), m_weights() {}
+
     qtl_allele( double k, double sel, double dom, bool neut, unsigned int age, const trait_weights & coeff ) :
         basic_allele( k, sel, dom, neut, age ), m_weights( coeff ) {
     }

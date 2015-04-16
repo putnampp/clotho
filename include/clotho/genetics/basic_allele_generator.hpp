@@ -44,21 +44,27 @@ public:
     }
 
     result_type operator()( unsigned int age = 0 ) {
-        key_type k = m_uniform( *m_rng );
+        basic_allele al;
 
-        selection_type s = DEFAULT_SELECTION;
-        dominance_type d = DEFAULT_DOMINANCE;
-        bool    is_neutral = m_neutral( *m_rng );
-        if( !is_neutral ) {
-            s = m_uniform( *m_rng );
-            d = m_uniform( *m_rng );
-        }
+        generate(al, age);
 
-        return basic_allele(k, s, d, is_neutral, age );
+        return al;
     }
 
     virtual ~random_generator() {}
 protected:
+
+    void generate( basic_allele & a, unsigned int age ) {
+        a.m_key = m_uniform( *m_rng );
+
+        a.m_neutral = m_neutral( *m_rng );
+        if( !a.m_neutral ) {
+            a.m_select = m_uniform( *m_rng );
+            a.m_dom = m_uniform( *m_rng );
+        }
+        a.m_age = age;
+    }
+
     void parseConfig( boost::property_tree::ptree & config ) {
         std::ostringstream oss;
         oss /*<< CONFIG_BLOCK_K << "."*/ << ALLELE_BLOCK_K << "." << NEUTRAL_P_K;

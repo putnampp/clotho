@@ -45,7 +45,7 @@ struct pairwise_statistic< clotho::powersets::variable_subset< E, B, BM, EK > > 
     void update( sequence_type & seq, double w = 1.0 ) {
         typename sequence_type::data_citerator sit = _base->begin(), sit2 = seq.begin();
 
-        unsigned int _diff = 0, _int = 0, _un = 0;
+        unsigned int _diff = 0, _int = 0;
 
         while( true ) {
             if( sit == _base->end() ) {
@@ -54,7 +54,7 @@ struct pairwise_statistic< clotho::powersets::variable_subset< E, B, BM, EK > > 
                     ++sit2;
                     unsigned int res = popcount( b );
                     _diff += res;
-                    _un += res;
+//                    _un += res;
                 }
                 break;
             }
@@ -65,7 +65,7 @@ struct pairwise_statistic< clotho::powersets::variable_subset< E, B, BM, EK > > 
                     ++sit;
                     unsigned int res = popcount( b );
                     _diff += res;
-                    _un += res;
+//                    _un += res;
                 }
                 break;
             }
@@ -73,10 +73,11 @@ struct pairwise_statistic< clotho::powersets::variable_subset< E, B, BM, EK > > 
             block_type b0 = *sit, b1 = *sit2;
             ++sit;
             ++sit2;
-            _diff += popcount( b0 ^ b1 );
-            _int += popcount( b0 & b1 );
-            _un += popcount( b0 | b1 );
+            _diff += popcount( b0 ^ b1 );   // symmetric difference
+            _int += popcount( b0 & b1 );    // intersection
+//            _un += popcount( b0 | b1 );
         }
+        unsigned int _un = _diff + _int;    // union = symmetric difference + intersection
 
         double _w = (base_weight * w);
 

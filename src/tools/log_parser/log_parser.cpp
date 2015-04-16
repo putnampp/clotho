@@ -119,7 +119,7 @@ int command_line( int argc, char ** argv, po::variables_map & vm ) {
 
     po::options_description io_params("I/O Parameters");
     io_params.add_options()
-    ( (CONFIG_K + ",c" ).c_str(), po::value< string >()->default_value(""), "Configuration file containing files to be parsed" )
+    ( (CONFIG_K + ",i" ).c_str(), po::value< string >()->default_value(""), "Configuration file containing files to be parsed" )
     ;
 
     po::options_description cmdline;
