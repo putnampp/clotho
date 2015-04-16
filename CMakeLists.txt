@@ -11,6 +11,7 @@ SET (${PROJECT_NAME}_VER_RELEASE 0 )
 
 SET (${PROJECT_NAME}_RESOURCES_DIR ${${PROJECT_NAME}_SOURCE_DIR}/cmake)
 SET (${PROJECT_NAME}_SRC_DIR       ${${PROJECT_NAME}_SOURCE_DIR}/src)
+SET (${PROJECT_NAME}_EXAMPLE_DIR       ${${PROJECT_NAME}_SOURCE_DIR}/examples)
 SET( ${PROJECT_NAME}_INCLUDE_DIR   ${${PROJECT_NAME}_SOURCE_DIR}/include )
 SET( ${PROJECT_NAME}_UNITTEST_DIR   ${${PROJECT_NAME}_SOURCE_DIR}/unittest )
 
@@ -151,4 +152,5 @@ set(CMAKE_CXX_FLAGS "-g -fPIC -Wall -O3 -std=c++0x -march=native -pedantic" )
 LINK_DIRECTORIES( ${PROJECT_BINARY_DIR}/bin )
 
 add_subdirectory( src )
+add_subdirectory( examples )
 add_subdirectory( unittest )
