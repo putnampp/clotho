@@ -43,6 +43,16 @@ def record_full_stop(pop):
     full_t.stop()
     pop.dvars().rt=full_t.elapsed_long()
 
+def block_counter( pop ):
+    tot = 0
+    for ind in pop.individuals():
+        tot += len(ind.genotype(0))
+        tot += len(ind.genotype(1))
+
+    pop.dvars().mem_usage.append(tot)
+    return True
+        
+
 def myParentChooser(pop, subPop):
     psize=pop.subPopSize( subPop )
     while True:
@@ -86,6 +96,7 @@ class logPopulation(sim.PyOperator):
             tmp_dict['perform'] = pop.dvars().perform
             tmp_dict['configuration'] = { x:y for x,y in self.config_opts.__dict__.iteritems() }
             tmp_dict['runtime'] = pop.dvars().rt
+            tmp_dict['mem_usage'] = pop.dvars().mem_usage
         
         with open( self.output + "." + str(int(self.block * self.step)) + ".json", 'wt') as lfile:
             res = json.dump( tmp_dict, lfile, sort_keys=True, indent=1)
@@ -138,6 +149,8 @@ class logPopulation(sim.PyOperator):
         if site_distribution:
             tmp['sequence_distribution'] = sites
         return tmp
+
+
 ###################################################################################
 ##  Main program
 ###################################################################################
@@ -174,6 +187,7 @@ pop=sim.Population( size=popSize, ploidy=2, loci=chromLen, infoFields=['fitness'
 
 pop.evolve(
     initOps=[   sim.PyExec( 'perform=[]'),
+                sim.PyExec( 'mem_usage=[]' ),
                 sim.PyExec( 'rt=0' ),
                 sim.InitGenotype( genotype=0 ), # increases start up cost
                 sim.PyOperator(func=record_full_start)
@@ -184,6 +198,7 @@ pop.evolve(
     postOps=[ sim.SNPMutator( u=mu_base, v=0 ),     # apply mutation after recombination
                 sim.PyOperator(func=record_stop )#,
 #                logPopulation( step=log_period, output=options.log_prefix )
+                , sim.PyOperator( func=block_counter )
              ],
     finalOps=[  sim.PyOperator(func=record_full_stop ),
                 logPopulation( step=1, output=options.log_prefix + ".final", config_opts=options, final=True)
