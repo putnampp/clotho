@@ -56,7 +56,7 @@ public:
         random_allele::generate(q, age);
 
         if( q.isNeutral() ) {
-            // neutral alleles, by definition, do not contribute 
+            // neutral alleles, by definition, do not contribute
             // to traits (phenotype)
             std::fill_n( std::back_inserter(q.m_weights), m_nTraits, 0);
         } else {

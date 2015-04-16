@@ -402,7 +402,7 @@ void write( ostream * out, string path, boost::property_tree::ptree & tr, unsign
 //    unsigned int i = 0;
 
     if( tr.empty() ) {
-        if (level) 
+        if (level)
             (*out) << "," << tr.data();
         else
             (*out) << tr.data();
