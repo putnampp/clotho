@@ -3,7 +3,7 @@
 
 import simuOpt, os, sys, json
 
-# use 'binary module' for representing long sequences 
+# use 'mutant module' for representing long sequences 
 simuOpt.setOptions(optimized=True, alleleType='mutant')
 
 import simuPOP as sim
@@ -43,6 +43,18 @@ def record_full_stop(pop):
     full_t.stop()
     pop.dvars().rt=full_t.elapsed_long()
 
+def block_counter( pop ):
+    tot = 0
+    for ind in pop.individuals():
+        for m in ind.mutants(0):
+            tot += 1
+        for m in ind.mutants(1):
+            tot += 1
+
+    pop.dvars().mem_usage.append(tot)
+    return True
+        
+
 def myParentChooser(pop, subPop):
     psize=pop.subPopSize( subPop )
     while True:
@@ -60,7 +72,14 @@ def harmonic_number( s ):
         tot += 1.0 / i
     return tot
 
-class logPopulation(sim.PyOperator):
+def logConfiguration( config, output ):
+    tmp_dict = {}
+    tmp_dict['configuration'] = { x:y for x,y in config.__dict__.iteritems() }
+    with open( output + ".config.json", 'wt') as lfile:
+        res = json.dump( tmp_dict, lfile, sort_keys=True, indent=1)
+    return True
+
+class logPerformance(sim.PyOperator):
     def __init__(self, step=1, output="", config_opts=[], final=False, *args, **kwargs):
         self.step=step
         self.called=step
@@ -76,18 +95,45 @@ class logPopulation(sim.PyOperator):
             return True
         self.block += 1
 
+        tmp_dict={}
+        tmp_dict['perform'] = pop.dvars().perform
+        tmp_dict['mem_usage'] = pop.dvars().mem_usage
+        tmp_dict['runtime'] = pop.dvars().rt
+
+        with open( self.output + "." + str(int(self.block * self.step)) + ".perform.json", 'wt') as lfile:
+            res = json.dump( tmp_dict, lfile, sort_keys=True, indent=1)
+
+        self.called = self.step
+        return True
+
+
+class logPopulation(sim.PyOperator):
+    def __init__(self, step=1, output="", *args, **kwargs):
+        self.step=step
+        self.called=step
+        self.block=0
+        self.output=output
+        sim.PyOperator.__init__(self, func=self.log, *args, **kwargs)
+
+    def log(self, pop):
+        self.called -= 1
+        if self.called != 0:
+            return True
+        self.block += 1
+
         sim.stat( pop, alleleFreq=sim.ALL_AVAIL, vars=['alleleNum'] )
 
         tmp_dict={}
         tmp_dict['summary'] = self.population_summary(pop,0)
         tmp_dict['loci'] = self.allele_summary(pop, 0)
 
-        if self.final:
-            tmp_dict['perform'] = pop.dvars().perform
-            tmp_dict['configuration'] = { x:y for x,y in self.config_opts.__dict__.iteritems() }
-            tmp_dict['runtime'] = pop.dvars().rt
+#        if self.final:
+#            tmp_dict['perform'] = pop.dvars().perform
+#            tmp_dict['configuration'] = { x:y for x,y in self.config_opts.__dict__.iteritems() }
+#            tmp_dict['runtime'] = pop.dvars().rt
+#            tmp_dict['mem_usage'] = pop.dvars().mem_usage
         
-        with open( self.output + "." + str(int(self.block * self.step)) + ".json", 'wt') as lfile:
+        with open( self.output + "." + str(int(self.block * self.step)) + ".pop.json", 'wt') as lfile:
             res = json.dump( tmp_dict, lfile, sort_keys=True, indent=1)
 
         self.called = self.step
@@ -138,6 +184,8 @@ class logPopulation(sim.PyOperator):
         if site_distribution:
             tmp['sequence_distribution'] = sites
         return tmp
+
+
 ###################################################################################
 ##  Main program
 ###################################################################################
@@ -172,10 +220,13 @@ pop=sim.Population( size=popSize, ploidy=2, loci=chromLen, infoFields=['fitness'
 # Generate Population
 
 
+logConfiguration( options, options.log_prefix )
+
 pop.evolve(
     initOps=[   sim.PyExec( 'perform=[]'),
+                sim.PyExec( 'mem_usage=[]' ),
                 sim.PyExec( 'rt=0' ),
-#                sim.InitGenotype( genotype=0 ),
+#                sim.InitGenotype( genotype=0 ), # increases start up cost
                 sim.PyOperator(func=record_full_start)
             ],
     preOps=[    sim.PyOperator( func=record_start ),
@@ -184,9 +235,12 @@ pop.evolve(
     postOps=[ sim.SNPMutator( u=mu_base, v=0 ),     # apply mutation after recombination
                 sim.PyOperator(func=record_stop )#,
 #                logPopulation( step=log_period, output=options.log_prefix )
+                , sim.PyOperator( func=block_counter )
+                , logPerformance( step=log_period, output=options.log_prefix )
              ],
-    finalOps=[  sim.PyOperator(func=record_full_stop ),
-                logPopulation( step=1, output=options.log_prefix + ".final", config_opts=options, final=True)
+    finalOps=[  sim.PyOperator(func=record_full_stop )
+                , logPopulation( step=1, output=options.log_prefix + ".final")
+                , logPerformance( step=1, output=options.log_prefix + ".final")
             ],
     gen=nGen
 )
