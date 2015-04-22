@@ -75,8 +75,6 @@ const string NEUTRAL_P_K = "neutral.p";
 
 const string SAMPLING_K = "sampling_size";
 
-//const string FITNESS_BLOCK_K = "fitness";
-const string QUADRATIC_SCALE_K = "quadratic.scale";
 const string CONSTANT_K = "constant";
 
 const string SIZE_K = "size";
