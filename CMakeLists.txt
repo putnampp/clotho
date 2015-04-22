@@ -66,6 +66,13 @@ ELSE (NOT ${PROJECT_NAME}_EXTERNALLY_CONFIGURED )
     ENDIF (NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY )
 ENDIF (NOT ${PROJECT_NAME}_EXTERNALLY_CONFIGURED )
 
+######################################################################################
+## PROJECT COMPILE OPTIONS
+######################################################################################
+
+OPTION(BUILD_CUDA_EXAMPLES "Build the CUDA example programs" OFF )
+
+
 ################################################################################
 FIND_PACKAGE( Boost COMPONENTS program_options filesystem system thread unit_test_framework chrono python REQUIRED )
 IF( Boost_FOUND )
@@ -95,6 +102,8 @@ IF( GSL_FOUND )
 ENDIF( GSL_FOUND )
 LIST( APPEND COMMON_LIBRARIES ${GSL_LIBRARIES} )
 
+IF( BUILD_CUDA_EXAMPLES )
+
 FIND_PACKAGE( CUDA REQUIRED )
 MESSAGE( STATUS "CXX: " ${CMAKE_CXX_COMPILER})
 SET(CUDA_HOST_COMPILER g++)
@@ -104,6 +113,7 @@ SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
 MESSAGE( STATUS "CUDA LIBRARIES: " ${CUDA_LIBRARIES} )
 MESSAGE( STATUS "CUDA LIBRARIES: " ${CUDA_curand_LIBRARY} )
+ENDIF( BUILD_CUDA_EXAMPLES )
 
 SET( Gperftools_DIR "/opt/gperftools/latest" )
 find_library( TCMALLOC_LIBRARY NAMES tcmalloc PATHS ${Gperftools_DIR}/lib )
