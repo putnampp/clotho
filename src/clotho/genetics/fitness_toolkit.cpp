@@ -14,8 +14,6 @@
 #include "clotho/genetics/fitness_toolkit.hpp"
 
 const std::string FITNESS_BLOCK_K = "fitness";
-const std::string TOOLKIT_BLOCK_K = "toolkit";
-const std::string METRIC_K = "metric";
 
 fitness_toolkit::fitness_toolkit() {}
 
@@ -57,7 +55,7 @@ std::shared_ptr< ifitness_generator > fitness_toolkit::get_tool( boost::property
         }
     }
 
-    return std::shared_ptr< ifitness_generator >();
+    return ret;
 }
 
 void fitness_toolkit::register_tool( ifitness_generator * gen ) {
