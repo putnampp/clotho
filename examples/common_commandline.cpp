@@ -32,7 +32,7 @@ int parse_commandline( int argc, char ** argv, po::variables_map & vm ) {
 
     po::options_description clotho_app( "Simulation Parameters" );
     clotho_app.add_options()
-    ( (GENERATIONS_K + ",g").c_str(), po::value<unsigned int>()->default_value(DEFAULT_GENERATIONS), "Simulate a number of generations.")
+    ( (GENERATIONS_K + ",g").c_str(), po::value<unsigned int>()->default_value(DEFAULT_GENERATIONS), "A positive number of generations. A value 0 will return a default configuration file")
     ( (FOUNDER_SIZE_K+ ",p").c_str(), po::value< unsigned int >()->default_value(DEFAULT_POPULATION_SIZE), "Founding population size" )
     ( (MUTATION_RATE_K + ",m").c_str(), po::value< double >()->default_value( DEFAULT_MUTATION_RATE ), "Mutation rate" )
     ( (RECOMBINATION_RATE_K + ",r").c_str(), po::value< double>()->default_value( DEFAULT_RECOMB_RATE ), "Recombination rate" )
