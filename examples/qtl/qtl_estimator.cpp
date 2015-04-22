@@ -107,7 +107,7 @@ int main( int argc, char ** argv ) {
 
         simulate_type sim( rep_child_conf );
 
-        if( nGen == 0 ) {
+        if( nGen < 1 ) {
             fitness_toolkit::getInstance()->tool_configurations( rep_child_conf );
 
             log_type tmp;
