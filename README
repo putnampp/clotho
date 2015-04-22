@@ -41,19 +41,6 @@ COMPILATION
 
 USEFUL COMMANDS:
 
-Compilation Variable: MAX_ALLELES
-Description: The MAX_ALLELES variable is used to define the maximum number of forms a locus is
-    allowed to have. In other words, locus, l, can have allele, a, is an enumerated value
-    in [0, MAX_ALLELES).
-Example Command: if [ ! -d build ]; then mkdir build; fi; cd build; cmake -DMAX_ALLELES=2 ..
-    From the project's root directory, the above command in the above command
-    will create a new directory 'build' will be created,
-    in which the cmake command will create the makefiles with the MAX_ALLELES set
-    to 2.  The number of alleles can be increased to any positive integer [0, (2^64)-1].
-    The MAX_ALLELES variable is used to define the maximum number of forms a locus is
-    allowed to have. In other words, locus, l, can have allele, a, is an enumerated value
-    in [0, MAX_ALLELES).
-
-Compilation Variable: PWORD_SIZE
-Description: Establishes the desired processor word size.  Allows user to use 32-bit on 64-bit machine
-Example Command: cmake -DPWORD_SIZE=64 ..
+Compilation Variable: BUILD_CUDA_EXAMPLES
+Description: Turns on/off whether the CUDA examples are compiled or not
+Example Command: mkdir -p build/cuda; cd build/cuda; cmake -DBUILD_CUDA_EXAMPLES=ON ../..; make; cd ../..
