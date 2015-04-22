@@ -11,32 +11,42 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CONSTANT_FITNESS_METRIC_HPP_
-#define CONSTANT_FITNESS_METRIC_HPP_
+#ifndef LINEAR_FITNESS_METRIC_HPP_
+#define LINEAR_FITNESS_METRIC_HPP_
 
-class constant_fitness_metric {
+#include <vector>
+#include "clotho/genetics/ifitness.hpp"
+
+extern const std::string LINEAR_FIT_NAME;
+
+class linear_fitness_metric : public ifitness {
 public:
     typedef double      real_type;
     typedef real_type   result_type;
 
-    constant_fitness_metric( real_type c = 1. ) :
+    linear_fitness_metric( real_type a = 1., real_type b = 0. ) :
         m_val( c ) {
     }
 
     result_type operator()() {
-        return m_val;
+        return m_B;
     }
 
     result_type operator()( real_type x ) {
-        return m_val;
+        return m_A * x + m_B;
     }
 
     result_type operator()( const std::vector< real_type > & multi_variate ) {
-        return m_val;
+        return m_B;
     }
 
+    const std::string name() const;
+
+    void log( std::ostream & out ) const;
+
+    virtual ~linear_fitness_metric();
 protected:
-    real_type m_val;
+    real_type m_A, m_B;
 };
 
-#endif  // CONSTANT_FITNESS_METRIC_HPP_
+#endif  // LINEAR_FITNESS_METRIC_HPP_
