@@ -203,10 +203,13 @@ int main( int argc, char ** argv ) {
 
     for( unsigned int i = 0; i < cmd.nRep; ++i ) {
         config_wrapper cfg(cmd);
-        population_type pop, buffer;
 
-        initializePopulation(cfg, pop, buffer, cfg.m_log );
-        simulate( cfg, pop, buffer, cfg.m_log );
+        if( cfg.nGen > 0 ) {
+            population_type pop, buffer;
+
+            initializePopulation(cfg, pop, buffer, cfg.m_log );
+            simulate( cfg, pop, buffer, cfg.m_log );
+        }
 
         write_log( cfg, i );
     }
@@ -645,15 +648,13 @@ void statsPopulation( config_wrapper & cfg, population_type * p, boost::property
 }
 
 void write_log( config_wrapper & cfg, unsigned int log_idx ) {
-    if( cfg.out_path.empty() ) {
-        add_config( cfg.m_log, cfg );
+    boost::property_tree::ptree clog;
+    add_config( clog, cfg );
+    cfg.m_log.add_child( CONFIG_BLOCK_K, clog );
 
+    if( cfg.out_path.empty() ) {
         boost::property_tree::write_json(std::cout, cfg.m_log );
     } else {
-        boost::property_tree::ptree _c;
-        add_config( _c, cfg);
-        cfg.m_log.add_child( CONFIG_BLOCK_K, _c );
-
         std::ostringstream oss;
         oss << cfg.out_path << "_" << log_idx;
         boost::property_tree::write_json( oss.str() + "_log.json", cfg.m_log );
