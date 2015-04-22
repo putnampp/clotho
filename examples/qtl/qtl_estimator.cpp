@@ -122,6 +122,7 @@ int main( int argc, char ** argv ) {
 
         if( nGen < 1 ) {
             fitness_toolkit::getInstance()->tool_configurations( rep_child_conf );
+            population_growth_toolkit::getInstance()->tool_configurations( rep_child_conf );
 
             log_type tmp;
             tmp.add_child( CONFIG_BLOCK_K, rep_child_conf );

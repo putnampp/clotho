@@ -58,6 +58,7 @@
 
 #include "clotho/genetics/fitness_toolkit.hpp"
 #include "clotho/genetics/pairwise_statistic.hpp"
+#include "clotho/genetics/population_growth_toolkit.hpp"
 
 namespace accum=boost::accumulators;
 
@@ -164,6 +165,9 @@ public:
     typedef typename ifitness::result_type                                      fitness_result_type;
     typedef std::vector< fitness_result_type >                                  population_fitnesses;
 
+    typedef std::shared_ptr< ipopulation_growth_generator >                     population_growth_generator_type;
+    typedef std::shared_ptr< ipopulation_growth >                               population_growth_type;
+
     // statistic typedefs
     typedef std::map< sequence_pointer, unsigned int >  ref_map_type;
     typedef typename ref_map_type::iterator             ref_map_iterator;
@@ -181,16 +185,23 @@ public:
         , m_child_pheno( &m_pheno_buff2 )
         , m_parent_fit( &m_fit_buff1 )
         , m_child_fit( &m_fit_buff2 )
-        , m_pairwise_pop(false) {
+        , m_pairwise_pop(false)
+        , m_pop_grow() {
         parseConfig( config );
         initialize();
     }
 
-    void simulate( unsigned int gen = 0) {
-        simulate( m_founder_size, gen );
-    }
+//    void simulate( unsigned int gen = 0) {
+//            simulate( m_founder_size, gen );
+//    }
 
-    void simulate( unsigned int p_size, unsigned int gen ) {
+//    void simulate( unsigned int p_size, unsigned int gen ) {
+    void simulate( unsigned int gen ) {
+        unsigned int p_size = m_founder_size;
+        if( gen && m_pop_grow) {
+            p_size = (*m_pop_grow)(m_parent->size(), gen);
+        }
+
         individual_selector_type sel( m_rng, m_parent_fit->begin(), m_parent_fit->end() );
         individual_generator_type ind_gen( m_parent, sel, m_repro, gen );
 
@@ -370,6 +381,15 @@ protected:
 
         m_fit_gen = fitness_toolkit::getInstance()->get_tool( config );
         if( m_fit_gen ) m_fit_gen->log( std::cerr );
+
+        population_growth_generator_type tmp  = population_growth_toolkit::getInstance()->get_tool( config );
+        if( tmp ) {
+            m_pop_grow = tmp->generate();
+            if( m_pop_grow ) {
+                m_pop_grow->log( std::cerr );
+                std::cerr << std::endl;
+            }
+        }
     }
 
     void initialize( ) {
@@ -686,6 +706,8 @@ protected:
     std::vector< sample_log_params > m_sampling;
 
     bool m_pairwise_pop;
+
+    population_growth_type m_pop_grow;
 };
 
 namespace clotho {
