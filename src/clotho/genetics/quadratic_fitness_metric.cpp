@@ -17,12 +17,12 @@
 const std::string QUAD_NAME = "quadratic";
 
 quadratic_fitness_metric::quadratic_fitness_metric( real_type s ) :
-    m_scale(s) {
-    assert( m_scale != 0 );
+    m_std(s) {
+    assert( m_std != 0 );
 }
 
 quadratic_fitness_metric::result_type quadratic_fitness_metric::operator()( real_type x ) {
-    result_type res = x / m_scale;
+    result_type res = x / m_std;
     res *= res;
 
     return (( res >= 1.0 ) ? 0.0 : (1.0 - res));
@@ -42,7 +42,7 @@ const std::string quadratic_fitness_metric::name() const {
 }
 
 void quadratic_fitness_metric::log( std::ostream & out ) const {
-    out << "{" << QUAD_NAME << "," << m_scale << "}\n";
+    out << "{" << QUAD_NAME << "," << m_std << "}\n";
 }
 
 quadratic_fitness_metric::~quadratic_fitness_metric() {}

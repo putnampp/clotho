@@ -40,11 +40,11 @@ std::shared_ptr< ifitness > quadratic_fitness_generator::generate( const std::ve
     //  N - is the haploid sequence count
     //  mu - mutation rate per sequence
 
-    double res = 4.0 * (double)pop_traits.size();
-    res *= m_mu;
-    res = sqrt( res );  // theoretical standard deviation
+    double std = 4.0 * (double)pop_traits.size();
+    std *= m_mu;
+    std = sqrt( std );  // theoretical standard deviation
 
-    std::shared_ptr< ifitness > t( new result_type( m_scale * res ));
+    std::shared_ptr< ifitness > t( new result_type( m_scale * std ));
     return t;
 }
 
@@ -53,23 +53,18 @@ const std::string quadratic_fitness_generator::name() const {
 }
 
 void quadratic_fitness_generator::parseConfig( boost::property_tree::ptree & config ) {
-    std::ostringstream oss;
-    oss /*<< QUAD_NAME << "."*/ << SCALE_K;
-    if( config.get_child_optional( oss.str() ) == boost::none ) {
-        config.put( oss.str(), m_scale );
+    if( config.get_child_optional( SCALE_K ) == boost::none ) {
+        config.put( SCALE_K, m_scale );
     } else {
-        m_scale = config.get< double >( oss.str(), m_scale );
+        m_scale = config.get< double >( SCALE_K, m_scale );
 
         assert( m_scale > 0.0 );
     }
 
-    oss.str("");
-    oss.clear();
-    oss /*<< QUAD_NAME << "."*/ << MU_K;
-    if( config.get_child_optional( oss.str() ) == boost::none ) {
-        config.put( oss.str(), m_mu );
+    if( config.get_child_optional( MU_K ) == boost::none ) {
+        config.put( MU_K, m_mu );
     } else {
-        m_mu = config.get< double >( oss.str(), m_mu );
+        m_mu = config.get< double >( MU_K, m_mu );
     }
 }
 

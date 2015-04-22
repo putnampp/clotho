@@ -21,33 +21,39 @@ fitness_toolkit::fitness_toolkit() {}
 
 void fitness_toolkit::tool_configurations( boost::property_tree::ptree & config ) {
 
+    boost::property_tree::ptree t;
     for( generator_citerator it = m_tools.begin(); it != m_tools.end(); ++it ) {
         boost::property_tree::ptree c;
         std::shared_ptr< ifitness_generator > tmp( it->second->create(c) );
 
-        config.put_child( FITNESS_BLOCK_K + "." + TOOLKIT_BLOCK_K + "." + it->first, c );
+        boost::property_tree::ptree d;
+        d.put( "name", it->first );
+        d.put_child( "params", c );
+        t.put_child( it->first, d );
     }
+    config.put_child( FITNESS_BLOCK_K + ".toolkit", t );
 }
 
 std::shared_ptr< ifitness_generator > fitness_toolkit::get_tool( boost::property_tree::ptree & config ) {
-    if( config.get_child_optional( FITNESS_BLOCK_K + "." + METRIC_K ) == boost::none ) {
-        config.put( FITNESS_BLOCK_K + "." + METRIC_K, "" );
+    if( config.get_child_optional( FITNESS_BLOCK_K ) == boost::none ) {
+        config.put( FITNESS_BLOCK_K + ".name", "" );
+        config.put( FITNESS_BLOCK_K + ".params", "" );
         return std::shared_ptr< ifitness_generator >();
     }
 
-    std::string tname = config.get< std::string >( FITNESS_BLOCK_K + "."  + METRIC_K, "" );
+    std::string tname = config.get< std::string >( FITNESS_BLOCK_K + ".name", "" );
 
+    std::shared_ptr< ifitness_generator > ret;
     if( !tname.empty() ) {
         generator_iterator it = m_tools.find(tname);
         if( it != m_tools.end() ) {
-            std::string fname = FITNESS_BLOCK_K + "." + TOOLKIT_BLOCK_K + "." + tname;
-
-            boost::property_tree::ptree c;
-            if( config.get_child_optional( fname ) != boost::none ) {
-                c = config.get_child(fname);
+            if( config.get_child_optional( FITNESS_BLOCK_K + ".params" ) == boost::none ) {
+                boost::property_tree::ptree t;
+                ret = it->second->create( t );
+                config.put_child( FITNESS_BLOCK_K + ".params", t );
+            } else {
+                ret = it->second->create( config.get_child( FITNESS_BLOCK_K + ".params") );
             }
-
-            return it->second->create( c );
         }
     }
 

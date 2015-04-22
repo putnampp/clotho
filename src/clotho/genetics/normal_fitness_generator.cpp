@@ -49,12 +49,10 @@ std::shared_ptr< ifitness > normal_fitness_generator::generate( const std::vecto
 }
 
 void normal_fitness_generator::parseConfig( boost::property_tree::ptree & config ) {
-    std::ostringstream oss;
-    oss /*<< NORM_NAME << "."*/ << MU_K;
-    if( config.get_child_optional( oss.str() ) == boost::none ) {
-        config.put( oss.str(), m_mu );
+    if( config.get_child_optional( MU_K ) == boost::none ) {
+        config.put( MU_K, m_mu );
     } else {
-        m_mu = config.get< double >( oss.str(), 1. );
+        m_mu = config.get< double >( MU_K, 1. );
     }
 }
 

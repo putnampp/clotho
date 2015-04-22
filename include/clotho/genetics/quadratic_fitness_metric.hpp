@@ -55,7 +55,7 @@ public:
     virtual ~quadratic_fitness_metric();
 
 protected:
-    real_type m_scale;
+    real_type m_std;
 };
 
 #endif  // QUADRATIC_FITNESS_METRIC_HPP_
