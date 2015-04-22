@@ -110,9 +110,9 @@ struct custom_allele_gen {
 
     template < class URNG >
     basic_allele operator()( URNG & rng, double sel = 0.0, double dom = 1.0, bool neut = true ) {
-#ifndef ALL_NEUTRAL_OPTIMIZATION
+#ifdef ALL_SELECTED_ALLELES
         neut = false;
-#endif  // ALL_NEUTRAL_OPTIMIZATION
+#endif  // ALL_SELECTED_ALLELES
         return basic_allele( m_kd(rng), sel, dom, neut );
     }
 };
