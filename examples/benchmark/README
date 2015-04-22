@@ -1,0 +1,85 @@
+OVERVIEW:
+
+The benchmark program is intended to be a proof-of-concept rather than as a utility
+program.  While it can be used to produce sample populations, the evolutionary
+scenario is limited to that which is described below.  The primary motivation of this
+program is to evaluate performance of a forward-time simulation using our proposed
+powerset based representation of a population.  This program also serves as an example
+of how one may construct a simulator using our template library.
+
+EVOLUTIONARY SCENARIO:
+
+Evolve a population of randomly mating, diploid organisms following neutral mutation
+model with recombination.  Parent organisms are randomly selected to produce a child
+in the next generation.  Gender is not considered, and selfing is allowed.
+
+An infinite site model of mutation is assumed.  Mutation events are generated following
+a Poisson distribution of a user defined per sequence mutation rate (m).  A constant per
+base mutation rate of $10^{-8}$ is assumed.
+
+Recombination events are generated following a Poisson distribution of a user defined per
+individual rate (r).  A constant per base recombination rate of $10^{-8}$ is assumed.
+
+TECHNICAL DETAILS:
+
+Elapsed times are recorded for several steps of the simulation: 
+  - Fitness Period
+  - Reproduction Period (includes Selection, Recombination, and Mutation)
+  - Reset Period (includes removal of Parent Population and Pruning of Allele space)
+  - Statistics Period
+  - Total Runtime (includes all above, and time to construct log)
+
+Elapsed time is measured in terms of processor clock cycles using Boost::Chrono 
+high resolution clock.  Values are measured in terms of machine clock frequency
+(nanoseconds on most machines).
+
+COMPILATION OPTIONS:
+
+ALL_SELECTED_ALLELES - All basic alleles by default are neutral.  This option will make all
+   alleles 'selected', or contributing to the fitness of an individual.  Making all alleles
+   selected does NOT change resulting populations of this simulator.  It is merely done to
+   evaluate the impact of computing fitness on runtime performance.
+
+COMMAND LINE OPTIONS:
+
+General:
+  -h [ --help ]                         Print this
+  -v [ --version ]                      Version
+
+Simulation Parameters:
+  -g [ --generations ] arg (=10000)     A positive number of generations. A 
+                                        value 0 will return a default 
+                                        configuration file
+  -p [ --founder-size ] arg (=10000)    Founding population size
+  -m [ --mu ] arg (=0.0001)             Mutation rate
+  -r [ --rho ] arg (=0.0001)            Recombination rate
+  -R [ --repeat ] arg (=1)              Repetitions
+  -s [ --seed ] arg (=0)                Random number generator initial seed 
+                                        value
+  -l [ --log-period ] arg (=4294967295) Number of generations between 
+                                        population stats calculations. (-1 => 
+                                        only final population)
+
+I/O parameters:
+  -o [ --output ] arg                   Prefix for simulation output files
+  -i [ --config ] arg                   Simulation configuration file
+
+BASIC USAGE:
+
+Command: benchmark_all_neutral -p 10000 -g 100 -m 0.001 -r 0.001 -l 10 -o data
+    Evolve a population of 10,000 (-p 10000) over 100 generation (-g 100)
+    mutations occur at a rate of 0.001 per sequence (-m -0.001), and
+    recombination occurs at a rate of 0.001 per individual (-r 0.001).
+    Log statistics every 10 generations (-l 10).  Use 'data' as a prefix for
+    the final log file 'data_log.json' (-o data) ['_log.json' suffix is appended
+    by the program].
+
+Command: benchmark_all_neutral -g 0 > default_config.json
+    Generate a JSON configuration file for the default settings of a simulation.
+
+Command: benchmark_all_neutral -i sim_config.json -o sim
+    Evolve a population using configuration specified in 'sim_config.json'.  Default
+    settings will be used for any configurable parameter not specified in 'sim_config.json'.
+    Unknown configuration parameters will be ignored (ie. program only uses configuration
+    parameters which have been hard-coded in the program.)
+    Final log will be written to 'sim_log.json'. 
