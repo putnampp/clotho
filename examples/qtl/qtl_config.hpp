@@ -66,6 +66,11 @@
 #define REPRODUCTION_METHOD_TAG recombine_mutate_tag
 #endif  //MUTATE_AND_RECOMBINE
 
+#ifdef USE_ASSORTATIVE_SELECTOR
+#define IND_SELECT assortative_selector
+#else
+#define IND_SELECT individual_selector
+#endif
 
 #ifdef USE_BLOCK_SIZE_32
 #define BLOCK_UNIT_TYPE unsigned int

@@ -64,3 +64,7 @@ TARGET_LINK_LIBRARIES( qtl_estimator_vector ${COMMON_LIBRARIES} ${PROJECT_NAME}_
 ADD_EXECUTABLE( qtl_estimator_mutrec qtl_estimator.cpp )
 SET_TARGET_PROPERTIES( qtl_estimator_mutrec PROPERTIES COMPILE_DEFINITIONS "USE_MUTATE_AND_RECOMBINE")
 TARGET_LINK_LIBRARIES( qtl_estimator_mutrec ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline ${PROJECT_NAME}_fitmetric ${PROJECT_NAME}_popgrowth)
+
+ADD_EXECUTABLE( qtl_estimator_assort qtl_estimator.cpp )
+SET_TARGET_PROPERTIES( qtl_estimator_assort PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_VECTOR_SUBSET;USE_ASSORTATIVE_SELECTOR" )
+TARGET_LINK_LIBRARIES( qtl_estimator_assort ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline ${PROJECT_NAME}_fitmetric ${PROJECT_NAME}_popgrowth)

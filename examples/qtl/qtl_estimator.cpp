@@ -208,6 +208,8 @@ void get_engine_config( const std::string & out_path ) {
 
     compile_log.put( ENGINE_BLOCK_K + ".reproduction_method.type", STR(REPRODUCTION_METHOD_TAG));
 
+    compile_log.put( ENGINE_BLOCK_K + ".individual_selector.type", STR(IND_SELECT) );
+
     if( out_path.empty() ) {
         boost::property_tree::write_json( std::cout, compile_log );
     } else {

@@ -35,6 +35,8 @@
 #include "clotho/genetics/individual_fitness.hpp"
 #include "clotho/genetics/individual_resetter.hpp"
 //#include "clotho/genetics/individual_phenotyper.hpp"
+//
+#include "clotho/genetics/assortative_selector.hpp"
 
 #include "clotho/genetics/population_phenotyper.hpp"
 
@@ -135,7 +137,8 @@ public:
     typedef sequence_mutator< sequence_type, mutation_generator_type >                          sequence_mutator_type;
     typedef clotho::utility::random_generator< rng_type, sequence_mutator_type >                sequence_mutator_generator;
     typedef individual_initializer< individual_type, sequence_generator_type >   individual_initializer_type;
-    typedef individual_selector< rng_type >             individual_selector_type;
+//    typedef individual_selector< rng_type >             individual_selector_type;
+    typedef IND_SELECT < rng_type > individual_selector_type;
 
     typedef individual_reproduction< individual_type
     , sequence_mutator_generator
