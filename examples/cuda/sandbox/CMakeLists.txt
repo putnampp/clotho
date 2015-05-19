@@ -15,7 +15,5 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_SRC_DIR}/examples )
 
 
-#CUDA_ADD_EXECUTABLE(square_list square_list.cpp square.cu square.h )
-#TARGET_LINK_LIBRARIES(square_list ${CUDA_LIBRARIES} ${CUDA_curand_LIBRARY} ${COMMON_LIBRARIES} )
-
-add_subdirectory(sandbox)
+CUDA_ADD_EXECUTABLE(square_list square_list.cpp square.cu square.h )
+TARGET_LINK_LIBRARIES(square_list ${CUDA_LIBRARIES} ${CUDA_curand_LIBRARY} ${COMMON_LIBRARIES} )
