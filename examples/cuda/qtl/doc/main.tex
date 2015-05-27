@@ -1,0 +1,28 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage[margin=1in]{geometry}
+
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+\usepackage{tikz}
+
+\begin{document}
+
+Caveat of GPGPU - dynamic allocation of device memory is initiated by \textit{host} and
+not \textit{device}.
+
+Resizing of adjacency matrix is necessary when \textif{free} nodes is less than or equal
+to new mutant node space size.
+
+Thought:  Free Page Matrix Manager
+
+Initial thought process:
+\begin{itemize}
+\item Host is performs random number generation, and uploads them to device.
+\item Host triggers reproduction pipeline. 
+\end{itemize}
+
+\end{document}
