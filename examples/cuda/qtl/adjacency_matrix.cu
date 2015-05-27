@@ -24,6 +24,8 @@ adjacency_matrix::adjacency_matrix( unsigned int rows, unsigned int cols ) :
     , m_cols( cols )
     , m_row_pages( rows / MAX_ROW_NODES + 1)
     , m_col_pages( cols / MAX_COLUMN_NODES + 1)
+    , m_column_metadata(NULL)
+    , m_row_metadata(NULL)
 {
 }
 

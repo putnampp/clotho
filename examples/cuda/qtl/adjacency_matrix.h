@@ -20,19 +20,19 @@
 
 /***********************************************************
  *
- * PAGE LAYOUT:
- * ________________________________________________
- *| Free Column bit vector ( COLUMN_HEADER_BLOCKS )|
- * ------------------------------------------------
- *| Free Rows bit vector   ( ROW_HEADER_BLOCKS )   |
- *|                                                |
- * ------------------------------------------------
- *| DATA (BLOCK_COUNT - x - y )                    |
- * ------------------------------------------------ 
- *| PADDING                                        |
- *|________________________________________________|
+ * DATA PAGE LAYOUT:
+ *  ________________________________________________
+ * | DATA (BLOCK_COUNT)                             |
+ * |________________________________________________|
+ * 
+ * METADATA PAGE LAYOUT:
+ *  ________________________________________________
+ * | Free Column (1-bit per column)                 |
+ * |________________________________________________|
  *
- * BLOCK_COUNT >= COLUMN_HEADER_BLOCKS (x) + ROW_HEADER_BLOCKS (y) + NODE_PER_BLOCK * x * y
+ *  ________________________________________________
+ * | Free Row (1-bit per row)                       |
+ * |________________________________________________|
  *
  ***********************************************************/
 class adjacency_matrix : public page_manager {
@@ -42,13 +42,8 @@ public:
 
     static const unsigned int NODE_PER_BLOCK = sizeof(page_manager::block_type) * 8 / BIT_PER_NODE; // (byte/block)*(bit/byte)/(bit/node) = (node/block)
 
-    static const unsigned int COLUMN_HEADER_BLOCKS = BLOCK_PER_ROW;
     static const unsigned int MAX_COLUMN_NODES = NODE_PER_BLOCK * BLOCK_PER_ROW;
-
-    static const unsigned int ROW_HEADER_BLOCKS = (page_manager::BLOCK_COUNT - COLUMN_HEADER_BLOCKS) / (NODE_PER_BLOCK * COLUMN_HEADER_BLOCKS + 1);
-
-    static const unsigned int MAX_ROW_NODES = NODE_PER_BLOCK * ROW_HEADER_BLOCKS;
-    static const unsigned int ROW_PADDING = (page_manager::BLOCK_COUNT - MAX_ROW_NODES);
+    static const unsigned int MAX_ROW_NODES = (page_manager::BLOCK_COUNT / BLOCK_PER_ROW);
 
     adjacency_matrix( unsigned int rows, unsigned int cols );
 
@@ -64,6 +59,8 @@ public:
 protected:
     unsigned int m_rows, m_cols;
     unsigned int m_row_pages, m_col_pages;
+
+    page_type * m_column_metadata, * m_row_metadata;
 };
 
 #endif  // ADJACENCY_MATRIX_H_
