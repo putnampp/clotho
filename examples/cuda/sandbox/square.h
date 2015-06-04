@@ -16,17 +16,31 @@
 
 #include <ostream>
 
+#include <cuda.h>
+#include <curand.h>
+#include <curand_kernel.h>
+
+#include <curand_mtgp32.h>
+
+#include <boost/random/mersenne_twister.hpp>
+#include "cuda_mt19937.h"
+
 class Square {
 public:
     typedef unsigned long int_type;
+    typedef unsigned long seed_type;
 
-    Square();
+    typedef cuda_mt19937 curand_state_type;
+
+    Square( boost::random::mt19937 & rng);
 
     size_t size() const;
 
-    void operator()();
+    void operator()( unsigned int s );
 
-    void random_list();
+//    void random_list();
+
+    bool good() const;
 
     friend std::ostream & operator<<( std::ostream &, const Square & rhs );
 
@@ -34,11 +48,25 @@ public:
 protected:
 
     void init();
-    //int_type m_a[N];
+
+/**
+ * Resize both host and device memory arrays to
+ * specific size.
+ *
+ * If size is greater than current capacity
+ * then both arrays are reallocated with size as new capacity
+ * and all existing data is lost
+ */
+    void resize( unsigned int s );
+
+    void initializePRNG( curandStateMtgp32_t * );
 
     int_type *  m_a, * m_dest;
-    size_t      m_size;
+    size_t      m_size, m_capacity;
     int m_maxBlocks, m_maxThreadsPerBlock;
+    bool    m_status;
+
+    curand_state_type m_dStates;
 };
 
 #endif  // SQUARE_CUDA_H_
