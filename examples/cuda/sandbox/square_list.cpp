@@ -15,16 +15,57 @@
 #include <cuda.h>
 #include <iostream>
 
+#include <boost/program_options.hpp>
 #include <boost/random/mersenne_twister.hpp>
 
 #include "clotho/utility/timer.hpp"
 
 #include "square.h"
 
+namespace po=boost::program_options;
+
 typedef clotho::utility::timer  timer_type;
 typedef boost::random::mt19937  rng_type;
 
 typedef Square::int_type        int_type;
+
+const std::string HELP_K = "help";
+
+const std::string SEED_K = "seed";
+const std::string LEN_K = "len";
+const std::string ROUNDS_K = "rounds";
+const std::string PRINT_GPU_K = "print-gpu";
+const std::string PRINT_CPU_K = "print-cpu";
+
+int parse_commandline( int argc, char ** argv, po::variables_map & vm ) {
+    po::options_description gen( "General" );
+    gen.add_options()
+    ( (HELP_K + ",h").c_str(), "Print this" )
+    ;
+
+    po::options_description params( "Parameters" );
+    params.add_options()
+    ((SEED_K + ",s").c_str(), po::value< unsigned int >()->default_value(1234), "Host random number generator seed value" )
+    ((LEN_K + ",l").c_str(), po::value< unsigned int >()->default_value( 2000 ), "List size" )
+    ((ROUNDS_K + ",r").c_str(), po::value< unsigned int >()->default_value( 1 ), "Number of rounds to repeat")
+    ((PRINT_GPU_K + ",p").c_str(), "Print GPGPU generated lists" )
+    ((PRINT_CPU_K + ",P").c_str(), "Print CPU generated lists" )
+    ;
+
+    po::options_description cmdline;
+
+    cmdline.add(gen).add(params);
+
+    po::store( po::command_line_parser( argc, argv ).options(cmdline).run(), vm );
+
+    int res = 0;
+    if( vm.count( HELP_K ) ) {
+        std::cout << cmdline << std::endl;
+        res = 1;
+    }
+
+    return res;
+}
 
 void square_it( int_type N ) {
 
@@ -40,14 +81,14 @@ void square_it( int_type N ) {
     std::cout << "host lapse:   " << t.elapsed().count() << std::endl;
 }
 
-void square_list_rand( int_type N ) {
+template < class Engine >
+void square_list_rand( Engine & eng, int_type N ) {
     timer_type t;
 
     int_type * a = new int_type[ N ];
-    rng_type rand(1234);
 
     for(int_type i = 0; i < N; ++i ) {
-        unsigned int r = rand();
+        unsigned int r = eng();
 
         a[i] = r * r;
     }
@@ -55,36 +96,50 @@ void square_list_rand( int_type N ) {
     t.stop();
     std::cout << "host random lapse: " << t.elapsed().count() << std::endl;
 
-    std::cerr << "BEGIN HOST" << std::endl;
-    for( unsigned int i = 0; i < N; ++i ) {
-        std::cerr << i << " -> " << a[i] << std::endl;
-    }
+    //std::cerr << "BEGIN HOST" << std::endl;
+    //for( unsigned int i = 0; i < N; ++i ) {
+    //    std::cerr << i << " -> " << a[i] << std::endl;
+    //}
     delete [] a;
 }
 
 int main( int argc, char ** argv ) {
 
+    po::variables_map vm;
+    if( parse_commandline(argc, argv, vm ) ) {
+        return -1;
+    }
+
+    rng_type rgen(vm[SEED_K].as<unsigned int>());
+    unsigned int list_len = vm[LEN_K].as<unsigned int>();
+    unsigned int rounds = vm[ROUNDS_K].as<unsigned int>();
+
+    bool print_gpu = (vm.count(PRINT_GPU_K) > 0);
+//    bool print_cpu = (vm.count(PRINT_CPU_K) > 0);
+
     timer_type t;
-    Square s;
+    Square s( rgen );
     t.stop();
 
     std::cout << "Init: " << t.elapsed().count() << std::endl;
 
-    //t.start();
-    //s();
-    //t.stop();
+    std::cout << "Testing GPGPU based RNG ..." << std::endl;
+    unsigned int i = 0;
+    while( i < rounds ) {
+        t.start();
+        s(list_len);
+        t.stop();
 
-    //std::cout << "device lapse: " << t.elapsed().count() << std::endl;
+        std::cout << "Round " << (++i) <<  ": device random lapse: " << t.elapsed().count() << std::endl;
+        if( print_gpu )        std::cerr << s;
+    }
 
-    t.start();
-    s.random_list();
-    t.stop();
-    std::cout << "device random lapse: " << t.elapsed().count() << std::endl;
-    std::cerr << s;
-
-    square_it( s.size() );
-
-    square_list_rand( s.size() );
+    std::cout << "Testing CPU based RNG ..." << std::endl;
+    i = 0;
+    while( i < rounds ) {
+        std::cout << "Round " << (++i) << ": ";
+        square_list_rand( rgen, list_len );
+    }
 
     return 0;
 }
