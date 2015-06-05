@@ -68,6 +68,22 @@ __global__ void squareRNG( Square::int_type * a, int N, State * rngStates ) {
     }
 }
 
+template < class State >
+__global__ void squareRNG( Square::int_type * a, int N, State * rngState, unsigned int rounds ) {
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    unsigned int idx = bid * (blockDim.x * blockDim.y) + tid;
+
+    while( idx < N && rounds-- ) {
+        Square::int_type tmp = curand(rngState + bid );
+        tmp *= tmp;
+        a[idx] = tmp;
+
+        idx += blockDim.x;
+    }
+}
+
 Square::Square( boost::random::mt19937 & rng ) :
     m_a(NULL)
     , m_dest(NULL)
@@ -132,7 +148,9 @@ void Square::operator()( unsigned int s ) {
 //    std::cerr << "Block Dimensions: <" << bdim.x << ", " << bdim.y << ", " << bdim.z << ">" << std::endl;
 //    std::cerr << "Grid Dimensions: <" << gdim.x << ", " << gdim.y << ", " << gdim.z << ">" << std::endl;
 
-    squareRNG<<< gdim, bdim >>>( m_dest, m_size, m_dStates.getStates() );
+    //squareRNG<<< gdim, bdim >>>( m_dest, m_size, m_dStates.getStates() );
+
+    squareRNG<<< block_count, bdim.x >>>( m_dest, m_size, m_dStates.getStates(), bdim.y );
 
     //int_type * d = m_dest;
     //curand_state_type::pointer pS = m_dStates.getStates();
