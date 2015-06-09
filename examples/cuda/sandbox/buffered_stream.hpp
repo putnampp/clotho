@@ -18,5 +18,6 @@
 
 #include "basic_buffered_stream.hpp"
 #include "double_buffered_stream.hpp"
+#include "double_buffered_mutex_stream.hpp"
 
 #endif  // BUFFERED_STREAM_HPP_
