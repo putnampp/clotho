@@ -19,8 +19,10 @@
 #include <boost/random/mersenne_twister.hpp>
 
 #include "clotho/utility/timer.hpp"
+#include "clotho/utility/popcount.hpp"
 
 #include "square.h"
+#include "square_stream.h"
 
 namespace po=boost::program_options;
 
@@ -37,6 +39,31 @@ const std::string ROUNDS_K = "rounds";
 const std::string PRINT_GPU_K = "print-gpu";
 const std::string PRINT_CPU_K = "print-cpu";
 
+const std::string TEST_GPU_K = "test-gpu";
+const std::string TEST_CPU_K = "test-cpu";
+
+template < class RNG, class GPUSquare >
+void runGPUTest( RNG & rng, unsigned int list_len, unsigned int rounds, bool print ) {
+    timer_type t;
+    GPUSquare s( rng );
+    t.stop();
+
+    std::cout << "Init: " << t.elapsed().count() << std::endl;
+
+    unsigned int i = 0;
+    while( i < rounds ) {
+        t.start();
+        s(list_len);
+        t.stop();
+
+        std::cout << "Round " << (++i) <<  ": device random lapse: " << t.elapsed().count() << std::endl;
+        if( print ) {
+            std::cerr << "Round " << i << std::endl;
+            std::cerr << s;
+        }
+    }
+}
+
 int parse_commandline( int argc, char ** argv, po::variables_map & vm ) {
     po::options_description gen( "General" );
     gen.add_options()
@@ -50,6 +77,8 @@ int parse_commandline( int argc, char ** argv, po::variables_map & vm ) {
     ((ROUNDS_K + ",r").c_str(), po::value< unsigned int >()->default_value( 1 ), "Number of rounds to repeat")
     ((PRINT_GPU_K + ",p").c_str(), "Print GPGPU generated lists" )
     ((PRINT_CPU_K + ",P").c_str(), "Print CPU generated lists" )
+    ((TEST_GPU_K + ",g").c_str(), po::value< unsigned int >()->default_value(0), "GPU test to run" )
+    ((TEST_CPU_K + ",c").c_str(), po::value< unsigned int >()->default_value(0), "CPU test to run" )
     ;
 
     po::options_description cmdline;
@@ -82,24 +111,34 @@ void square_it( int_type N ) {
 }
 
 template < class Engine >
-void square_list_rand( Engine & eng, int_type N ) {
+void runCPUTest( Engine & eng, int_type N, unsigned int rounds, bool print ) {
     timer_type t;
-
     int_type * a = new int_type[ N ];
+    t.stop();
 
-    for(int_type i = 0; i < N; ++i ) {
-        unsigned int r = eng();
+    std::cout << "Init: " << t.elapsed().count() << std::endl;
+    unsigned int i = 0;
+    while( i < rounds ) {
+        t.start();
 
-        a[i] = r * r;
+        int_type * tmp = a;
+        unsigned int j = N;
+        while( j-- ) {
+            (*tmp++) = popcount(eng());
+        }
+
+        t.stop();
+        std::cout << "Round " << (++i) << ": host random lapse: " << t.elapsed().count() << std::endl;
+
+        if( print ) {
+            tmp = a;
+            j = N;
+            while( j-- ) {
+                std::cerr << (N - j) << " -> " << (*tmp++) << std::endl;
+            }
+        }
     }
 
-    t.stop();
-    std::cout << "host random lapse: " << t.elapsed().count() << std::endl;
-
-    //std::cerr << "BEGIN HOST" << std::endl;
-    //for( unsigned int i = 0; i < N; ++i ) {
-    //    std::cerr << i << " -> " << a[i] << std::endl;
-    //}
     delete [] a;
 }
 
@@ -117,28 +156,27 @@ int main( int argc, char ** argv ) {
     bool print_gpu = (vm.count(PRINT_GPU_K) > 0);
 //    bool print_cpu = (vm.count(PRINT_CPU_K) > 0);
 
-    timer_type t;
-    Square s( rgen );
-    t.stop();
 
-    std::cout << "Init: " << t.elapsed().count() << std::endl;
-
-    std::cout << "Testing GPGPU based RNG ..." << std::endl;
-    unsigned int i = 0;
-    while( i < rounds ) {
-        t.start();
-        s(list_len);
-        t.stop();
-
-        std::cout << "Round " << (++i) <<  ": device random lapse: " << t.elapsed().count() << std::endl;
-        if( print_gpu )        std::cerr << s;
+    switch( vm[TEST_GPU_K].as<unsigned int>() ) {
+    case (unsigned int)-1:
+        break;
+    case 1:
+        std::cout << "Testing CPU RNG -> GPGPU Squaring ... " << std::endl;
+        runGPUTest<rng_type, SquareStream >( rgen, list_len, rounds, print_gpu );
+        break;
+    default:
+        std::cout << "Testing GPGPU based RNG ..." << std::endl;
+        runGPUTest<rng_type, Square >( rgen, list_len, rounds, false );
+        break;
     }
 
-    std::cout << "Testing CPU based RNG ..." << std::endl;
-    i = 0;
-    while( i < rounds ) {
-        std::cout << "Round " << (++i) << ": ";
-        square_list_rand( rgen, list_len );
+    switch( vm[TEST_CPU_K].as<unsigned int>() ) {
+    case (unsigned int)-1:
+        break;
+    default:
+        std::cout << "Testing CPU based RNG ..." << std::endl;
+        runCPUTest( rgen, list_len, rounds, false );
+        break;
     }
 
     return 0;
