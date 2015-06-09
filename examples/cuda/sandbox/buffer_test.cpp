@@ -13,17 +13,32 @@
 //   limitations under the License.
 #include <iostream>
 
+#include <boost/program_options.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #include "clotho/utility/timer.hpp"
+#include "clotho/utility/log_helper.hpp"
 
 #include "buffered_stream.hpp"
 
+namespace po=boost::program_options;
+
 typedef clotho::utility::timer timer_type;
+
+const std::string HELP_K = "help";
+
+const std::string N_K = "length";
+const std::string ROUND_K = "rounds";
+const std::string BUFFER_SIZE_K = "buffer-size";
+const std::string SEED_K = "seed";
 
 class simple_generator : public igenerator {
 public:
     typedef unsigned int result_t;
 
-    simple_generator( unsigned int o = 0 ) : igenerator( NULL, NULL ), offset(o) {}
+    simple_generator( unsigned long seed, unsigned int o = 0 ) : igenerator( NULL, NULL ), m_gen(seed) {}
 
     void generate() {
         if( start == NULL || end == NULL ) return;
@@ -32,14 +47,14 @@ public:
         result_t * ee = static_cast< result_t *>( end );
 
         while( t < ee ) {
-            *t++ = offset++;
+            *t++ = m_gen();
         }
     }
 
     virtual ~simple_generator() {}
 
 protected:
-    unsigned int offset;
+    boost::random::mt19937 m_gen;
 };
 
 namespace clotho {
@@ -54,11 +69,12 @@ struct result_type_of< simple_generator > {
 }   // namespace clotho
 
 template < class Func >
-void runTimedFunc( Func & f ) {
+void runTimedFunc( Func & f, boost::property_tree::ptree & lapse ) {
     timer_type t;
     f();
     t.stop();
-    std::cout << "Lapse: " << t.elapsed().count() << std::endl;
+//    std::cout << "Lapse: " << t.elapsed().count() << std::endl;
+    clotho::utility::add_value_array( lapse, t );
 }
 
 template < class Stream, class Func >
@@ -101,38 +117,110 @@ struct stream_summation {
 
     void operator()() {
         result_t res = 0;
-        while( L-- ) {
+        unsigned int n = L;
+        while( n-- ) {
             res += (*m_stream)();   
         }
-        std::cout << "Result: " << res << std::endl;
     }
 };
 
+struct random_summation {
+    typedef unsigned int result_t;
+    boost::random::mt19937 m_gen;
+    unsigned int L;
+
+    random_summation( unsigned long seed, unsigned int l ) : m_gen(seed), L(l) {}
+
+    void operator()() {
+        result_t res = 0;
+        unsigned int n = L;
+        while( n-- ) {
+            res += m_gen();
+        }
+    }
+};
+
+void buildOptions( po::options_description & opts ) {
+    po::options_description gen("General");
+
+    gen.add_options()
+    ((HELP_K + ",h").c_str(), "Print this")
+    ;
+
+    po::options_description params("Parameters");
+    params.add_options()
+    ((N_K + ",l").c_str(), po::value<unsigned int>()->default_value(100000), "Sequence Length")
+    ((ROUND_K + ",r").c_str(), po::value<unsigned int>()->default_value(2), "Repeat tests")
+    ((BUFFER_SIZE_K + ",b").c_str(), po::value<unsigned int>()->default_value(256), "BufferStream buffer size;  Size is number of elements to buffer")
+    ((SEED_K + ",s" ).c_str(), po::value<unsigned long>()->default_value(1234), "Random Number Generator Seed")
+    ;
+
+    opts.add(gen).add(params);
+}
+
+int parse_cmd( int argc, char ** argv, po::variables_map & vm ) {
+    po::options_description cmdline;
+    buildOptions( cmdline );
+
+    po::store( po::command_line_parser( argc, argv ).options(cmdline).run(), vm );
+
+    int res = 0;
+    if( vm.count( HELP_K ) ) {
+        std::cout << cmdline << std::endl;
+        res = 1;
+    }
+
+    return res;
+}
+
 int main( int argc, char ** argv ) {
 
-    unsigned int N = 1000000;
+    po::variables_map vm;
+
+    if( parse_cmd( argc, argv, vm ) ) {
+        return 1;
+    }
 
     typedef simple_generator                                            Generator;
     typedef BufferedStream< Generator, basic_buffer >                   SimpleBuffer;
     typedef BufferedStream< Generator, double_buffered >                DoubleBuffer;
 
-    {
-    Generator s(0);
-    SimpleBuffer simple_bs(s, N/4);
+    unsigned int rounds = vm[ROUND_K].as<unsigned int>();
+    unsigned int N = vm[N_K].as<unsigned int>();
+    unsigned long seed = vm[SEED_K].as<unsigned long>();
 
-    stream_summation< SimpleBuffer > test( simple_bs, N );
-//    runTest( simple_bs, summation< result_type >(), N );
-        runTimedFunc( test );
+    boost::random::mt19937 rng(seed);
+
+    boost::property_tree::ptree basic_lapse;
+    for(unsigned int i = 0; i < rounds; ++i ) {
+        Generator s(rng(), 0);
+        SimpleBuffer simple_bs(s, N/4);
+
+        stream_summation< SimpleBuffer > test( simple_bs, N );
+        runTimedFunc( test, basic_lapse );
     }
 
-    {
-    Generator s2(0);
-    DoubleBuffer double_bs(s2, N/5);
+    boost::property_tree::ptree double_lapse;
+    for( unsigned int i = 0; i < rounds; ++i ) {
+        Generator s2(rng(), 0);
+        DoubleBuffer double_bs(s2, N/5);
 
-//    runTest( double_bs, summation< result_type >(), N );
         stream_summation< DoubleBuffer > test( double_bs, N );
-        runTimedFunc(test);
+        runTimedFunc(test, double_lapse);
     }
+
+    boost::property_tree::ptree no_lapse;
+    for( unsigned int i = 0; i < rounds; ++i ) {
+        random_summation test( rng(), N );
+        runTimedFunc(test, no_lapse);
+    }
+
+    boost::property_tree::ptree lapses;
+    lapses.add_child( "basic_stream", basic_lapse );
+    lapses.add_child( "double_buffered_stream", double_lapse);
+    lapses.add_child( "no_stream", no_lapse);
+
+    boost::property_tree::write_json(std::cout, lapses );
 
     return 0;
 }

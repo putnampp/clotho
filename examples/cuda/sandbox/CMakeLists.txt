@@ -15,5 +15,10 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_SRC_DIR}/examples )
 
 
-CUDA_ADD_EXECUTABLE(square_list square_list.cpp square.cu square.h cuda_mt19937.cu)
+CUDA_ADD_EXECUTABLE(square_list square_list.cpp square.cu cuda_mt19937.cu square_stream.cu)
 TARGET_LINK_LIBRARIES(square_list ${CUDA_LIBRARIES} ${CUDA_curand_LIBRARY} ${COMMON_LIBRARIES} )
+
+ADD_EXECUTABLE( gen_test generate_test.cpp)
+
+ADD_EXECUTABLE( buffer_test buffer_test.cpp)
+TARGET_LINK_LIBRARIES( buffer_test ${COMMON_LIBRARIES} )
