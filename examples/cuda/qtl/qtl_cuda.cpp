@@ -32,11 +32,16 @@ int main(int argc, char ** argv ) {
 
     std::cout << mat << std::endl;
 
-    assert( mat.capacity() == 2 );
+    //assert( mat.capacity() == 2 );
 
     mat.resize( 4000, 5000 );
 
     std::cout << mat;
+
+    mat.resize( 2000, 3500 );
+
+    std::cout << "\n" << mat;
+
 
     return 0;
 }
