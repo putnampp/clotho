@@ -60,6 +60,8 @@ public:
     virtual ~BufferedStream() {
         pthread_join( m_worker, NULL );
 
+        pthread_attr_destroy(&m_attr);
+
         delete [] m_buffer;
     }
 protected:
@@ -70,7 +72,12 @@ protected:
         pthread_attr_init( &m_attr );
 
         // fill first buffer
-        fillBuffer( m_buffer, m_buffer + m_buffersize );
+        //fillBuffer( m_buffer, m_buffer + m_buffersize );
+        m_gen->start = m_buffer;
+        m_gen->end = m_buffer + m_buffersize;
+
+        m_gen->generate();
+        m_thread_err = true;
 
         // make it seem like we have reached the end
         // of the second buffer
