@@ -19,6 +19,7 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include "clotho/utility/timer.hpp"
+#include "clotho/utility/popcount.hpp"
 #include "clotho/utility/log_helper.hpp"
 
 #include "buffered_stream.hpp"
@@ -60,6 +61,7 @@ protected:
 namespace clotho {
 namespace utility {
 
+/// BufferedStreams rely upon this helper to determine structure
 template <>
 struct result_type_of< simple_generator > {
     typedef unsigned int type;
@@ -73,22 +75,7 @@ void runTimedFunc( Func & f, boost::property_tree::ptree & lapse ) {
     timer_type t;
     f();
     t.stop();
-//    std::cout << "Lapse: " << t.elapsed().count() << std::endl;
     clotho::utility::add_value_array( lapse, t );
-}
-
-template < class Stream, class Func >
-void runTest( Stream & s, Func f, unsigned int L ) {
-    std::cout << "Before: " << f << std::endl;
-
-    timer_type t;
-    while( L-- ) {
-        f( s() );
-    }
-    t.stop();
-
-    std::cout << "Result: " << f << std::endl;
-    std::cout << "Lapse: " << t.elapsed().count() << std::endl;
 }
 
 template < class T >
@@ -124,12 +111,13 @@ struct stream_summation {
     }
 };
 
-struct random_summation {
+template<>
+struct stream_summation< void > {
     typedef unsigned int result_t;
     boost::random::mt19937 m_gen;
     unsigned int L;
 
-    random_summation( unsigned long seed, unsigned int l ) : m_gen(seed), L(l) {}
+    stream_summation( unsigned long seed, unsigned int l ) : m_gen(seed), L(l) {}
 
     void operator()() {
         result_t res = 0;
@@ -140,6 +128,39 @@ struct random_summation {
     }
 };
 
+template < class Stream >
+struct stream_popcount {
+    typedef typename clotho::utility::result_type_of< Stream >::type result_t;
+    Stream * m_stream;
+    unsigned int L;
+
+    stream_popcount( Stream & s, unsigned int l ) : m_stream( &s ), L(l) {}
+
+    void operator()() {
+        result_t res = 0;
+        unsigned int n = L;
+        while( n-- ) {
+            res += popcount((*m_stream)());
+        }
+    }
+};
+
+template<>
+struct stream_popcount< void > {
+    typedef unsigned int result_t;
+    boost::random::mt19937 m_gen;
+    unsigned int L;
+
+    stream_popcount( unsigned long seed, unsigned int l ) : m_gen(seed), L(l) {}
+
+    void operator()() {
+        result_t res = 0;
+        unsigned int n = L;
+        while( n-- ) {
+            res += popcount(m_gen());
+        }
+    }
+};
 void buildOptions( po::options_description & opts ) {
     po::options_description gen("General");
 
@@ -184,41 +205,58 @@ int main( int argc, char ** argv ) {
     typedef simple_generator                                            Generator;
     typedef BufferedStream< Generator, basic_buffer >                   SimpleBuffer;
     typedef BufferedStream< Generator, double_buffered >                DoubleBuffer;
+    typedef BufferedStream< Generator, double_buffered_mutex >          DoubleBufferMutex;
 
     unsigned int rounds = vm[ROUND_K].as<unsigned int>();
     unsigned int N = vm[N_K].as<unsigned int>();
     unsigned long seed = vm[SEED_K].as<unsigned long>();
+    unsigned int buffersize = vm[BUFFER_SIZE_K].as<unsigned int>();
 
     boost::random::mt19937 rng(seed);
 
     boost::property_tree::ptree basic_lapse;
     for(unsigned int i = 0; i < rounds; ++i ) {
         Generator s(rng(), 0);
-        SimpleBuffer simple_bs(s, N/4);
+        SimpleBuffer simple_bs(s, buffersize);
 
-        stream_summation< SimpleBuffer > test( simple_bs, N );
+        stream_popcount< SimpleBuffer > test( simple_bs, N );
         runTimedFunc( test, basic_lapse );
     }
 
     boost::property_tree::ptree double_lapse;
     for( unsigned int i = 0; i < rounds; ++i ) {
         Generator s2(rng(), 0);
-        DoubleBuffer double_bs(s2, N/5);
+        DoubleBuffer double_bs(s2, buffersize);
 
-        stream_summation< DoubleBuffer > test( double_bs, N );
+        stream_popcount< DoubleBuffer > test( double_bs, N );
         runTimedFunc(test, double_lapse);
+    }
+
+    boost::property_tree::ptree mutex_lapse;
+    for( unsigned int i = 0; i < rounds; ++i ) {
+        Generator s2(rng(), 0);
+        DoubleBufferMutex double_bs(s2, buffersize);
+
+        stream_popcount< DoubleBufferMutex > test( double_bs, N );
+        runTimedFunc(test, mutex_lapse);
     }
 
     boost::property_tree::ptree no_lapse;
     for( unsigned int i = 0; i < rounds; ++i ) {
-        random_summation test( rng(), N );
+        stream_popcount< void > test( rng(), N );
         runTimedFunc(test, no_lapse);
     }
 
     boost::property_tree::ptree lapses;
     lapses.add_child( "basic_stream", basic_lapse );
     lapses.add_child( "double_buffered_stream", double_lapse);
+    lapses.add_child( "double_buffered_mutex_stream", mutex_lapse);
     lapses.add_child( "no_stream", no_lapse);
+
+    lapses.put( "config.N", N );
+    lapses.put( "config.seed", seed );
+    lapses.put( "config.rounds", rounds );
+    lapses.put( "config.buffersize", buffersize );
 
     boost::property_tree::write_json(std::cout, lapses );
 
