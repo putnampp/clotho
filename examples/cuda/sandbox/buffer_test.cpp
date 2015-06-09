@@ -11,6 +11,41 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
+//
+
+
+/**
+ * @section DESCRIPTION
+ * 
+ * This is a simple program that generates a stream of random numbers
+ * using BufferedStream configurations
+ *
+ * The popcount of each random number is accumulated
+ * The overall time for the main loop is recorded
+ *
+ * Four Tests are performed:
+ * 1 - basic_buffer
+ *   - Single-thread, refills buffer when buffer has been exhausted
+ * 2 - double_buffered
+ *   - Allocates 2*buffer-size space
+ *   - Fills first half
+ *   - Spawns worker thread to fill 'empty' half
+ *   - Will block main thread until worker thread has completed by 
+ *   -  joining the worker thread with main thread
+ *   - (Scenario: repeatedly spawn worker thread)
+ * 3 - double_buffered_mutex
+ *   - Allocates 2*buffer-size space,
+ *   - Fills first half
+ *   - Spawns worker thread to fill 'empty' half
+ *   - Uses mutex and conditional waits to fill 'empty' portion
+ *   - Join of work thread occurs on object destruction
+ *   - (Scenario: single worker pool; Used to evaluate thread creation overhead)
+ * 4 - no_buffer
+ *   - Performs the main loop without any threading
+ *
+ * The elapsed time for each test is recorded and a JSON formatted object is
+ * printed to stdout
+ */
 #include <iostream>
 
 #include <boost/program_options.hpp>
@@ -214,43 +249,56 @@ int main( int argc, char ** argv ) {
 
     boost::random::mt19937 rng(seed);
 
-    boost::property_tree::ptree basic_lapse;
+    boost::property_tree::ptree lapses;
+
+    boost::property_tree::ptree basic_lapse, basic_total;
     for(unsigned int i = 0; i < rounds; ++i ) {
+        timer_type t;
         Generator s(rng(), 0);
         SimpleBuffer simple_bs(s, buffersize);
 
         stream_popcount< SimpleBuffer > test( simple_bs, N );
         runTimedFunc( test, basic_lapse );
+        t.stop();
+        clotho::utility::add_value_array( basic_total, t );
     }
+    lapses.add_child( "basic_stream.main", basic_lapse );
+    lapses.add_child( "basic_stream.total", basic_total );
 
-    boost::property_tree::ptree double_lapse;
+    boost::property_tree::ptree double_lapse, double_total;
     for( unsigned int i = 0; i < rounds; ++i ) {
+        timer_type t;
         Generator s2(rng(), 0);
         DoubleBuffer double_bs(s2, buffersize);
 
         stream_popcount< DoubleBuffer > test( double_bs, N );
         runTimedFunc(test, double_lapse);
+        t.stop();
+        clotho::utility::add_value_array( double_total, t );
     }
+    lapses.add_child( "double_buffered_stream.main", double_lapse);
+    lapses.add_child( "double_buffered_stream.total", double_total);
 
-    boost::property_tree::ptree mutex_lapse;
+    boost::property_tree::ptree mutex_lapse, mutex_total;
     for( unsigned int i = 0; i < rounds; ++i ) {
+        timer_type t;
         Generator s2(rng(), 0);
         DoubleBufferMutex double_bs(s2, buffersize);
 
         stream_popcount< DoubleBufferMutex > test( double_bs, N );
         runTimedFunc(test, mutex_lapse);
+        t.stop();
+        clotho::utility::add_value_array( mutex_total, t );
     }
+    lapses.add_child( "double_buffered_mutex_stream.main", mutex_lapse);
+    lapses.add_child( "double_buffered_mutex_stream.total", mutex_total);
 
+    // assuming that initialization of this object is always negligible
     boost::property_tree::ptree no_lapse;
     for( unsigned int i = 0; i < rounds; ++i ) {
         stream_popcount< void > test( rng(), N );
         runTimedFunc(test, no_lapse);
     }
-
-    boost::property_tree::ptree lapses;
-    lapses.add_child( "basic_stream", basic_lapse );
-    lapses.add_child( "double_buffered_stream", double_lapse);
-    lapses.add_child( "double_buffered_mutex_stream", mutex_lapse);
     lapses.add_child( "no_stream", no_lapse);
 
     lapses.put( "config.N", N );
