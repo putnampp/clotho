@@ -22,7 +22,8 @@
 
 BOOST_AUTO_TEST_SUITE( test_utility )
 
-BOOST_AUTO_TEST_CASE( test_popcount ) {
+/// Basic two's complement test cases
+BOOST_AUTO_TEST_CASE( test_popcount_two_comp ) {
     int x = -129;   // 0xffffff7f
 
     TEST_PC( x, 31 );
@@ -32,6 +33,9 @@ BOOST_AUTO_TEST_CASE( test_popcount ) {
 
     long z = -129 * 0x0000000100000000;   // 0xffffff7f00000000
     TEST_PC( z, 31);
+
+    unsigned int a = -1;
+    TEST_PC( a, 32 );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
