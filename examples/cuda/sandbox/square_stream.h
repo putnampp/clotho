@@ -29,6 +29,7 @@ public:
     static const unsigned int MAX_THREADS = 1024;
 
     SquareStream( boost::random::mt19937 & rng, unsigned int nStreams = 16);
+    SquareStream( boost::random::mt19937 * rng, unsigned int nStreams = 16);
 
     size_t size() const;
 

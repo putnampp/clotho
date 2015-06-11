@@ -97,6 +97,19 @@ Square::Square( boost::random::mt19937 & rng ) :
     init();
 }
 
+Square::Square( boost::random::mt19937 * rng ) :
+    m_a(NULL)
+    , m_dest(NULL)
+    , m_size(0)
+    , m_capacity(0)
+    , m_maxBlocks(0)
+    , m_maxThreadsPerBlock(0)
+    , m_status(true)
+    , m_dStates( rng )
+{
+    init();
+}
+
 void Square::init() {
     cudaDeviceProp m_cdp;
     cudaError_t err = cudaGetDeviceProperties( &m_cdp, 0 );

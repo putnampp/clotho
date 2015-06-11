@@ -17,7 +17,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "clotho/utility/popcount.hpp"
+#include "popcount_kernel.h"
 
 __global__ void square( SquareStream::int_type * a, unsigned int N ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -28,7 +28,7 @@ __global__ void square( SquareStream::int_type * a, unsigned int N ) {
     //a[idx] = buffer[threadIdx.x];
     a[idx] *= a[idx];
 }
-
+/*
 template < class I >
 __device__ I popcountGPU( I a );
 
@@ -52,7 +52,7 @@ __global__ void computeHW( SquareStream::int_type * a, unsigned int N ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     a[idx] = popcountGPU(a[idx]);
-}
+}*/
 
 SquareStream::SquareStream( boost::random::mt19937 & rng, unsigned int nStreams ) :
     m_hostMem(NULL)
@@ -72,6 +72,23 @@ SquareStream::SquareStream( boost::random::mt19937 & rng, unsigned int nStreams 
     init();
 }
 
+SquareStream::SquareStream( boost::random::mt19937 * rng, unsigned int nStreams ) :
+    m_hostMem(NULL)
+    , m_devMem(NULL)
+    , m_streams(NULL)
+    , m_hBuffer(NULL)
+    , m_dBuffer(NULL)
+    , m_streamSizes(NULL)
+    , m_size(0)
+    , m_capacity(0)
+    , m_nStreams( nStreams )
+    , m_maxBlocks(0)
+    , m_maxThreadsPerBlock(0)
+    , m_status(true)
+    , m_rng( rng )
+{
+    init();
+}
 void SquareStream::init() {
     cudaDeviceProp m_cdp;
     cudaError_t err = cudaGetDeviceProperties( &m_cdp, 0 );
