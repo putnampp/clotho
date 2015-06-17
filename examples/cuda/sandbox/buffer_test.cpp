@@ -48,6 +48,9 @@
  */
 #include <iostream>
 
+#include <cuda.h>
+#include <curand.h>
+
 #include <boost/program_options.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -74,7 +77,7 @@ class simple_generator : public igenerator {
 public:
     typedef unsigned int result_t;
 
-    simple_generator( unsigned long seed, unsigned int o = 0 ) : igenerator( NULL, NULL ), m_gen(seed) {}
+    simple_generator( unsigned long seed ) : igenerator( NULL, NULL ), m_gen(seed) {}
 
     void generate() {
         if( start == NULL || end == NULL ) return;
@@ -93,12 +96,144 @@ protected:
     boost::random::mt19937 m_gen;
 };
 
+class cuda_generator : public igenerator {
+public:
+    typedef unsigned int result_t;
+
+    cuda_generator( unsigned long seed ) : 
+        igenerator( NULL, NULL )
+        , m_dData( NULL )
+        , m_size(0)
+        , m_capacity(0)
+        , m_seed_gen(seed)
+        , m_gen()
+        , m_status(true) {
+        init();
+    }
+
+    
+    void init( ) {
+        curandStatus_t err =  curandCreateGenerator( &m_gen, CURAND_RNG_PSEUDO_MTGP32 );
+        if( err != CURAND_STATUS_SUCCESS ) {
+            std::cerr << "ERROR: Failed to create generator: " << err << std::endl;
+            m_status = false;
+            return;
+        }
+    }
+
+    void generate() {
+        if( cudaSetDevice(0) != cudaSuccess ) {
+            std::cerr << "ERROR: Unable set CUDA device: " << std::endl;
+            return;
+        }
+
+        if( !m_status ) { return; }
+
+        resize();
+
+        unsigned long long s = m_seed_gen();
+        if( curandSetPseudoRandomGeneratorSeed( m_gen, s ) != CURAND_STATUS_SUCCESS ) {
+            std::cerr << "ERROR: Unable to seed random number generator" << std::endl;
+            m_status = false;
+            return;
+        }
+
+        if( curandGenerate( m_gen, m_dData, m_size ) != CURAND_STATUS_SUCCESS ) {
+            std::cerr << "ERROR: Unable to generate random numbers on device" << std::endl;
+        }
+
+        if( cudaMemcpy( start, m_dData, m_size * sizeof(result_t), cudaMemcpyDeviceToHost) != cudaSuccess) {
+            std::cerr << "ERROR: Unable to copy data from device" << std::endl;
+        }
+    }
+/*
+    void generate_slow() {
+        if( cudaSetDevice(0) != cudaSuccess ) {
+            std::cerr << "ERROR: Unable set CUDA device: " << std::endl;
+            return;
+        }
+
+        if( !m_status ) { return; }
+
+        resize();
+
+        curandGenerator_t g;
+        curandStatus_t err =  curandCreateGenerator( &g, CURAND_RNG_PSEUDO_MTGP32 );
+        if( err != CURAND_STATUS_SUCCESS ) {
+            std::cerr << "ERROR: Failed to create generator: " << err << std::endl;
+            m_status = false;
+            return;
+        }
+     
+        unsigned long long s = m_seed_gen();
+        if( curandSetPseudoRandomGeneratorSeed( g, s ) != CURAND_STATUS_SUCCESS ) {
+            std::cerr << "ERROR: Unable to seed random number generator" << std::endl;
+            m_status = false;
+            return;
+        }
+
+        if( curandGenerate( g, m_dData, m_size ) != CURAND_STATUS_SUCCESS ) {
+            std::cerr << "ERROR: Unable to generate random numbers on device" << std::endl;
+        }
+
+        if( cudaMemcpy( start, m_dData, m_size * sizeof(result_t), cudaMemcpyDeviceToHost) != cudaSuccess) {
+            std::cerr << "ERROR: Unable to copy data from device" << std::endl;
+        }
+
+        if( cudaDeviceSynchronize() != cudaSuccess ) {
+            std::cerr << "ERROR: Sync error" << std::endl;
+        }
+
+        curandDestroyGenerator( g );
+    }*/
+
+    bool good() const { return m_status; }
+
+    virtual ~cuda_generator() {
+        if( m_status ) { curandDestroyGenerator( m_gen ); }
+
+        if( m_dData ) { cudaFree( m_dData ); }
+    }
+
+protected:
+    
+    void resize( ) {
+        size_t s = (result_t *)end - (result_t *)start;
+//        std::cerr << "Size: " << s << " [" << start << ", " << end << "]" << std::endl;
+        if( s > m_capacity ) {
+            if( m_dData ) { cudaFree( m_dData ); }
+
+
+            cudaDeviceSynchronize();
+            cudaError_t err = cudaMalloc( (void **) &m_dData, s * sizeof( result_t ) );
+            if( err != cudaSuccess ) {
+                std::cerr << "ERROR: Unable to allocate device memory: " << std::endl;
+                m_status = false;
+            }
+            m_capacity = s;
+        }
+        m_size = s;
+    }
+
+    result_t * m_dData;
+    size_t     m_size, m_capacity;
+    boost::random::mt19937 m_seed_gen;
+
+    curandGenerator_t m_gen;
+    bool m_status;
+};
+
 namespace clotho {
 namespace utility {
 
 /// BufferedStreams rely upon this helper to determine structure
 template <>
 struct result_type_of< simple_generator > {
+    typedef unsigned int type;
+};
+
+template <>
+struct result_type_of< cuda_generator > {
     typedef unsigned int type;
 };
 
@@ -169,13 +304,19 @@ struct stream_popcount {
     Stream * m_stream;
     unsigned int L;
 
+    boost::property_tree::ptree log;
+
     stream_popcount( Stream & s, unsigned int l ) : m_stream( &s ), L(l) {}
 
     void operator()() {
         result_t res = 0;
         unsigned int n = L;
         while( n-- ) {
-            res += popcount((*m_stream)());
+            result_t tmp = (*m_stream)();
+            res += popcount(tmp);
+
+//            std::cerr << tmp << " = 0x" << std::hex << tmp << " -> " << std::dec << popcount(tmp) << std::endl;
+            clotho::utility::add_value_array( log, tmp );
         }
     }
 };
@@ -237,7 +378,12 @@ int main( int argc, char ** argv ) {
         return 1;
     }
 
+#ifdef USE_CUDA_GENERATOR
+    typedef cuda_generator                                              Generator;
+#else
     typedef simple_generator                                            Generator;
+#endif  // USE_CUDA_GENERATOR
+
     typedef BufferedStream< Generator, basic_buffer >                   SimpleBuffer;
     typedef BufferedStream< Generator, double_buffered >                DoubleBuffer;
     typedef BufferedStream< Generator, double_buffered_mutex >          DoubleBufferMutex;
@@ -251,10 +397,11 @@ int main( int argc, char ** argv ) {
 
     boost::property_tree::ptree lapses;
 
+    std::cerr << "Basic Stream:" << std::endl;
     boost::property_tree::ptree basic_lapse, basic_total;
     for(unsigned int i = 0; i < rounds; ++i ) {
         timer_type t;
-        Generator s(rng(), 0);
+        Generator s(rng());
         SimpleBuffer simple_bs(s, buffersize);
 
         stream_popcount< SimpleBuffer > test( simple_bs, N );
@@ -264,11 +411,13 @@ int main( int argc, char ** argv ) {
     }
     lapses.add_child( "basic_stream.main", basic_lapse );
     lapses.add_child( "basic_stream.total", basic_total );
+    lapses.put( "basic_stream.memory", buffersize * sizeof(SimpleBuffer::result_t));
 
+    std::cerr << "Double Buffered Stream: " << std::endl;
     boost::property_tree::ptree double_lapse, double_total;
     for( unsigned int i = 0; i < rounds; ++i ) {
         timer_type t;
-        Generator s2(rng(), 0);
+        Generator s2(rng());
         DoubleBuffer double_bs(s2, buffersize);
 
         stream_popcount< DoubleBuffer > test( double_bs, N );
@@ -278,21 +427,27 @@ int main( int argc, char ** argv ) {
     }
     lapses.add_child( "double_buffered_stream.main", double_lapse);
     lapses.add_child( "double_buffered_stream.total", double_total);
+    lapses.put( "double_buffered_stream.memory", buffersize * sizeof(DoubleBuffer::result_t) * 2);
 
-    boost::property_tree::ptree mutex_lapse, mutex_total;
+    std::cerr << "Double Buffered Mutex Stream:" << std::endl;
+    boost::property_tree::ptree mutex_lapse, mutex_total, mutex_rand;
     for( unsigned int i = 0; i < rounds; ++i ) {
         timer_type t;
-        Generator s2(rng(), 0);
+        Generator s2(rng());
         DoubleBufferMutex double_bs(s2, buffersize);
 
         stream_popcount< DoubleBufferMutex > test( double_bs, N );
         runTimedFunc(test, mutex_lapse);
         t.stop();
         clotho::utility::add_value_array( mutex_total, t );
+        mutex_rand.push_back( std::make_pair("", test.log) );
     }
     lapses.add_child( "double_buffered_mutex_stream.main", mutex_lapse);
     lapses.add_child( "double_buffered_mutex_stream.total", mutex_total);
+    lapses.put( "double_buffered_mutex_stream.memory", buffersize * sizeof(DoubleBufferMutex::result_t) * 2);
+    lapses.add_child( "double_buffered_mutex_stream.random", mutex_rand );
 
+    std::cerr << "Bufferless:" << std::endl;
     // assuming that initialization of this object is always negligible
     boost::property_tree::ptree no_lapse;
     for( unsigned int i = 0; i < rounds; ++i ) {

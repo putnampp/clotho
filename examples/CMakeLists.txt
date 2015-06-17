@@ -19,6 +19,7 @@ LIST( APPEND SRCS simulation_config_json.cpp )
 LIST( APPEND SRCS simulation_config.cpp )
 
 ADD_LIBRARY( ${PROJECT_NAME}_commandline SHARED ${SRCS} )
+TARGET_LINK_LIBRARIES( ${PROJECT_NAME}_commandline ${COMMON_LIBRARIES} )
 
 #ADD_EXECUTABLE( benchmark_all_neutral benchmark.cpp )
 #SET_TARGET_PROPERTIES(benchmark_all_neutral PROPERTIES COMPILE_DEFINITIONS "ALL_NEUTRAL_OPTIMIZATION")
