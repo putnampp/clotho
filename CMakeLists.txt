@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 cmake_minimum_required (VERSION 2.8)
-PROJECT( CLOTHO CXX )
+PROJECT( CLOTHO C CXX )
 
 SET (${PROJECT_NAME}_LIB_CORENAME "clotho")
 
@@ -70,11 +70,27 @@ ENDIF (NOT ${PROJECT_NAME}_EXTERNALLY_CONFIGURED )
 ## PROJECT COMPILE OPTIONS
 ######################################################################################
 
-OPTION(BUILD_CUDA_EXAMPLES "Build the CUDA example programs" OFF )
-
+OPTION(WITH_CUDA_EXAMPLES "Build the CUDA example programs" OFF )
+OPTION(WITH_GSL "Build with GSL" OFF )
+OPTION(WITH_TC_MALLOC "Build with TC Malloc" ON )
+OPTION(WITH_PROFILER "Build with Gperftools profiler" ON )
+OPTION(WITH_RT "Build with POSIX Realtime Extensions library" OFF )
+OPTION(WITH_PTHREAD "Build with POSIX Thread library" OFF )
 
 ################################################################################
-FIND_PACKAGE( Boost COMPONENTS program_options filesystem system thread unit_test_framework chrono python REQUIRED )
+
+LIST(APPEND boost_comps program_options)
+LIST(APPEND boost_comps filesystem)
+LIST(APPEND boost_comps system)
+LIST(APPEND boost_comps chrono)
+
+LIST(APPEND boost_comps unit_test_framework)
+
+LIST(APPEND boost_comps python)
+#LIST(APPEND boost_comps thread)
+
+
+FIND_PACKAGE( Boost COMPONENTS ${boost_comps} REQUIRED )
 IF( Boost_FOUND )
     INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
     MESSAGE (STATUS "Boost Include: " ${Boost_INCLUDE_DIR} )
@@ -82,53 +98,70 @@ IF( Boost_FOUND )
 ENDIF( Boost_FOUND )
 #LIST( APPEND COMMON_LIBRARIES ${Boost_LIBRARIES} )
 
-foreach( ITEM ${Boost_LIBRARIES} )
-    if( NOT (ITEM MATCHES "(.*)python(.*)") )
-        LIST(APPEND COMMON_LIBRARIES ${ITEM})
-    endif()
-endforeach()
+#MESSAGE (STATUS "Program options component: " ${Boost_PROGRAM_OPTIONS_LIBRARY})
+#
+#foreach( ITEM ${Boost_LIBRARIES} )
+#    if( NOT (ITEM MATCHES "(.*)python(.*)") )
+#        LIST(APPEND COMMON_LIBRARIES ${ITEM})
+#    endif()
+#endforeach()
 
 FIND_PACKAGE( PythonLibs 2.7 REQUIRED )
 IF( PYTHONLIBS_FOUND )
     INCLUDE_DIRECTORIES( ${PYTHON_INCLUDE_DIRS} )
     MESSAGE( STATUS "Python Include: " ${PYTHON_INCLUDE_DIRS} )
-    MESSAGE( STATUS "Python Libraries: " ${PYTHON_INCLUDE_DIRS} )
 ENDIF( PYTHONLIBS_FOUND )
 #LIST( APPEND COMMON_LIBRARIES ${PYTHON_LIBRARIES})
-     
-FIND_PACKAGE( GSL )
-IF( GSL_FOUND )
-    MESSAGE( STATUS "GSL Library: " ${GSL_LIBRARIES} )
-ENDIF( GSL_FOUND )
-LIST( APPEND COMMON_LIBRARIES ${GSL_LIBRARIES} )
 
-IF( BUILD_CUDA_EXAMPLES )
+IF( WITH_GSL )     
+    FIND_PACKAGE( GSL )
+    IF(GSL_FOUND )
+        MESSAGE( STATUS "GSL Library: " ${GSL_LIBRARIES} )
+        LIST( APPEND COMMON_LIBRARIES ${GSL_LIBRARIES} )
+    ENDIF( GSL_FOUND )
+ENDIF( WITH_GSL )
 
-FIND_PACKAGE( CUDA REQUIRED )
-MESSAGE( STATUS "CXX: " ${CMAKE_CXX_COMPILER})
-SET(CUDA_HOST_COMPILER g++)
-SET(CUDA_SEPARABLE_COMPILATION ON )
-SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
-#SET(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode arch=compute_20,code=sm_20")
+IF( WITH_CUDA_EXAMPLES )
+    FIND_PACKAGE( CUDA REQUIRED )
+    MESSAGE( STATUS "CXX: " ${CMAKE_CXX_COMPILER})
+    SET(CUDA_HOST_COMPILER g++)
+    SET(CUDA_SEPARABLE_COMPILATION ON )
+    SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
+    #SET(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode arch=compute_20,code=sm_20")
 
-MESSAGE( STATUS "CUDA LIBRARIES: " ${CUDA_LIBRARIES} )
-MESSAGE( STATUS "CUDA LIBRARIES: " ${CUDA_curand_LIBRARY} )
-ENDIF( BUILD_CUDA_EXAMPLES )
+    MESSAGE( STATUS "CUDA LIBRARIES: " ${CUDA_LIBRARIES} )
+    MESSAGE( STATUS "CUDA LIBRARIES: " ${CUDA_curand_LIBRARY} )
+ENDIF( WITH_CUDA_EXAMPLES )
 
 SET( Gperftools_DIR "/opt/gperftools/latest" )
-find_library( TCMALLOC_LIBRARY NAMES tcmalloc PATHS ${Gperftools_DIR}/lib )
-find_library( PROFILER_LIBRARY NAMES profiler PATHS ${Gperftools_DIR}/lib )
 
-MESSAGE( STATUS "TCMALLOC: " ${TCMALLOC_LIBRARY})
-LIST( APPEND COMMON_LIBRARIES ${TCMALLOC_LIBRARY} )
-MESSAGE( STATUS "PROFILER: " ${PROFILER_LIBRARY})
-LIST( APPEND COMMON_LIBRARIES ${PROFILER_LIBRARY} )
+IF( WITH_TC_MALLOC )
+    find_library( TCMALLOC_LIBRARY NAMES tcmalloc PATHS ${Gperftools_DIR}/lib )
+    MESSAGE( STATUS "TCMALLOC: " ${TCMALLOC_LIBRARY})
+    LIST( APPEND COMMON_LIBRARIES ${TCMALLOC_LIBRARY} )
+ENDIF( WITH_TC_MALLOC )
 
-find_library( REALTIME_LIB NAMES rt )
-LIST( APPEND COMMON_LIBRARIES ${REALTIME_LIB} )
+IF( WITH_PROFILER )
+    find_library( PROFILER_LIBRARY NAMES profiler PATHS ${Gperftools_DIR}/lib )
+    MESSAGE( STATUS "PROFILER: " ${PROFILER_LIBRARY})
+    LIST( APPEND COMMON_LIBRARIES ${PROFILER_LIBRARY} )
+ENDIF( WITH_PROFILER )
 
-find_library( PTHREAD_LIB NAMES pthread )
-LIST( APPEND COMMON_LIBRARIES ${PTHREAD_LIB})
+IF( WITH_RT )
+    find_library( REALTIME_LIB NAMES rt )
+    LIST( APPEND COMMON_LIBRARIES ${REALTIME_LIB} )
+ENDIF( WITH_RT )
+
+IF( WITH_PTHREAD )
+    FIND_PACKAGE( Threads )
+    IF( NOT Threads_FOUND )
+        MESSAGE(STATUS "Threads not found; Attempting to locate pthread library manually" )   
+        find_library( PTHREAD_LIB NAMES pthread )
+        IF( PTHREAD_LIB_NOTFOUND )
+            MESSAGE( STATUS "Pthread not found" )
+        ENDIF( PTHREAD_LIB_NOTFOUND )
+    ENDIF( NOT Threads_FOUND )
+ENDIF( WITH_PTHREAD )
 
 FOREACH( L ${COMMON_LIBRARIES} ) 
     MESSAGE( STATUS ${L} )

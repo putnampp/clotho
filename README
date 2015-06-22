@@ -21,7 +21,13 @@ OVERVIEW
 DEPENDENCIES
     - CMake 2.8 (or higher)
     - Boost 1.54.0 (or higher)
-    - TCMalloc (https://code.google.com/p/gperftools/)
+    - TCMalloc & Profiler  [optional] (https://code.google.com/p/gperftools/)
+    - GSL [optional]
+
+SUPPORTED SYSTEMS:
+- *NIX
+- Mac OSX has not been fully tested.  Early tests suggest that librt and libpthread are not available/used on Mac OSX. See 'Useful CMake Configuration Options' to see how to turn linking against these libraries off.
+
 
 COMPILATION
     Execute the following commands in the main project directory:
@@ -39,8 +45,28 @@ COMPILATION
         * The Doxygen files are work in progress
 
 
-USEFUL COMMANDS:
+Useful CMake Configuration Options:
+  <Variable>            [Default state]
+- WITH_CUDA_EXAMPLES    [=OFF]
+- WITH_GSL              [=OFF]
+- WITH_TC_MALLOC        [=ON]
+- WITH_PROFILER         [=ON]
+- WITH_RT               [=OFF]
+- WITH_PTHREAD          [=OFF]
 
-Compilation Variable: BUILD_CUDA_EXAMPLES
+Configuration Variable: WITH_CUDA_EXAMPLES
 Description: Turns on/off whether the CUDA examples are compiled or not
-Example Command: mkdir -p build/cuda; cd build/cuda; cmake -DBUILD_CUDA_EXAMPLES=ON ../..; make; cd ../..
+Example Command: mkdir -p build/cuda; cd build/cuda; cmake -DWITH_CUDA_EXAMPLES=ON ../..; make; cd ../..
+
+Configuration Variable: WITH_GSL [=OFF by default]
+Description: Turns on/off whether binaries should be linked with GSL libraries.  Intended for future examples.
+Example Command: mkdir -p build/gsl; cd build/gsl; cmake -DWITH_GSL=ON ../..; make; cd ../..
+
+Configuration Variable: WITH_TC_MALLOC and WITH_PROFILER [=ON by default]
+Description: Turns on/off linking against tcmalloc and profiler from Gperftools.  Recommend using these useful tools for 
+    generally efficient memory allocation and performance profiling.
+Example Command: mkdir -p build/no_gperf; cd build/no_gperf; cmake -DWITH_TC_MALLOC=OFF -DWITH_PROFILER=OFF ../..; make; cd ../..
+
+Configuration Variable: WITH_RT
+Description: Turns on/off POSIX Realtime extension library. Mac OSX does not seem to provide this library.
+Example Command: mkdir -p build/no_rt; cd build/no_rt; cmake -DWITH_RT=ON ../..; make; cd ../..
