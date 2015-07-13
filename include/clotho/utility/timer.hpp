@@ -11,12 +11,13 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef TIMER_HPP_
-#define TIMER_HPP_
+#ifndef CLOTHO_TIMER_HPP_
+#define CLOTHO_TIMER_HPP_
 
 #include <boost/chrono/chrono.hpp>
 #include <boost/chrono/chrono_io.hpp>
 #include <boost/chrono/system_clocks.hpp>
+#include <ostream>
 
 namespace clotho {
 namespace utility {
@@ -29,7 +30,12 @@ typedef clock_type::duration                    duration_type;
 class timer {
 public:
 
-    static constexpr double hertz = (double)clock_type::period::num/clock_type::period::den;
+    //static constexpr double hertz = (double)clock_type::period::num/(double)clock_type::period::den;
+    static double hertz() {
+        static double h = (double) clock_type::period::num / (double) clock_type::period::den;
+        return h;
+    }
+
     timer() : m_start( clock_type::now() ), m_end( time_point_type::max() ) {}
 
     /**
@@ -66,11 +72,18 @@ public:
         return (t - m_start).count();
     }
 
+    friend std::ostream & operator<<( std::ostream & out, const timer & t );
+
     virtual ~timer() {}
 protected:
     time_point_type m_start, m_end;
 };
 
+inline std::ostream & operator<<( std::ostream & out, const timer & t ) {
+    out << t.elapsed().count();
+    return out;
+}
+
 }   // namespace utility
 }   // namespace clotho
-#endif  // TIMER_HPP_
+#endif  // CLOTHO_TIMER_HPP_
