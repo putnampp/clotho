@@ -19,6 +19,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace clotho {
 namespace utility {
@@ -45,13 +46,17 @@ void add_value_array( boost::property_tree::ptree & array, const std::pair< A, B
 template < class A >
 void add_value_array( boost::property_tree::ptree & array, const std::vector< A > & t ) {
     boost::property_tree::ptree n;
-    typename std::vector< A >::const_iterator it = t.begin();
-    while( it != t.end() ) {
-        add_value_array( n, (*it));
-        ++it;
-    }
+    add_value_array( n, t.begin(), t.end() );
+    array.push_back( std::make_pair("", n ) );
+}
 
-    array.push_back( std::make_pair("", n));
+
+template < class Iter >
+void add_value_array( boost::property_tree::ptree & array, Iter first, Iter last ) {
+    while( first != last ) {
+        add_value_array( array, (*first) );
+        ++first;
+    }
 }
 
 inline void add_value_array( boost::property_tree::ptree & array, const clotho::utility::timer & t ) {
@@ -67,6 +72,9 @@ inline void add_node( boost::property_tree::ptree & root, const std::string & pa
     }
 }
 
+
+#if __cplusplus > 201103L
+// shared_ptr only defined in c++11 and higher
 template < class Sequence >
 void add_node( boost::property_tree::ptree & r, const std::string & path, const std::pair< std::shared_ptr< Sequence >, std::shared_ptr< Sequence > > & ind ) {
     std::ostringstream oss;
@@ -80,6 +88,7 @@ void add_node( boost::property_tree::ptree & r, const std::string & path, const 
     oss << ind.second << ": " << (*ind.second);
     r.put( path + ".second", oss.str() );
 }
+#endif
 
 }   // namespace utility
 }   // namespace clotho
