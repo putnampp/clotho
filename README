@@ -23,10 +23,12 @@ DEPENDENCIES
     - Boost 1.54.0 (or higher)
     - TCMalloc & Profiler  [optional] (https://code.google.com/p/gperftools/)
     - GSL [optional]
+    - CUDA GPGPU with compute capability 3.0 or greater [optional]
 
 SUPPORTED SYSTEMS:
 - *NIX
 - Mac OSX has not been fully tested.  Early tests suggest that librt and libpthread are not available/used on Mac OSX. See 'Useful CMake Configuration Options' to see how to turn linking against these libraries off.
+- CUDA GPUs with compute capability 3.0 or greater.  Example CUDA code utilizes __shfl* instructions which are only available after compute capability 3.0.
 
 
 COMPILATION
