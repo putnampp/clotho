@@ -18,6 +18,9 @@
 #include "simulate_engine.hpp"
 
 #include "random_number_options.hpp"
+#include "mutation_rate_option.hpp"
+#include "recombination_rate_option.hpp"
+#include "population_size_option.hpp"
 
 #include "clotho/utility/timer.hpp"
 
@@ -31,12 +34,18 @@ int main( int argc, char ** argv ) {
     if(ret) return ret;
 
     typedef random_number_options::seed_type seed_type;
-
     seed_type seed = vm[ random_number_options::SEED_K ].as< seed_type >();
 
-    unsigned int pop_size = 10000;
+    typedef mutation_rate_option::mutation_rate_type mutation_rate_type;
+    mutation_rate_type mu = vm[ mutation_rate_option::RATE_K ].as< mutation_rate_type >();
 
-    simulate_engine eng( seed, 0.001, 30.0, pop_size );
+    typedef recombination_rate_option::recombination_rate_type recombination_rate_type;
+    recombination_rate_type rho = vm[ recombination_rate_option::RATE_K ].as< recombination_rate_type >();
+
+    typedef population_size_option::population_size_type population_size_type;
+    population_size_type pop_size = vm[ population_size_option::SIZE_K ].as< population_size_type >();
+
+    simulate_engine eng( seed, mu, rho, pop_size );
 
     boost::property_tree::ptree log;
 
