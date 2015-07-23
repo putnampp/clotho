@@ -32,6 +32,7 @@ LIST(APPEND OPTIONS_SRC random_number_options.cpp)
 LIST(APPEND OPTIONS_SRC mutation_rate_option.cpp)
 LIST(APPEND OPTIONS_SRC recombination_rate_option.cpp)
 LIST(APPEND OPTIONS_SRC population_size_option.cpp)
+LIST(APPEND OPTIONS_SRC generations_option.cpp)
 
 LIST(APPEND SIM_SRC main.cpp)
 LIST(APPEND SIM_SRC simulate_engine.cu )

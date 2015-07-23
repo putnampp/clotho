@@ -21,6 +21,7 @@
 #include "mutation_rate_option.hpp"
 #include "recombination_rate_option.hpp"
 #include "population_size_option.hpp"
+#include "generations_option.hpp"
 
 #include "clotho/utility/timer.hpp"
 
@@ -45,12 +46,15 @@ int main( int argc, char ** argv ) {
     typedef population_size_option::population_size_type population_size_type;
     population_size_type pop_size = vm[ population_size_option::SIZE_K ].as< population_size_type >();
 
+    typedef generations_option::generations_type generations_type;
+    generations_type nGens = vm[ generations_option::SIZE_K ].as< generations_type >();
+
     simulate_engine eng( seed, mu, rho, pop_size );
 
     boost::property_tree::ptree log;
 
-    unsigned int i = 3;
-    while( i-- ) {
+    unsigned int i = 0;
+    while( i++ < nGens ) {
 
         clotho::utility::timer t;
         eng.simulate( pop_size );
