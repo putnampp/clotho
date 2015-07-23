@@ -29,7 +29,7 @@ std::string population_size_option::name() const {
 
 void population_size_option::getOptions( po::options_description & desc ) {
     desc.add_options()
-    ( (SIZE_K + ",p").c_str(), po::value< population_size_type >()->default_value(0.01), "Population Size")
+    ( (SIZE_K + ",p").c_str(), po::value< population_size_type >()->default_value(10000), "Population Size")
     ;
 }
 
