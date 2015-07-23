@@ -23,6 +23,18 @@
  *  max_dims.y = maximum number of sequences
  *  max_dims.z = maximum number of random numbers
  */
-__global__ void generate_crossover_matrix( double * rand_pool, unsigned int * event_list, double * alleles, unsigned int * sequences, dim3 max_dims );
+__global__ void generate_crossover_matrix( double * rand_pool
+                                         , double * alleles
+                                         , unsigned int * event_list
+                                         , unsigned int * sequences
+                                         , dim3 max_dims );
+
+__global__ void init_alleles( double * alleles, unsigned int allele_count );
+__global__ void crossover2( unsigned int * seq, double rpoint );
+
+__global__ void crossover( unsigned int * seq
+                            , double * alleles
+                            , unsigned int allele_count
+                            , double rpoint);
 
 #endif  // CROSSOVER_MATRIX_HPP_

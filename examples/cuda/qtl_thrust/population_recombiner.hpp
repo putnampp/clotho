@@ -40,4 +40,10 @@ __global__ void recombine_population( double * rand_pool
                                     , unsigned int off_rows
                                     , unsigned int off_cols);
 
+
+__global__ void recombine( unsigned int * p0
+                            , unsigned int * p1
+                            , unsigned int * off
+                            , unsigned int cols );
+
 #endif  // POPULATION_RECOMBINER_HPP_

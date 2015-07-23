@@ -19,6 +19,11 @@
 
 #include "random_number_options.hpp"
 
+#include "clotho/utility/timer.hpp"
+
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 int main( int argc, char ** argv ) {
     po::variables_map vm;
 
@@ -29,14 +34,35 @@ int main( int argc, char ** argv ) {
 
     seed_type seed = vm[ random_number_options::SEED_K ].as< seed_type >();
 
-    simulate_engine eng( seed, 0.5, 0.5 );
+    unsigned int pop_size = 10000;
 
-    unsigned int i = 1;
+    simulate_engine eng( seed, 0.001, 30.0, pop_size );
+
+    boost::property_tree::ptree log;
+
+    unsigned int i = 3;
     while( i-- ) {
-        eng.simulate( 100 );
 
-        std::cout << eng;
+        clotho::utility::timer t;
+        eng.simulate( pop_size );
+        t.stop();
+
+//        boost::property_tree::ptree n;
+//        eng.record_state( n );
+//
+//        std::ostringstream oss;
+//        oss << "log" << i;
+//        log.add_child( oss.str(), n );
+
+        std::cerr << "Simulate Lapse: " << t << std::endl;
     }
+/*
+    test_log tl;
+    test_log2 ts( &tl );
+
+    ts.log_state( log, eng );*/
+
+//    boost::property_tree::write_json( std::cout, log );
 
     return 0;
 }
