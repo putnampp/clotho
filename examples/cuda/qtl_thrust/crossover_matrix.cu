@@ -38,7 +38,7 @@ __global__ void generate_crossover_matrix2( double * rand_pool
 
     if( eStart >= eEnd ) {  // should be true or false for all threads in the block
         if( threadIdx.y == 0 ) {
-            sequences[ blockIdx.y * max_dims.x + blockIdx.x * 32 + threadIdx.x ] = 0;
+            sequences[ blockIdx.y * max_dims.x + (blockIdx.x << 5) + threadIdx.x ] = 0;
         }
         __syncthreads();
         return;
@@ -71,7 +71,7 @@ __global__ void generate_crossover_matrix2( double * rand_pool
 
 #pragma unroll
     for( unsigned int i = 2; i <= BLOCK_PER_ROW; i <<= 1 ) {
-        unsigned int n = __shfl_down(m, (i / 2), BLOCK_PER_ROW );
+        unsigned int n = __shfl_down(m, (i >> 1), BLOCK_PER_ROW );
         if( !(threadIdx.x & (i - 1))) m |= n;
     }
 //    if( threadIdx.x == 0 ) {
@@ -87,7 +87,7 @@ __global__ void generate_crossover_matrix2( double * rand_pool
     // expecting this to not coalesce well
     // 
     if( threadIdx.x == 0 ) {
-        sequences[ blockIdx.y * max_dims.x + blockIdx.x * 32 + threadIdx.y ] = m;
+        sequences[ blockIdx.y * max_dims.x + (blockIdx.x << 5) + threadIdx.y ] = m;
     }
 }
 

@@ -46,4 +46,12 @@ __global__ void recombine( unsigned int * p0
                             , unsigned int * off
                             , unsigned int cols );
 
+__global__ void recombiner( double * rands
+                            , unsigned int * parents
+                            , unsigned int parent_rows
+                            , unsigned int parent_cols
+                            , unsigned int * off
+                            , unsigned int cols
+                            , unsigned int seq_offset );
+
 #endif  // POPULATION_RECOMBINER_HPP_
