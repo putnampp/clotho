@@ -29,8 +29,16 @@ __global__ void generate_crossover_matrix( double * rand_pool
                                          , unsigned int * sequences
                                          , dim3 max_dims );
 
+__global__ void generate_crossover_matrix2( double * rand_pool
+                                         , double * alleles
+                                         , unsigned int * event_list
+                                         , unsigned int * sequences
+                                         , dim3 max_dims );
+
 __global__ void init_alleles( double * alleles, unsigned int allele_count );
-__global__ void crossover2( unsigned int * seq, double rpoint );
+__global__ void init_sequence( unsigned int * seq );
+__global__ void crossover2( double rpoint );
+__global__ void finalize_sequence( unsigned int * seq );
 
 __global__ void crossover( unsigned int * seq
                             , double * alleles

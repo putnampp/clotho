@@ -122,7 +122,7 @@ simulate_engine::simulate_engine( unsigned long seed, double mu, double rho, uns
 
 void simulate_engine::init( unsigned int founder_size ) {
     if( curandCreateGenerator( &m_dGen, CURAND_RNG_PSEUDO_MTGP32 ) != CURAND_STATUS_SUCCESS ) {
-
+        assert(false);
     }
 
     typedef boost::random::uniform_int_distribution< unsigned long long > uniform_int_dist_type;
@@ -131,10 +131,17 @@ void simulate_engine::init( unsigned int founder_size ) {
 
     std::cerr << "CURAND seed: " << s << std::endl;
     if( curandSetPseudoRandomGeneratorSeed( m_dGen, s ) != CURAND_STATUS_SUCCESS ) {
-
+        assert(false);
     }
 
-    resizeAlleles(1024);
+//    unsigned int a = 40000;
+    unsigned int a = 1024;
+    resizeAlleles(a);
+
+    // initialize the alleles with random values
+    fill_uniform< real_type > duni( m_dGen );
+//    curand_gateway( m_dAlleles, m_dAlleles.size(), duni );
+    duni( m_dAlleles, m_dAlleles.size() );
 
     thrust::fill(m_dFree.begin(), m_dFree.end(), -1);
 
@@ -153,6 +160,7 @@ void simulate_engine::simulate( unsigned int pop_size ) {
         parent_rows = m_dParentPop->size() / parent_rows;
     }
 
+    std::cerr << "Parent Alleles: " << parent_alleles << std::endl;
     typedef clotho::utility::timer timer_type;
 
     timer_type t0;
@@ -168,7 +176,10 @@ void simulate_engine::simulate( unsigned int pop_size ) {
 //    resizeAlleles( nMut );
     resizePopulation( m_dOffspringPop, seq_count );
     
-    crossover_method3( seq_count, parent_alleles );
+//    crossover_method1( seq_count, nMut );
+//    crossover_method2( seq_count, parent_alleles );
+    crossover_method4( seq_count, nMut, parent_alleles );
+
 //    recombine_method2( seq_count, parent_rows, parent_cols );
 
 //    mutate_method1( seq_count, nMut );
@@ -214,7 +225,7 @@ void simulate_engine::crossover_method1( unsigned int seq_count, unsigned int nM
 //
 //    t0.start();
     // build recombination masks in child population space
-    const unsigned int seq_per_block = 1000;
+    const unsigned int seq_per_block = 100;
     unsigned int bcount = seq_count / seq_per_block;
     if( seq_count % seq_per_block ) { ++bcount; }
 
@@ -360,10 +371,15 @@ void simulate_engine::crossover_method3( unsigned int seq_count, unsigned int pa
         unsigned int * off = offspring;
         while( i < seq_count ) {
             unsigned int n = event_gen( m_hGen );
+            init_sequence<<< blocks, threads >>>( off );
+
             while( n-- ) {
                 double r = rec_point_gen( m_hGen );
-                crossover2<<< blocks, threads >>>( off, r);
+                crossover2<<< blocks, threads >>>( r);
             }
+
+            finalize_sequence<<< blocks, threads >>>( off );
+            cudaDeviceSynchronize();
             off += m_dFree.size();
             ++i;
         }
@@ -372,6 +388,73 @@ void simulate_engine::crossover_method3( unsigned int seq_count, unsigned int pa
         parent_alleles -= N;
         offspring += (N / 32);
     }
+}
+
+void simulate_engine::crossover_method4( unsigned int seq_count, unsigned int nMut, unsigned int allele_count ) {
+    const unsigned int STREAM_COUNT = 2;
+    cudaStream_t streams[ STREAM_COUNT ];
+
+    std::deque< cudaStream_t * > incomplete( STREAM_COUNT, NULL );
+    
+    for( unsigned int i = 0; i < STREAM_COUNT; ++i ) {
+        cudaStreamCreate( &streams[i] );
+        incomplete[i] =  &streams[i];
+    }
+
+    fill_poisson< unsigned int, double > rec_events_gen( m_dGen, m_rho );
+    // generate number of recombination events for offspring population
+    curand_gateway( m_dRecEvent, seq_count, rec_events_gen );
+
+    thrust::exclusive_scan( m_dRecEvent.begin(), m_dRecEvent.end(), m_dRecEvent.begin() );
+
+    unsigned int nRec = m_dRecEvent.back(); // total number of recombination events to generate
+
+    fill_uniform< real_type > uni( m_dGen );
+
+    // child sequences + nMut + nRec
+    unsigned int nVariables = RANDOM_PER_PARENT * seq_count + nMut + nRec;
+    curand_gateway( m_dRandBuffer, nVariables, uni );
+
+    real_type * rands = thrust::raw_pointer_cast( m_dRandBuffer.data() );
+    allele_type * alleles = thrust::raw_pointer_cast( m_dAlleles.data() );
+    block_type * offspring = thrust::raw_pointer_cast( m_dOffspringPop->data() );
+    event_count_type * event_list = thrust::raw_pointer_cast( m_dRecEvent.data() );
+
+    const unsigned int MAX_BLOCKS = 40000;
+    unsigned int block_cols = (allele_count / ALLELES_PER_STRIDE );
+    unsigned int max_block_rows = (MAX_BLOCKS / block_cols);
+    dim3 threads( 32, 32, 1), sizes( m_dFree.size(), 0, 1);
+
+    unsigned int sid = STREAM_COUNT;
+    while( seq_count ) {
+        sid = (++sid % STREAM_COUNT);
+
+        dim3 blocks( block_cols, ((seq_count > max_block_rows) ? max_block_rows : seq_count) , 1 );
+
+//        generate_crossover_matrix2<<< blocks, threads >>>(rands, alleles, event_list, offspring, sizes);
+        generate_crossover_matrix2<<< blocks, threads, 0, streams[sid] >>>(rands, alleles, event_list, offspring, sizes);
+
+        offspring += m_dFree.size() * blocks.y;
+        seq_count -= blocks.y;
+        sizes.y += blocks.y;
+    }
+
+    while( !incomplete.empty() ) {
+        cudaStream_t * t = incomplete.front();
+        incomplete.pop_front();
+
+        if( t == NULL ) continue;
+
+        if( incomplete.empty() || cudaStreamQuery( *t ) == cudaSuccess ) {
+            cudaStreamSynchronize( *t );
+
+            cudaStreamDestroy( *t );
+        } else {
+            incomplete.push_back( t );
+        }
+    }
+
+//    cudaDeviceSynchronize();
 }
 
 void simulate_engine::recombine_method2( unsigned int seq_count, unsigned int parent_rows, unsigned int parent_cols ) {
@@ -456,6 +539,8 @@ void simulate_engine::resizeAlleles( size_t s ) {
     unsigned int tail = s % ALLELES_PER_STRIDE;
     if( tail ) { s += (ALLELES_PER_STRIDE - tail); }
 
+    std::cerr << "Allele Size: " << s << std::endl;
+
     m_dAlleles.resize(s);
 
     s /= ALLELES_PER_BLOCK;
@@ -463,6 +548,8 @@ void simulate_engine::resizeAlleles( size_t s ) {
     m_dFree.resize( s );
     m_dFixed.resize( s );
     m_dLost.resize( s );
+
+    std::cerr << "resized size: " << m_dAlleles.size() << std::endl;
 }
 
 void simulate_engine::resizePopulation( data_vector * pop, size_t s ) {
