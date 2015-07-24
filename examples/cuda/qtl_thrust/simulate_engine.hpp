@@ -93,15 +93,19 @@ protected:
 
     void init( unsigned int f);
 
-    void crossover_method1( unsigned int seq_count, unsigned int nMut );
+    unsigned int fill_event_list(event_vector & ev, unsigned int n, double rate);
+    void fill_random_pool( size_t pool_size );
+
+    void crossover_method1( real_type * rand_pool, unsigned int seq_count, unsigned int nMut );
     void crossover_method2( unsigned int seq_count, unsigned int parent_alleles );
     void crossover_method3( unsigned int seq_count, unsigned int parent_alleles );
-    void crossover_method4( unsigned int seq_count, unsigned int nMut, unsigned int parent_alleles );
+    void crossover_method4( real_type * rand_pool, unsigned int seq_count, unsigned int nMut, unsigned int parent_alleles );
 
     void recombine_method2( unsigned int seq_count, unsigned int p_row, unsigned int p_col );
+    void recombine_method3( real_type * rand_pool, unsigned int seq_count, unsigned int p_row, unsigned int p_col );
 
-    void mutate_method1( unsigned int seq_count, unsigned int nMut );
-    void mutate_method2( unsigned int seq_count );
+    void mutate_method1( real_type * rand_pool, unsigned int seq_count, unsigned int nMut );
+    void mutate_method2( real_type * rand_pool, unsigned int seq_count, unsigned int nMut );
 
     template < class T, class Func >
     void    curand_gateway( thrust::device_vector< T > & buf, size_t N, Func & f ) {
