@@ -51,7 +51,7 @@ protected:
         } else {
             m_p = config.get< double >( ppath );
 
-            assert( 0. <= m_p <= 1.);
+            assert( 0. <= m_p && m_p <= 1.);
         }
     }
 
