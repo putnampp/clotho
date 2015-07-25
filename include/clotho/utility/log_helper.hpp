@@ -43,14 +43,6 @@ void add_value_array( boost::property_tree::ptree & array, const std::pair< A, B
     array.push_back( std::make_pair("", c ) );
 }
 
-template < class A >
-void add_value_array( boost::property_tree::ptree & array, const std::vector< A > & t ) {
-    boost::property_tree::ptree n;
-    add_value_array( n, t.begin(), t.end() );
-    array.push_back( std::make_pair("", n ) );
-}
-
-
 template < class Iter >
 void add_value_array( boost::property_tree::ptree & array, Iter first, Iter last ) {
     while( first != last ) {
@@ -58,6 +50,14 @@ void add_value_array( boost::property_tree::ptree & array, Iter first, Iter last
         ++first;
     }
 }
+
+template < class A >
+void add_value_array( boost::property_tree::ptree & array, const std::vector< A > & t ) {
+    boost::property_tree::ptree n;
+    add_value_array( n, t.begin(), t.end() );
+    array.push_back( std::make_pair("", n ) );
+}
+
 
 inline void add_value_array( boost::property_tree::ptree & array, const clotho::utility::timer & t ) {
     boost::property_tree::ptree node;
