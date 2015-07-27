@@ -21,6 +21,81 @@ __shared__ double f_sAlleles[ 1024 ];
 __shared__ unsigned int f_sSeq[ 1024 ];
 
 
+__global__ void generate_crossover_matrix3( double * rand_pool
+                                            , double * alleles
+                                            , unsigned int * event_list
+                                            , unsigned int * sequences
+                                            , dim3 max_dims ) {
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    __shared__ unsigned int sEvents[ 1024 ];
+    __shared__ double sOffset[ 1024 ];
+
+    sEvents[ tid ] = event_list[blockIdx.y * 1024 + tid ];
+    __syncthreads();
+
+    unsigned int min_events = sEvents[0], max_events = sEvents[ 1023 ];
+    __syncthreads();
+
+    // if there are no recombination events for this sequence
+    if( min_events >= max_events ) {  // will be true or false for all threads in the block
+        if( threadIdx.y == 0 ) {
+            sequences[ blockIdx.y * max_dims.x + (blockIdx.x << 5) + threadIdx.x ] = 0;
+        }
+        return;
+    }
+
+    if( min_events + tid < max_events ) {
+        sOffset[ tid ] = rand_pool[ min_events + tid ];
+    }
+    __syncthreads();
+
+    double all = alleles[ blockIdx.x * 1024 + tid ];
+    __syncthreads();
+
+    unsigned int idx = all * 1023;  // assumes all in [0,1.0)
+    unsigned int lo = sEvents[ idx ], hi = sEvents[ idx + 1 ];
+    __syncthreads();
+
+    unsigned int N = (hi - lo); // number of recombination events in region
+    lo -= min_events;           // number of events before allele bin
+
+    // determine how many events occur **before** current allele in this bin
+    double rng_lo = (double) idx / 1024.0, rng_hi = ((double)(idx + 1))/ 1024.0;
+    unsigned int offset_idx = lo;
+    while( N-- ) {
+        double offset = sOffset[offset_idx];
+        double val = offset * (rng_hi - rng_lo) + rng_lo;
+        unsigned int n = offset * N;
+        if( val < all ) {
+            // allele in right half of bin
+            lo += n + 1;
+            offset_idx += n + 1;
+            N -= n;
+            rng_lo = val;
+        } else {
+            ++offset_idx;
+            N = n;
+            rng_hi = val;
+        }
+    }
+    __syncthreads();
+
+    unsigned int m = ((lo & 1) * (1 << threadIdx.x));
+    __syncthreads();
+
+#pragma unroll
+    for( unsigned int i = 2; i <= BLOCK_PER_ROW; i <<= 1 ) {
+        unsigned int n = __shfl_down(m, (i >> 1), BLOCK_PER_ROW );
+        if( !(threadIdx.x & (i - 1))) m |= n;
+    }
+
+    if( threadIdx.x == 0 ) {
+        sequences[ blockIdx.y * max_dims.x + (blockIdx.x << 5) + threadIdx.y ] = m;
+    }
+}
+
+
 // kernel is call each sequence has its own block
 __global__ void generate_crossover_matrix2( double * rand_pool
                                             , double * alleles

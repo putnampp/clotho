@@ -122,6 +122,9 @@ simulate_engine::simulate_engine( unsigned long seed, double mu, double rho, uns
 //}
 
 void simulate_engine::init( unsigned int founder_size ) {
+
+    std::cerr << "Using Crossover Matrix Generator: " << CROSSOVER_MATRIX << std::endl;
+
     if( curandCreateGenerator( &m_dGen, CURAND_RNG_PSEUDO_MTGP32 ) != CURAND_STATUS_SUCCESS ) {
         assert(false);
     }
@@ -176,16 +179,25 @@ void simulate_engine::simulate( unsigned int pop_size ) {
     resizePopulation( m_dOffspringPop, seq_count );
 
     // pre-generate recombination event distribution for offspring population
+#if CROSSOVER_MATRIX == 2
     unsigned int nRec = fill_event_list(m_dRecEvent, seq_count, m_rho);
+#else
+    unsigned int nRec = fill_event_list( m_dRecEvent, seq_count * 1024, (m_rho / 1024.0));
+#endif
+    std::cerr << "nRec: " << nRec << std::endl;
 
     // 1 (parent/offspring sequence) * (offspring sequences)
     // + mutations added to population
     // + recombination events
     fill_random_pool( seq_count + nMut + nRec );
 
-    real_type * rand_pool = thrust::raw_pointer_cast( m_dRandBuffer.data() );
+    t0.stop();
+    std::cerr << "Random Number Generation Lapse: " << t0 << std::endl;
 
-    crossover_method4( rand_pool, seq_count, nMut, parent_alleles );
+    t0.start();
+    real_type * rand_pool = thrust::raw_pointer_cast( m_dRandBuffer.data() );
+//
+    crossover_method4( rand_pool, seq_count, parent_alleles );
     rand_pool += nRec;
 
     recombine_method3( rand_pool,  seq_count, parent_rows, parent_cols );
@@ -195,6 +207,9 @@ void simulate_engine::simulate( unsigned int pop_size ) {
     
 //    update_population_metadata<<< blocks, threads >>>( offspring, seq_count, m_dFree.size(), free_list, lost_list, fixed_list );
     cudaDeviceSynchronize();
+    t0.stop();
+
+    std::cerr << "Generate Offspring Population Lapse: " << t0 << std::endl;
 
     t0.stop();
 }
@@ -214,7 +229,6 @@ void simulate_engine::fill_random_pool( size_t pool_size ) {
 
 void simulate_engine::crossover_method1( real_type * rand_pool, unsigned int seq_count, unsigned int nMut ) {
 
-//    t0.start();
     // build recombination masks in child population space
     const unsigned int seq_per_block = 100;
     unsigned int bcount = seq_count / seq_per_block;
@@ -334,7 +348,7 @@ void simulate_engine::crossover_method3( unsigned int seq_count, unsigned int pa
     }
 }
 
-void simulate_engine::crossover_method4( double * rand_pool, unsigned int seq_count, unsigned int nMut, unsigned int allele_count ) {
+void simulate_engine::crossover_method4( real_type * rand_pool, unsigned int seq_count, unsigned int allele_count ) {
     const unsigned int STREAM_COUNT = 2;
     cudaStream_t streams[ STREAM_COUNT ];
 
@@ -359,7 +373,11 @@ void simulate_engine::crossover_method4( double * rand_pool, unsigned int seq_co
 
         dim3 blocks( block_cols, ((seq_count > max_block_rows) ? max_block_rows : seq_count) , 1 );
 
+#if CROSSOVER_MATRIX == 2
         generate_crossover_matrix2<<< blocks, threads, 0, streams[sid] >>>(rand_pool, alleles, event_list, offspring, sizes);
+#else
+        generate_crossover_matrix3<<< blocks, threads, 0, streams[sid] >>>(rand_pool, alleles, event_list, offspring, sizes);
+#endif
 
         offspring += m_dFree.size() * blocks.y;
         seq_count -= blocks.y;
