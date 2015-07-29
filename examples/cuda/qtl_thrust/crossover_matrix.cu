@@ -95,8 +95,77 @@ __global__ void generate_crossover_matrix3( double * rand_pool
     }
 }
 
+// kernel is invoked with each sequence as its own block Y coordinate
+__global__ void generate_crossover_matrix2a( double * rand_pool
+                                            , double * alleles
+                                            , unsigned int * event_list
+                                            , unsigned int * sequences
+                                            , dim3 max_dims ) {
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
-// kernel is call each sequence has its own block
+    __shared__ double sRec[ 1024 ];
+
+    unsigned int eStart = event_list[ max_dims.y +  blockIdx.y ], eEnd = event_list[ max_dims.y +  blockIdx.y + 1 ];
+    __syncthreads();
+
+    if( eStart >= eEnd ) {  // should be true or false for all threads in the block
+        if( threadIdx.y == 0 ) {
+            sequences[ blockIdx.y * max_dims.x + (blockIdx.x << 5) + threadIdx.x ] = 0;
+        }
+        __syncthreads();
+        return;
+    }
+
+    double all = alleles[ blockIdx.x * 1024 + tid ];
+    __syncthreads();
+
+    unsigned int N = eEnd - eStart;
+    if( tid < N ) {
+        sRec[tid] = rand_pool[ eStart + tid ];
+    }
+    __syncthreads();
+
+    double rng_lo = 0.0, rng_hi = 1.0;
+    unsigned int prior_events = 0, event_idx = 0;
+    while( N-- ) {
+        double offset = sRec[ event_idx ];
+        double r = rng_lo + offset * (rng_hi - rng_lo);
+
+        unsigned int n = offset * N;
+        if( r < all ) {
+            // allele in right half of bin
+            prior_events += n + 1;
+            event_idx += n + 1;
+            N -= n;
+            rng_lo = r;
+        } else {
+            ++event_idx;
+            N = n;
+            rng_hi = r;
+        }
+    }
+    __syncthreads();
+
+    // if there are an odd number of preceeding crossover events
+    // then this allele should be selected from the 'other' sequence
+    // (or it exists in a crossover region)
+    unsigned int m = ((prior_events & 1) * (1 << threadIdx.x));
+
+#pragma unroll
+    for( unsigned int i = 2; i <= BLOCK_PER_ROW; i <<= 1 ) {
+        unsigned int n = __shfl_down(m, (i >> 1), BLOCK_PER_ROW );
+        if( !(threadIdx.x & (i - 1))) m |= n;
+    }
+
+    // use one thread in each warp to write back to global memory
+    // expecting this to not coalesce well
+    // 
+    if( threadIdx.x == 0 ) {
+        sequences[ blockIdx.y * max_dims.x + (blockIdx.x << 5) + threadIdx.y ] = m;
+    }
+}
+
+// kernel is invoked with each sequence as its own block Y coordinate
 __global__ void generate_crossover_matrix2( double * rand_pool
                                             , double * alleles
                                             , unsigned int * event_list

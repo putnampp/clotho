@@ -27,9 +27,18 @@ template < >
 struct fill_uniform < float > : public curand_gen_base {
 
     fill_uniform( curandGenerator_t g ) : curand_gen_base( g ) {}
+
+    void operator()( thrust::device_vector< float > & buf ) {
+        operator()( buf, buf.size() );
+    }
+
     void operator()( thrust::device_vector< float > & buf, size_t N ) {
         float * raw_ptr = thrust::raw_pointer_cast( buf.data() );
-        if( curandGenerateUniform( gen, raw_ptr, N ) != CURAND_STATUS_SUCCESS ) {
+        operator()( raw_ptr, N );
+    }
+
+    void operator()( float * buf, size_t N ) {
+        if( curandGenerateUniform( gen, buf, N ) != CURAND_STATUS_SUCCESS ) {
 
         }
     }
@@ -42,13 +51,52 @@ struct fill_uniform< double > : public curand_gen_base {
 
     fill_uniform( curandGenerator_t g ) : curand_gen_base( g ) {}
 
+    void operator()( thrust::device_vector< double > & buf ) {
+        operator()(buf, buf.size() );
+    }
+
     void operator()( thrust::device_vector< double > & buf, size_t N ) {
         double * raw_ptr = thrust::raw_pointer_cast( buf.data() );
-        if( curandGenerateUniformDouble( gen, raw_ptr, N ) != CURAND_STATUS_SUCCESS ) {
+        operator()( raw_ptr, N );
+    }
+
+    void operator()( double * buf, size_t N ) {
+        if( curandGenerateUniformDouble( gen, buf, N ) != CURAND_STATUS_SUCCESS ) {
 
         }
     }
 
     virtual ~fill_uniform() {}
 };
+
+template <>
+struct fill_uniform< unsigned int > : public curand_gen_base {
+    fill_uniform( curandGenerator_t g ) : curand_gen_base( g ) {}
+
+    void operator()( thrust::device_vector< unsigned int > & buf ) {
+        operator()( buf, buf.size() );
+    }
+
+    void operator()( thrust::device_vector< unsigned int > & buf, size_t N ) {
+        unsigned int * raw = thrust::raw_pointer_cast( buf.data() );
+        operator()( raw, N );
+    }
+
+    void operator()( unsigned int * buf, size_t N ) {
+        if( curandGenerate( gen, buf, N ) != CURAND_STATUS_SUCCESS ) {
+
+        }
+    }
+};
+
+template < class T >
+void uniform_fill( curandGenerator_t g, thrust::device_vector< T > & buf, size_t N ) {
+    if( buf.size() < N ) {
+        buf.resize( N );
+    }
+
+    fill_uniform< T > f(g);
+    f( buf, N );
+}
+
 #endif  // CURAND_UNIFORM_WRAPPER_HPP_

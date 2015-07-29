@@ -36,6 +36,8 @@
 
 #include <deque>
 
+typedef clotho::utility::timer timer_type;
+
 const unsigned int THREAD_COUNT = 1024;
 const unsigned int MAX_BLOCKS = 65535;
 
@@ -164,12 +166,10 @@ void simulate_engine::simulate( unsigned int pop_size ) {
 
     assert( parent_rows * parent_cols == m_dParentPop->size() );
 
-    std::cerr << "Parent Alleles: " << parent_alleles << std::endl;
-    std::cerr << "Parent Dimensions: [" << parent_rows << ", " << parent_cols << "]" << std::endl;
+//    std::cerr << "Parent Alleles: " << parent_alleles << std::endl;
+//    std::cerr << "Parent Dimensions: [" << parent_rows << ", " << parent_cols << "]" << std::endl;
     
-    typedef clotho::utility::timer timer_type;
-
-    timer_type t0;
+//    timer_type t0;
 
     // pre-generate mutation event distribution for offspring population
     // done to allow offspring population to be resized appropriately
@@ -184,17 +184,17 @@ void simulate_engine::simulate( unsigned int pop_size ) {
 #else
     unsigned int nRec = fill_event_list( m_dRecEvent, seq_count * 1024, (m_rho / 1024.0));
 #endif
-    std::cerr << "nRec: " << nRec << std::endl;
+//    std::cerr << "nRec: " << nRec << std::endl;
 
     // 1 (parent/offspring sequence) * (offspring sequences)
     // + mutations added to population
     // + recombination events
     fill_random_pool( seq_count + nMut + nRec );
 
-    t0.stop();
-    std::cerr << "Random Number Generation Lapse: " << t0 << std::endl;
+//    t0.stop();
+//    std::cerr << "Random Number Generation Lapse: " << t0 << std::endl;
 
-    t0.start();
+//    t0.start();
     real_type * rand_pool = thrust::raw_pointer_cast( m_dRandBuffer.data() );
 //
     crossover_method4( rand_pool, seq_count, parent_alleles );
@@ -207,11 +207,9 @@ void simulate_engine::simulate( unsigned int pop_size ) {
     
 //    update_population_metadata<<< blocks, threads >>>( offspring, seq_count, m_dFree.size(), free_list, lost_list, fixed_list );
     cudaDeviceSynchronize();
-    t0.stop();
+//    t0.stop();
 
-    std::cerr << "Generate Offspring Population Lapse: " << t0 << std::endl;
-
-    t0.stop();
+//    std::cerr << "Generate Offspring Population Lapse: " << t0 << std::endl;
 }
 
 unsigned int simulate_engine::fill_event_list( event_vector & ev, unsigned int count, double rate ) {
@@ -374,7 +372,7 @@ void simulate_engine::crossover_method4( real_type * rand_pool, unsigned int seq
         dim3 blocks( block_cols, ((seq_count > max_block_rows) ? max_block_rows : seq_count) , 1 );
 
 #if CROSSOVER_MATRIX == 2
-        generate_crossover_matrix2<<< blocks, threads, 0, streams[sid] >>>(rand_pool, alleles, event_list, offspring, sizes);
+        generate_crossover_matrix2a<<< blocks, threads, 0, streams[sid] >>>(rand_pool, alleles, event_list, offspring, sizes);
 #else
         generate_crossover_matrix3<<< blocks, threads, 0, streams[sid] >>>(rand_pool, alleles, event_list, offspring, sizes);
 #endif
@@ -514,7 +512,7 @@ void simulate_engine::resizeAlleles( size_t s ) {
     unsigned int tail = s % ALLELES_PER_STRIDE;
     if( tail ) { s += (ALLELES_PER_STRIDE - tail); }
 
-    std::cerr << "Allele Size: " << s << std::endl;
+//    std::cerr << "Allele Size: " << s << std::endl;
 
     m_dAlleles.resize(s);
 
@@ -524,7 +522,7 @@ void simulate_engine::resizeAlleles( size_t s ) {
     m_dFixed.resize( s );
     m_dLost.resize( s );
 
-    std::cerr << "resized size: " << m_dAlleles.size() << std::endl;
+//    std::cerr << "resized size: " << m_dAlleles.size() << std::endl;
 }
 
 void simulate_engine::resizePopulation( data_vector * pop, size_t s ) {
