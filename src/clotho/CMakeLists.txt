@@ -13,6 +13,7 @@
 #   limitations under the License.
 LIST( APPEND CLOTHO_DIRS utility )
 LIST( APPEND CLOTHO_DIRS genetics )
+LIST( APPEND CLOTHO_DIRS configuration_manager )
 
 FOREACH( D ${CLOTHO_DIRS} )
     ADD_SUBDIRECTORY( ${D} )

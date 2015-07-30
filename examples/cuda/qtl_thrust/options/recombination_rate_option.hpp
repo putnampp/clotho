@@ -11,26 +11,26 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef RANDOM_NUMBER_OPTIONS_HPP_
-#define RANDOM_NUMBER_OPTIONS_HPP_
+#ifndef RECOMBINATION_RATE_OPTION_HPP_
+#define RECOMBINATION_RATE_OPTION_HPP_
 
 #include <string>
 
-#include "iconfigurable.hpp"
+#include "clotho/configuration_manager/iconfigurable.hpp"
 
-struct random_number_options : public iconfigurable {
-    typedef unsigned long long seed_type;
+struct recombination_rate_option : public clotho::configuration_manager::iconfigurable {
+    typedef double recombination_rate_type;
 
-    static const std::string SEED_K;
-    random_number_options();
+    static const std::string RATE_K;
+    recombination_rate_option();
  
     std::string name() const;
 
     void getOptions( po::options_description & desc );
 
-    COMMANDLINE_ACTION validate( const po::variables_map & vm );
+    clotho::configuration_manager::COMMANDLINE_ACTION validate( const po::variables_map & vm );
 
-    virtual ~random_number_options();
+    virtual ~recombination_rate_option();
 };
 
-#endif  // RANDOM_NUMBER_OPTIONS_HPP_
+#endif  // RECOMBINATION_RATE_OPTION_HPP_

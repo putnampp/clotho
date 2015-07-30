@@ -11,31 +11,33 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CONFIG_MANAGER_HPP_
-#define CONFIG_MANAGER_HPP_
+#ifndef ICONFIGURABLE_HPP_
+#define ICONFIGURABLE_HPP_
 
+#include <string>
+#include <ostream>
 #include <boost/program_options.hpp>
 
 #include "commandline_actions.hpp"
-#include "iconfigurable.hpp"
 
-class config_manager {
-public:
-    typedef std::map< std::string, iconfigurable * > object_map;
-    typedef typename object_map::iterator object_iterator;
+namespace po=boost::program_options;
 
-    static config_manager * getInstance();
-    config_manager();
+namespace clotho {
+namespace configuration_manager {
 
-    void register_configurable( iconfigurable * obj );
-    void unregister_configurable( const std::string & n );
+struct iconfigurable {
 
-    int parse_commandline( int argc, char ** argv );
-    int parse_commandline( int argc, char ** argv, po::variables_map & vm );
+    virtual std::string name() const = 0;
+    virtual void getOptions( po::options_description & od ) = 0;
+    virtual COMMANDLINE_ACTION validate( const po::variables_map & vm ) = 0;
 
-    virtual ~config_manager();
-protected:
-    object_map m_configs;
+    virtual void printMessage( std::ostream & out ) {}
+    virtual void printWarning( std::ostream & out ) {}
+
+    virtual ~iconfigurable() {}
 };
 
-#endif  // CONFIG_MANAGER_HPP_
+}   // namespace configuration_manager
+}   // namespace clotho
+
+#endif  // ICONFIGURABLE_HPP_

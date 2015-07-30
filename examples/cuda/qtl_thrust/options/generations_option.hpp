@@ -11,27 +11,26 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef ICONFIGURABLE_HPP_
-#define ICONFIGURABLE_HPP_
+#ifndef GENERATIONS_OPTION_HPP_
+#define GENERATIONS_OPTION_HPP_
 
 #include <string>
-#include <ostream>
-#include <boost/program_options.hpp>
 
-#include "commandline_actions.hpp"
+#include "clotho/configuration_manager/iconfigurable.hpp"
 
-namespace po=boost::program_options;
+struct generations_option : public clotho::configuration_manager::iconfigurable {
+    typedef unsigned int generations_type;
 
-struct iconfigurable {
+    static const std::string SIZE_K;
+    generations_option();
+ 
+    std::string name() const;
 
-    virtual std::string name() const = 0;
-    virtual void getOptions( po::options_description & od ) = 0;
-    virtual COMMANDLINE_ACTION validate( const po::variables_map & vm ) = 0;
+    void getOptions( po::options_description & desc );
 
-    virtual void printMessage( std::ostream & out ) {}
-    virtual void printWarning( std::ostream & out ) {}
+    clotho::configuration_manager::COMMANDLINE_ACTION validate( const po::variables_map & vm );
 
-    virtual ~iconfigurable() {}
+    virtual ~generations_option();
 };
 
-#endif  // ICONFIGURABLE_HPP_
+#endif  // GENERATIONS_OPTION_HPP_

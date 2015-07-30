@@ -13,17 +13,17 @@
 //   limitations under the License.
 #include "qtl_thrust_general_options.hpp"
 
-#include "config_manager.hpp"
+#include "clotho/configuration_manager/config_manager.hpp"
 
 #include <sstream>
 
 const std::string VERSION_K = "version";
 const std::string DESCRIPTION_K = "description";
 
-struct qtl_thrust_general_options : public iconfigurable {
+struct qtl_thrust_general_options : public clotho::configuration_manager::iconfigurable {
 
     qtl_thrust_general_options() {
-        config_manager::getInstance()->register_configurable( this );
+        clotho::configuration_manager::config_manager::getInstance()->register_configurable( this );
     }
 
     std::string name() const {
@@ -38,16 +38,16 @@ struct qtl_thrust_general_options : public iconfigurable {
         ;
     }
 
-    COMMANDLINE_ACTION validate( const po::variables_map & vm ) {
-        COMMANDLINE_ACTION res = COMMANDLINE_SUCCESS;
+    clotho::configuration_manager::COMMANDLINE_ACTION validate( const po::variables_map & vm ) {
+        clotho::configuration_manager::COMMANDLINE_ACTION res = clotho::configuration_manager::COMMANDLINE_SUCCESS;
 
         if( vm.count( VERSION_K ) ) {
-            res = PRINT_MESSAGE;
+            res = clotho::configuration_manager::PRINT_MESSAGE;
             msg << MAJOR_VERSION << "." << MINOR_VERSION << "." << REVISION << "\n"; 
         }
 
         if( vm.count( DESCRIPTION_K ) ) {
-            res = PRINT_MESSAGE;
+            res = clotho::configuration_manager::PRINT_MESSAGE;
 
             msg << "This program does something cool\n";
         }
@@ -64,7 +64,7 @@ struct qtl_thrust_general_options : public iconfigurable {
     }
 
     virtual ~qtl_thrust_general_options() {
-        config_manager::getInstance()->unregister_configurable( this->name());
+        clotho::configuration_manager::config_manager::getInstance()->unregister_configurable( this->name());
     }
 
     std::ostringstream msg;

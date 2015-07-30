@@ -11,9 +11,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#include "help_commandline_option.hpp"
+#include "clotho/configuration_manager/help_commandline_option.hpp"
+#include "clotho/configuration_manager/config_manager.hpp"
 
-#include "config_manager.hpp"
+namespace clotho {
+namespace configuration_manager {
 
 const std::string HELP_K = "help";
 
@@ -46,3 +48,6 @@ struct help_commandline_option : public iconfigurable {
 };
 
 static help_commandline_option opt_help;
+
+}   // namespace configuration_manager
+}   // namespace clotho

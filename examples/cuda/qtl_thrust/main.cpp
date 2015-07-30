@@ -13,25 +13,27 @@
 //   limitations under the License.
 #include <iostream>
 
-#include "config_manager.hpp"
+#include "clotho/configuration_manager/config_manager.hpp"
 
 #include "simulate_engine.hpp"
 
-#include "random_number_options.hpp"
-#include "mutation_rate_option.hpp"
-#include "recombination_rate_option.hpp"
-#include "population_size_option.hpp"
-#include "generations_option.hpp"
+#include "options/random_number_options.hpp"
+#include "options/mutation_rate_option.hpp"
+#include "options/recombination_rate_option.hpp"
+#include "options/population_size_option.hpp"
+#include "options/generations_option.hpp"
 
 #include "clotho/utility/timer.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+typedef clotho::configuration_manager::config_manager config_manager_type;
+
 int main( int argc, char ** argv ) {
     po::variables_map vm;
 
-    int ret = config_manager::getInstance()->parse_commandline( argc, argv, vm );
+    int ret = config_manager_type::getInstance()->parse_commandline( argc, argv, vm );
     if(ret) return ret;
 
     typedef random_number_options::seed_type seed_type;

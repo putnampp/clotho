@@ -11,10 +11,13 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#include "config_manager.hpp"
+#include "clotho/configuration_manager/config_manager.hpp"
 
 #include <cassert>
 #include <iostream>
+
+namespace clotho {
+namespace configuration_manager {
 
 config_manager::config_manager() {}
 
@@ -80,3 +83,6 @@ int config_manager::parse_commandline( int argc, char ** argv, po::variables_map
 
     return valid;
 }
+
+}   // namespace configuration_manager
+}   // namespace clotho

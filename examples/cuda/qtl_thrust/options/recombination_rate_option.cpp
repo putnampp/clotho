@@ -12,14 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 #include "recombination_rate_option.hpp"
-#include "config_manager.hpp"
+#include "clotho/configuration_manager/config_manager.hpp"
 
 #include <sstream>
 
 const std::string recombination_rate_option::RATE_K = "rho";
 
 recombination_rate_option::recombination_rate_option() {
-    config_manager::getInstance()->register_configurable(this);
+    clotho::configuration_manager::config_manager::getInstance()->register_configurable(this);
 }
 
 std::string recombination_rate_option::name() const {
@@ -33,12 +33,12 @@ void recombination_rate_option::getOptions( po::options_description & desc ) {
     ;
 }
 
-COMMANDLINE_ACTION recombination_rate_option::validate( const po::variables_map & vm ) {
-    return COMMANDLINE_SUCCESS;
+clotho::configuration_manager::COMMANDLINE_ACTION recombination_rate_option::validate( const po::variables_map & vm ) {
+    return clotho::configuration_manager::COMMANDLINE_SUCCESS;
 }
 
 recombination_rate_option::~recombination_rate_option() {
-    config_manager::getInstance()->unregister_configurable( this->name() );
+    clotho::configuration_manager::config_manager::getInstance()->unregister_configurable( this->name() );
 }
 
 static recombination_rate_option c_rec_rate_options;

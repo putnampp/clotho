@@ -11,15 +11,26 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef COMMANDLINE_ACTIONS_HPP_
-#define COMMANDLINE_ACTIONS_HPP_
+#ifndef MUTATION_RATE_OPTION_HPP_
+#define MUTATION_RATE_OPTION_HPP_
 
-enum COMMANDLINE_ACTION {
-    COMMANDLINE_SUCCESS = 0
-    , PRINT_MESSAGE
-    , PRINT_WARNING
-    , PRINT_ERROR
-    , PRINT_COMMANDLINE
+#include <string>
+
+#include "clotho/configuration_manager/iconfigurable.hpp"
+
+struct mutation_rate_option : public clotho::configuration_manager::iconfigurable {
+    typedef double mutation_rate_type;
+
+    static const std::string RATE_K;
+    mutation_rate_option();
+ 
+    std::string name() const;
+
+    void getOptions( po::options_description & desc );
+
+    clotho::configuration_manager::COMMANDLINE_ACTION validate( const po::variables_map & vm );
+
+    virtual ~mutation_rate_option();
 };
 
-#endif  // COMMANDLINE_ACTIONS_HPP_
+#endif  // MUTATION_RATE_OPTION_HPP_

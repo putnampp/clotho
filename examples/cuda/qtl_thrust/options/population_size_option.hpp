@@ -16,9 +16,9 @@
 
 #include <string>
 
-#include "iconfigurable.hpp"
+#include "clotho/configuration_manager/iconfigurable.hpp"
 
-struct population_size_option : public iconfigurable {
+struct population_size_option : public clotho::configuration_manager::iconfigurable {
     typedef unsigned int population_size_type;
 
     static const std::string SIZE_K;
@@ -28,7 +28,7 @@ struct population_size_option : public iconfigurable {
 
     void getOptions( po::options_description & desc );
 
-    COMMANDLINE_ACTION validate( const po::variables_map & vm );
+    clotho::configuration_manager::COMMANDLINE_ACTION validate( const po::variables_map & vm );
 
     virtual ~population_size_option();
 };

@@ -14,7 +14,7 @@
 #ifndef QTL_THRUST_GENERAL_OPTIONS_HPP_
 #define QTL_THRUST_GENERAL_OPTIONS_HPP_
 
-#include "config.hpp"
-#include "iconfigurable.hpp"
+#include "../config.hpp"
+#include "clotho/configuration_manager/iconfigurable.hpp"
 
 #endif  // QTL_THRUST_GENERAL_OPTIONS_HPP_

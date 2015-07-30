@@ -11,26 +11,26 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef GENERATIONS_OPTION_HPP_
-#define GENERATIONS_OPTION_HPP_
+#ifndef RANDOM_NUMBER_OPTIONS_HPP_
+#define RANDOM_NUMBER_OPTIONS_HPP_
 
 #include <string>
 
-#include "iconfigurable.hpp"
+#include "clotho/configuration_manager/iconfigurable.hpp"
 
-struct generations_option : public iconfigurable {
-    typedef unsigned int generations_type;
+struct random_number_options : public clotho::configuration_manager::iconfigurable {
+    typedef unsigned long long seed_type;
 
-    static const std::string SIZE_K;
-    generations_option();
+    static const std::string SEED_K;
+    random_number_options();
  
     std::string name() const;
 
     void getOptions( po::options_description & desc );
 
-    COMMANDLINE_ACTION validate( const po::variables_map & vm );
+    clotho::configuration_manager::COMMANDLINE_ACTION validate( const po::variables_map & vm );
 
-    virtual ~generations_option();
+    virtual ~random_number_options();
 };
 
-#endif  // GENERATIONS_OPTION_HPP_
+#endif  // RANDOM_NUMBER_OPTIONS_HPP_

@@ -12,14 +12,14 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 #include "generations_option.hpp"
-#include "config_manager.hpp"
+#include "clotho/configuration_manager/config_manager.hpp"
 
 #include <sstream>
 
 const std::string generations_option::SIZE_K = "generations";
 
 generations_option::generations_option() {
-    config_manager::getInstance()->register_configurable(this);
+    clotho::configuration_manager::config_manager::getInstance()->register_configurable(this);
 }
 
 std::string generations_option::name() const {
@@ -33,12 +33,12 @@ void generations_option::getOptions( po::options_description & desc ) {
     ;
 }
 
-COMMANDLINE_ACTION generations_option::validate( const po::variables_map & vm ) {
-    return COMMANDLINE_SUCCESS;
+clotho::configuration_manager::COMMANDLINE_ACTION generations_option::validate( const po::variables_map & vm ) {
+    return clotho::configuration_manager::COMMANDLINE_SUCCESS;
 }
 
 generations_option::~generations_option() {
-    config_manager::getInstance()->unregister_configurable( this->name() );
+    clotho::configuration_manager::config_manager::getInstance()->unregister_configurable( this->name() );
 }
 
 static generations_option c_pop_size_option;
