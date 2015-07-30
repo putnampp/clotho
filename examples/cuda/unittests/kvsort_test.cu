@@ -20,10 +20,9 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "curand_uniform_wrapper.hpp"
-
 #include "compute_capability.hpp"
-#include "warp_kvsort.hpp"
+#include "clotho/cuda/warp_kvsort.hpp"
+#include "clotho/cuda/curand_uniform_wrapper.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -36,7 +35,7 @@ typedef double key_type;
 typedef unsigned int value_type;
 typedef compute_capability< 3, 0 > comp_cap_type;
 
-typedef warp_kvsort< key_type, value_type, comp_cap_type > kvsort_type;
+typedef clotho::cuda::warp_kvsort< key_type, value_type, comp_cap_type > kvsort_type;
 
 template < class K, class V >
 void periodic_sort( thrust::device_vector< K > & kvec

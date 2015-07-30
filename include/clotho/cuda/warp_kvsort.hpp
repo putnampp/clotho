@@ -18,6 +18,8 @@
 
 #include "compute_capability.hpp"
 
+namespace clotho {
+namespace cuda {
 /**
  * @param K - key
  * @param V - value
@@ -171,5 +173,8 @@ struct warp_kvsort< K, V, compute_capability< 3, 0 > > {
         }
     }
 };
+
+}   // namespace cuda
+}   // namespace clotho
 
 #endif  // WARP_KVSORT_HPP_

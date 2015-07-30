@@ -20,6 +20,9 @@
 
 #include "curand_gen_base.hpp"
 
+namespace clotho {
+namespace cuda {
+
 template < class T >
 struct fill_uniform;
 
@@ -89,13 +92,16 @@ struct fill_uniform< unsigned int > : public curand_gen_base {
     }
 };
 
+}   // namespace cuda
+}   // namespace clotho
+
 template < class T >
 void uniform_fill( curandGenerator_t g, thrust::device_vector< T > & buf, size_t N ) {
     if( buf.size() < N ) {
         buf.resize( N );
     }
 
-    fill_uniform< T > f(g);
+    clotho::cuda::fill_uniform< T > f(g);
     f( buf, N );
 }
 

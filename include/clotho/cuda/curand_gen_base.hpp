@@ -16,6 +16,9 @@
 
 #include <curand.h>
 
+namespace clotho {
+namespace cuda {
+
 struct curand_gen_base {
     curandGenerator_t gen;
 
@@ -23,5 +26,8 @@ struct curand_gen_base {
 
     virtual ~curand_gen_base() {}
 };
+
+}   // namespace cuda
+}   // namespace clotho
 
 #endif  // CURAND_GEN_BASE_HPP_

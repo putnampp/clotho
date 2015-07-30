@@ -20,8 +20,8 @@
 #include <boost/random/poisson_distribution.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
 
-#include "curand_uniform_wrapper.hpp"
-#include "curand_poisson_wrapper.hpp"
+#include "clotho/cuda/curand_uniform_wrapper.hpp"
+#include "clotho/cuda/curand_poisson_wrapper.hpp"
 
 #include "crossover_matrix.hpp"
 #include "population_recombiner.hpp"
@@ -144,7 +144,7 @@ void simulate_engine::init( unsigned int founder_size ) {
     resizeAlleles(a);
 
     // initialize the alleles with random values
-    fill_uniform< real_type > duni( m_dGen );
+    clotho::cuda::fill_uniform< real_type > duni( m_dGen );
 //    curand_gateway( m_dAlleles, m_dAlleles.size(), duni );
     duni( m_dAlleles, m_dAlleles.size() );
 
@@ -212,7 +212,7 @@ void simulate_engine::simulate( unsigned int pop_size ) {
 }
 
 unsigned int simulate_engine::fill_event_list( event_vector & ev, unsigned int count, double rate ) {
-    fill_poisson< unsigned int, double > event_gen( m_dGen, rate );
+    clotho::cuda::fill_poisson< unsigned int, double > event_gen( m_dGen, rate );
     curand_gateway( ev, count, event_gen );
     thrust::exclusive_scan( ev.begin(), ev.end(), ev.begin() );
 
@@ -220,7 +220,7 @@ unsigned int simulate_engine::fill_event_list( event_vector & ev, unsigned int c
 }
 
 void simulate_engine::fill_random_pool( size_t pool_size ) {
-    fill_uniform< real_type > uni( m_dGen );
+    clotho::cuda::fill_uniform< real_type > uni( m_dGen );
     curand_gateway( m_dRandBuffer, pool_size, uni );
 }
 
@@ -445,8 +445,8 @@ void simulate_engine::recombine_method3( real_type * rand_pool, unsigned int seq
 
     unsigned int seq_offset = 0;
     while( seq_count ) {
-        if( seq_count > MAX_BLOCKS ) {
-            blocks.y = MAX_BLOCKS;
+        if( seq_count > comp_cap_type::MAX_BLOCKS_Y ) {
+            blocks.y = comp_cap_type::MAX_BLOCKS_Y;
         } else {
             blocks.y = seq_count;
         }

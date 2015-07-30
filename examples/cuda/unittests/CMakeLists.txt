@@ -13,12 +13,8 @@
 #   limitations under the License.
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR} )
+INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR}/cuda )
 
-
-#CUDA_ADD_EXECUTABLE(square_list square_list.cpp square.cu square.h )
-#TARGET_LINK_LIBRARIES(square_list ${CUDA_LIBRARIES} ${CUDA_curand_LIBRARY} ${COMMON_LIBRARIES} )
-
-add_subdirectory(qtl)
-add_subdirectory(qtl_thrust)
-add_subdirectory(sandbox)
-add_subdirectory(unittests)
+# FEATURE TEST PROGRAM
+CUDA_ADD_EXECUTABLE(kvsort_test kvsort_test.cu )
+TARGET_LINK_LIBRARIES(kvsort_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})

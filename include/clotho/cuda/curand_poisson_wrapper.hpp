@@ -20,6 +20,9 @@
 
 #include "curand_gen_base.hpp"
 
+namespace clotho {
+namespace cuda {
+
 template < class T, class R = double >
 struct fill_poisson;
 
@@ -38,5 +41,8 @@ struct fill_poisson< unsigned int, double > : public curand_gen_base {
 
     virtual ~fill_poisson() {}
 };
+
+}   // namespace cuda
+}   // namespace clotho
 
 #endif  // CURAND_POISSON_WRAPPER_HPP_
