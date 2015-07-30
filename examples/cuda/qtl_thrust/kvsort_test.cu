@@ -22,7 +22,7 @@
 
 #include "curand_uniform_wrapper.hpp"
 
-#include "compute_capabilities.hpp"
+#include "compute_capability.hpp"
 #include "warp_kvsort.hpp"
 
 #include <boost/property_tree/ptree.hpp>
@@ -34,7 +34,7 @@
 
 typedef double key_type;
 typedef unsigned int value_type;
-typedef compute_capability< 3 > comp_cap_type;
+typedef compute_capability< 3, 0 > comp_cap_type;
 
 typedef warp_kvsort< key_type, value_type, comp_cap_type > kvsort_type;
 
