@@ -16,7 +16,7 @@
 
 #include <cuda.h>
 
-#include "compute_capabilities.hpp"
+#include "compute_capability.hpp"
 
 /**
  * @param K - key
@@ -31,7 +31,7 @@ template < class K, class V >
 struct warp_bitonic_sort< K, V, 32 > {
     typedef K key_type;
     typedef V value_type;
-    typedef compute_capability< 3 > comp_cap_type;
+    typedef compute_capability< 3, 0 > comp_cap_type;
 
     static const unsigned int MAX_BITONIC_ROUNDS = 5;
 
@@ -131,10 +131,10 @@ template < class K, class V, class CC >
 class warp_kvsort;
 
 template < class K, class V >
-struct warp_kvsort< K, V, compute_capability< 3 > > {
+struct warp_kvsort< K, V, compute_capability< 3, 0 > > {
     typedef K key_type;
     typedef V value_type;
-    typedef compute_capability< 3 > comp_cap_type;
+    typedef compute_capability< 3, 0 > comp_cap_type;
 
 //    static const unsigned int WARP_SIZE = compute_capability3::WARP_SIZE;
 //    static const unsigned int THREADS_PER_BLOCK = ;
@@ -170,63 +170,6 @@ struct warp_kvsort< K, V, compute_capability< 3 > > {
             kvsort<<< blocks, threads >>>( k, v, sorted_k, sorted_v, N, cc);
         }
     }
-
-/*
-    // This kernel is 'unsafe' in the respect that all element indices
-    // computed relative to the gridDim and blockDim are assumed to exist
-    // That is, kernel assumes all thread blocks (subsequently all warps)
-    // are fully utilized
-    __global__ void warp_kvsort( K * keys, V * values, K * sorted_keys, V * sorted_values ) {
-        unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
-        unsigned int element_idx = (blockIdx.y * gridDim.x + blockIdx.x) * THREADS_PER_BLOCK + tid;
-
-        // load elements from global memory
-        K k = keys[ element_idx ];
-        V v = values[ element_idx ];
-        __syncthreads();
-
-        sorted_keys[ element_idx ] = k;
-        sorted_values[ element_idx ] = v;
-    }
-
-    __device__ void bitonic_sort( K & k, V & v, unsigned int round, unsigned int mask, unsigned int element_idx, unsigned int N ) {
-        unsigned int round_mask = ((round == MAX_BITIONIC_ROUNDS) ? 0 : ((threadIdx.x >> round) & 0x01));
-        unsigned int xor_mask = (1 << (round - 1));
-
-        while( round-- ) {
-            unsigned int dir = ((round_mask ^ (threadIdx.x >> round)) & 0x01);
-            unsigned int neighbor_idx = (element_idx ^ xor_mask);
-            K sw_k = __shfl_xor( k, xor_mask );
-            if( element_idx < N && neighbor_idx < N && k < sw_k ) {
-                k = sw_k;
-                v = __shfl_xor( v, xor_mask );
-            }
-
-            xor_mask >>= 1;
-        }
-    }
-
-    __global__ void kvsort( K * keys, V * values, K * sorted_keys, V * sorted_values, unsigned int N ) {
-        unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
-        unsigned int element_idx = (blockIdx.y * gridDim.x + blockIdx.x) * THREADS_PER_BLOCK + tid;
-
-        K k = 0;
-        V v = 0;
-        if( element_idx < N ) {
-            k = keys[ element_idx ];
-            v = values[ element_idx ];
-        }
-        __syncthreads();
-
-        for( unsigned int i = 1; i <= MAX_ROUNDS; ++i ) {
-            bitonic_sort( k, v, i, element_idx, N );
-        }
-
-        if( element_idx < N ) {
-            sorted_keys[ element_idx ] = k;
-            sorted_values[ element_idx ] = v;
-        }
-    }*/
 };
 
 #endif  // WARP_KVSORT_HPP_
