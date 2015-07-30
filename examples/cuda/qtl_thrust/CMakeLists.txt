@@ -12,7 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
-INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_SRC_DIR}/examples )
+INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR} )
+INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR}/cuda )
 
 ADD_LIBRARY( cmdline_parser SHARED config_manager.cpp help_commandline_option.cpp)
 
@@ -51,5 +52,5 @@ SET_TARGET_PROPERTIES( qtl_thrust_cm2 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed"
 TARGET_LINK_LIBRARIES(qtl_thrust_cm2 ${LOCAL_LIBS} )
 
 # FEATURE TEST PROGRAM
-CUDA_ADD_EXECUTABLE(kvsort_test kvsort_test.cu)
+CUDA_ADD_EXECUTABLE(kvsort_test kvsort_test.cu )
 TARGET_LINK_LIBRARIES(kvsort_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
