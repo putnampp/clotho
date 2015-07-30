@@ -38,9 +38,6 @@
 
 typedef clotho::utility::timer timer_type;
 
-const unsigned int THREAD_COUNT = 1024;
-const unsigned int MAX_BLOCKS = 65535;
-
 inline std::ostream & operator<<( std::ostream & out, const dim3 & d ) {
     out << "< " << d.x << ", " << d.y << ", " << d.z << " >";
     return out;
@@ -102,9 +99,11 @@ simulate_engine::simulate_engine( unsigned long seed, double mu, double rho, uns
     ,*/
     m_dPop0()
     , m_dPop1()
+    , m_dAlleleMasks()
     , m_dParentPop( &m_dPop0 )
     , m_dOffspringPop( &m_dPop1 )
     , m_dAlleles()
+    , m_dOrderedAlleles()
     , m_dFree()
     , m_dLost()
     , m_dFixed()
@@ -362,7 +361,7 @@ void simulate_engine::crossover_method4( real_type * rand_pool, unsigned int seq
     event_count_type * event_list = thrust::raw_pointer_cast( m_dRecEvent.data() );
 
     unsigned int block_cols = (allele_count / ALLELES_PER_STRIDE );
-    unsigned int max_block_rows = (MAX_BLOCKS / block_cols);
+    unsigned int max_block_rows = (comp_cap_type::MAX_BLOCKS_X / block_cols);
     dim3 threads( 32, 32, 1), sizes( m_dFree.size(), 0, 1);
 
     unsigned int sid = STREAM_COUNT;
@@ -515,6 +514,8 @@ void simulate_engine::resizeAlleles( size_t s ) {
 //    std::cerr << "Allele Size: " << s << std::endl;
 
     m_dAlleles.resize(s);
+    m_dAlleleMasks.resize(s);
+    m_dOrderedAlleles.resize(s);
 
     s /= ALLELES_PER_BLOCK;
 

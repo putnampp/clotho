@@ -24,6 +24,8 @@
 
 #include <thrust/device_vector.h>
 
+#include "compute_capability.hpp"
+
 /*
 class simulate_engine;
 class test_log;
@@ -65,6 +67,8 @@ public:
     typedef double          allele_type;
     typedef double          real_type;
     typedef unsigned int    event_count_type;
+
+    typedef compute_capability< 3, 0 > comp_cap_type;
 
     typedef thrust::device_vector< block_type >     data_vector;
     typedef thrust::device_vector< real_type >      random_real_vector;
@@ -131,10 +135,10 @@ protected:
     void    resizePopulation( data_vector * v, size_t s );
 
 
-    data_vector         m_dPop0, m_dPop1;
+    data_vector         m_dPop0, m_dPop1, m_dAlleleMasks;
     data_vector         * m_dParentPop, * m_dOffspringPop;
 
-    allele_vector       m_dAlleles;
+    allele_vector       m_dAlleles, m_dOrderedAlleles;
 
     data_vector         m_dFree, m_dLost, m_dFixed;
 
