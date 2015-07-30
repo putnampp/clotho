@@ -24,27 +24,12 @@ namespace clotho {
 namespace cuda {
 
 /**
- * order_warp: produce periodically ordered key & value arrays.
- * Every WARP_SIZE elements of the key list and their associated values
- * are ordered within the output vectors.
+ * order_warp: produce periodically ordered key (& value) array(s).
+ * Every WARP_SIZE elements of the key list (and their associated values)
+ * are sorted into an ascending ordered and written to output vectors.
  *
- * Performs a bitonic sort using registers of threads within a warp.
- * The initial version of the algorithm is provided in:
- * 
- * @inproceedings{Demouth2013,
- * author = {Julien Demouth},
- * title = {Shuffle: Tips and Tricks},
- * year = {2013},
- * url = {http://on-demand.gputechconf.com/gtc/2013/presentations/S3174-Kepler-Shuffle-Tips-Tricks.pdf},
- * }
- *
- * @param keys  1D vector of keys [in]
- * @param values  1D vector of values
- * @param N  size of the vectors
- * @param sorted_keys - 1D periodically ordered
- * @param sorted_values
- *
- * keys and values sharing the same index are assumed to be a pair.
+ * This is effectively a wrapper object that invokes a CUDA GPU kernel
+ * with appropriately sized execution configuration.
  */
 
 template < class CC >
@@ -56,17 +41,32 @@ struct order_warp< compute_capability< 3, 0 > > {
 
     order_warp() {}
 
+/**
+ *
+ * All vectors are assumed to be allocated on the device.
+ *
+ * @param keys  1D vector of keys
+ * @param values  1D vector of values
+ * @param sorted_keys - 1D periodically ordered
+ * @param sorted_values
+ * @param N  size of the vectors
+ *
+ * keys and values sharing the same index are assumed to be a pair.
+ */
     template < class K, class V >
     void sort( K * k, V * v, K * sorted_k, V * sorted_v, unsigned int N ) {
-        unsigned int bcount = N / comp_cap_type::THREADS_PER_BLOCK;
-        dim3 blocks( bcount, 1, 1), threads( comp_cap_type::WARP_SIZE, comp_cap_type::WARP_PER_BLOCK, 1 );
-
-        comp_cap_type cc;
-        if( bcount > 0 ) {
+        while( N ) {
             // has full thread blocks
+            dim3 blocks( 1, 1, 1), threads(1 ,1 , 1 );
+            determine_configuration( N, blocks, threads );
 
             // invoke kernel
-            unsigned int n = bcount * comp_cap_type::THREADS_PER_BLOCK;
+            unsigned int n = blocks.x * comp_cap_type::THREADS_PER_BLOCK;
+            if( n > N ) {
+                n = N;
+            }
+
+            comp_cap_type cc;
             order_warp_kernel<<< blocks, threads >>>( k, v, sorted_k, sorted_v, n, cc );
 
             k += n;
@@ -75,12 +75,41 @@ struct order_warp< compute_capability< 3, 0 > > {
             sorted_v += n;
             N -= n;
         }
+    }
 
-        if( N ) {
-            // contains un-full thread block
-            blocks.x = 1; blocks.y = 1; blocks.z = 1;
-            order_warp_kernel<<< blocks, threads >>>( k, v, sorted_k, sorted_v, N, cc);
+    template < class K >
+    void sort( K * k, K * sorted_k, unsigned int * sorted_v, unsigned int N ) {
+        while( N ) {
+            // has full thread blocks
+            dim3 blocks( 1, 1, 1), threads(1 ,1 , 1 );
+            determine_configuration( N, blocks, threads );
+
+            // invoke kernel
+            unsigned int n = blocks.x * comp_cap_type::THREADS_PER_BLOCK;
+            if( n > N ) {
+                n = N;
+            }
+
+            comp_cap_type cc;
+            order_warp_kernel<<< blocks, threads >>>( k, sorted_k, sorted_v, n, cc );
+
+            k += n;
+            sorted_k += n;
+            sorted_v += n;
+            N -= n;
         }
+    }
+    void determine_configuration( size_t N, dim3 & blocks, dim3 & threads ) {
+        blocks.x = N / comp_cap_type::THREADS_PER_BLOCK;
+        if( blocks.x == 0 ) {
+            blocks.x = 1;
+        } else if( blocks.x > comp_cap_type::MAX_BLOCKS_X ) {
+            blocks.x = comp_cap_type::MAX_BLOCKS_X;
+        }
+        
+        threads.x = comp_cap_type::WARP_SIZE;
+        threads.y = comp_cap_type::WARP_PER_BLOCK;
+        threads.z = 1;
     }
 };
 

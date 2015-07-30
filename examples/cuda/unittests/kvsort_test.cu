@@ -59,6 +59,23 @@ void periodic_sort( thrust::device_vector< K > & kvec
     sorter.sort( keys, vals, skeys, svals, N );
 }
 
+template < class K >
+void periodic_sort( thrust::device_vector< K > & kvec
+                    , thrust::device_vector< K > & sorted_keys
+                    , thrust::device_vector< unsigned int > & sorted_values ) {
+    unsigned int N = kvec.size();
+    sort_type sorter;
+
+    sorted_keys.resize( N );
+    sorted_values.resize( N );
+
+    K * keys = thrust::raw_pointer_cast( kvec.data() );
+
+    K * skeys = thrust::raw_pointer_cast( sorted_keys.data() );
+    unsigned int * svals = thrust::raw_pointer_cast( sorted_values.data() );
+    sorter.sort( keys, skeys, svals, N );
+}
+
 template < class K, class V >
 void dump( thrust::device_vector< K > & keys, thrust::device_vector< V > & values, boost::property_tree::ptree & log ) {
     assert( keys.size() == values.size() );
@@ -135,16 +152,73 @@ bool validate_sorted(thrust::device_vector< K > & kvec
     return success;
 }
 
+template < class K >
+bool validate_sorted(thrust::device_vector< K > & kvec
+                    , thrust::device_vector< K > & sorted_keys
+                    , thrust::device_vector< unsigned int > & sorted_values
+                    , boost::property_tree::ptree & err ) {
+    bool success = ( sorted_keys.size() == sorted_values.size() && kvec.size() == sorted_keys.size());
+
+    typedef std::map< K, unsigned int > map_type;
+    typedef typename map_type::iterator pair_iterator;
+
+    typedef typename thrust::device_vector< K >::iterator key_iterator;
+    typedef typename thrust::device_vector< unsigned int >::iterator value_iterator;
+
+    key_iterator k_it = kvec.begin();
+    key_iterator k_sit = sorted_keys.begin();
+    value_iterator v_sit = sorted_values.begin();
+
+    unsigned int pair_idx = 0;
+
+    while( success ) {
+        map_type    period;
+
+        unsigned int i = comp_cap_type::WARP_SIZE;
+        unsigned int v = 1;
+        while( i-- && k_it != kvec.end() ) {
+            K k = *k_it;
+            period.insert( std::make_pair( k, v ) );
+            ++k_it;
+            v <<= 1;
+        }
+
+        pair_iterator p_it = period.begin();
+        while(success && p_it != period.end() ) {
+            success = success && (p_it->first == *k_sit) && (p_it->second == *v_sit);
+
+            if( !success ) {
+                err.put("error.pair_index", pair_idx );
+                err.put("error.expected.key", p_it->first );
+                err.put("error.expected.value", p_it->second );
+                err.put("error.observed.key", *k_sit);
+                err.put("error.observed.value", *v_sit);
+            }
+            ++p_it;
+            ++k_sit;
+            ++v_sit;
+            ++pair_idx;
+        }
+
+        if( k_it == kvec.end() || k_sit == sorted_keys.end() || v_sit == sorted_values.end() ) {
+            success = success && (k_it == kvec.end() && k_sit == sorted_keys.end() && v_sit == sorted_values.end());
+            break;
+        }
+    }
+
+    return success;
+}
 
 int main( int argc, char ** argv ) {
 
-    if( argc != 3 ) {
-        std::cerr << "<program> <seed> <N>" << std::endl;
+    if( argc < 3 || argc >= 5 ) {
+        std::cerr << "<program> <seed> <N> (< 1 => thread masks >)" << std::endl;
         return 1;
     }
 
     unsigned long long seed = boost::lexical_cast< unsigned long long >( argv[1] );
     unsigned int N = boost::lexical_cast< unsigned int >( argv[2] );
+    unsigned int mode = (argc == 4);
 
     thrust::device_vector< double > key_vec, sorted_keys;
     thrust::device_vector< unsigned int > val_vec, sorted_vals;
@@ -159,12 +233,19 @@ int main( int argc, char ** argv ) {
     }
 
     uniform_fill( dGen, key_vec, N );
-    uniform_fill( dGen, val_vec, N );
-
-    periodic_sort( key_vec, val_vec, sorted_keys, sorted_vals );
 
     boost::property_tree::ptree log;
-    bool valid = validate_sorted(key_vec, val_vec, sorted_keys, sorted_vals, log );
+    bool valid = false;
+    if( mode ) {
+        std::cout << "Random Keys and Value Mode" << std::endl;
+        uniform_fill( dGen, val_vec, N );
+        periodic_sort( key_vec, val_vec, sorted_keys, sorted_vals );
+        valid = validate_sorted(key_vec, val_vec, sorted_keys, sorted_vals, log );
+    } else {
+        std::cout << "Random Key and Warp Offset Mode" << std::endl;
+        periodic_sort( key_vec, sorted_keys, sorted_vals );
+        valid = validate_sorted(key_vec, sorted_keys, sorted_vals, log );
+    }
 
     if( !valid ) {
         std::cout << "FAILURE: Invalid Sorting" << std::endl;

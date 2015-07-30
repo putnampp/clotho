@@ -24,7 +24,7 @@ struct warp_sort< 32 > {
     static const unsigned int MAX_BITONIC_ROUNDS = 5;
 
     template < class K >
-    __device__ void sort( K & k, unsigned int round ) {
+    __device__ void operator()( K & k, unsigned int round ) {
         unsigned int round_mask = ((round == MAX_BITONIC_ROUNDS) ? 0 : ((threadIdx.x >> round) & 0x01));
         unsigned int xor_mask = (1 << (round - 1));
 
@@ -40,7 +40,7 @@ struct warp_sort< 32 > {
     }
 
     template < class K, class V >
-    __device__ void sort( K & k, V & v, unsigned int round ) {
+    __device__ void operator()( K & k, V & v, unsigned int round ) {
         unsigned int round_mask = ((round == MAX_BITONIC_ROUNDS) ? 0 : ((threadIdx.x >> round) & 0x01));
         unsigned int xor_mask = (1 << (round - 1));
 

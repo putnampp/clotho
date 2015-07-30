@@ -18,8 +18,19 @@ namespace clotho {
 namespace cuda {
 
 /**
- * @param K - key
- * @param V - value
+ * warp_sort: shuffles values in local registers within a warp
+ * such that values are in ascending order with the laneid (tid % WARP_WIDTH).
+ *
+ * Performs a bitonic sort using registers of threads within a warp.
+ * The initial version of the algorithm is provided in:
+ * 
+ * @inproceedings{Demouth2013,
+ * author = {Julien Demouth},
+ * title = {Shuffle: Tips and Tricks},
+ * year = {2013},
+ * url = {http://on-demand.gputechconf.com/gtc/2013/presentations/S3174-Kepler-Shuffle-Tips-Tricks.pdf},
+ * }
+ *
  * @param WW - warp width
  */
 template < unsigned int WW >

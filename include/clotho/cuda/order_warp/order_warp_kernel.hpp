@@ -57,7 +57,56 @@ __global__ void order_warp_kernel( K * keys, V * values, K * sorted_keys, V * so
     typedef warp_sort< CC::WARP_SIZE > sorter_type;
     sorter_type sorter;
     for( unsigned int i = 1; i <= sorter_type::MAX_BITONIC_ROUNDS; ++i ) {
-        sorter.sort( ke, va, i);
+        sorter( ke, va, i);
+    }
+
+    if( element_idx < N ) {
+        sorted_keys[ element_idx ] = ke;
+        sorted_values[ element_idx ] = va;
+    }
+}
+
+/**
+ * Orders keys within the same warp.  Retains the warp relative offset (threadIdx.x) of the key in the input list as a bit mask
+ */
+template < class K, class CC >
+__global__ void order_warp_kernel( K * keys, K * sorted_keys, unsigned int * sorted_values, unsigned int N, CC comp_cap ) {
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int element_idx = (blockIdx.y * gridDim.x + blockIdx.x) * (blockDim.x * blockDim.y) + tid;
+
+    K ke = 0;
+    unsigned int va = (1 << threadIdx.x);
+    if( element_idx < N ) {
+        ke = keys[ element_idx ];
+    }
+    __syncthreads();
+
+    if( N % CC::WARP_SIZE ) {
+        K max = ke;
+        unsigned int vmax = va;
+
+        for( unsigned int i = 1; i < CC::WARP_SIZE; i <<= 1 ) {
+            K tmp = __shfl_down( max, i );
+            unsigned int tmpv = __shfl_down( vmax, i );
+            if( ((element_idx + i) < N) && (tmp > max) ) {
+                max = tmp;
+                vmax = tmpv;
+            }
+        }
+
+        K tmp = __shfl( max, 0);
+        unsigned int tmpv = __shfl( vmax, 0);
+        if( element_idx >= N ) {
+            ke = tmp;
+            va = tmpv;
+        }
+    }
+    __syncthreads();
+
+    typedef warp_sort< CC::WARP_SIZE > sorter_type;
+    sorter_type sorter;
+    for( unsigned int i = 1; i <= sorter_type::MAX_BITONIC_ROUNDS; ++i ) {
+        sorter( ke, va, i);
     }
 
     if( element_idx < N ) {
