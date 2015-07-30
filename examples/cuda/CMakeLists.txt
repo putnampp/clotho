@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
-INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_SRC_DIR}/examples )
+INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR} )
 
 
 #CUDA_ADD_EXECUTABLE(square_list square_list.cpp square.cu square.h )
