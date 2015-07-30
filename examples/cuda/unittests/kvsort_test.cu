@@ -20,7 +20,7 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "compute_capability.hpp"
+#include "clotho/cuda/compute_capability.hpp"
 #include "clotho/cuda/warp_kvsort.hpp"
 #include "clotho/cuda/curand_uniform_wrapper.hpp"
 

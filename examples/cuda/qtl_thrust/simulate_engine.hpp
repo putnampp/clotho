@@ -24,7 +24,7 @@
 
 #include <thrust/device_vector.h>
 
-#include "compute_capability.hpp"
+#include "clotho/cuda/compute_capability.hpp"
 
 /*
 class simulate_engine;

@@ -14,7 +14,7 @@
 #ifndef COMPUTE_CAPABILITY_HPP_
 #define COMPUTE_CAPABILITY_HPP_
 
-#include "compute_capability/compute_capability_def.hpp"
-#include "compute_capability/compute_capability30.hpp"
+#include "clotho/cuda/compute_capability/compute_capability_def.hpp"
+#include "clotho/cuda/compute_capability/compute_capability30.hpp"
 
 #endif  // COMPUTE_CAPABILITY_HPP_

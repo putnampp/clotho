@@ -16,7 +16,7 @@
 
 #include <cuda.h>
 
-#include "compute_capability.hpp"
+#include "clotho/cuda/compute_capability.hpp"
 
 namespace clotho {
 namespace cuda {

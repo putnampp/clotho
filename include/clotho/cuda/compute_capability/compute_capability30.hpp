@@ -14,7 +14,7 @@
 #ifndef COMPUTE_CAPABILITY30_HPP_
 #define COMPUTE_CAPABILITY30_HPP_
 
-#include "compute_capability/compute_capability_def.hpp"
+#include "clotho/cuda/compute_capability/compute_capability_def.hpp"
 
 template < >
 struct compute_capability< 3, 0 > {
