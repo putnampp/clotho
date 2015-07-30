@@ -14,7 +14,7 @@
 cmake_minimum_required (VERSION 2.8)
 PROJECT( CLOTHO C CXX )
 
-SET (${PROJECT_NAME}_LIB_CORENAME "clotho")
+SET (${PROJECT_NAME}_LIB_CORENAME "clotho" )
 
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
