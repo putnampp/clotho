@@ -13,16 +13,119 @@
 //   limitations under the License.
 #include "crossover_matrix.hpp"
 
+#include "clotho/cuda/warp_sort.hpp"
+//#include <iostream>
+
 const unsigned int BLOCK_PER_ROW = 32;
 const unsigned int ROW_PER_PAGE = 32;
 const unsigned int MAX_THREADS = BLOCK_PER_ROW * ROW_PER_PAGE;
 
-__shared__ double f_sAlleles[ 1024 ];
-__shared__ unsigned int f_sSeq[ 1024 ];
+__shared__ double       g_sAlleles[ 1024 ];
+__shared__ unsigned int g_sBuffer[ 1024 ];
 
+__constant__ unsigned int g_cEvents[ crossover_wrapper::MAX_EVENTS + 1 ];
+
+//inline std::ostream & operator<<( std::ostream & out, const dim3 & d ) {
+//    out << "< " << d.x << ", " << d.y << ", " << d.z << " >";
+//    return out;
+//}
+
+__global__ void generate_crossover_matrix4( double * rand_pool
+                                            , double * alleles
+                                            , unsigned int * sequences
+                                            , dim3 max_dims ) {
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    unsigned int eStart = g_cEvents[blockIdx.y], eEnd = g_cEvents[blockIdx.y + 1];
+
+    // if there are no recombination events for this thread block/sequence
+    if( eStart >= eEnd ) {  // will be true or false for all threads in the block
+        if( threadIdx.y == 0 ) {
+            sequences[ (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.y ] = 0;
+        }
+        return;
+    }
+
+    __shared__ double recomb_points[ 1024 ];
+    double rpt = 1.0;
+
+    if( eStart + tid < eEnd ) {
+        rpt = rand_pool[ eStart + tid ];
+    }
+    __syncthreads();
+
+    // order the list of recombination points
+    rpt = -log( rpt );
+
+    // scan
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        double tmp = __shfl_up( rpt, i );
+        if( threadIdx.x >= i ) rpt += tmp;
+    }
+
+    // share partial sums with other warps in block
+    if( threadIdx.x == 31 ) {
+        recomb_points[ threadIdx.y ] = rpt;
+    }
+
+    double accum = recomb_points[threadIdx.x];
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        double tmp = __shfl_up( accum, i );
+        if( threadIdx.x >= i ) accum += tmp;
+    }
+    
+    if( threadIdx.y > 0 ) {
+        double tmp = __shfl( accum, threadIdx.y - 1 );
+        rpt += tmp;
+    }
+    __syncthreads();
+
+    double tmp = __shfl( accum, 31 );
+    accum = tmp - log(0.1); // technically should be log of an additional random value (not a constant)
+
+    rpt /= accum;
+    recomb_points[tid] = rpt;
+    // at this point rpt_{tid} are linearly ordered
+
+    // load an allele into a register
+    double allele = alleles[ blockIdx.x * 1024 + tid ];
+    __syncthreads();
+
+    // casting to int to allow for negative indices
+    int min = 0, max = (eEnd - eStart);
+
+    // binary search of recombination point list
+    while( min <= max ) {
+        unsigned int mid = ((max - min) / 2) + min;
+        
+        if( recomb_points[ mid ] < allele ) {
+            min = mid + 1;
+        } else if( recomb_points[ mid ] > allele ) {
+            max = mid - 1;
+        } else {
+            // allele occurs at a recombination point
+            min = mid;
+            break;
+        }
+    }
+    __syncthreads();
+    // min contains count of preceeding recombination events
+
+    unsigned int mask = ((min & 1) * (1 << threadIdx.x));
+
+    for( unsigned int i = 1; i < 32; i <<= 1) {
+        unsigned int m = __shfl_down(mask, i);
+        if( !(threadIdx.x & ((i << 1) - 1)) ) mask |= m;
+    }
+
+    if(threadIdx.x == 0 ) {
+        sequences[ (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.y ] = mask;
+    }
+}
 
 __global__ void generate_crossover_matrix3( double * rand_pool
                                             , double * alleles
+                                            , unsigned int * allele_mask
                                             , unsigned int * event_list
                                             , unsigned int * sequences
                                             , dim3 max_dims ) {
@@ -35,7 +138,7 @@ __global__ void generate_crossover_matrix3( double * rand_pool
     __syncthreads();
 
     unsigned int min_events = sEvents[0], max_events = sEvents[ 1023 ];
-    __syncthreads();
+//    __syncthreads();
 
     // if there are no recombination events for this sequence
     if( min_events >= max_events ) {  // will be true or false for all threads in the block
@@ -48,50 +151,45 @@ __global__ void generate_crossover_matrix3( double * rand_pool
     if( min_events + tid < max_events ) {
         sOffset[ tid ] = rand_pool[ min_events + tid ];
     }
-    __syncthreads();
+    __syncthreads();    // used to allow for better memory access coalescing in subsequent step
 
+    // load global memory into thread register(s)
     double all = alleles[ blockIdx.x * 1024 + tid ];
-    __syncthreads();
+    unsigned int all_mask = allele_mask[ blockIdx.x * 1024 + tid ];
+     __syncthreads();
 
     unsigned int idx = all * 1023;  // assumes all in [0,1.0)
-    unsigned int lo = sEvents[ idx ], hi = sEvents[ idx + 1 ];
-    __syncthreads();
+    unsigned int lo_event_idx = sEvents[ idx ], hi_event_idx = sEvents[ idx + 1 ];
 
-    unsigned int N = (hi - lo); // number of recombination events in region
-    lo -= min_events;           // number of events before allele bin
+    lo_event_idx -= min_events;           // number of events before allele bin
+    hi_event_idx -= min_events;
 
-    // determine how many events occur **before** current allele in this bin
-    double rng_lo = (double) idx / 1024.0, rng_hi = ((double)(idx + 1))/ 1024.0;
-    unsigned int offset_idx = lo;
-    while( N-- ) {
-        double offset = sOffset[offset_idx];
-        double val = offset * (rng_hi - rng_lo) + rng_lo;
-        unsigned int n = offset * N;
+    // determine how many events occur **before** current allele in thi_event_idxs bin
+    double rng_lo_event_idx = (double) idx / 1024.0, rng_hi_event_idx = ((double)(idx + 1))/ 1024.0;
+
+    // expected to incur branch divergence
+    while( lo_event_idx < hi_event_idx ) {
+        double val = sOffset[lo_event_idx] * (rng_hi_event_idx - rng_lo_event_idx) + rng_lo_event_idx;
         if( val < all ) {
             // allele in right half of bin
-            lo += n + 1;
-            offset_idx += n + 1;
-            N -= n;
-            rng_lo = val;
+            ++lo_event_idx;
+            rng_lo_event_idx = val;
         } else {
-            ++offset_idx;
-            N = n;
-            rng_hi = val;
+            break;
         }
     }
-    __syncthreads();
 
-    unsigned int m = ((lo & 1) * (1 << threadIdx.x));
-    __syncthreads();
+    all_mask *= (lo_event_idx & 1);
+    __syncthreads();    // necessary b/c of thread divergence
 
 #pragma unroll
     for( unsigned int i = 2; i <= BLOCK_PER_ROW; i <<= 1 ) {
-        unsigned int n = __shfl_down(m, (i >> 1), BLOCK_PER_ROW );
-        if( !(threadIdx.x & (i - 1))) m |= n;
+        unsigned int n = __shfl_down(all_mask, (i >> 1), BLOCK_PER_ROW );
+        if( !(threadIdx.x & (i - 1))) all_mask |= n;
     }
 
     if( threadIdx.x == 0 ) {
-        sequences[ blockIdx.y * max_dims.x + (blockIdx.x << 5) + threadIdx.y ] = m;
+        sequences[ blockIdx.y * max_dims.x + (blockIdx.x << 5) + threadIdx.y ] = all_mask;
     }
 }
 
@@ -496,42 +594,42 @@ __global__ void crossover( unsigned int * seq
 
 __global__ void init_alleles( double * alleles, unsigned int count ) {
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
-    f_sAlleles[ tid ] = ((tid < count ) ? alleles[ tid ] : -1.0);
+    g_sAlleles[ tid ] = ((tid < count ) ? alleles[ tid ] : -1.0);
 }
 
 __global__ void init_sequence( unsigned int * seq ) {
     unsigned int tid = threadIdx.y* blockDim.x + threadIdx.x;
     if( threadIdx.y == 0 ) {
-        f_sSeq[ threadIdx.x ] = seq[ threadIdx.x ];
+        g_sBuffer[ threadIdx.x ] = seq[ threadIdx.x ];
     }
     __syncthreads();
 
     unsigned int mask = (1 << threadIdx.x );
-    unsigned int v = f_sSeq[ threadIdx.x ];
+    unsigned int v = g_sBuffer[ threadIdx.x ];
     __syncthreads();
 
-    f_sSeq[ tid ] = (v & mask);
+    g_sBuffer[ tid ] = (v & mask);
 }
 
 __global__ void crossover2( double rpoint) {
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
-    double a = f_sAlleles[ tid ];
-    unsigned int res = f_sSeq[ tid ];
+    double a = g_sAlleles[ tid ];
+    unsigned int res = g_sBuffer[ tid ];
     __syncthreads();
 
     unsigned int mask = (1 << threadIdx.x);
     unsigned int b = !!((0.0 <= a) && (a < rpoint)); // rec point is after allele position
     res = (res ^ ( b*mask));
 
-    f_sSeq[tid] = res;
+    g_sBuffer[tid] = res;
 }
 
 __global__ void finalize_sequence( unsigned int * seq ) {
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
-    unsigned int v = f_sSeq[tid];
+    unsigned int v = g_sBuffer[tid];
     __syncthreads();
 
 #pragma unroll
@@ -541,11 +639,33 @@ __global__ void finalize_sequence( unsigned int * seq ) {
     }
 
     if( threadIdx.x == 0 ) {
-        f_sSeq[ threadIdx.y ] = v;
+        g_sBuffer[ threadIdx.y ] = v;
     }
     __syncthreads();
 
     if( threadIdx.y == 0 ) {
-        seq[threadIdx.x] = f_sSeq[threadIdx.x];
+        seq[threadIdx.x] = g_sBuffer[threadIdx.x];
+    }
+}
+
+void crossover_wrapper::operator()( double * rand_pool, double * alleles, unsigned int * event_list, unsigned int * sequences, dim3 max_dims ) {
+
+    unsigned int seq_count = max_dims.y;
+    while( seq_count ) {
+        unsigned int N = seq_count;
+        if( N > MAX_EVENTS ) { N = MAX_EVENTS; }
+        cudaMemcpyToSymbol( event_list, g_cEvents, N + 1, cudaMemcpyDeviceToDevice );
+
+        dim3 blocks( max_dims.x / 1024, N, 1), threads( 32, 32, 1);
+
+        generate_crossover_matrix4<<< blocks, threads >>>( rand_pool, alleles, sequences, max_dims );
+
+
+//        std::cerr << blocks << ", " << threads << std::endl;
+        cudaDeviceSynchronize();
+
+        event_list += N;
+        seq_count -= N;
+        sequences += (blocks.y * blocks.x * threads.x);
     }
 }

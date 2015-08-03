@@ -22,6 +22,7 @@
 
 #include "clotho/cuda/curand_uniform_wrapper.hpp"
 #include "clotho/cuda/curand_poisson_wrapper.hpp"
+#include "clotho/cuda/order_warp/order_warp.hpp"
 
 #include "crossover_matrix.hpp"
 #include "population_recombiner.hpp"
@@ -165,11 +166,6 @@ void simulate_engine::simulate( unsigned int pop_size ) {
 
     assert( parent_rows * parent_cols == m_dParentPop->size() );
 
-//    std::cerr << "Parent Alleles: " << parent_alleles << std::endl;
-//    std::cerr << "Parent Dimensions: [" << parent_rows << ", " << parent_cols << "]" << std::endl;
-    
-//    timer_type t0;
-
     // pre-generate mutation event distribution for offspring population
     // done to allow offspring population to be resized appropriately
     unsigned int nMut = fill_event_list(m_dMutEvent, seq_count, m_mu);
@@ -178,25 +174,27 @@ void simulate_engine::simulate( unsigned int pop_size ) {
     resizePopulation( m_dOffspringPop, seq_count );
 
     // pre-generate recombination event distribution for offspring population
-#if CROSSOVER_MATRIX == 2
+//#if CROSSOVER_MATRIX == 2
     unsigned int nRec = fill_event_list(m_dRecEvent, seq_count, m_rho);
-#else
-    unsigned int nRec = fill_event_list( m_dRecEvent, seq_count * 1024, (m_rho / 1024.0));
-#endif
-//    std::cerr << "nRec: " << nRec << std::endl;
+//#else
+//    unsigned int nRec = fill_event_list( m_dRecEvent, seq_count * 1024, (m_rho / 1024.0));
+//#endif
 
     // 1 (parent/offspring sequence) * (offspring sequences)
     // + mutations added to population
     // + recombination events
     fill_random_pool( seq_count + nMut + nRec );
 
-//    t0.stop();
-//    std::cerr << "Random Number Generation Lapse: " << t0 << std::endl;
-
-//    t0.start();
-    real_type * rand_pool = thrust::raw_pointer_cast( m_dRandBuffer.data() );
+//    clotho::cuda::order_warp< comp_cap_type > sorter;
+//    allele_type * orig_all = thrust::raw_pointer_cast( m_dAlleles.data() );
+//    allele_type * order_all = thrust::raw_pointer_cast( m_dOrderedAlleles.data() );
+//    block_type * order_masks = thrust::raw_pointer_cast( m_dAlleleMasks.data() );
 //
-    crossover_method4( rand_pool, seq_count, parent_alleles );
+//    sorter.sort( orig_all, order_all, order_masks, m_dAlleles.size() );
+
+    real_type * rand_pool = thrust::raw_pointer_cast( m_dRandBuffer.data() );
+
+    crossover_method5( rand_pool, seq_count, parent_alleles );
     rand_pool += nRec;
 
     recombine_method3( rand_pool,  seq_count, parent_rows, parent_cols );
@@ -206,9 +204,6 @@ void simulate_engine::simulate( unsigned int pop_size ) {
     
 //    update_population_metadata<<< blocks, threads >>>( offspring, seq_count, m_dFree.size(), free_list, lost_list, fixed_list );
     cudaDeviceSynchronize();
-//    t0.stop();
-
-//    std::cerr << "Generate Offspring Population Lapse: " << t0 << std::endl;
 }
 
 unsigned int simulate_engine::fill_event_list( event_vector & ev, unsigned int count, double rate ) {
@@ -356,7 +351,10 @@ void simulate_engine::crossover_method4( real_type * rand_pool, unsigned int seq
         incomplete[i] =  &streams[i];
     }
 
-    allele_type * alleles = thrust::raw_pointer_cast( m_dAlleles.data() );
+//    allele_type * alleles = thrust::raw_pointer_cast( m_dAlleles.data() );
+    allele_type * alleles = thrust::raw_pointer_cast( m_dOrderedAlleles.data() );
+    block_type * masks = thrust::raw_pointer_cast( m_dAlleleMasks.data() );
+
     block_type * offspring = thrust::raw_pointer_cast( m_dOffspringPop->data() );
     event_count_type * event_list = thrust::raw_pointer_cast( m_dRecEvent.data() );
 
@@ -373,7 +371,7 @@ void simulate_engine::crossover_method4( real_type * rand_pool, unsigned int seq
 #if CROSSOVER_MATRIX == 2
         generate_crossover_matrix2a<<< blocks, threads, 0, streams[sid] >>>(rand_pool, alleles, event_list, offspring, sizes);
 #else
-        generate_crossover_matrix3<<< blocks, threads, 0, streams[sid] >>>(rand_pool, alleles, event_list, offspring, sizes);
+        generate_crossover_matrix3<<< blocks, threads, 0, streams[sid] >>>(rand_pool, alleles, masks, event_list, offspring, sizes);
 #endif
 
         offspring += m_dFree.size() * blocks.y;
@@ -395,6 +393,19 @@ void simulate_engine::crossover_method4( real_type * rand_pool, unsigned int seq
             incomplete.push_back( t );
         }
     }
+}
+
+void simulate_engine::crossover_method5( real_type * rand_pool, unsigned int seq_count, unsigned int parent_alleles ) {
+    allele_type * alleles = thrust::raw_pointer_cast( m_dAlleles.data() );
+    block_type * offspring = thrust::raw_pointer_cast( m_dOffspringPop->data() );
+    event_count_type * event_list = thrust::raw_pointer_cast( m_dRecEvent.data() );
+
+    dim3 sizes( parent_alleles, seq_count, 1 );
+
+//    std::cerr << sizes << std::endl;
+
+    crossover_wrapper cw;
+    cw( rand_pool, alleles, event_list, offspring, sizes );
 }
 
 void simulate_engine::recombine_method2( unsigned int seq_count, unsigned int parent_rows, unsigned int parent_cols ) {

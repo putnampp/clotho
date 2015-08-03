@@ -104,6 +104,7 @@ protected:
     void crossover_method2( unsigned int seq_count, unsigned int parent_alleles );
     void crossover_method3( unsigned int seq_count, unsigned int parent_alleles );
     void crossover_method4( real_type * rand_pool, unsigned int seq_count, unsigned int parent_alleles );
+    void crossover_method5( real_type * rand_pool, unsigned int seq_count, unsigned int parent_alleles );
 
     void recombine_method2( unsigned int seq_count, unsigned int p_row, unsigned int p_col );
     void recombine_method3( real_type * rand_pool, unsigned int seq_count, unsigned int p_row, unsigned int p_col );

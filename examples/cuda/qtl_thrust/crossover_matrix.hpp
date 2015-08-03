@@ -43,7 +43,13 @@ __global__ void generate_crossover_matrix2a( double * rand_pool
 
 __global__ void generate_crossover_matrix3( double * rand_pool
                                             , double * alleles
+                                            , unsigned int * allele_mask
                                             , unsigned int * event_list
+                                            , unsigned int * sequences
+                                            , dim3 max_dims );
+
+__global__ void generate_crossover_matrix4( double * rand_pool
+                                            , double * alleles
                                             , unsigned int * sequences
                                             , dim3 max_dims );
 
@@ -56,5 +62,12 @@ __global__ void crossover( unsigned int * seq
                             , double * alleles
                             , unsigned int allele_count
                             , double rpoint);
+
+struct crossover_wrapper {
+    static const unsigned int MAX_EVENTS = 10240;
+
+    void operator()( double * rand_pool, double * alleles, unsigned int * event_list, unsigned int * sequences, dim3 sizes );
+
+};
 
 #endif  // CROSSOVER_MATRIX_HPP_
