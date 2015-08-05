@@ -28,6 +28,8 @@ struct compute_capability< 3, 0 > {
 
     static const unsigned int MAX_BLOCKS_X = 65535;
     static const unsigned int MAX_BLOCKS_Y = 65535;
+
+    static const unsigned int MAX_CONSTANT_MEMORY = (1 << 16);  // in bytes
 };
 
 #endif  // COMPUTE_CAPABILITY30_HPP_

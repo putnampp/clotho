@@ -41,7 +41,7 @@ __global__ void generate_crossover_matrix4( double * rand_pool
     // if there are no recombination events for this thread block/sequence
     if( eStart >= eEnd ) {  // will be true or false for all threads in the block
         if( threadIdx.y == 0 ) {
-            sequences[ (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.y ] = 0;
+            sequences[ (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x ] = 0;
         }
         return;
     }
@@ -654,9 +654,9 @@ void crossover_wrapper::operator()( double * rand_pool, double * alleles, unsign
     while( seq_count ) {
         unsigned int N = seq_count;
         if( N > MAX_EVENTS ) { N = MAX_EVENTS; }
-        cudaMemcpyToSymbol( event_list, g_cEvents, N + 1, cudaMemcpyDeviceToDevice );
+        cudaMemcpyToSymbol( g_cEvents, event_list, (N + 1) * sizeof( unsigned int ), 0, cudaMemcpyDeviceToDevice );
 
-        dim3 blocks( max_dims.x / 1024, N, 1), threads( 32, 32, 1);
+        dim3 blocks( max_dims.x / 1024, N, 1), threads(32, 32, 1);
 
         generate_crossover_matrix4<<< blocks, threads >>>( rand_pool, alleles, sequences, max_dims );
 
