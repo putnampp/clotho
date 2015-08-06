@@ -76,7 +76,7 @@ struct crossover_test {
 
         std::cout << "Events generated: " << nEvents << std::endl;
 
-        rand_pool.resize( nEvents );
+        rand_pool.resize( nEvents + N );
 
         eGen( rand_pool );
 
@@ -104,15 +104,18 @@ struct crossover_test {
     }
 
     inline bool sort_randoms( host_vector & d, random_iterator first, random_iterator last ) {
-        
-        typename crossover_type::real_type sum = 0;
-        while( first != last ) {
-            sum -= log( *first );
-            d.push_back( sum );
-            ++first;
-        }
+        if( first == last ) return true;
 
-        sum -= log( 0.1 );
+        typename crossover_type::real_type sum = 0;
+        while( true ) {
+            sum -= log( *first );
+            ++first;
+
+            if( first == last ) {
+                break;
+            }
+            d.push_back( sum );
+        }
 
         for( host_iterator it = d.begin(); it != d.end(); ++it ) {
             (*it) /= sum;
@@ -152,7 +155,6 @@ struct crossover_test {
     }
 
     bool validate( boost::property_tree::ptree & err ) {
-        std::cerr << "Validate" << std::endl;
         bool valid = true;
 
         const unsigned int ALLELE_PER_BLOCK = sizeof( typename crossover_type::int_type ) * 8;
@@ -169,7 +171,6 @@ struct crossover_test {
 
         unsigned int seq_idx = 0;
         while( valid && c_it + 1 != event_list.end() ) {
-            std::cerr << "Validating sequence: " << seq_idx << std::endl;
             typename crossover_type::event_count_type min_events = *c_it;
             ++c_it;
             typename crossover_type::event_count_type max_events = *c_it;
@@ -199,7 +200,7 @@ struct crossover_test {
             }
 
             host_vector rec_events;
-            valid = sort_randoms( rec_events, r_it, r_it + nEvents );
+            valid = sort_randoms( rec_events, r_it, r_it + nEvents + 1 );
             valid = valid && (rec_events.size() == nEvents);
             if( !valid ) {
                 err.put("message", "Ordering offset failed");
@@ -235,7 +236,7 @@ struct crossover_test {
                 clotho::utility::add_value_array( obs, ordered_events.begin(), ordered_events.end() );
 
                 boost::property_tree::ptree inp;
-                clotho::utility::add_value_array( inp, r_it, r_it + nEvents);
+                clotho::utility::add_value_array( inp, r_it, r_it + nEvents + 1);
 
                 err.add_child( "expected", exp );
                 err.add_child( "observed", obs );
@@ -243,8 +244,8 @@ struct crossover_test {
                 break;
             }
 
-            r_it += nEvents;
-            rands += nEvents;
+            r_it += nEvents + 1;
+            rands += nEvents + 1;
 
             allele_iterator a_it = allele_list.begin();
             unsigned int nMasks = sequence_width;
