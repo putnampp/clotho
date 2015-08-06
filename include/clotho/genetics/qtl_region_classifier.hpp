@@ -20,6 +20,7 @@
 
 #include <boost/random/poisson_distribution.hpp>
 #include <set>
+#include <cmath>
 
 //#include "clotho/utility/log_helper.hpp"
 //#include <boost/property_tree/json_parser.hpp>
@@ -52,7 +53,7 @@ public:
         typename result_type::param_type p;
         unsigned int n = ((m_bSkip) ? 0 : m_dist(*m_rng) );
 
-        generate_ordered_list( p, 0.0, 1.0, n );
+        generate_ordered_list( p, n );
 
 //        boost::property_tree::ptree l;
 //        add_value_array(l, p.begin(), p.end() );
@@ -77,46 +78,35 @@ protected:
         }
     }
 
-/**
- * Construct a position ordered list of qtl_alleles in linear time
- * Avoids potential of duplicate positions in the list
- * Avoids having to sort the list
- */
-//   [lo, hi)        | n   | r    | val                        | lside           | rside | rec | p
-//   [0, 1)          | 10  | 0.5  | 0.5 * 1 + 0 = 0.5          | (0.5 * 9) = 4   | 5     | l   |
-//   [0, 0.5)        | 4   | 0.3  | 0.3 * (0.5) + 0 = 0.15     | (0.3 * 3) = 0   | 3     | l   |
-//   [0, 0.15)       | 0   | -    | -                          | -               | -     | -   |
-//   [0, 0.5)        | 3   | 0.3  | 0.3 * (0.5) + 0 = 0.15     | (0.3 * 2) = 0   | 2     | r   | 0.15
-//   [0.15, 0.5 )    | 2   | 0.8  | 0.8 * (0.35) +0.15 = 0.43  | (0.8 * 1) = 0   | 1     | l   | 0.15
-//   [0.15, 0.43)    | 0   | -    | -                          | -               | -     | -   | 0.15
-//   [0.43, 0.5)     | 1   | 0.11 | 0.11* (0.43) +0.15 = 0.4377| 0               | 0     | r   | 0.15, 0.43
-//   [0.43, 0.4377)  | 0   | -    | -                          | -               | -     | -   | 0.15, 0.43
-//   [0.43, 0.5)     | 1   | 0.11 | 0.11* (0.43) +0.15 = 0.4377| 0               | 0     | r   | 0.15, 0.43, 0.4377
-//   [0.4377, 0.5)   | 0   | -    | -                          | -               | -     | -   | 0.15, 0.43, 0.4377
-//   [0, 1)          | 10  | 0.5  | 0.5 * 1 + 0 = 0.5          | (0.5 * 9) = 4   | 5     | r   | 0.15, 0.43, 0.4377, 0.5
-//   [0.5, 1)        | 5   | 0.9  | 0.9 * (0.5) + 0.5 = 0.95   | (0.5 * 4) = 2   | 2     | l   | 0.15, 0.43, 0.4377, 0.5
-//   [0.5, 0.95)     | 2   | 0.02 | 0.02 * (0.45) + 0.5 = 0.509| (0.02 * 1 ) = 0 | 1     | l   | 0.15, 0.43, 0.4377, 0.5
-//   [0.5, 0.509)    | 0   | -    | -                          | -               | -     | -   | 0.15, 0.43, 0.4377, 0.5
-//   [0.5, 0.95)     | 2   | 0.02 | 0.02 * (0.45) + 0.5 = 0.509| (0.02 * 1 ) = 0 | 1     | r   | 0.15, 0.43, 0.4377, 0.5, 0.509
-
-    void generate_ordered_list( typename result_type::param_type & p, double lo, double hi, unsigned int n ) {
-        if( n-- == 0 ) return;
-        
-        // m_uniform produces X ~ [0, 1)
-        double r = m_uniform( *m_rng );
-
-        while( r == 0.0 || r == 1.0 ) { r = m_uniform( *m_rng ); }
-
-        double val = r * (hi - lo) + lo;
-
-        unsigned int lside = r * n;
-
-        generate_ordered_list( p, lo, val, lside);
-
+    // Linear generation of ordered random allele locations
+    // @article{Bentley:1980:GSL:355900.355907,
+    //  author = {Bentley, Jon Louis and Saxe, James B.},
+    //  title = {Generating Sorted Lists of Random Numbers},
+    //  journal = {ACM Trans. Math. Softw.},
+    //  issue_date = {Sept. 1980},
+    //  volume = {6},
+    //  number = {3},
+    //  month = sep,
+    //  year = {1980},
+    //  issn = {0098-3500},
+    //  pages = {359--364},
+    //  numpages = {6},
+    //  url = {http://doi.acm.org/10.1145/355900.355907},
+    //  doi = {10.1145/355900.355907},
+    //  acmid = {355907},
+    //  publisher = {ACM},
+    //  address = {New York, NY, USA},
+    //  }
+    void generate_ordered_list( typename result_type::param_type & p, unsigned int N ) {
+        double curmax = 0.0;
         qtl_allele::trait_weights coeff;
-        p.push_back( qtl_allele( val, DEFAULT_SELECTION, DEFAULT_DOMINANCE, DEFAULT_NEUTRAL, 0, coeff) );
-        
-        generate_ordered_list( p, val, hi, n - lside );
+        while( N ) {
+            // generates list in reverse order
+            // hence taking the complement
+            curmax += (log( m_uniform( *m_rng ) ) / (double)(N));
+            p.push_back( qtl_allele( (1.0 - exp(curmax)), DEFAULT_SELECTION, DEFAULT_DOMINANCE, DEFAULT_NEUTRAL, 0, coeff) );
+            --N;
+        }
     }
 
     void parseConfig( boost::property_tree::ptree & config ) {
