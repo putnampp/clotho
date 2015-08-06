@@ -32,6 +32,9 @@
 #include "clotho/cuda/crossover/crossover_matrix.cuh"
 
 #include "clotho/utility/log_helper.hpp"
+#include "clotho/utility/timer.hpp"
+
+typedef clotho::utility::timer timer_type;
 
 template < class CrossType >
 struct crossover_test {
@@ -335,14 +338,24 @@ int main(int argc, char ** argv ) {
         assert(false);
     }
 
+    boost::property_tree::ptree init_perf_log, sim_perf_log;
     unsigned int s = samples;
     while( s-- ) {
         crossover_test< crossover > ct;
         clotho::cuda::fill_poisson< unsigned int, crossover::real_type> cGen( dGen, rho );
         clotho::cuda::fill_uniform< crossover::real_type > eGen(dGen);
 
+        timer_type t;
         ct.initialize( eGen, A );
+        t.stop();
+
+        clotho::utility::add_value_array( init_perf_log, t );
+
+        t.start();
         ct.simulate( cGen, eGen, N );
+        t.stop();
+
+        clotho::utility::add_value_array( sim_perf_log, t);
 
         boost::property_tree::ptree err;
         if( !ct.validate(err) ) {
@@ -351,6 +364,9 @@ int main(int argc, char ** argv ) {
             log.add_child(oss.str(), err );
         }
     }
+
+    log.add_child( "performance.initialization", init_perf_log );
+    log.add_child( "performance.simulate", sim_perf_log );
 
     boost::property_tree::write_json(std::cout, log);
 

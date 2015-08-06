@@ -20,4 +20,4 @@ CUDA_ADD_EXECUTABLE(kvsort_test kvsort_test.cu )
 TARGET_LINK_LIBRARIES(kvsort_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 
 CUDA_ADD_EXECUTABLE(crossover_test crossover_test.cu )
-TARGET_LINK_LIBRARIES(crossover_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
+TARGET_LINK_LIBRARIES(crossover_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_CHRONO_LIBRARY})
