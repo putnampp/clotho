@@ -31,7 +31,6 @@
 #include "clotho/cuda/curand_poisson_wrapper.hpp"
 #include "clotho/cuda/curand_uniform_wrapper.hpp"
 
-//#include "crossover_test_5.h"
 #include "clotho/cuda/crossover/crossover_matrix.cuh"
 #include "crossover_test.hpp"
 #include "crossover_validate.hpp"
@@ -59,28 +58,23 @@ public:
     }
 };
 
-template < unsigned int BinCount = 1024 >
-struct event_hash_method {
-    static const unsigned int BINS = BinCount;
-};
-
-template < unsigned int BC >
-class event_generator_wrapper< event_hash_method< BC > > : public clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type > {
+template < >
+class event_generator_wrapper< crossover< 4 > > : public clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type > {
 public:
     typedef clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type > base_type;
-    typedef event_hash_method< BC > bin_type;
+    static const unsigned int BINS = 1024;
 
     boost::random::mt19937  m_rand;
     crossover_type::real_type    m_rate;
 
     event_generator_wrapper( curandGenerator_t g, crossover_type::real_type rate ) :
-        base_type( g, rate / (double) bin_type::BINS)
+        base_type( g, rate / (double) BINS)
         , m_rand( clotho::utility::clock_type::now().time_since_epoch().count() )
         , m_rate( rate )
     {}
 
     unsigned int operator()( thrust::device_vector< unsigned int > & buf, size_t N ) {
-        size_t eCount = bin_type::BINS * N;
+        size_t eCount = BINS * N;
         buf.resize( eCount );
 
         ((base_type*)this)->operator()( buf, eCount );
@@ -405,7 +399,7 @@ int main(int argc, char ** argv ) {
     while( s-- ) {
         crossover_test< crossover_type > ct;
         //clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type> cGen( dGen, rho );
-        event_generator_wrapper< event_hash_method< 1024 > > cGen( dGen, rho );
+        event_generator_wrapper< crossover_type > cGen( dGen, rho );
         clotho::cuda::fill_uniform< crossover_type::real_type > eGen(dGen);
 
         timer_type t;

@@ -16,7 +16,7 @@
 
 #include "crossover_test.hpp"
 
-#include "sequence_validate.hpp"
+#include "validate_sequence.hpp"
 #include "reorder_uniform.hpp"
 #include "validate_order.hpp"
 #include "determine_mask.hpp"
