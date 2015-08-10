@@ -16,14 +16,15 @@
 
 #include "clotho/cuda/compute_capability.hpp"
 #include "clotho/cuda/crossover/uniform_random_sort.cuh"
+#include "clotho/cuda/crossover/crossover_matrix_def.hpp"
 
 #include <cuda.h>
-#include <iostream>
 
-class crossover {
+template <>
+class crossover< 5 > {
 public:
-    typedef double                       real_type;
-    typedef double                       allele_type;
+    typedef double                      real_type;
+    typedef double                      allele_type;
     typedef unsigned int                event_count_type;
     typedef unsigned int                int_type;
     typedef unsigned int                size_type;
@@ -74,25 +75,36 @@ __global__ void order_random( RealType * in_list, RealType * out_list, size_t N 
     }
 }
 
+template < class RealType >
+__global__ void select_randoms( RealType * rand_pool, unsigned int offset, unsigned int N, RealType * o_list ) {
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    if( tid < N ) {
+        o_list[ tid ] = rand_pool[ offset + tid ];
+    }
+}
+
 #ifdef USE_CONSTANT_EVENT_LIST
 #define EVT_LIST g_cEvents
 
-__constant__ crossover::event_count_type EVT_LIST[ crossover::MAX_EVENTS + 1 ];
+__constant__ crossover< 5 >::event_count_type EVT_LIST[ crossover< 5 >::MAX_EVENTS + 1 ];
 
 template < class RealType, class CC >
-__global__ void crossover_matrix( RealType * rand_pool
+__global__ void crossover_matrix_5( RealType * rand_pool
                                   , RealType * alleles
                                   , unsigned int * sequences
-                                  , unsigned int sequence_width ) {
+                                  , unsigned int sequence_width
+                                  , unsigned int round_offset ) {
 #else
 #define EVT_LIST event_list
 
 template < class RealType, class CC >
-__global__ void crossover_matrix( RealType * rand_pool
+__global__ void crossover_matrix_5( RealType * rand_pool
                                   , RealType * alleles
                                   , unsigned int * EVT_LIST
                                   , unsigned int * sequences
-                                  , unsigned int sequence_width ) {
+                                  , unsigned int sequence_width
+                                  , unsigned int round_offset ) {
 #endif  // USE_CONSTANT_EVENT_LIST
 
     typedef RealType AlleleType;
@@ -127,30 +139,30 @@ __global__ void crossover_matrix( RealType * rand_pool
 
     // grab an extra random number for padding of final element
     if( eStart + tid <= eEnd ) {
-        recomb_points[ tid ] = rand_pool[ blockIdx.y + eStart + tid ];
+        recomb_points[ tid ] = rand_pool[ round_offset + blockIdx.y + eStart + tid ];
     } else {
         recomb_points[ tid ] = 1.0;
     }
     __syncthreads();
 
-    RealType rpt = recomb_points[tid];
+    RealType rpt = ((eStart + tid == eEnd ) ? 1.0 : recomb_points[tid]);
     RealType pad = recomb_points[ eEnd - eStart ];
-    if( tid == max + 1 ) {
-        rpt = 1.0;
-    }
     __syncthreads();
     
     rpt = order.sort( recomb_points, rpt, pad, tid );
+    __syncthreads();
+
     recomb_points[ tid ] = rpt;
     __syncthreads();
 
     // binary search of recombination point list
     while( min <= max ) {
-        unsigned int mid = ((max - min) / 2) + min;
-        
-        if( recomb_points[ mid ] < allele ) {
+        int mid = ((max - min) / 2) + min;
+        AlleleType tmp = recomb_points[ mid ];
+
+        if( tmp < allele ) {
             min = mid + 1;
-        } else if( recomb_points[ mid ] > allele ) {
+        } else if( tmp > allele ) {
             max = mid - 1;
         } else {
             // allele occurs at a recombination point
@@ -163,9 +175,10 @@ __global__ void crossover_matrix( RealType * rand_pool
 
     unsigned int mask = ((min & 1) * (1 << threadIdx.x));
 
+#pragma unroll
     for( unsigned int i = 1; i < CC::WARP_SIZE; i <<= 1) {
         unsigned int m = __shfl_down(mask, i, CC::WARP_SIZE);
-        if( !(threadIdx.x & ((i << 1) - 1)) ) mask |= m;
+        mask |= ( (!(threadIdx.x & ((i << 1) - 1))) * m);
     }
 
     if(threadIdx.x == 0 ) {
@@ -173,7 +186,7 @@ __global__ void crossover_matrix( RealType * rand_pool
     }
 }
 
-void crossover::operator()(  real_type         * rand_pool
+void crossover< 5 >::operator()(  real_type         * rand_pool
                             , allele_type       * allele_list
                             , event_count_type  * evt_list
                             , int_type          * sequences
@@ -183,8 +196,9 @@ void crossover::operator()(  real_type         * rand_pool
     assert( nAlleles % comp_cap_type::THREADS_PER_BLOCK == 0 );
     assert( sequence_width >= nAlleles / comp_cap_type::WARP_SIZE );
 
-    while( nSequences ) {
-        unsigned int N = nSequences;
+    unsigned int round_offset = 0;
+    while( round_offset < nSequences ) {
+        unsigned int N = (nSequences - round_offset);
         if( N > MAX_EVENTS ) { N = MAX_EVENTS; }
 
         // execution configuration:
@@ -204,18 +218,15 @@ void crossover::operator()(  real_type         * rand_pool
 
         // assumes the execution configuration specifies sequences to generate
         // allele tile offset determined from execution configuration
-        crossover_matrix< real_type, comp_cap_type ><<< blocks, threads >>>( rand_pool, allele_list, sequences, sequence_width );
+        crossover_matrix_5< real_type, comp_cap_type ><<< blocks, threads >>>( rand_pool, allele_list, sequences, sequence_width, round_offset );
 #else
-        crossover_matrix< real_type, comp_cap_type ><<< blocks, threads >>>( rand_pool, allele_list, evt_list, sequences, sequence_width );
+        crossover_matrix_5< real_type, comp_cap_type ><<< blocks, threads >>>( rand_pool, allele_list, evt_list, sequences, sequence_width, round_offset );
 #endif  // USE_CONSTANT_EVENT_LIST
 
-
-        std::cerr << "Blocks: < " << blocks.x << ", " << blocks.y << ", " << blocks.z << " >" << std::endl;
-        std::cerr << "Threads: < " << threads.x << ", " << threads.y << ", " << threads.z << " >" << std::endl;
         cudaDeviceSynchronize();
 
         evt_list += N;
-        nSequences -= N;
+        round_offset += N;
         sequences += (N * sequence_width);
     }
 }

@@ -34,8 +34,8 @@ struct fill_poisson< unsigned int, double > : public curand_gen_base {
     fill_poisson( curandGenerator_t g, double m ) : curand_gen_base(g), mu( m ), count(0) {}
 
     void operator()( thrust::device_vector< unsigned int > & buf, size_t N ) {
-        unsigned int * raw_ptr = thrust::raw_pointer_cast( buf.data() );
-        if( curandGeneratePoisson( this->gen, raw_ptr, N, mu ) != CURAND_STATUS_SUCCESS ) {
+//        unsigned int * raw_ptr = thrust::raw_pointer_cast( buf.data() );
+        if( curandGeneratePoisson( this->gen, buf.data().get(), N, mu ) != CURAND_STATUS_SUCCESS ) {
         }
     }
 

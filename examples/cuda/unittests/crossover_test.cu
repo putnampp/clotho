@@ -25,17 +25,73 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/poisson_distribution.hpp>
 
 #include "clotho/cuda/curand_poisson_wrapper.hpp"
 #include "clotho/cuda/curand_uniform_wrapper.hpp"
 
+//#include "crossover_test_5.h"
 #include "clotho/cuda/crossover/crossover_matrix.cuh"
+#include "crossover_test.hpp"
+#include "crossover_validate.hpp"
 
 #include "clotho/utility/log_helper.hpp"
 #include "clotho/utility/timer.hpp"
-
 typedef clotho::utility::timer timer_type;
 
+typedef crossover< 5 > crossover_type;
+
+template < class Method >
+class event_generator_wrapper : public clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type > {
+public:
+    typedef clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type > base_type;
+
+    event_generator_wrapper( curandGenerator_t g, crossover_type::real_type rate ) : base_type( g, rate ) {}
+
+    unsigned int operator()( thrust::device_vector< unsigned int > & buf, size_t N ) {
+        buf.resize( N + 1 );
+        ((base_type*)this)->operator()( buf, N );
+
+        thrust::exclusive_scan( buf.begin(), buf.end(), buf.begin() );
+
+        return buf.back();
+    }
+};
+
+template < unsigned int BinCount = 1024 >
+struct event_hash_method {
+    static const unsigned int BINS = BinCount;
+};
+
+template < unsigned int BC >
+class event_generator_wrapper< event_hash_method< BC > > : public clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type > {
+public:
+    typedef clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type > base_type;
+    typedef event_hash_method< BC > bin_type;
+
+    boost::random::mt19937  m_rand;
+    crossover_type::real_type    m_rate;
+
+    event_generator_wrapper( curandGenerator_t g, crossover_type::real_type rate ) :
+        base_type( g, rate / (double) bin_type::BINS)
+        , m_rand( clotho::utility::clock_type::now().time_since_epoch().count() )
+        , m_rate( rate )
+    {}
+
+    unsigned int operator()( thrust::device_vector< unsigned int > & buf, size_t N ) {
+        size_t eCount = bin_type::BINS * N;
+        buf.resize( eCount );
+
+        ((base_type*)this)->operator()( buf, eCount );
+        
+        boost::random::poisson_distribution< unsigned int, crossover_type::real_type > pDist( ((crossover_type::real_type )N) * m_rate );
+
+        return pDist( m_rand );
+    }
+};
+
+/*
 template < class CrossType >
 struct crossover_test {
     typedef CrossType crossover_type;
@@ -71,12 +127,13 @@ struct crossover_test {
 
     template < class CountGenerator, class EventGenerator >
     void simulate( CountGenerator & cGen, EventGenerator & eGen, size_t N ) {
-        event_list.resize( N + 1 );
-        cGen( event_list, N );
-        thrust::exclusive_scan( event_list.begin(), event_list.end(), event_list.begin() );
+//        event_list.resize( N + 1 );
+//        cGen( event_list, N );
+//        thrust::exclusive_scan( event_list.begin(), event_list.end(), event_list.begin() );
+//
+//        unsigned int nEvents = event_list.back();
 
-        unsigned int nEvents = event_list.back();
-
+        unsigned int nEvents = cGen( event_list, N );
         std::cout << "Events generated: " << nEvents << std::endl;
 
         rand_pool.resize( nEvents + N );
@@ -97,40 +154,40 @@ struct crossover_test {
         ct( pool, alleles, events, seqs, N, allele_list.size(), sequence_width );
     }
 
-    inline bool validate_empty_sequence( sequence_iterator first, sequence_iterator last ) {
-        bool valid = true;
-        while( valid && first != last ) {
-            valid = (*first == 0);
-            ++first;
-        }
-        return valid;
-    }
-
-    inline bool sort_randoms( host_vector & d, random_iterator first, random_iterator last ) {
-        if( first == last ) return true;
-
-        typename crossover_type::real_type sum = 0;
-        while( true ) {
-            sum -= log( *first );
-            ++first;
-
-            if( first == last ) {
-                break;
-            }
-            d.push_back( sum );
-        }
-
-        for( host_iterator it = d.begin(); it != d.end(); ++it ) {
-            (*it) /= sum;
-        }
-
-        return true;
-    }
+//    inline bool validate_empty_sequence( sequence_iterator first, sequence_iterator last ) {
+//        bool valid = true;
+//        while( valid && first != last ) {
+//            valid = (*first == 0);
+//            ++first;
+//        }
+//        return valid;
+//    }
+//
+//    inline bool sort_randoms( host_vector & d, random_iterator first, random_iterator last ) {
+//        if( first == last ) return true;
+//
+//        typename crossover_type::real_type sum = 0;
+//        while( true ) {
+//            sum -= log( *first );
+//            ++first;
+//
+//            if( first == last ) {
+//                break;
+//            }
+//            d.push_back( sum );
+//        }
+//
+//        for( host_iterator it = d.begin(); it != d.end(); ++it ) {
+//            (*it) /= sum;
+//        }
+//
+//        return true;
+//    }
 
     inline unsigned int determine_mask( host_vector & rec_events, allele_iterator first, allele_iterator last ) {
         unsigned int m = 0, bit = 1;
         while( first != last ) {
-            host_iterator it = std::lower_bound( rec_events.begin(), rec_events.end(), *first );
+            host_iterator it = std::upper_bound( rec_events.begin(), rec_events.end(), *first );
             m |= (( rec_events.begin() - it ) & 1) * bit;
             bit <<= 1;
             ++first;
@@ -157,16 +214,16 @@ struct crossover_test {
         return eq;
     }
 
-    bool validate( boost::property_tree::ptree & err ) {
-        bool valid = true;
+bool validate( crossover_test < crossover_matrix< 5 > > & ct, boost::property_tree::ptree & err ) {
+    bool valid = true;
 
         const unsigned int ALLELE_PER_BLOCK = sizeof( typename crossover_type::int_type ) * 8;
 
         unsigned int sequence_width = allele_list.size() / ALLELE_PER_BLOCK;
 
-        count_iterator c_it = event_list.begin();
-        sequence_iterator s_it = sequences.begin();
-        random_iterator r_it = rand_pool.begin();
+        count_iterator c_it = ct.event_list.begin();
+        sequence_iterator s_it = ct.sequences.begin();
+        random_iterator r_it = ct.rand_pool.begin();
 
         typename crossover_type::real_type * rands = rand_pool.data().get();
 
@@ -188,6 +245,8 @@ struct crossover_test {
                     err.put("sequence_index", seq_idx );
                     break;
                 }
+                ++r_it;
+                ++rands;
                 s_it += sequence_width;
                 continue;
             }
@@ -203,7 +262,10 @@ struct crossover_test {
             }
 
             host_vector rec_events;
-            valid = sort_randoms( rec_events, r_it, r_it + nEvents + 1 );
+            
+            //valid = sort_randoms( rec_events, r_it, r_it + nEvents + 1 );
+            valid = reorder_uniform(r_it, r_it + nEvents + 1, std::back_inserter(rec_events) );
+
             valid = valid && (rec_events.size() == nEvents);
             if( !valid ) {
                 err.put("message", "Ordering offset failed");
@@ -304,7 +366,7 @@ struct crossover_test {
 
         return valid;
     }
-};
+};*/
 
 int main(int argc, char ** argv ) {
 
@@ -316,7 +378,7 @@ int main(int argc, char ** argv ) {
     boost::property_tree::ptree log;
 
     unsigned long long seed = boost::lexical_cast< unsigned long long >( argv[1] );
-    crossover::real_type rho = boost::lexical_cast< crossover::real_type >( argv[2] );
+    crossover_type::real_type rho = boost::lexical_cast< crossover_type::real_type >( argv[2] );
     unsigned int N = boost::lexical_cast< unsigned int >(argv[3]);
     unsigned int samples = boost::lexical_cast< unsigned int >(argv[4] );
     unsigned int A = boost::lexical_cast< unsigned int >(argv[5]);
@@ -341,9 +403,10 @@ int main(int argc, char ** argv ) {
     boost::property_tree::ptree init_perf_log, sim_perf_log;
     unsigned int s = samples;
     while( s-- ) {
-        crossover_test< crossover > ct;
-        clotho::cuda::fill_poisson< unsigned int, crossover::real_type> cGen( dGen, rho );
-        clotho::cuda::fill_uniform< crossover::real_type > eGen(dGen);
+        crossover_test< crossover_type > ct;
+        //clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type> cGen( dGen, rho );
+        event_generator_wrapper< event_hash_method< 1024 > > cGen( dGen, rho );
+        clotho::cuda::fill_uniform< crossover_type::real_type > eGen(dGen);
 
         timer_type t;
         ct.initialize( eGen, A );
@@ -358,10 +421,12 @@ int main(int argc, char ** argv ) {
         clotho::utility::add_value_array( sim_perf_log, t);
 
         boost::property_tree::ptree err;
-        if( !ct.validate(err) ) {
+//        if( !ct.validate(err) ) {
+        if( !validate( ct, err ) ) {
             std::ostringstream oss;
             oss << "sample." << (samples - s) << ".error";
             log.add_child(oss.str(), err );
+            break;
         }
     }
 
