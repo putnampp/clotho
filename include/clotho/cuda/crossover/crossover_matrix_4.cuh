@@ -42,6 +42,75 @@ public:
     virtual ~crossover() {}
 };
 
+template < class RealType >
+__global__ void getAlleleIndex( RealType * allele_list, int * idx, size_t N ) {
+    int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    while( N ) {
+        if( tid < N ) {
+            RealType allele = allele_list[ tid ];
+
+            int i = allele * 1024;
+            idx[tid] = i;
+        }
+        __syncthreads();
+
+        if( N > 1024 ) { 
+            N -= 1024;
+
+            allele_list += 1024;
+            idx += 1024;
+        } else {
+            N = 0;
+        }
+    }
+}
+
+/*
+__global__ void getEventHash( unsigned int * evt_list, unsigned int * out ) {
+
+    __shared__ unsigned int sBuffer[ 1025 ];
+    unsigned int eCount = evt_list[ tid ];
+    __syncthreads();
+
+    // prefix sum of event count in thread registers
+    // sum within warps
+#pragma unroll
+    for( unsigned int i = 1; i < 32; i <<=1 ) {
+        unsigned int t = __shfl_up( eCount, i, 32 );
+        eCount += (!!( threadIdx.x >= i )) * t; // double negation should gaurantee that coefficient is the integer value 0 or 1; inline Kronecker delta function
+                                                // attempting to avoid branch divergence; though may not be an issue in this simple case
+                                                // uncertain whether using integer multiplication instead of inline conditional logic is more efficient
+    }
+
+    // share partial sum with other warps in block
+    if( threadIdx.x == 31 ) {
+         sBuffer[ threadIdx.y ] = eCount;
+    }
+    __syncthreads(); // all warps need to finish sharing 
+
+    // broadcast partial sums to all warps
+    unsigned int partial_sum = sBuffer[ threadIdx.x ];
+    __syncthreads();
+
+#pragma unroll
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        unsigned int t = __shfl_up( partial_sum, i, 32 );
+        partial_sum += (!!(threadIdx.x >= i )) * t;
+    }
+
+    unsigned int t = __shfl( partial_sum, threadIdx.y - 1, 32 );
+    eCount += (!!(threadIdx.y != 0)) * t;
+
+    // store prefix sum in shared buffer
+    sBuffer[ tid + 1 ] = eCount;
+    __syncthreads();
+
+    // within each warp, partial_sum of max warp thread is total events
+    // use of __shfl to avoid shared memory read
+    t = __shfl( partial_sum, 31, 32 );
+    partial_sum = t;
+}*/
 
 /**
  *  Execution Configuration:
@@ -64,10 +133,8 @@ __global__ void crossover_matrix_4( RealType * rand_pool
                                     , unsigned int sequence_width ) {
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
-    __shared__ unsigned int sBuffer[ 1024 ];
+    __shared__ unsigned int sBuffer[ 1025 ];
     __shared__ RealType sRands[ 1024 ];
-
-    sBuffer[tid] = 0;
 
     RealType allele = allele_list[ blockIdx.x * 1024 + tid ];
     __syncthreads();
@@ -78,8 +145,9 @@ __global__ void crossover_matrix_4( RealType * rand_pool
     // accessing event counts from share memory for threads within the
     // same warp.
 
-    unsigned int allele_bin_lo = allele * 1024;
-    unsigned int allele_bin_hi = allele_bin_lo + 1;
+    int allele_bin = allele * 1024;
+
+    RealType bin_min = ((RealType) allele_bin) / 1024.;
 
     sequences += blockIdx.x * blockDim.x;    // block relative shift of sequence array
 
@@ -98,18 +166,21 @@ __global__ void crossover_matrix_4( RealType * rand_pool
         for( unsigned int i = 1; i < 32; i <<=1 ) {
             unsigned int t = __shfl_up( eCount, i, 32 );
             eCount += (!!( threadIdx.x >= i )) * t; // double negation should gaurantee that coefficient is the integer value 0 or 1; inline Kronecker delta function
-                                                        // attempting to avoid branch divergence; though may not be an issue in this simple case
-                                                        // uncertain whether using integer multiplication instead of inline conditional logic is more efficient
+                                                    // attempting to avoid branch divergence; though may not be an issue in this simple case
+                                                    // uncertain whether using integer multiplication instead of inline conditional logic is more efficient
         }
 
         // share partial sum with other warps in block
+        // use second buffer warp line rather than first
+        // to allow sBuffer[0] to remain unmodified
         if( threadIdx.x == 31 ) {
-             sBuffer[ threadIdx.y ] = eCount;
+             sBuffer[ blockDim.x + threadIdx.y ] = eCount;
         }
         __syncthreads(); // all warps need to finish sharing 
 
         // broadcast partial sums to all warps
-        unsigned int partial_sum = sBuffer[ threadIdx.x ];
+        unsigned int partial_sum = sBuffer[ blockDim.x + threadIdx.x ];
+        __syncthreads();
 
 #pragma unroll
         for( unsigned int i = 1; i < 32; i <<= 1 ) {
@@ -121,7 +192,7 @@ __global__ void crossover_matrix_4( RealType * rand_pool
         eCount += (!!(threadIdx.y != 0)) * t;
 
         // store prefix sum in shared buffer
-        sBuffer[ tid ] = eCount;
+        sBuffer[ tid + 1 ] = eCount;
         __syncthreads();
 
         // within each warp, partial_sum of max warp thread is total events
@@ -139,23 +210,23 @@ __global__ void crossover_matrix_4( RealType * rand_pool
 
             rand_pool += partial_sum;
             
-            unsigned int min_events = sBuffer[ allele_bin_lo ];
-            unsigned int max_events = sBuffer[ allele_bin_hi ];
+            unsigned int min_events = sBuffer[ allele_bin ];
+            unsigned int max_events = sBuffer[ allele_bin + 1];
+            __syncthreads();
 
-            unsigned int N = (max_events - min_events);
+//            unsigned int N = (max_events - min_events);
 
             RealType curmax = 0.;
-            RealType bin_lo = ((RealType) allele_bin_lo) / 1024.;
-            while( N ) {
+            while( min_events < max_events ) {
                 // walk the events in a bin
                 // count all events that preceed the thread's allele
                 RealType r = sRands[ min_events ];
-                curmax += (log( r ) / ((RealType) N));
+                curmax += (log( r ) / ((RealType) (max_events - min_events)));
 
-                r = bin_lo + (( 1.0 - exp(curmax)) / 1024.);
+                r = bin_min + (1.0 - exp(curmax)) / 1024.;
 
-                min_events += (!!(r < allele));
-                --N;
+                if( r < allele ) break;
+                ++min_events;
             }
             __syncthreads();
             unsigned int mask = ((min_events & 1) * (1 << threadIdx.x));
@@ -172,7 +243,6 @@ __global__ void crossover_matrix_4( RealType * rand_pool
         } else if( threadIdx.y == 0 ) {
             sequences[ threadIdx.x ] = 0;
         }
-
         __syncthreads();
 
         evt_list += 1024;

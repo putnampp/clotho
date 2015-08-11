@@ -16,6 +16,9 @@
 
 #include "crossover_test.hpp"
 
+//#include <algorithm>
+#include <sstream>
+
 #include "validate_sequence.hpp"
 #include "reorder_uniform.hpp"
 #include "validate_order.hpp"

@@ -20,5 +20,6 @@ template < class CrossType >
 bool validate( CrossType & ct, boost::property_tree::ptree & err );
 
 #include "validate_crossover_matrix_5.hpp"
+#include "validate_crossover_matrix_4.hpp"
 
 #endif  // CROSSOVER_VALIDATER_HPP_

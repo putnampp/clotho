@@ -12,9 +12,6 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 #include <iostream>
-#include <vector>
-#include <cmath>
-#include <algorithm>
 #include <sstream>
 
 #include <cuda.h>
@@ -39,7 +36,7 @@
 #include "clotho/utility/timer.hpp"
 typedef clotho::utility::timer timer_type;
 
-typedef crossover< 5 > crossover_type;
+typedef crossover< USE_CROSSOVER_MATRIX > crossover_type;
 
 template < class Method >
 class event_generator_wrapper : public clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type > {
@@ -79,7 +76,7 @@ public:
 
         ((base_type*)this)->operator()( buf, eCount );
         
-        boost::random::poisson_distribution< unsigned int, crossover_type::real_type > pDist( ((crossover_type::real_type )N) * m_rate );
+        boost::random::poisson_distribution< unsigned int, crossover_type::real_type > pDist( ((crossover_type::real_type )N ) * m_rate );
 
         return pDist( m_rand );
     }
