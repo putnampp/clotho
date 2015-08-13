@@ -11,16 +11,26 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CROSSOVER_VALIDATER_HPP_
-#define CROSSOVER_VALIDATER_HPP_
+#ifndef CURAND_HELPER_HPP_
+#define CURAND_HELPER_HPP_
 
-#include <boost/property_tree/ptree.hpp>
+#include <string>
+#include <curand.h>
+#include <curand_mtgp32.h>
 
-template < class CrossType >
-bool validate( CrossType & ct, boost::property_tree::ptree & err );
+namespace clotho {
+namespace cuda {
 
-//#include "validate_crossover_matrix_5.hpp"
-//#include "validate_crossover_matrix_4.hpp"
-//#include "validate_crossover_matrix_3.hpp"
+template < class State >
+struct curand_helper {
+    static const std::string StateName;
+};
 
-#endif  // CROSSOVER_VALIDATER_HPP_
+template <>
+const std::string curand_helper< curandStateMtgp32_t >::StateName = "MTGP32";
+
+}   // namespace cuda
+}   // namespace clotho
+
+
+#endif  // CURAND_HELPER_HPP_

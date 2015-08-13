@@ -16,8 +16,10 @@
 
 #include "clotho/cuda/crossover/crossover_matrix_def.hpp"
 
-#include "clotho/cuda/crossover/crossover_matrix_5.cuh"
-#include "clotho/cuda/crossover/crossover_matrix_4.cuh"
+//#include "clotho/cuda/crossover/crossover_matrix_5.cuh"
+//#include "clotho/cuda/crossover/crossover_matrix_4.cuh"
+//#include "clotho/cuda/crossover/crossover_matrix_3.cuh"
+
 #include "clotho/cuda/crossover/uniform_random_sort.cuh"
 
 #endif  // CROSSOVER_MATRIX_GUARD_HPP_

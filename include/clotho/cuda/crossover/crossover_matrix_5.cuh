@@ -14,35 +14,13 @@
 #ifndef CROSSOVER_MATRIX_5_CUH_
 #define CROSSOVER_MATRIX_5_CUH_
 
-#include "clotho/cuda/compute_capability.hpp"
 #include "clotho/cuda/crossover/uniform_random_sort.cuh"
 #include "clotho/cuda/crossover/crossover_matrix_def.hpp"
 
 #include <cuda.h>
 
-template <>
-class crossover< 5 > {
-public:
-    typedef double                      real_type;
-    typedef double                      allele_type;
-    typedef unsigned int                event_count_type;
-    typedef unsigned int                int_type;
-    typedef unsigned int                size_type;
-    typedef compute_capability< 3, 0 >  comp_cap_type;
-
-    static const unsigned int MAX_EVENTS = ((comp_cap_type::MAX_CONSTANT_MEMORY / sizeof( event_count_type )) >> 1);    // use half of the constant space for event counts
-
-    void operator()(  real_type         * rand_pool
-                    , allele_type       * allele_list
-                    , event_count_type  * event_list
-                    , int_type          * sequences
-                    , size_type nSequences
-                    , size_type nAlleles
-                    , size_type sequence_width );
- 
-    virtual ~crossover() {}
-};
-
+template < >
+const unsigned int crossover< 5 >::MAX_EVENTS = ((crossover< 5 >::comp_cap_type::MAX_CONSTANT_MEMORY / sizeof( crossover< 5 >::event_count_type )) >> 1);
 
 template < class RealType, class CC >
 __global__ void order_random( RealType * in_list, RealType * out_list, size_t N ) {
@@ -186,6 +164,7 @@ __global__ void crossover_matrix_5( RealType * rand_pool
     }
 }
 
+template <>
 void crossover< 5 >::operator()(  real_type         * rand_pool
                             , allele_type       * allele_list
                             , event_count_type  * evt_list

@@ -40,10 +40,11 @@ unsigned int determine_mask( HashVector & hash, RandomVector & rands, ElementIte
         count_type hi = hash[ bin_idx + 1 ];
 
         value_type accum = 0;
+        // find the first event
         while( lo < hi ) {
             accum += log( rands[ lo ] ) / ((value_type) (hi - lo));
             value_type event = bin_start + (1.0 - exp( accum )) * bin_size;
-            if( event < *first ) {
+            if( event > *first ) {
                 break;
             }
             ++lo;
@@ -137,7 +138,8 @@ bool validate( crossover_test < crossover< 4 > > & ct, boost::property_tree::ptr
 //    typename crossover_type::real_type * rands = ct.rand_pool.data().get();
 //    random_vector ordered_events;
 
-    const unsigned int BIN_COUNT = 1024;
+//    const unsigned int BIN_COUNT = 1024;
+    const unsigned int BIN_COUNT = 32;
     typedef std::vector< typename crossover_type::event_count_type > event_hash_type;
     typedef typename event_hash_type::iterator hash_iterator;
     event_hash_type event_hash(BIN_COUNT + 1, 0);
@@ -146,7 +148,7 @@ bool validate( crossover_test < crossover< 4 > > & ct, boost::property_tree::ptr
 
     unsigned int seq_idx = 0;
     while( valid && s_it != ct.sequences.end() ) {
-        std::cerr << seq_idx << std::endl;
+//        std::cerr << seq_idx << std::endl;
 
         unsigned int i = 1;
         unsigned int nEvents = 0;
@@ -182,10 +184,14 @@ bool validate( crossover_test < crossover< 4 > > & ct, boost::property_tree::ptr
         host_vector rec_events;
         rec_events.reserve(nEvents);
 
+        int unused_rands = 100;
         while( nEvents-- ) {
             rec_events.push_back( *r_it );
             ++r_it;
-        }      
+            --unused_rands;
+        }
+
+        r_it += unused_rands;
 
 //        valid = valid && (rec_events.size() == nEvents);
 //        if( !valid ) {
@@ -245,7 +251,7 @@ bool validate( crossover_test < crossover< 4 > > & ct, boost::property_tree::ptr
         }
 
         while( nMasks-- ) {
-            std::cerr << "bit block index: " << nMasks << std::endl;
+//            std::cerr << "bit block index: " << nMasks << std::endl;
             assert( a_it != ct.allele_list.end() );
             // observed from device
             typename crossover_type::int_type observed_mask = (*s_it);

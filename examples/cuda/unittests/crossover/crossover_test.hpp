@@ -36,6 +36,8 @@ struct crossover_test {
     count_vector        event_list;
     sequence_vector     sequences;
 
+    crossover_type      ct;
+
     template < class AlleleGenerator >
     void initialize( AlleleGenerator & aGen, size_t N ) {
         unsigned int tail = N % crossover_type::comp_cap_type::THREADS_PER_BLOCK;
@@ -66,9 +68,13 @@ struct crossover_test {
         typename crossover_type::event_count_type * events = event_list.data().get();
         typename crossover_type::int_type * seqs = sequences.data().get();
 
-        crossover_type ct;
-
         ct( pool, alleles, events, seqs, N, allele_list.size(), sequence_width );
+
+        cudaDeviceSynchronize();
+    }
+
+    void get_state( boost::property_tree::ptree & s ) {
+        ct.get_state( s );
     }
 };
 

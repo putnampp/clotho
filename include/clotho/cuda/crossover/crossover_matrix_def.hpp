@@ -14,7 +14,33 @@
 #ifndef CROSSOVER_MATRIX_DEF_HPP_
 #define CROSSOVER_MATRIX_DEF_HPP_
 
+#include "clotho/cuda/compute_capability.hpp"
+
 template < unsigned int Version >
-class crossover;
+class crossover {
+public:
+    typedef double                      real_type;
+    typedef double                      allele_type;
+    typedef unsigned int                event_count_type;
+    typedef unsigned int                int_type;
+    typedef unsigned int                size_type;
+    typedef compute_capability< 3, 0 >  comp_cap_type;
+
+    static const unsigned int           MAX_EVENTS;
+    
+    void operator()(  real_type         * rand_pool
+                    , allele_type       * allele_list
+                    , event_count_type  * event_list
+                    , int_type          * sequences
+                    , size_type nSequences
+                    , size_type nAlleles
+                    , size_type sequence_width );
+
+    void get_state( boost::property_tree::ptree & s ) {
+        s.put("crossover.version", Version );
+    }
+
+    virtual ~crossover() {}
+};
 
 #endif  // CROSSOVER_MATRIX_DEF_HPP_
