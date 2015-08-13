@@ -40,9 +40,7 @@ bool validate( crossover_test < crossover< 5 > > & ct, boost::property_tree::ptr
 
     bool valid = true;
 
-    const unsigned int ALLELE_PER_BLOCK = sizeof( typename crossover_type::int_type ) * 8;
-
-    unsigned int sequence_width = ct.allele_list.size() / ALLELE_PER_BLOCK;
+    unsigned int sequence_width = ct.allele_list.size() / crossover_type::ALLELE_PER_INT;
 
     count_iterator c_it = ct.event_list.begin();
     sequence_iterator s_it = ct.sequences.begin();
@@ -151,7 +149,7 @@ bool validate( crossover_test < crossover< 5 > > & ct, boost::property_tree::ptr
             typename crossover_type::int_type observed_mask = (*s_it);
 
             // expected from host
-            typename crossover_type::int_type expected_mask = determine_mask( rec_events, a_it, a_it + ALLELE_PER_BLOCK );
+            typename crossover_type::int_type expected_mask = determine_mask( rec_events, a_it, a_it + crossover_type::ALLELE_PER_INT );
 
             valid = (expected_mask == observed_mask);
             if( !valid ) {
@@ -173,7 +171,7 @@ bool validate( crossover_test < crossover< 5 > > & ct, boost::property_tree::ptr
                 boost::property_tree::ptree rec;
                 clotho::utility::add_value_array(rec, rec_events.begin(), rec_events.end());
                 boost::property_tree::ptree all;
-                clotho::utility::add_value_array(all, a_it, a_it + ALLELE_PER_BLOCK );
+                clotho::utility::add_value_array(all, a_it, a_it + crossover_type::ALLELE_PER_INT );
                
                 err.add_child("recombination.events", rec );
                 err.put("recombination.size", rec_events.size() );
@@ -181,7 +179,7 @@ bool validate( crossover_test < crossover< 5 > > & ct, boost::property_tree::ptr
                 break;
             }
 
-            a_it += ALLELE_PER_BLOCK;
+            a_it += crossover_type::ALLELE_PER_INT;
             ++s_it;
         }
         ++seq_idx;

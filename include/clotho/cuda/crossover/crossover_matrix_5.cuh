@@ -19,6 +19,9 @@
 
 #include <cuda.h>
 
+template <>
+const unsigned int crossover< 5 >::ALLELE_PER_INT = 32;
+
 template < >
 const unsigned int crossover< 5 >::MAX_EVENTS = ((crossover< 5 >::comp_cap_type::MAX_CONSTANT_MEMORY / sizeof( crossover< 5 >::event_count_type )) >> 1);
 

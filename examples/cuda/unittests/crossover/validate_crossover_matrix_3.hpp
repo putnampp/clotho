@@ -33,16 +33,20 @@ bool validate( crossover_test< crossover< 3 > > &ct, boost::property_tree::ptree
     int sidx = 0;
     while( s_it != ct.sequences.end() ) {
         boost::property_tree::ptree s;
-        clotho::utility::add_value_array(s, s_it, s_it + ct.allele_list.size() / 32 );
+        clotho::utility::add_value_array(s, s_it, s_it + ct.allele_list.size() / crossover_type::ALLELE_PER_INT );
 
-        s_it += ct.allele_list.size() / 32;
+        s_it += ct.allele_list.size() / crossover_type::ALLELE_PER_INT;
     
         std::ostringstream oss;
         oss << sidx++;
         seqs.add_child( oss.str(), s);
     }
 
+    boost::property_tree::ptree alls;
+    clotho::utility::add_value_array( alls, ct.allele_list.begin(), ct.allele_list.end() );
+
     err.add_child( "sequences", seqs );
+    err.add_child( "alleles", alls );
     return false;
 }
 

@@ -159,10 +159,11 @@ int main(int argc, char ** argv ) {
         //clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type> cGen( dGen, rho );
 
         event_generator_wrapper< crossover_type > cGen( dGen, rho );
+        clotho::cuda::fill_uniform< typename crossover_type::real_type > aGen( dGen );   // allele generator
         typename pool_generator_wrapper< crossover_type >::type eGen(dGen);
 
         timer_type t;
-        ct.initialize( eGen, A );
+        ct.initialize( aGen, A );
         t.stop();
 
         clotho::utility::add_value_array( init_perf_log, t );

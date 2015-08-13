@@ -59,7 +59,7 @@ struct crossover_test {
 
         eGen( rand_pool );
 
-        unsigned int sequence_width = allele_list.size() / 32;
+        unsigned int sequence_width = allele_list.size() / crossover_type::ALLELE_PER_INT;
 
         sequences.resize( N * sequence_width );
 

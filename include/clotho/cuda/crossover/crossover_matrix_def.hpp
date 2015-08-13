@@ -26,6 +26,7 @@ public:
     typedef unsigned int                size_type;
     typedef compute_capability< 3, 0 >  comp_cap_type;
 
+    static const unsigned int           ALLELE_PER_INT;
     static const unsigned int           MAX_EVENTS;
     
     void operator()(  real_type         * rand_pool
