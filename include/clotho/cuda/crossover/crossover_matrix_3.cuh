@@ -43,7 +43,7 @@ public:
     typedef unsigned int                size_type;
     typedef compute_capability< 3, 0 >  comp_cap_type;
 
-    static const unsigned int ALLELE_PER_INT = 1;
+    static const unsigned int ALLELE_PER_INT = 32;
     static const unsigned int MAX_EVENTS = ((comp_cap_type::MAX_CONSTANT_MEMORY / sizeof( event_count_type )) >> 1);    // use half of the constant space for event counts
 
     static const unsigned int STREAM_COUNT = 8;
@@ -51,7 +51,7 @@ public:
     typedef curandStateMtgp32_t state_type;
     typedef mtgp32_kernel_params_t state_param_type;
 
-    crossover();
+    crossover( );
 
     void initialize( );
 
@@ -61,7 +61,8 @@ public:
                     , int_type          * sequences
                     , size_type nSequences
                     , size_type nAlleles
-                    , size_type sequence_width );
+                    , size_type sequence_width
+                    , real_type rho = 0.1 );
 
     void generate_test( real_type * rand_pool, size_t N );
 
@@ -84,6 +85,10 @@ protected:
 #ifdef USE_TEXTURE_MEMORY_FOR_ALLELE
 texture< float, 1, cudaReadModeElementType > allele_tex;
 #endif  // USE_TEXTURE_MEMORY_FOR_ALLELE
+
+//#ifndef USE_PARTIAL_RANDOM_POOL
+//#define USE_PARTIAL_RANDOM_POOL
+//#endif  // USE_PARTIAL_RANDOM_POOL
 
 template < class RealType >
 __global__ void random_test( curandStateMtgp32_t * states, RealType * rands ) {
@@ -113,19 +118,35 @@ __global__ void random_test( curandStateMtgp32_t * states, RealType * rands, uns
 
 template < class RealType >
 __global__ void crossover_kernel_3( curandStateMtgp32_t * states
+                                    , RealType * pool
                                     , RealType * allele_list
                                     , unsigned int * evt_list
                                     , unsigned int * sequences
                                     , unsigned int nSequences
                                     , unsigned int nAlleles
-                                    , unsigned int sequence_width ) {
+                                    , unsigned int sequence_width
+                                    , RealType rho ) {
     if( gridDim.x != BLOCK_NUM_MAX || blockDim.x != THREAD_NUM ) return;
 
     int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    int lane_id = (tid & 31);
+    int warp_id = (tid >> 5);
+
     unsigned int i;
 
     __shared__ RealType rand_pool[ THREAD_NUM ];
     __shared__ unsigned int event_hash[ THREAD_NUM + 1];
+
+    event_hash[tid] = 0;    // clear event_hash
+
+#ifdef LOG_RANDOM_EVENTS
+    pool += blockIdx.x * THREAD_NUM;
+    evt_list += blockIdx.x * THREAD_NUM;
+#endif  // LOG_RANDOM_EVENTS
+
+#ifdef USE_PARTIAL_RANDOM_POOL
+    unsigned int rand_offset = THREAD_NUM, _count;
+#endif  // USE_PARTIAL_RANDOM_POOL
 
     int seq_idx = blockIdx.x;
     while( seq_idx < nSequences ) {
@@ -135,71 +156,126 @@ __global__ void crossover_kernel_3( curandStateMtgp32_t * states
         event_hash[ tid + 1 ] = 0;  // clear the event_hash
         __syncthreads();
 
-        rand_pool[ tid ] = curand_uniform( &states[blockIdx.x] );
+        unsigned int rand = curand_poisson( &states[blockIdx.x], rho / 256.0 );
         __syncthreads();
-
-        unsigned int rand = curand_poisson( &states[blockIdx.x], 30.0 / 256.0 );
 
         for( i = 1; i < 32; i <<= 1 ) {
             unsigned int r = __shfl_up( rand, i );
-            rand += ( ((tid & 31) >= i ) * r );
+            rand += ( (lane_id >= i ) * r );
         }
 
-        if( (tid & 31) == 31 ) {
-            event_hash[ 32 + (tid >> 5) ] = rand;
+        if( lane_id == 31 ) {
+            event_hash[ 32 + warp_id ] = rand;
         }
         __syncthreads();
 
-        unsigned int _sum = event_hash[ 32 + (tid & 31) ];
-        for( i = 1; i < 32; i <<= 1 ) {
+        unsigned int _sum = event_hash[ 32 + lane_id ];
+        for( i = 1; i < (THREAD_NUM >> 5); i <<= 1 ) {
             unsigned int s = __shfl_up( _sum, i );
-            _sum += (( (tid & 31) >= i ) * s);
+            _sum += (( lane_id >= i ) * s);
         }
 
-        i = __shfl( _sum, (tid >> 5) - 1);
-        rand += (( tid >= 32 ) * i);
+        unsigned int s = __shfl( _sum, warp_id - 1);
+        rand += (( warp_id != 0 ) * s);
+        __syncthreads();
 
         event_hash[ tid + 1 ] = rand;
+
+#ifdef LOG_RANDOM_EVENTS
+        evt_list[tid] = rand;
+        evt_list += BLOCK_NUM_MAX * THREAD_NUM;
+#endif  // LOG_RANDOM_EVENTS
+
         __syncthreads();
 
-        int all_idx = tid;
-        while( all_idx < nAlleles ) {
-#ifdef USE_TEXTURE_MEMORY_FOR_ALLELE
-            RealType _allele = tex1Dfetch( allele_tex, all_idx );
+        i = event_hash[tid];    // minimum event index
+        __syncthreads();
+
+#ifdef USE_PARTIAL_RANDOM_POOL
+        _count = __shfl( _sum, 31 ); // total number of events for sequence
+        if( rand_offset + _count >= THREAD_NUM ) {
+            rand_pool[ tid ] = curand_uniform( &states[blockIdx.x] );
+            rand_offset = 0;
+        }
+        i += rand_offset;
+        rand += rand_offset;
+        __syncthreads();
+#endif  // USE_PARTIAL_RANDOM_POOL
+
+        RealType accum = 0.;
+        while (i < rand) {
+            RealType t = rand_pool[ i ];
+
+            accum += (log( t ) / (RealType)(rand - i));
+
+            rand_pool[i++] = ((((RealType)tid) + (1.0 - exp(accum))) / 256.0);
+        }
+        __syncthreads();
+
+#ifdef LOG_RANDOM_EVENTS
+#ifdef USE_PARTIAL_RANDOM_POOL
+        if( rand_offset <= tid && tid < rand_offset + _count ) {
+            pool[tid - rand_offset] = rand_pool[tid];
+        }
 #else
-            RealType _allele = allele_list[all_idx];
+        pool[tid] = rand_pool[ tid ];
+#endif  // USE_PARTIAL_RANDOM_POOL
+
+        pool += BLOCK_NUM_MAX * THREAD_NUM;
+        __syncthreads();
+#endif  // LOG_RANDOM_EVENTS
+
+        i = tid;
+        while( i < nAlleles ) {
+#ifdef USE_TEXTURE_MEMORY_FOR_ALLELE
+            RealType _allele = tex1Dfetch( allele_tex, i );
+#else
+            RealType _allele = allele_list[ i ];
 #endif  // USE_TEXTURE_MEMORY_FOR_ALLELE
 
-            i = (unsigned int) (_allele * 256.0);
+            rand = (unsigned int) (_allele * 256.0);
 
-            unsigned int e_min = event_hash[ i++ ];
-            unsigned int e_max = event_hash[ i ];
+            unsigned int e_min = event_hash[ rand++ ];
+            _sum = event_hash[ rand ];
 
-            RealType accum = 0.;
             unsigned int c = e_min;
-            while( e_min < e_max ) {
-                RealType t = rand_pool[ e_min ];
 
-                accum += (log( t ) / (RealType)(e_max - e_min));
+#ifdef USE_PARTIAL_RANDOM_POOL
+            e_min += rand_offset;
+            _sum += rand_offset;
+#endif  // USE_PARTIAL_RANDOM_POOL
 
-                t = ((((RealType)i) + (1.0 - exp(accum))) / 256.0);
-
-                c += (( _allele > t ) * 1);
-                ++e_min;
+            while( e_min < _sum ) {
+                accum = rand_pool[ e_min++ ];
+                c += ( _allele > accum);
             }
-            __syncthreads();    // sync to coalesce global memory write
+            __syncthreads();
 
-            seq[tid] = (c & 1);
+            c = ((c & 1) * (1 << lane_id));
 
-            all_idx += THREAD_NUM;
-            seq += THREAD_NUM;
+            for( rand = 1; rand < 32; rand <<= 1 ) {
+                e_min = __shfl_down( c, rand );
+                c |= ((!( tid & (( rand << 1) - 1))) * e_min);
+            }
+
+            if( lane_id == 0) {
+                seq[ warp_id ] = c;
+            }
+            __syncthreads();
+
+            i += THREAD_NUM;
+            seq += (THREAD_NUM >> 5);
         }
+        __syncthreads();
 
         seq_idx += BLOCK_NUM_MAX;
+#ifdef USE_PARTIAL_RANDOM_POOL
+        rand_offset += _count;
+#endif  // USE_PARTIAL_RANDOM_POOL
     }
 }
 
-crossover< 3 >::crossover() :
+crossover< 3 >::crossover( ) :
     dStates( NULL )
     , dParams( NULL)
 {
@@ -238,25 +314,26 @@ void crossover< 3 >::operator()(  real_type * rand_pool
                     , int_type          * sequences
                     , size_type nSequences
                     , size_type nAlleles
-                    , size_type sequence_width ) {
+                    , size_type sequence_width
+                    , real_type rho ) {
 
 #ifdef USE_TEXTURE_MEMORY_FOR_ALLELE
     cudaBindTexture(0, allele_tex, allele_list, nAlleles * 4);
 #endif  // USE_TEXTURE_MEMORY_FOR_ALLELE
 
-    unsigned int seqs = (nSequences / STREAM_COUNT) + 1;
-    unsigned int i = 0;
-    while( nSequences ) {
-        unsigned int N = ((nSequences > seqs) ? seqs : nSequences);
-        
-        crossover_kernel_3<<< BLOCK_NUM_MAX, THREAD_NUM, 0, streams[ i ] >>>( dStates + i * BLOCK_NUM_MAX, allele_list, event_list, dSequences, N, nAlleles, sequence_width );
+//    unsigned int seqs = (nSequences / STREAM_COUNT) + 1;
+//    unsigned int i = 0;
+//    while( nSequences ) {
+//        unsigned int N = ((nSequences > seqs) ? seqs : nSequences);
+//        
+//        crossover_kernel_3<<< BLOCK_NUM_MAX, THREAD_NUM, 0, streams[ i ] >>>( dStates + i * BLOCK_NUM_MAX, allele_list, event_list, dSequences, N, nAlleles, sequence_width );
+//
+//        sequences += N * sequence_width;
+//        nSequences -= N;
+//        ++i;
+//    }
 
-        sequences += N * sequence_width;
-        nSequences -= N;
-        ++i;
-    }
-
-//    crossover_kernel_3<<< BLOCK_NUM_MAX, THREAD_NUM >>>( dStates, allele_list, event_list, sequences, nSequences, nAlleles, sequence_width );
+    crossover_kernel_3<<< BLOCK_NUM_MAX, THREAD_NUM >>>( dStates, rand_pool, allele_list, event_list, sequences, nSequences, nAlleles, sequence_width, rho );
 }
 
 void crossover< 3 >::generate_test( real_type * rand_pool, size_t N ) {

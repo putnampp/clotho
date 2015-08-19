@@ -61,6 +61,10 @@ public:
 
         return buf.back();
     }
+
+//    typename base_type::real_type get_rate() {
+//        return base_type::get_rate();
+//    }
 };
 
 template < >
@@ -91,6 +95,7 @@ public:
     }
 };
 
+/*
 template < >
 class event_generator_wrapper< crossover< 3 > > {
 public:
@@ -100,7 +105,7 @@ public:
     unsigned int operator()( thrust::device_vector< unsigned int > & buf, size_t N ) {
         return N;
     }
-};
+};*/
 
 template < class CrossType >
 struct pool_generator_wrapper {
@@ -118,6 +123,26 @@ template < >
 struct pool_generator_wrapper< crossover< 3 > > {
     typedef dummy_generator type;
 };
+
+
+template <> template < class CountGenerator, class EventGenerator >
+void crossover_test< crossover< 3 > >::simulate( CountGenerator & cGen, EventGenerator & eGen, size_t N ) {
+    event_list.resize( N * 256 );
+    rand_pool.resize( N * 256 );
+
+    unsigned int sequence_width = allele_list.size() / crossover_type::ALLELE_PER_INT;
+
+    sequences.resize( N * sequence_width );
+
+    typename crossover_type::real_type * pool = rand_pool.data().get();
+    typename crossover_type::allele_type * alleles = allele_list.data().get();
+    typename crossover_type::event_count_type * events = event_list.data().get();
+    typename crossover_type::int_type * seqs = sequences.data().get();
+
+    ct( pool, alleles, events, seqs, N, allele_list.size(), sequence_width, cGen.get_rate() );
+
+    cudaDeviceSynchronize();
+}
 
 int main(int argc, char ** argv ) {
 

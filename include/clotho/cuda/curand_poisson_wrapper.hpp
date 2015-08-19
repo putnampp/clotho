@@ -23,9 +23,38 @@
 namespace clotho {
 namespace cuda {
 
-template < class T, class R = double >
-struct fill_poisson;
+template < class IntType = unsigned int, class RealType = double >
+class fill_poisson : public curand_gen_base {
+public:
+    typedef RealType    real_type;
+    typedef IntType     int_type;
 
+    fill_poisson( curandGenerator_t g, RealType m ) : 
+        curand_gen_base(g)
+        , rate( m )
+    {}
+
+    inline void operator()( thrust::device_vector< IntType > & buf, size_t N ) {
+        if( buf.size() < N ) { buf.resize( N ); }
+        this->operator()( buf.data().get(), N );
+    }
+
+    void operator()( IntType * raw_ptr, size_t N ) {
+        if( curandGeneratePoisson( this->gen, raw_ptr, N, rate ) != CURAND_STATUS_SUCCESS ) {
+        }
+    }
+
+    real_type get_rate() {
+        return rate;
+    }
+
+    virtual ~fill_poisson() {}
+
+protected:
+    RealType rate;
+};
+
+/*
 template < >
 struct fill_poisson< unsigned int, double > : public curand_gen_base {
     double mu;
@@ -40,7 +69,7 @@ struct fill_poisson< unsigned int, double > : public curand_gen_base {
     }
 
     virtual ~fill_poisson() {}
-};
+};*/
 
 }   // namespace cuda
 }   // namespace clotho

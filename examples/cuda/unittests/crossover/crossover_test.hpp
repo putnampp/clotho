@@ -48,6 +48,8 @@ struct crossover_test {
 
         allele_list.resize(N);
         aGen( allele_list, N );
+
+        cudaDeviceSynchronize();
     }
 
     template < class CountGenerator, class EventGenerator >
