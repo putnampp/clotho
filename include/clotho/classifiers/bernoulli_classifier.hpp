@@ -20,11 +20,11 @@ namespace clotho {
 namespace classifiers {
 
 
-template < class RNG, class RealType = double, class Result = bool >
+template < class RNG, class RealType = double >
 class bernoulli_classifier {
 public:
     typedef RealType real_type;
-    typedef Result  result_type;
+    typedef size_t  result_type;
 
     typedef bernoulli_classifier< RNG, RealType, Result > self_type;
 
@@ -46,6 +46,8 @@ public:
     result_type operator()( ElementIterator elem_it, size_t idx) const {
         return m_bern( *m_rng );
     }
+
+    virtual ~bernoulli_classifier() {}
 
 protected:
     RNG             * m_rng;

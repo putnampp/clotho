@@ -24,6 +24,8 @@ public:
     typedef typename classifier_type::element_type  element_type;
     typedef bool        result_type;
 
+    typedef binary_classifier< Classifier, Tag > self_type;
+
     binary_classifier( ) {}
 
     binary_classifier( const classifier_type & c ) : m_cfier( c ) {}
@@ -38,7 +40,7 @@ public:
 
     template < class Iter >
     result_type operator()( Iter first, size_t offset ) {
-        return operator()( *(it + offset) );
+        return operator()( *(first + offset) );
     }
 
     virtual ~binary_classifier() {}

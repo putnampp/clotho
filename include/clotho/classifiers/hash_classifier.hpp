@@ -26,7 +26,7 @@ template < class Element, unsigned int BinCount = 256 >
 class hash_classifier;
 
 template < class Element, unsigned int BinCount >
-class hash_classifier< Element, BinCount >  {
+class hash_classifier {
 public:
     typedef hash_classifier< Element, BinCount > self_type;
     typedef Element element_type;

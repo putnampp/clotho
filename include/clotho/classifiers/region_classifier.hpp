@@ -22,9 +22,6 @@
 namespace clotho {
 namespace classifiers {
 
-struct is_even_tag {};
-struct is_odd_tag {};
-
 /**
  *  A region based classifier.
  *
@@ -41,37 +38,44 @@ struct is_odd_tag {};
  *  The result is a bit mask which classifies the list elements at relative indices
  *  as being either in a "base" region (1), or "alt" region (0).
  */
-template < class Element, class Result = bool, class Tag = is_even_tag >
+template < class Element/*, class Result = bool, class Tag = is_even_tag */ >
 class region_classifier {
 public:
     typedef Element element_type;
-    typedef Result  result_type;
+    typedef size_t  result_type;
 
     typedef std::vector< element_type > region_upper_bounds;
     typedef typename region_upper_bounds::const_iterator iterator;
 
     typedef region_upper_bounds     param_type;
 
+    typedef region_classifier< Element > self_type;
+
     region_classifier() {}
 
-    region_classifier( const param_type & bounds ) {
-        reset_bounds( bounds );
-    }
+//    region_classifier( const param_type & bounds ) {
+//        reset_bounds( bounds );
+//    }
+//
 
-    region_classifier( const region_classifier< Element, Result, Tag > & rhs ) :
+    /// Assumes that input bounds are sorted
+    region_classifier( const param_type & bounds ) : m_ubounds( bounds ) { }
+
+    region_classifier( const self_type & rhs ) :
         m_ubounds( rhs.m_ubounds ) {
     }
 
-    inline bool operator()( const element_type & elem ) const {
+    inline result_type operator()( const element_type & elem ) const {
         if( m_ubounds.size() == 0 ) return 0;
 
         iterator it = std::upper_bound( m_ubounds.begin(), m_ubounds.end(), elem );
 
-        return classify_region_index( it - m_ubounds.begin(), (Tag *)(NULL) );
+//        return classify_region_index( it - m_ubounds.begin(), (Tag *)(NULL) );
+        return (it - m_ubounds.begin());
     }
 
     template < class ElementIterator >
-    bool operator()( ElementIterator it, size_t offset ) {
+    result_type operator()( ElementIterator it, size_t offset ) {
         return operator()( *(it + offset) );
     }
 
@@ -110,13 +114,13 @@ public:
     }
 
 protected:
-    inline bool classify_region_index( unsigned int idx, is_even_tag * t ) const {
-        return ((idx % 2) == 0);
-    }
-
-    inline bool classify_region_index( unsigned int idx, is_odd_tag * t ) const {
-        return ((idx % 2) == 1);
-    }
+//    inline bool classify_region_index( unsigned int idx, is_even_tag * t ) const {
+//        return ((idx % 2) == 0);
+//    }
+//
+//    inline bool classify_region_index( unsigned int idx, is_odd_tag * t ) const {
+//        return ((idx % 2) == 1);
+//    }
 
     region_upper_bounds m_ubounds;
 };
