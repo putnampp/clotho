@@ -16,6 +16,8 @@
 
 #include <boost/mpl/aux_/na.hpp>
 
+typedef double qtl_real_type;
+
 #ifdef USE_VECTOR_SUBSET
 #include "clotho/powerset/vector_subset.hpp"
 #define SUBSETTYPE clotho::powersets::vector_subset
@@ -52,12 +54,16 @@
 
 #include "clotho/utility/random_generator.hpp"
 
+#include "clotho/classifiers/binary_classifier.hpp"
+
 #ifdef USE_BERNOULLI_RECOMB
 #include "clotho/classifiers/bernoulli_classifier_generator.hpp"
-#define RECOMBTYPE clotho::classifiers::bernoulli_classifier< rng_type, double, bool>
+#include "clotho/classifiers/tags/is_nonzero_tag.hpp"
+#define RECOMBTYPE  clotho::classifiers::binary_classifier< clotho::classifiers::bernoulli_classifier< rng_type, qtl_real_type >, clotho::classifiers::tags::is_nonzero_tag >
 #else
 #include "clotho/classifiers/region_classifier.hpp"
-#define RECOMBTYPE clotho::classifiers::region_classifier< allele_type >
+#include "clotho/classifiers/tags/is_even_tag.hpp"
+#define RECOMBTYPE  clotho::classifiers::binary_classifier< clotho::classifiers::region_classifier< allele_type >, clotho::classifiers::tags::is_even_tag >
 #endif  // USE_BERNOULLI_RECOMB
 
 #ifdef USE_MUTATE_AND_RECOMBINE

@@ -29,11 +29,11 @@
 namespace clotho {
 namespace utility {
 
-template < class URNG, class Result, class Tag >
-class random_generator< URNG, clotho::classifiers::region_classifier< qtl_allele, Result, Tag > > {
+template < class URNG/*, class Result, class Tag*/ >
+class random_generator< URNG, clotho::classifiers::region_classifier< qtl_allele/*, Result, Tag*/ > > {
 public:
-    typedef random_generator< URNG, clotho::classifiers::region_classifier< qtl_allele, Result, Tag > > self_type;
-    typedef clotho::classifiers::region_classifier< qtl_allele, Result, Tag >   result_type;
+    typedef clotho::classifiers::region_classifier< qtl_allele/*, Result, Tag*/ >   result_type;
+    typedef random_generator< URNG, result_type > self_type;
 
     typedef boost::random::uniform_01< double >                                 uniform_type;   // key distribution
     typedef boost::random::poisson_distribution< unsigned int, double >         dist_type;      // region distribution
