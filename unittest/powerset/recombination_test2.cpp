@@ -21,6 +21,8 @@
 #include "clotho/powerset/variable_subset_recombination.hpp"
 
 #include "clotho/classifiers/region_classifier.hpp"
+#include "clotho/classifiers/binary_classifier.hpp"
+#include "clotho/classifiers/tags/is_even_tag.hpp"
 
 typedef unsigned long Block;
 
@@ -70,7 +72,8 @@ typedef clotho::recombine::recombination< subset_type, classifier_type, inspecti
  */
 
 typedef clotho::classifiers::region_classifier< test_element > classifier2_type;
-typedef clotho::recombine::recombination< subset_type, classifier2_type, inspection_type, block_walker_type > recombination2_type;
+typedef clotho::classifiers::binary_classifier< classifier2_type, clotho::classifiers::tags::is_even_tag > classifier3_type;
+typedef clotho::recombine::recombination< subset_type, classifier3_type, inspection_type, block_walker_type > recombination2_type;
 
 BOOST_AUTO_TEST_SUITE( test_recombination )
 
@@ -254,15 +257,18 @@ BOOST_AUTO_TEST_CASE( recombine_range ) {
 
     recombination2_type rec;
     classifier2_type cfier( pts );
+    classifier3_type wrapper( cfier );
 
-    rec( p1, p0, cfier );
+    rec( p1, p0, wrapper );
 
     typename powerset_type::subset_ptr c = ps.create_subset( *rec.getResultSequence() );
 
     BOOST_REQUIRE_MESSAGE( *c == *c1_exp, "Unexpected result: p1 + p0" );
 
     classifier2_type cfier2( pts );
-    rec( p0, p1, cfier2 );
+    classifier3_type wrapper2( cfier2 );
+
+    rec( p0, p1, wrapper2 );
     typename powerset_type::subset_ptr c2 = ps.create_subset( *rec.getResultSequence() );
 
 //    std::cerr << "P0:    " << *p0 << std::endl;
