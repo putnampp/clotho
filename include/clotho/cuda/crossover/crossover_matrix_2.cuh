@@ -176,6 +176,20 @@ __device__ IntType count_preceeding_lane_events( volatile RealType * events, Rea
     return c;
 }
 
+template < class RealType, class IntType >
+__device__ void fill_random_pool( curandStateMtgp32_t * state, volatile RealType * rands, RealType bin_start, RealType bin_width, IntType offset, IntType N ) {
+    N += (!!(N & (THREAD_NUM - 1))) * (THREAD_NUM - (N & (THREAD_NUM - 1))); // pad N st N = 256 n; assumes THREAD_NUM = 2^{p}
+
+    // over generate random numbers per bin
+    // avoids branch divergence
+    while(offset < N ) {
+        RealType event = curand_uniform( state );
+
+        rands[ offset ] = bin_start + event * bin_width;
+
+        offset += THREAD_NUM;
+    }
+}
 
 /**
  *  This version assumes that allele_list is organized into units of WARP_SIZE (32) alleles
@@ -206,6 +220,7 @@ __global__ void crossover_kernel_2( curandStateMtgp32_t * states
     RealType bin_range = (1. / 32.0);
     RealType bin_start =  (RealType) lane_id * bin_range;
 
+    states = &states[blockIdx.x];
     rho *= bin_range; // Warp Size
 
 #ifdef LOG_RANDOM_EVENTS
@@ -219,7 +234,7 @@ __global__ void crossover_kernel_2( curandStateMtgp32_t * states
         unsigned int * seq = sequences + (seq_idx * sequence_width);
 
         // use all threads to generate random numbers
-        event_bins[ tid ] = curand_poisson( &states[blockIdx.x], rho );
+        event_bins[ tid ] = curand_poisson( states, rho );
         __syncthreads();
 
 #ifdef LOG_RANDOM_EVENTS
@@ -227,35 +242,25 @@ __global__ void crossover_kernel_2( curandStateMtgp32_t * states
         evt_list += BLOCK_NUM_MAX * THREAD_NUM;
 #endif  // LOG_RANDOM_EVENTS
 
-        int_type max_rounds = event_bins[ lane_id ];
-        __syncthreads();
-
         int_type evt_lo, evt_hi;
-        max_rounds = warp_event_range( max_rounds, lane_id, evt_lo, evt_hi);
+        int_type max_rounds = warp_event_range( event_bins[lane_id], lane_id, evt_lo, evt_hi);
         __syncthreads();
 
         // within a warp each thread (bin) has [evt_lo, evt_hi) events
 
-        i = tid;
-
         // over generate random numbers per bin
         // avoids branch divergence
-        unsigned int rcount = (((max_rounds << 5 ) & (0xFFFF0000)) + THREAD_NUM);
-        do {
-            RealType event = curand_uniform( &states[blockIdx.x] );
-
-            rand_pool[ i ] = bin_start + event * bin_range;
-
-#ifdef LOG_RANDOM_EVENTS
-            pool[ i ] = rand_pool[ i ];
-#endif  // LOG_RANDOM_EVENTS
-
-            i += THREAD_NUM;
-        } while( i < rcount );
+        fill_random_pool( states, rand_pool, bin_start, bin_range, lane_id, (max_rounds << 5) );
         __syncthreads();
 
 #ifdef LOG_RANDOM_EVENTS
+        i = tid;
+        while( i < 1024 ) {
+            pool[ i ] = rand_pool[ i ];
+            i += THREAD_NUM;
+        }
         pool += BLOCK_NUM_MAX * 1024;
+        __syncthreads();
 #endif  // LOG_RANDOM_EVENTS
 
         i = tid;
