@@ -32,7 +32,9 @@
 #include "crossover_test.hpp"
 #include "crossover_validate.hpp"
 
-#if USE_CROSSOVER_MATRIX == 3
+#if USE_CROSSOVER_MATRIX == 2
+#include "validate_crossover_matrix_2.hpp"
+#elif USE_CROSSOVER_MATRIX == 3
 #include "validate_crossover_matrix_3.hpp"
 #elif USE_CROSSOVER_MATRIX == 4
 #include "validate_crossover_matrix_4.hpp"
@@ -125,6 +127,7 @@ struct pool_generator_wrapper< crossover< 3 > > {
 };
 
 
+#if USE_CROSSOVER_MATRIX == 3
 template <> template < class CountGenerator, class EventGenerator >
 void crossover_test< crossover< 3 > >::simulate( CountGenerator & cGen, EventGenerator & eGen, size_t N ) {
     event_list.resize( N * 256 );
@@ -143,6 +146,45 @@ void crossover_test< crossover< 3 > >::simulate( CountGenerator & cGen, EventGen
 
     cudaDeviceSynchronize();
 }
+#endif  // USE_CROSSOVER_MATRIX == 3
+
+#if USE_CROSSOVER_MATRIX == 2
+template<>    template < class AlleleGenerator >
+void crossover_test< crossover< 2 > >::initialize( AlleleGenerator & aGen, size_t N ) {
+    unsigned int tail = N % crossover_type::comp_cap_type::THREADS_PER_BLOCK;
+    if( tail ) {
+        N += (crossover_type::comp_cap_type::THREADS_PER_BLOCK - tail);
+        std::cerr << "Warning: Increased Allele Size to - " << N << std::endl;
+    }
+
+    allele_list.resize(N);
+    aGen( allele_list, N );
+
+    ct.adjust_alleles( allele_list.data().get(), N );
+
+    cudaDeviceSynchronize();
+}
+
+template <> template < class CountGenerator, class EventGenerator >
+void crossover_test< crossover< 2 > >::simulate( CountGenerator & cGen, EventGenerator & eGen, size_t N ) {
+
+    event_list.resize( N * THREAD_NUM );
+    rand_pool.resize( N * 1024 );
+
+    unsigned int sequence_width = allele_list.size() / crossover_type::ALLELE_PER_INT;
+
+    sequences.resize( N * sequence_width );
+
+    typename crossover_type::real_type * pool = rand_pool.data().get();
+    typename crossover_type::allele_type * alleles = allele_list.data().get();
+    typename crossover_type::event_count_type * events = event_list.data().get();
+    typename crossover_type::int_type * seqs = sequences.data().get();
+
+    ct( pool, alleles, events, seqs, N, allele_list.size(), sequence_width, cGen.get_rate() );
+
+    cudaDeviceSynchronize();
+}
+#endif  // USE_CROSSOVER_MATRIX == 2
 
 int main(int argc, char ** argv ) {
 
@@ -181,7 +223,6 @@ int main(int argc, char ** argv ) {
     unsigned int s = samples;
     while( s-- ) {
         crossover_test< crossover_type > ct;
-        //clotho::cuda::fill_poisson< unsigned int, crossover_type::real_type> cGen( dGen, rho );
 
         event_generator_wrapper< crossover_type > cGen( dGen, rho );
         clotho::cuda::fill_uniform< typename crossover_type::real_type > aGen( dGen );   // allele generator

@@ -55,6 +55,8 @@ public:
 
     void initialize( );
 
+    void adjust_alleles( allele_type * allele_list, size_type N );
+
     void operator()(  real_type * rand_pool
                     , allele_type       * allele_list
                     , event_count_type  * event_list
@@ -63,8 +65,6 @@ public:
                     , size_type nAlleles
                     , size_type sequence_width
                     , real_type rho = 0.1 );
-
-    void generate_test( real_type * rand_pool, size_t N );
 
     void get_state( boost::property_tree::ptree & s );
 
@@ -78,11 +78,109 @@ protected:
     cudaStream_t streams[ STREAM_COUNT ];
 };
 
+template < class IntType >
+__device__ IntType warp_event_range( IntType count, IntType lane_id, IntType & lo, IntType & hi ) {
+    IntType max = count;
+    hi = count;
+
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        IntType tmp = __shfl_up( max, i );
+        max = ((tmp > max) ? tmp : max);
+
+        tmp = __shfl_up( hi , i );
+        hi += (( lane_id >= i ) * tmp);
+    }
+
+    lo = __shfl_up( hi, 1 );
+    lo *= (lane_id != 0);
+
+    max = __shfl( max, 31 );
+    return max;
+}
+
+template < class IntType >
+__global__ void get_warp_event_range( IntType * evt, IntType * out ) {
+    IntType tid = threadIdx.y * blockDim.x + threadIdx.x;
+    IntType lane_id = (tid & 31);
+
+    IntType max = evt[lane_id];
+
+    IntType evt_lo, evt_hi;
+    max = warp_event_range( max, lane_id, evt_lo, evt_hi );
+    __syncthreads();
+
+    out[ lane_id ] = evt_lo;
+    lane_id += 32;
+
+    out[ lane_id ] = evt_hi;
+    lane_id += 32;
+
+    out[ lane_id ] = max;
+}
+
+// every warp:
+// 1) shuffle up the maximum number of events
+// 2) compute the prefix sum of events per bin
+template < class RealType >
+__global__ void remap_alleles( RealType * allele_list, size_t N ) {
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    RealType bin_start = ((RealType)(tid & 31) / (RealType)32);
+
+    unsigned int a_idx = tid;
+    while( a_idx < N ) {
+        RealType a = allele_list[ a_idx ];
+
+        a = bin_start + (a / (RealType)32);
+
+        allele_list[ a_idx ] = a;
+
+        a_idx += blockDim.x * blockDim.y;
+    }
+}
+
+template < class IntType >
+__device__ void persist_mask( IntType mask, IntType warp_id, IntType lane_id, IntType * seq ) {
+    // collapse masks to single crossover mask per warp
+    // mask will exist in lane 0 for all warps
+#pragma unroll
+    for( unsigned int j = 1; j < 32; j <<= 1 ) {
+        unsigned int tmp = __shfl_down( mask, j );
+        mask |= ((!( lane_id & (( j << 1) - 1))) * tmp);
+    }
+
+    // use single thread per warp to write/store
+    // crossover mask to global memory
+    if( lane_id == 0) {
+        seq[ warp_id ] = mask;
+    }
+}
+
+template < class IntType >
+__device__ void persist_mask( unsigned char mask, IntType warp_id, IntType lane_id, unsigned char * seq ) {
+    seq[ warp_id * 32 + lane_id ] = mask;
+}
+
+template < class RealType, class IntType >
+__device__ IntType count_preceeding_lane_events( volatile RealType * events, RealType allele, IntType lane_id, IntType warp_max, IntType lane_max ) {
+    IntType c = 0;
+    while( warp_max-- ) {
+        RealType e = events[ lane_id ];
+
+        c += (( lane_max ) && (e < allele));
+
+        lane_max -= (!!(lane_max));
+        lane_id += 32;
+    }
+
+    return c;
+}
+
 
 /**
  *  This version assumes that allele_list is organized into units of WARP_SIZE (32) alleles
  *  that are ordered such that:
- *      allele_unit_idx = floor( allele_location / 32.0 )
+ *      allele_unit_idx = floor( allele_location * 32.0 )
  */
 template < class RealType >
 __global__ void crossover_kernel_2( curandStateMtgp32_t * states
@@ -96,23 +194,26 @@ __global__ void crossover_kernel_2( curandStateMtgp32_t * states
                                     , RealType rho ) {
     if( gridDim.x != BLOCK_NUM_MAX || blockDim.x != THREAD_NUM ) return;
 
-    int tid = threadIdx.y * blockDim.x + threadIdx.x;
-    int lane_id = (tid & 31);
-    int warp_id = (tid >> 5);
-    unsigned int lane_mask = (1 << lane_id);
-
-    unsigned int i;
-
-    RealType bin_start =  ((RealType) lane_id / (RealType) 32);
+    typedef unsigned int int_type;
 
     __shared__ RealType rand_pool[ 1024 ];
-    __shared__ unsigned int event_bins[ THREAD_NUM ];
+    __shared__ int_type event_bins[ THREAD_NUM ];
+    int_type tid = threadIdx.y * blockDim.x + threadIdx.x;
+    int_type lane_id = (tid & 31);
 
-    rho /= ((RealType) 32); // Warp Size
+    int_type i;
 
-    event_bins[tid] = 0;    // clear event_bins
+    RealType bin_range = (1. / 32.0);
+    RealType bin_start =  (RealType) lane_id * bin_range;
 
-    int seq_idx = blockIdx.x;
+    rho *= bin_range; // Warp Size
+
+#ifdef LOG_RANDOM_EVENTS
+    pool += blockIdx.x * THREAD_NUM;
+    evt_list += blockIdx.x * THREAD_NUM;
+#endif  // LOG_RANDOM_EVENTS
+
+    int_type seq_idx = blockIdx.x;
     while( seq_idx < nSequences ) {
 
         unsigned int * seq = sequences + (seq_idx * sequence_width);
@@ -121,76 +222,53 @@ __global__ void crossover_kernel_2( curandStateMtgp32_t * states
         event_bins[ tid ] = curand_poisson( &states[blockIdx.x], rho );
         __syncthreads();
 
-        unsigned int max_rounds = event_bins[ lane_id ];
-        unsigned int psum = max_rounds;
+#ifdef LOG_RANDOM_EVENTS
+        evt_list[ tid ] = event_bins[ tid ];
+        evt_list += BLOCK_NUM_MAX * THREAD_NUM;
+#endif  // LOG_RANDOM_EVENTS
+
+        int_type max_rounds = event_bins[ lane_id ];
         __syncthreads();
 
-        // every warp:
-        // 1) shuffle up the maximum number of events
-        // 2) compute the prefix sum of events per bin
-        for( i = 1; i < 32; i <<= 1 ) {
-            unsigned int tmp = __shfl_up( max_rounds, i );
-            max_rounds = ((tmp > max_rounds) ? m : max_rounds);
-
-            tmp = __shfl_up( psum, i );
-            psum += (( lane_id >= i ) * tmp);
-        }
-
-        max_rounds = __shfl( max_rounds, 31 );  // broadcast the max_event
-
-        unsigned int min_events = __shfl_up( psum, 1 );
-        min_events *= (lane_id != 0 );
+        int_type evt_lo, evt_hi;
+        max_rounds = warp_event_range( max_rounds, lane_id, evt_lo, evt_hi);
         __syncthreads();
 
-        // within a warp each thread (bin) has [min_events, psum) events
+        // within a warp each thread (bin) has [evt_lo, evt_hi) events
 
         i = tid;
 
         // over generate random numbers per bin
         // avoids branch divergence
-        unsigned int rcount = (((max_rounds * 32) / THREAD_NUM) + 1) * THREAD_NUM;
+        unsigned int rcount = (((max_rounds << 5 ) & (0xFFFF0000)) + THREAD_NUM);
         do {
             RealType event = curand_uniform( &states[blockIdx.x] );
 
-            rand_pool[ i ] = bin_start + (event / (RealType) 32);
+            rand_pool[ i ] = bin_start + event * bin_range;
+
+#ifdef LOG_RANDOM_EVENTS
+            pool[ i ] = rand_pool[ i ];
+#endif  // LOG_RANDOM_EVENTS
+
             i += THREAD_NUM;
         } while( i < rcount );
         __syncthreads();
+
+#ifdef LOG_RANDOM_EVENTS
+        pool += BLOCK_NUM_MAX * 1024;
+#endif  // LOG_RANDOM_EVENTS
 
         i = tid;
         while( i < nAlleles ) {
             RealType _allele = allele_list[ i ];
 
-            unsigned int cmask = min_events;    // any allele in this (thread) lane will have AT LEAST 'min_events' crossover events preceeding it
-            unsigned int j = 0, offset = lane_id;
-
-            // not all bins need max_rounds
-            // but early termination would introduce branch divergence
-            while( j < max_rounds ) {
-                RealType e = rand_pool[ offset ];   // load the next event from the bin
-
-                cmask += ((min_events + j < psum ) && ( e < _allele ));
-
-                ++j;
-                offset += 32;
-            }
+            unsigned int cmask = count_preceeding_lane_events( rand_pool, _allele, lane_id, max_rounds, (evt_hi - evt_lo) );
             __syncthreads();
 
-            cmask = ((cmask & 1) * lane_mask);  // translate event count to lane relative crossover mask
+            cmask = (((cmask + evt_lo) & 1) * (1 << lane_id));  // translate event count to lane relative crossover mask
 
 ///////////////////////////////////////////////////////////
-            // collapse masks to single crossover mask per warp
-            // mask will exist in lane 0 for all warps
-            for( rand = 1; rand < 32; rand <<= 1 ) {
-                unsigned int tmp = __shfl_down( cmask, rand );
-                cmask |= ((!( tid & (( rand << 1) - 1))) * tmp);
-            }
-
-            // use single thread per warp to write/store
-            // crossover mask to global memory
-            if( lane_id == 0) {
-                seq[ warp_id ] = cmask;
-            }
+            persist_mask( cmask, (tid >> 5), lane_id, seq );
             __syncthreads();
 ///////////////////////////////////////////////////////////
 
@@ -236,6 +314,10 @@ void crossover< 2 >::initialize( ) {
     }
 }
 
+void crossover< 2 >::adjust_alleles( allele_type * allele_list, size_type N ) {
+    remap_alleles<<< 1, 1024 >>>( allele_list, N );
+}
+
 void crossover< 2 >::operator()(  real_type * rand_pool
                     , allele_type       * allele_list
                     , event_count_type  * event_list
@@ -262,6 +344,33 @@ void crossover< 2 >::operator()(  real_type * rand_pool
 //    }
 
     crossover_kernel_2<<< BLOCK_NUM_MAX, THREAD_NUM >>>( dStates, rand_pool, allele_list, event_list, sequences, nSequences, nAlleles, sequence_width, rho );
+}
+
+void crossover< 2 >::get_state( boost::property_tree::ptree & n ) {
+    n.put( "crossover.version", 2 );
+    n.put( "crossover.curand.state_type", clotho::cuda::curand_helper< typename crossover< 2 >::state_type >::StateName );
+    
+    boost::property_tree::ptree sds;
+    clotho::utility::add_value_array( sds, m_seeds.begin(), m_seeds.end() );
+
+    n.add_child( "crossover.curand.seed", sds  );
+
+#ifdef USE_TEXTURE_MEMORY_FOR_ALLELE
+    n.put( "crossover.use_texture_memory_for_allele", true );
+#else
+    n.put( "crossover.use_texture_memory_for_allele", false );
+#endif  // USE_TEXTURE_MEMORY_FOR_ALLELE
+}
+
+crossover< 2 >::~crossover() {
+    cudaFree( dStates );
+    cudaFree( dParams );
+
+    for( unsigned int i = 0; i < STREAM_COUNT; ++i ) {
+        cudaStreamSynchronize( streams[i] );
+
+        cudaStreamDestroy( streams[i] );
+    }
 }
 
 #endif  // CROSSOVER_MATRIX_2_CUH_
