@@ -137,6 +137,8 @@ __global__ void crossover_kernel_3( curandStateMtgp32_t * states
     __shared__ RealType rand_pool[ THREAD_NUM ];
     __shared__ unsigned int event_hash[ THREAD_NUM + 1];
 
+    rho /= 256.0;
+
     event_hash[tid] = 0;    // clear event_hash
 
 #ifdef LOG_RANDOM_EVENTS
@@ -156,7 +158,7 @@ __global__ void crossover_kernel_3( curandStateMtgp32_t * states
         event_hash[ tid + 1 ] = 0;  // clear the event_hash
         __syncthreads();
 
-        unsigned int rand = curand_poisson( &states[blockIdx.x], rho / 256.0 );
+        unsigned int rand = curand_poisson( &states[blockIdx.x], rho );
         __syncthreads();
 
         for( i = 1; i < 32; i <<= 1 ) {
@@ -199,8 +201,10 @@ __global__ void crossover_kernel_3( curandStateMtgp32_t * states
         }
         i += rand_offset;
         rand += rand_offset;
-        __syncthreads();
+#else
+        rand_pool[ tid ] = curand_uniform( &states[blockIdx.x] );
 #endif  // USE_PARTIAL_RANDOM_POOL
+        __syncthreads();
 
         RealType accum = 0.;
         while (i < rand) {
