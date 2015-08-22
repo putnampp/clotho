@@ -27,6 +27,7 @@
 #include <curand_uniform.h>
 
 #include <cuda_runtime.h>
+#include <thrust/device_vector.h>
 
 #include "clotho/cuda/curand_helper.hpp"
 
@@ -36,8 +37,8 @@
 template < >
 class crossover< 2 > {
 public:
-    typedef double                      real_type;
-    typedef double                      allele_type;
+    typedef float                      real_type;
+    typedef float                      allele_type;
     typedef unsigned int                event_count_type;
     typedef unsigned int               int_type;
     typedef unsigned int                size_type;
@@ -46,10 +47,9 @@ public:
     static const unsigned int ALLELE_PER_INT = 32;
     static const unsigned int MAX_EVENTS = ((comp_cap_type::MAX_CONSTANT_MEMORY / sizeof( event_count_type )) >> 1);    // use half of the constant space for event counts
 
-    static const unsigned int STREAM_COUNT = 8;
-
-    typedef curandStateMtgp32_t state_type;
-    typedef mtgp32_kernel_params_t state_param_type;
+    typedef curandStateMtgp32_t     state_type;
+    typedef mtgp32_kernel_params_t  state_param_type;
+    typedef unsigned long long      seed_type;
 
     crossover( );
 
@@ -73,9 +73,9 @@ public:
 protected:
     state_type * dStates;
     state_param_type * dParams;
-    std::vector< unsigned long long > m_seeds;
+    seed_type m_seed;
 
-    cudaStream_t streams[ STREAM_COUNT ];
+    thrust::device_vector< real_type > m_pois_cdf;
 };
 
 template < class IntType >
@@ -140,7 +140,7 @@ __global__ void remap_alleles( RealType * allele_list, size_t N ) {
 }
 
 template < class IntType >
-__device__ void persist_mask( IntType mask, IntType warp_id, IntType lane_id, IntType * seq ) {
+__device__ void persist_mask_old( IntType mask, IntType warp_id, IntType lane_id, IntType * seq ) {
     // collapse masks to single crossover mask per warp
     // mask will exist in lane 0 for all warps
 #pragma unroll
@@ -148,6 +148,38 @@ __device__ void persist_mask( IntType mask, IntType warp_id, IntType lane_id, In
         unsigned int tmp = __shfl_down( mask, j );
         mask |= ((!( lane_id & (( j << 1) - 1))) * tmp);
     }
+
+    // use single thread per warp to write/store
+    // crossover mask to global memory
+    if( lane_id == 0) {
+        seq[ warp_id ] = mask;
+    }
+}
+
+template < class IntType >
+__device__ void persist_mask( IntType mask, IntType warp_id, IntType lane_id, IntType * seq ) {
+    // collapse masks to single crossover mask per warp
+    // mask will exist in lane 0 for all warps
+
+    unsigned int tmp = __shfl_down( mask, 1 );
+    mask |= ((!( lane_id & 1)) * tmp);
+//    mask |= ((( lane_id & 1) == 0) ? tmp : 0 );
+
+    tmp = __shfl_down( mask, 2);
+    mask |= ((!( lane_id & 3)) * tmp);
+//    mask |= ((( lane_id & 3) == 0) ? tmp : 0 );
+    
+    tmp = __shfl_down( mask, 4);
+    mask |= ((!( lane_id & 7)) * tmp);
+//    mask |= ((( lane_id & 7) == 0) ? tmp : 0 );
+
+    tmp = __shfl_down( mask, 8);
+    mask |= ((!( lane_id & 15)) * tmp);
+//    mask |= ((( lane_id & 15) == 0) ? tmp : 0 );
+
+    tmp = __shfl_down( mask, 16);
+    mask |= ((!( lane_id & 31)) * tmp);
+//    mask |= ((( lane_id & 31) == 0) ? tmp : 0 );
 
     // use single thread per warp to write/store
     // crossover mask to global memory
@@ -191,13 +223,46 @@ __device__ void fill_random_pool( curandStateMtgp32_t * state, volatile RealType
     }
 }
 
+template < class RealType >
+__global__ void _poisson_cdf_maxk32( RealType * cdf, RealType lambda ) {
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int lane_id = (tid & 31);
+
+    RealType p = ((lane_id != 0) ? (lambda / (RealType) lane_id) : 1.0);
+
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        RealType _c = __shfl_up(p, i );
+        p *=  ((lane_id >= i) ? _c : 1.0);
+    }
+
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        RealType _c = __shfl_up( p, i );
+        p += ((lane_id >= i ) ? _c : 0.0 );
+    }
+
+    p *= exp( 0.0 - lambda ); // $p_{lane_id} = \sum_{k=0}^{lane_id} \frac{\lambda^{k}}{lane_id!} e^{-\lambda} $
+
+    cdf[ tid ] = p;
+}
+
+template < class RealType >
+__device__ unsigned int _find_poisson_maxk32( volatile RealType * cdf, RealType x ) {
+    unsigned int k = 0, i = 12;
+    while( i-- ) {
+        k += (cdf[k] < x);
+    }
+    return k;
+}
+
+#define BIN_WIDTH 0.03125   // 1 / 32
+
 /**
  *  This version assumes that allele_list is organized into units of WARP_SIZE (32) alleles
  *  that are ordered such that:
  *      allele_unit_idx = floor( allele_location * 32.0 )
  */
-template < class RealType >
-__global__ void crossover_kernel_2( curandStateMtgp32_t * states
+template < class StateType, class RealType >
+__global__ void crossover_kernel_2(  StateType * states
                                     , RealType * pool
                                     , RealType * allele_list
                                     , unsigned int * evt_list
@@ -217,11 +282,10 @@ __global__ void crossover_kernel_2( curandStateMtgp32_t * states
 
     int_type i;
 
-    RealType bin_range = (1. / 32.0);
-    RealType bin_start =  (RealType) lane_id * bin_range;
+    RealType bin_start =  (RealType) lane_id * BIN_WIDTH;
 
+    rho *= BIN_WIDTH;   // scale rho according to number of threads per warp (bins)
     states = &states[blockIdx.x];
-    rho *= bin_range; // Warp Size
 
 #ifdef LOG_RANDOM_EVENTS
     pool += blockIdx.x * THREAD_NUM;
@@ -250,7 +314,7 @@ __global__ void crossover_kernel_2( curandStateMtgp32_t * states
 
         // over generate random numbers per bin
         // avoids branch divergence
-        fill_random_pool( states, rand_pool, bin_start, bin_range, lane_id, (max_rounds << 5) );
+        fill_random_pool( states, rand_pool, bin_start, BIN_WIDTH, lane_id, (max_rounds << 5) );
         __syncthreads();
 
 #ifdef LOG_RANDOM_EVENTS
@@ -286,6 +350,105 @@ __global__ void crossover_kernel_2( curandStateMtgp32_t * states
     }
 }
 
+/**
+ *  This version assumes that allele_list is organized into units of WARP_SIZE (32) alleles
+ *  that are ordered such that:
+ *      allele_unit_idx = floor( allele_location * 32.0 )
+ */
+template < class StateType, class RealType >
+__global__ void crossover_kernel_2a( StateType * states
+                                    , RealType * pool
+                                    , RealType * allele_list
+                                    , unsigned int * evt_list
+                                    , unsigned int * sequences
+                                    , unsigned int nSequences
+                                    , unsigned int nAlleles
+                                    , unsigned int sequence_width
+                                    , RealType * pois_cdf ) {
+    if( gridDim.x != BLOCK_NUM_MAX || blockDim.x != THREAD_NUM ) return;
+
+    typedef unsigned int int_type;
+
+    __shared__ RealType poisson_cdf[ THREAD_NUM ];
+    __shared__ RealType rand_pool[ 1024 ];
+    __shared__ int_type event_bins[ THREAD_NUM ];
+    int_type tid = threadIdx.y * blockDim.x + threadIdx.x;
+    int_type lane_id = (tid & 31);
+
+    int_type i;
+
+    poisson_cdf[ tid ] = pois_cdf[ lane_id ];
+    __syncthreads();
+
+    RealType bin_start =  (RealType) lane_id * BIN_WIDTH;
+
+    states = &states[blockIdx.x];
+
+#ifdef LOG_RANDOM_EVENTS
+    pool += blockIdx.x * THREAD_NUM;
+    evt_list += blockIdx.x * THREAD_NUM;
+#endif  // LOG_RANDOM_EVENTS
+
+    int_type seq_idx = blockIdx.x;
+    while( seq_idx < nSequences ) {
+
+        unsigned int * seq = sequences + (seq_idx * sequence_width);
+
+        // use all threads to generate random numbers
+        RealType x = curand_uniform( states );
+    
+        event_bins[ tid ] = _find_poisson_maxk32( poisson_cdf, x );
+        __syncthreads();
+
+#ifdef LOG_RANDOM_EVENTS
+        evt_list[ tid ] = event_bins[ tid ];
+        evt_list += BLOCK_NUM_MAX * THREAD_NUM;
+#endif  // LOG_RANDOM_EVENTS
+
+        int_type evt_lo, evt_hi;
+        int_type max_rounds = warp_event_range( event_bins[lane_id], lane_id, evt_lo, evt_hi);
+        __syncthreads();
+
+        // within a warp each thread (bin) has [evt_lo, evt_hi) events
+
+        // over generate random numbers per bin
+        // avoids branch divergence
+        fill_random_pool( states, rand_pool, bin_start, (RealType) BIN_WIDTH, lane_id, (max_rounds << 5) );
+        __syncthreads();
+
+#ifdef LOG_RANDOM_EVENTS
+        i = tid;
+        while( i < 1024 ) {
+            pool[ i ] = rand_pool[ i ];
+            i += THREAD_NUM;
+        }
+
+        pool += BLOCK_NUM_MAX * 1024;
+        __syncthreads();
+#endif  // LOG_RANDOM_EVENTS
+
+        i = tid;
+        while( i < nAlleles ) {
+            RealType _allele = allele_list[ i ];
+
+            unsigned int cmask = count_preceeding_lane_events( rand_pool, _allele, lane_id, max_rounds, (evt_hi - evt_lo) );
+            __syncthreads();
+
+            cmask = (((cmask + evt_lo) & 1) * (1 << lane_id));  // translate event count to lane relative crossover mask
+
+///////////////////////////////////////////////////////////
+            persist_mask( cmask, (tid >> 5), lane_id, seq );
+            __syncthreads();
+///////////////////////////////////////////////////////////
+
+            i += THREAD_NUM;
+            seq += (THREAD_NUM >> 5);
+        }
+        __syncthreads();
+
+        seq_idx += BLOCK_NUM_MAX;
+    }
+}
 crossover< 2 >::crossover( ) :
     dStates( NULL )
     , dParams( NULL)
@@ -298,25 +461,16 @@ void crossover< 2 >::initialize( ) {
     // THREAD_NUM == MTGPDC_FLOOR_2P == 256
     // BLOCK_NUM_MAX == CURAND_NUM_MTGP32_PARAMS == 200
 
-    //m_seed = clotho::utility::clock_type::now().time_since_epoch().count();
+    m_seed = clotho::utility::clock_type::now().time_since_epoch().count();
 
-    m_seeds.reserve( STREAM_COUNT );
+    m_pois_cdf.resize( 32 );
 
-    assert( cudaMalloc( (void ** ) &dStates, STREAM_COUNT * BLOCK_NUM_MAX * sizeof( state_type ) ) == cudaSuccess );
+    assert( cudaMalloc( (void ** ) &dStates, BLOCK_NUM_MAX * sizeof( state_type ) ) == cudaSuccess );
     assert( cudaMalloc( (void ** ) &dParams, sizeof( state_param_type ) ) == cudaSuccess );
 
     assert( curandMakeMTGP32Constants( MTGPDC_PARAM_TABLE, dParams ) == CURAND_STATUS_SUCCESS );
 
-
-    for( unsigned int i = 0; i < STREAM_COUNT; ++i ) {
-        cudaStreamCreate( &streams[i] );
-
-        unsigned long long seed = clotho::utility::clock_type::now().time_since_epoch().count();
-
-        assert( curandMakeMTGP32KernelState( dStates + i * BLOCK_NUM_MAX, MTGPDC_PARAM_TABLE, dParams, BLOCK_NUM_MAX, seed) == CURAND_STATUS_SUCCESS );
-
-        m_seeds.push_back(seed);
-    }
+    assert( curandMakeMTGP32KernelState( dStates, MTGPDC_PARAM_TABLE, dParams, BLOCK_NUM_MAX, m_seed) == CURAND_STATUS_SUCCESS );
 }
 
 void crossover< 2 >::adjust_alleles( allele_type * allele_list, size_type N ) {
@@ -336,29 +490,17 @@ void crossover< 2 >::operator()(  real_type * rand_pool
     cudaBindTexture(0, allele_tex, allele_list, nAlleles * 4);
 #endif  // USE_TEXTURE_MEMORY_FOR_ALLELE
 
-//    unsigned int seqs = (nSequences / STREAM_COUNT) + 1;
-//    unsigned int i = 0;
-//    while( nSequences ) {
-//        unsigned int N = ((nSequences > seqs) ? seqs : nSequences);
-//        
-//        crossover_kernel_2<<< BLOCK_NUM_MAX, THREAD_NUM, 0, streams[ i ] >>>( dStates + i * BLOCK_NUM_MAX, allele_list, event_list, dSequences, N, nAlleles, sequence_width );
-//
-//        sequences += N * sequence_width;
-//        nSequences -= N;
-//        ++i;
-//    }
+    rho /= 32.0;
 
-    crossover_kernel_2<<< BLOCK_NUM_MAX, THREAD_NUM >>>( dStates, rand_pool, allele_list, event_list, sequences, nSequences, nAlleles, sequence_width, rho );
+    _poisson_cdf_maxk32<<< 1, 32 >>>( m_pois_cdf.data().get(), rho );
+
+    crossover_kernel_2a<<< BLOCK_NUM_MAX, THREAD_NUM >>>( dStates, rand_pool, allele_list, event_list, sequences, nSequences, nAlleles, sequence_width, m_pois_cdf.data().get() );
 }
 
 void crossover< 2 >::get_state( boost::property_tree::ptree & n ) {
     n.put( "crossover.version", 2 );
     n.put( "crossover.curand.state_type", clotho::cuda::curand_helper< typename crossover< 2 >::state_type >::StateName );
-    
-    boost::property_tree::ptree sds;
-    clotho::utility::add_value_array( sds, m_seeds.begin(), m_seeds.end() );
-
-    n.add_child( "crossover.curand.seed", sds  );
+    n.put( "crossover.seed", m_seed );
 
 #ifdef USE_TEXTURE_MEMORY_FOR_ALLELE
     n.put( "crossover.use_texture_memory_for_allele", true );
@@ -370,12 +512,6 @@ void crossover< 2 >::get_state( boost::property_tree::ptree & n ) {
 crossover< 2 >::~crossover() {
     cudaFree( dStates );
     cudaFree( dParams );
-
-    for( unsigned int i = 0; i < STREAM_COUNT; ++i ) {
-        cudaStreamSynchronize( streams[i] );
-
-        cudaStreamDestroy( streams[i] );
-    }
 }
 
 #endif  // CROSSOVER_MATRIX_2_CUH_
