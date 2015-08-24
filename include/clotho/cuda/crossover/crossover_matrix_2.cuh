@@ -551,7 +551,7 @@ void crossover< 2 >::operator()(  real_type * rand_pool
 void crossover< 2 >::get_state( boost::property_tree::ptree & n ) {
     n.put( "crossover.version", 2 );
     n.put( "crossover.curand.state_type", clotho::cuda::curand_helper< typename crossover< 2 >::state_type >::StateName );
-    n.put( "crossover.seed", m_seed );
+    n.put( "crossover.curand.seed", m_seed );
 
 #ifdef USE_TEXTURE_MEMORY_FOR_ALLELE
     n.put( "crossover.use_texture_memory_for_allele", true );
