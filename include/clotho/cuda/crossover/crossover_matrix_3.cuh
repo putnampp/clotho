@@ -33,6 +33,8 @@
 #include "clotho/utility/timer.hpp"
 #include "clotho/utility/log_helper.hpp"
 
+#include "clotho/cuda/crossover/poisson_distribution.hpp"
+
 template < >
 class crossover< 3 > {
 public:

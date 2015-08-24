@@ -29,6 +29,9 @@ struct curand_helper {
 template <>
 const std::string curand_helper< curandStateMtgp32_t >::StateName = "MTGP32";
 
+template <>
+const std::string curand_helper< curandStateXORWOW >::StateName = "XORWOW";
+
 }   // namespace cuda
 }   // namespace clotho
 

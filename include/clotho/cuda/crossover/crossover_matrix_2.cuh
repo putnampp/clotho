@@ -34,6 +34,12 @@
 #include "clotho/utility/timer.hpp"
 #include "clotho/utility/log_helper.hpp"
 
+#include "clotho/cuda/crossover/poisson_distribution.hpp"
+
+//#ifndef USE_MERSENNE_TWISTER
+//#define USE_MERSENNE_TWISTER
+//#endif  // USE_MERSENNE_TWISTER
+
 template < >
 class crossover< 2 > {
 public:
@@ -44,11 +50,24 @@ public:
     typedef unsigned int                size_type;
     typedef compute_capability< 3, 0 >  comp_cap_type;
 
+    typedef poisson_cdf< real_type, 32> poisson_type;
+
     static const unsigned int ALLELE_PER_INT = 32;
     static const unsigned int MAX_EVENTS = ((comp_cap_type::MAX_CONSTANT_MEMORY / sizeof( event_count_type )) >> 1);    // use half of the constant space for event counts
 
+#ifdef USE_MERSENNE_TWISTER
     typedef curandStateMtgp32_t     state_type;
     typedef mtgp32_kernel_params_t  state_param_type;
+
+    static const unsigned int BLOCKS_PER_KERNEL = BLOCK_NUM_MAX;
+    static const unsigned int THREADS_PER_BLOCK = THREAD_NUM;
+#else
+    typedef curandState_t           state_type;
+
+    static const unsigned int BLOCKS_PER_KERNEL = 200;
+    static const unsigned int THREADS_PER_BLOCK = 128;
+#endif  // USE_MERSENNE_TWISTER
+
     typedef unsigned long long      seed_type;
 
     crossover( );
@@ -72,12 +91,26 @@ public:
 
 protected:
     state_type * dStates;
+
+#ifdef USE_MERSENNE_TWISTER
     state_param_type * dParams;
+#endif  // USE_MERSENNE_TWISTER
+
     seed_type m_seed;
 
-    thrust::device_vector< real_type > m_pois_cdf;
+    poisson_type * dPoisCDF;
 };
 
+template < class StateType >
+__global__ void setup_state_kernel( StateType * states, unsigned long long seed ) {
+    int id = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+
+    curand_init( seed, id, 0, &states[id] );
+}
+
+// every warp:
+// 1) shuffle up the maximum number of events
+// 2) compute the prefix sum of events per bin
 template < class IntType >
 __device__ IntType warp_event_range( IntType count, IntType lane_id, IntType & lo, IntType & hi ) {
     IntType max = count;
@@ -118,9 +151,6 @@ __global__ void get_warp_event_range( IntType * evt, IntType * out ) {
     out[ lane_id ] = max;
 }
 
-// every warp:
-// 1) shuffle up the maximum number of events
-// 2) compute the prefix sum of events per bin
 template < class RealType >
 __global__ void remap_alleles( RealType * allele_list, size_t N ) {
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
@@ -194,64 +224,44 @@ __device__ void persist_mask( unsigned char mask, IntType warp_id, IntType lane_
 }
 
 template < class RealType, class IntType >
-__device__ IntType count_preceeding_lane_events( volatile RealType * events, RealType allele, IntType lane_id, IntType warp_max, IntType lane_max ) {
+__device__ IntType count_preceeding_lane_events( volatile RealType * events, RealType allele, IntType lane_id, IntType warp_max ) {
     IntType c = 0;
     while( warp_max-- ) {
         RealType e = events[ lane_id ];
 
-        c += (( lane_max ) && (e < allele));
+        //c += (e < allele);
+        c += ((e < allele) ? 1 : 0);
 
-        lane_max -= (!!(lane_max));
         lane_id += 32;
     }
 
     return c;
 }
 
-template < class RealType, class IntType >
-__device__ void fill_random_pool( curandStateMtgp32_t * state, volatile RealType * rands, RealType bin_start, RealType bin_width, IntType offset, IntType N ) {
-    N += (!!(N & (THREAD_NUM - 1))) * (THREAD_NUM - (N & (THREAD_NUM - 1))); // pad N st N = 256 n; assumes THREAD_NUM = 2^{p}
+template < class XOVER >
+__device__ void fill_random_pool( typename XOVER::state_type * state, 
+                                  volatile typename XOVER::real_type * rands, 
+                                  typename XOVER::real_type bin_start,
+                                  typename XOVER::real_type bin_width,
+                                  typename XOVER::int_type offset,
+                                  typename XOVER::int_type N,
+                                  typename XOVER::int_type M ) {
+//    N += (!!(N & (THREAD_NUM - 1))) * (THREAD_NUM - (N & (THREAD_NUM - 1))); // pad N st N = 256 n; assumes THREAD_NUM = 2^{p}
+
+    typename XOVER::int_type tail = (N & (XOVER::THREADS_PER_BLOCK - 1));
+    N += ( (!!(tail)) * (XOVER::THREADS_PER_BLOCK - tail));
 
     // over generate random numbers per bin
     // avoids branch divergence
     while(offset < N ) {
-        RealType event = curand_uniform( state );
+        typename XOVER::real_type event = curand_uniform( state );
 
-        rands[ offset ] = bin_start + event * bin_width;
+        rands[ offset ] = ((M > 0) ? (bin_start + event * bin_width) : 1.0);
 
-        offset += THREAD_NUM;
+        M -= (!!(M));
+
+        offset += XOVER::THREADS_PER_BLOCK;
     }
-}
-
-template < class RealType >
-__global__ void _poisson_cdf_maxk32( RealType * cdf, RealType lambda ) {
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
-    unsigned int lane_id = (tid & 31);
-
-    RealType p = ((lane_id != 0) ? (lambda / (RealType) lane_id) : 1.0);
-
-    for( unsigned int i = 1; i < 32; i <<= 1 ) {
-        RealType _c = __shfl_up(p, i );
-        p *=  ((lane_id >= i) ? _c : 1.0);
-    }
-
-    for( unsigned int i = 1; i < 32; i <<= 1 ) {
-        RealType _c = __shfl_up( p, i );
-        p += ((lane_id >= i ) ? _c : 0.0 );
-    }
-
-    p *= exp( 0.0 - lambda ); // $p_{lane_id} = \sum_{k=0}^{lane_id} \frac{\lambda^{k}}{lane_id!} e^{-\lambda} $
-
-    cdf[ tid ] = p;
-}
-
-template < class RealType >
-__device__ unsigned int _find_poisson_maxk32( volatile RealType * cdf, RealType x ) {
-    unsigned int k = 0, i = 12;
-    while( i-- ) {
-        k += (cdf[k] < x);
-    }
-    return k;
 }
 
 #define BIN_WIDTH 0.03125   // 1 / 32
@@ -314,7 +324,7 @@ __global__ void crossover_kernel_2(  StateType * states
 
         // over generate random numbers per bin
         // avoids branch divergence
-        fill_random_pool( states, rand_pool, bin_start, BIN_WIDTH, lane_id, (max_rounds << 5) );
+        fill_random_pool< crossover< 2 > >( states, rand_pool, bin_start, BIN_WIDTH, lane_id, (max_rounds << 5), (evt_hi - evt_lo) );
         __syncthreads();
 
 #ifdef LOG_RANDOM_EVENTS
@@ -331,7 +341,8 @@ __global__ void crossover_kernel_2(  StateType * states
         while( i < nAlleles ) {
             RealType _allele = allele_list[ i ];
 
-            unsigned int cmask = count_preceeding_lane_events( rand_pool, _allele, lane_id, max_rounds, (evt_hi - evt_lo) );
+//            unsigned int cmask = count_preceeding_lane_events( rand_pool, _allele, lane_id, max_rounds, (evt_hi - evt_lo) );
+            unsigned int cmask = count_preceeding_lane_events( rand_pool, _allele, lane_id, max_rounds );
             __syncthreads();
 
             cmask = (((cmask + evt_lo) & 1) * (1 << lane_id));  // translate event count to lane relative crossover mask
@@ -355,38 +366,58 @@ __global__ void crossover_kernel_2(  StateType * states
  *  that are ordered such that:
  *      allele_unit_idx = floor( allele_location * 32.0 )
  */
-template < class StateType, class RealType >
-__global__ void crossover_kernel_2a( StateType * states
-                                    , RealType * pool
-                                    , RealType * allele_list
+//template < class StateType, class RealType, unsigned int K >
+template < class XOVER >
+__global__ void crossover_kernel_2a( typename XOVER::state_type * states
+                                    , typename XOVER::real_type * pool
+                                    , typename XOVER::real_type * allele_list
                                     , unsigned int * evt_list
                                     , unsigned int * sequences
                                     , unsigned int nSequences
                                     , unsigned int nAlleles
                                     , unsigned int sequence_width
-                                    , RealType * pois_cdf ) {
-    if( gridDim.x != BLOCK_NUM_MAX || blockDim.x != THREAD_NUM ) return;
+                                    , typename XOVER::poisson_type * pois_cdf ) {
+    if( gridDim.x != XOVER::BLOCKS_PER_KERNEL || blockDim.x != XOVER::THREADS_PER_BLOCK ) return;
 
+    typedef typename XOVER::state_type StateType;
+    typedef typename XOVER::real_type RealType;
+
+    typedef typename XOVER::poisson_type poisson_type;
     typedef unsigned int int_type;
 
-    __shared__ RealType poisson_cdf[ THREAD_NUM ];
-    __shared__ RealType rand_pool[ 1024 ];
-    __shared__ int_type event_bins[ THREAD_NUM ];
+    __shared__ RealType s_pois_cdf[ poisson_type::MAX_K ];
+    __shared__ RealType rand_pool[ 1024 ];      // MAX_K * BINS === 32 * 32
+    __shared__ int_type event_bins[ XOVER::THREADS_PER_BLOCK ];
+
     int_type tid = threadIdx.y * blockDim.x + threadIdx.x;
     int_type lane_id = (tid & 31);
 
     int_type i;
 
-    poisson_cdf[ tid ] = pois_cdf[ lane_id ];
+    if( tid < poisson_type::MAX_K  ) {
+        s_pois_cdf[ tid ] = pois_cdf->_cdf[ tid ];
+    }
+
+    unsigned int max_k = pois_cdf->max_k;
     __syncthreads();
 
     RealType bin_start =  (RealType) lane_id * BIN_WIDTH;
 
-    states = &states[blockIdx.x];
+#ifdef USE_MERSENNE_TWISTER
+//    states = &states[blockIdx.x];
+    __shared__ StateType local_state;
+
+    if( tid == 0 ) {
+        local_state = states[blockIdx.x];    
+    }
+    __syncthreads();
+#else
+    StateType local_state = states[ blockIdx.x * blockDim.x * blockDim.y + tid ];
+#endif  // USE_MERSENNE_TWISTER
 
 #ifdef LOG_RANDOM_EVENTS
-    pool += blockIdx.x * THREAD_NUM;
-    evt_list += blockIdx.x * THREAD_NUM;
+    pool += blockIdx.x * XOVER::THREADS_PER_BLOCK;
+    evt_list += blockIdx.x * XOVER::THREADS_PER_BLOCK;
 #endif  // LOG_RANDOM_EVENTS
 
     int_type seq_idx = blockIdx.x;
@@ -395,14 +426,14 @@ __global__ void crossover_kernel_2a( StateType * states
         unsigned int * seq = sequences + (seq_idx * sequence_width);
 
         // use all threads to generate random numbers
-        RealType x = curand_uniform( states );
+        RealType x = curand_uniform( &local_state );
     
-        event_bins[ tid ] = _find_poisson_maxk32( poisson_cdf, x );
+        event_bins[ tid ] = _find_poisson_maxk32( s_pois_cdf, x, max_k );
         __syncthreads();
 
 #ifdef LOG_RANDOM_EVENTS
         evt_list[ tid ] = event_bins[ tid ];
-        evt_list += BLOCK_NUM_MAX * THREAD_NUM;
+        evt_list += XOVER::BLOCKS_PER_KERNEL * XOVER::THREADS_PER_BLOCK;
 #endif  // LOG_RANDOM_EVENTS
 
         int_type evt_lo, evt_hi;
@@ -413,7 +444,11 @@ __global__ void crossover_kernel_2a( StateType * states
 
         // over generate random numbers per bin
         // avoids branch divergence
-        fill_random_pool( states, rand_pool, bin_start, (RealType) BIN_WIDTH, lane_id, (max_rounds << 5) );
+#ifdef USE_MERSENNE_TWISTER
+        fill_random_pool< crossover< 2 > >( states, rand_pool, bin_start, (RealType) BIN_WIDTH, lane_id, (max_rounds << 5), (evt_hi - evt_lo) );
+#else
+        fill_random_pool< crossover< 2 > >( &local_state, rand_pool, bin_start, (RealType) BIN_WIDTH, lane_id, (max_rounds << 5), (evt_hi - evt_lo) );
+#endif  // USE_MERSENNE_TWISTER
         __syncthreads();
 
 #ifdef LOG_RANDOM_EVENTS
@@ -423,7 +458,7 @@ __global__ void crossover_kernel_2a( StateType * states
             i += THREAD_NUM;
         }
 
-        pool += BLOCK_NUM_MAX * 1024;
+        pool += XOVER::BLOCKS_PER_KERNEL * 1024;
         __syncthreads();
 #endif  // LOG_RANDOM_EVENTS
 
@@ -431,7 +466,7 @@ __global__ void crossover_kernel_2a( StateType * states
         while( i < nAlleles ) {
             RealType _allele = allele_list[ i ];
 
-            unsigned int cmask = count_preceeding_lane_events( rand_pool, _allele, lane_id, max_rounds, (evt_hi - evt_lo) );
+            unsigned int cmask = count_preceeding_lane_events( rand_pool, _allele, lane_id, max_rounds );
             __syncthreads();
 
             cmask = (((cmask + evt_lo) & 1) * (1 << lane_id));  // translate event count to lane relative crossover mask
@@ -441,17 +476,26 @@ __global__ void crossover_kernel_2a( StateType * states
             __syncthreads();
 ///////////////////////////////////////////////////////////
 
-            i += THREAD_NUM;
-            seq += (THREAD_NUM >> 5);
+            i += XOVER::THREADS_PER_BLOCK;
+            seq += (XOVER::THREADS_PER_BLOCK >> 5);
         }
         __syncthreads();
 
-        seq_idx += BLOCK_NUM_MAX;
+        seq_idx += XOVER::BLOCKS_PER_KERNEL;
     }
+#ifdef USE_MERSENNE_TWISTER
+    if( tid == 0 ) {
+        states[ blockIdx.x ] = local_state;
+    }
+#else
+    states[ blockIdx.x * blockDim.x * blockDim.y + tid ] = local_state;
+#endif  // USE_MERSENNE_TWISTER
 }
 crossover< 2 >::crossover( ) :
     dStates( NULL )
+#ifdef USE_MERSENNE_TWISTER
     , dParams( NULL)
+#endif  // USE_MERSENNE_TWISTER
 {
     initialize();
 }
@@ -463,18 +507,25 @@ void crossover< 2 >::initialize( ) {
 
     m_seed = clotho::utility::clock_type::now().time_since_epoch().count();
 
-    m_pois_cdf.resize( 32 );
+    assert( cudaMalloc( (void **) &dPoisCDF, sizeof( poisson_type ) ) == cudaSuccess);
 
-    assert( cudaMalloc( (void ** ) &dStates, BLOCK_NUM_MAX * sizeof( state_type ) ) == cudaSuccess );
+#ifdef USE_MERSENNE_TWISTER
+    assert( cudaMalloc( (void ** ) &dStates, BLOCKS_PER_KERNEL * sizeof( state_type ) ) == cudaSuccess );
     assert( cudaMalloc( (void ** ) &dParams, sizeof( state_param_type ) ) == cudaSuccess );
 
     assert( curandMakeMTGP32Constants( MTGPDC_PARAM_TABLE, dParams ) == CURAND_STATUS_SUCCESS );
 
-    assert( curandMakeMTGP32KernelState( dStates, MTGPDC_PARAM_TABLE, dParams, BLOCK_NUM_MAX, m_seed) == CURAND_STATUS_SUCCESS );
+    assert( curandMakeMTGP32KernelState( dStates, MTGPDC_PARAM_TABLE, dParams, BLOCKS_PER_KERNEL, m_seed) == CURAND_STATUS_SUCCESS );
+#else
+
+    assert( cudaMalloc( (void ** ) &dStates, BLOCKS_PER_KERNEL * THREADS_PER_BLOCK * sizeof( state_type ) ) == cudaSuccess );
+    setup_state_kernel<<< BLOCKS_PER_KERNEL, THREADS_PER_BLOCK >>>( dStates, m_seed );
+
+#endif  // USE_MERSENNE_TWISTER
 }
 
 void crossover< 2 >::adjust_alleles( allele_type * allele_list, size_type N ) {
-    remap_alleles<<< 1, 1024 >>>( allele_list, N );
+    remap_alleles<<< 1, THREADS_PER_BLOCK >>>( allele_list, N );
 }
 
 void crossover< 2 >::operator()(  real_type * rand_pool
@@ -492,9 +543,9 @@ void crossover< 2 >::operator()(  real_type * rand_pool
 
     rho /= 32.0;
 
-    _poisson_cdf_maxk32<<< 1, 32 >>>( m_pois_cdf.data().get(), rho );
+    make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, rho );
 
-    crossover_kernel_2a<<< BLOCK_NUM_MAX, THREAD_NUM >>>( dStates, rand_pool, allele_list, event_list, sequences, nSequences, nAlleles, sequence_width, m_pois_cdf.data().get() );
+    crossover_kernel_2a< crossover< 2 > ><<< BLOCKS_PER_KERNEL, THREADS_PER_BLOCK >>>( dStates, rand_pool, allele_list, event_list, sequences, nSequences, nAlleles, sequence_width, dPoisCDF );
 }
 
 void crossover< 2 >::get_state( boost::property_tree::ptree & n ) {
@@ -511,7 +562,11 @@ void crossover< 2 >::get_state( boost::property_tree::ptree & n ) {
 
 crossover< 2 >::~crossover() {
     cudaFree( dStates );
+    cudaFree( dPoisCDF );
+
+#ifdef USE_MERSENNE_TWISTER
     cudaFree( dParams );
+#endif  // USE_MERSENNE_TWISTER
 }
 
 #endif  // CROSSOVER_MATRIX_2_CUH_

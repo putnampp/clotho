@@ -24,8 +24,22 @@
 
 #include <cassert>
 #include <vector>
+#include <unordered_map>
 
 #include "clotho/utility/log_helper.hpp"
+
+template < class Iter >
+std::string list_to_string( Iter first, Iter last ) {
+    if( first == last ) return std::string("");
+
+    std::ostringstream oss;
+    oss << *first;
+    while( ++first != last ) {
+        oss << ":" << *first;
+    }
+
+    return oss.str();
+}
 
 template < class Iter >
 bool validate_allele_ordering( Iter first, Iter last, boost::property_tree::ptree & err ) {
@@ -83,6 +97,39 @@ std::vector< unsigned int > build_event_range( Iter first, Iter last ) {
     return res;
 }
 
+template < class TableType >
+bool validate_event_sequence_distribution( TableType & edt, boost::property_tree::ptree & err ) {
+    int total = 0;  // total event sequences
+    typename TableType::iterator it = edt.begin();
+
+    std::vector< int > dist( edt.size(), 0 );
+
+    typename TableType::iterator most_freq = edt.begin();
+
+    while( it != edt.end() ) {
+        total += it->second;
+        dist[ it->second ] += 1;
+        if( it->second > most_freq->second ) {
+            most_freq = it;
+        }
+        ++it;
+    }
+
+    double percent_not_unique = (1.0 - ((double)dist[ 1 ] / (double) total));
+
+    bool valid = (percent_not_unique < 0.001);  // valid if percent_unique >= 99.9% == percent_not_unique < 0.001
+
+    if( !valid ) {
+        err.put( "message", "Event sequence distribution is not sufficiently unqiue" );
+        err.put( "event_sequence.not_unique.percent", percent_not_unique );
+        err.put( "event_sequence.most_frequent.sequence", most_freq->first );
+        err.put( "event_sequence.most_frequent.frequency", most_freq->second );
+        err.put( "event_sequence.total", total );
+    }
+
+    return valid;
+}
+
 template < class EvtVector >
 bool validate_event_range( EvtVector & counts, boost::property_tree::ptree & err ) {
     if( (counts.size() & (THREAD_NUM - 1))  != 0 ) {
@@ -104,6 +151,11 @@ bool validate_event_range( EvtVector & counts, boost::property_tree::ptree & err
     typedef std::vector< typename EvtVector::value_type > host_vector;
     typedef typename host_vector::iterator host_iterator;
 
+    typedef std::unordered_map< std::string, int >  event_dist_table;
+    typedef typename event_dist_table::iterator     event_dist_iterator;
+
+    event_dist_table _edt;
+
     unsigned int s_idx = 0;
     while( valid && c_it != counts.end() ) {
         get_warp_event_range<<< 1, 32 >>>( c_ptr, obs.data().get() );
@@ -113,6 +165,7 @@ bool validate_event_range( EvtVector & counts, boost::property_tree::ptree & err
         host_iterator h_it = exp.begin();
         device_iterator d_it = obs.begin();
         unsigned int e_idx = 0;
+
         while( true ) {
             if( h_it == exp.end() ) {
                 valid = (d_it == obs.end() );
@@ -174,10 +227,24 @@ bool validate_event_range( EvtVector & counts, boost::property_tree::ptree & err
             ++e_idx;
         }
 
+        if( valid ) {
+
+            std::string s = list_to_string( c_it, c_it + 32 );
+
+            event_dist_iterator it = _edt.find( s );
+            if( it == _edt.end() ) {
+                _edt.insert( std::make_pair( s, 1));
+            } else {
+                it->second++;
+            }
+        }
+
         c_ptr += THREAD_NUM;  
         c_it += THREAD_NUM;
         ++s_idx;
     }
+
+    valid = valid && validate_event_sequence_distribution( _edt, err );
 
     return valid;
 }

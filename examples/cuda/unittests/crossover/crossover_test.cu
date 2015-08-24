@@ -168,7 +168,7 @@ void crossover_test< crossover< 2 > >::initialize( AlleleGenerator & aGen, size_
 template <> template < class CountGenerator, class EventGenerator >
 void crossover_test< crossover< 2 > >::simulate( CountGenerator & cGen, EventGenerator & eGen, size_t N ) {
 
-    event_list.resize( N * THREAD_NUM );
+    event_list.resize( N * crossover< 2 >::THREADS_PER_BLOCK );
     rand_pool.resize( N * 1024 );
 
     unsigned int sequence_width = allele_list.size() / crossover_type::ALLELE_PER_INT;
@@ -221,8 +221,9 @@ int main(int argc, char ** argv ) {
 
     boost::property_tree::ptree init_perf_log, sim_perf_log;
     unsigned int s = samples;
+
+    crossover_test< crossover_type > ct;
     while( s-- ) {
-        crossover_test< crossover_type > ct;
 
         event_generator_wrapper< crossover_type > cGen( dGen, rho );
         clotho::cuda::fill_uniform< typename crossover_type::real_type > aGen( dGen );   // allele generator
