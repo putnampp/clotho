@@ -130,8 +130,8 @@ struct pool_generator_wrapper< crossover< 3 > > {
 #if USE_CROSSOVER_MATRIX == 3
 template <> template < class CountGenerator, class EventGenerator >
 void crossover_test< crossover< 3 > >::simulate( CountGenerator & cGen, EventGenerator & eGen, size_t N ) {
-    event_list.resize( N * 256 );
-    rand_pool.resize( N * 256 );
+    event_list.resize( N * crossover<3>::THREADS_PER_BLOCK );
+    rand_pool.resize( N * crossover<3>::THREADS_PER_BLOCK );
 
     unsigned int sequence_width = allele_list.size() / crossover_type::ALLELE_PER_INT;
 
@@ -246,13 +246,13 @@ int main(int argc, char ** argv ) {
             std::ostringstream oss;
             oss << "sample." << (samples - s);
             log.add_child(oss.str() + ".error", err );
-
-            boost::property_tree::ptree _state;
-            ct.get_state( _state );
-            log.add_child( oss.str() + ".state", _state );
             break;
         }
     }
+
+    boost::property_tree::ptree _state;
+    ct.get_state( _state );
+    log.add_child( "crossover.state", _state );
 
     log.add_child( "performance.initialization", init_perf_log );
     log.add_child( "performance.simulate", sim_perf_log );

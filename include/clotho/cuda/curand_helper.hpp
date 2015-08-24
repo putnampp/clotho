@@ -32,6 +32,14 @@ const std::string curand_helper< curandStateMtgp32_t >::StateName = "MTGP32";
 template <>
 const std::string curand_helper< curandStateXORWOW >::StateName = "XORWOW";
 
+
+template < class StateType >
+__global__ void setup_state_kernel( StateType * states, unsigned long long seed ) {
+    int id = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+
+    curand_init( seed, id, 0, &states[id] );
+}
+
 }   // namespace cuda
 }   // namespace clotho
 

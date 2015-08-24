@@ -23,7 +23,7 @@
 #include <curand_mtgp32_host.h>
 #include <curand_mtgp32_kernel.h>
 #include <curand_mtgp32dc_p_11213.h>
-#include <curand_poisson.h>
+//#include <curand_poisson.h>
 #include <curand_uniform.h>
 
 #include <cuda_runtime.h>
@@ -35,6 +35,7 @@
 #include "clotho/utility/log_helper.hpp"
 
 #include "clotho/cuda/crossover/poisson_distribution.hpp"
+#include "clotho/cuda/crossover/persist_sequence.hpp"
 
 //#ifndef USE_MERSENNE_TWISTER
 //#define USE_MERSENNE_TWISTER
@@ -101,13 +102,6 @@ protected:
     poisson_type * dPoisCDF;
 };
 
-template < class StateType >
-__global__ void setup_state_kernel( StateType * states, unsigned long long seed ) {
-    int id = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
-
-    curand_init( seed, id, 0, &states[id] );
-}
-
 // every warp:
 // 1) shuffle up the maximum number of events
 // 2) compute the prefix sum of events per bin
@@ -167,60 +161,6 @@ __global__ void remap_alleles( RealType * allele_list, size_t N ) {
 
         a_idx += blockDim.x * blockDim.y;
     }
-}
-
-template < class IntType >
-__device__ void persist_mask_old( IntType mask, IntType warp_id, IntType lane_id, IntType * seq ) {
-    // collapse masks to single crossover mask per warp
-    // mask will exist in lane 0 for all warps
-#pragma unroll
-    for( unsigned int j = 1; j < 32; j <<= 1 ) {
-        unsigned int tmp = __shfl_down( mask, j );
-        mask |= ((!( lane_id & (( j << 1) - 1))) * tmp);
-    }
-
-    // use single thread per warp to write/store
-    // crossover mask to global memory
-    if( lane_id == 0) {
-        seq[ warp_id ] = mask;
-    }
-}
-
-template < class IntType >
-__device__ void persist_mask( IntType mask, IntType warp_id, IntType lane_id, IntType * seq ) {
-    // collapse masks to single crossover mask per warp
-    // mask will exist in lane 0 for all warps
-
-    unsigned int tmp = __shfl_down( mask, 1 );
-    mask |= ((!( lane_id & 1)) * tmp);
-//    mask |= ((( lane_id & 1) == 0) ? tmp : 0 );
-
-    tmp = __shfl_down( mask, 2);
-    mask |= ((!( lane_id & 3)) * tmp);
-//    mask |= ((( lane_id & 3) == 0) ? tmp : 0 );
-    
-    tmp = __shfl_down( mask, 4);
-    mask |= ((!( lane_id & 7)) * tmp);
-//    mask |= ((( lane_id & 7) == 0) ? tmp : 0 );
-
-    tmp = __shfl_down( mask, 8);
-    mask |= ((!( lane_id & 15)) * tmp);
-//    mask |= ((( lane_id & 15) == 0) ? tmp : 0 );
-
-    tmp = __shfl_down( mask, 16);
-    mask |= ((!( lane_id & 31)) * tmp);
-//    mask |= ((( lane_id & 31) == 0) ? tmp : 0 );
-
-    // use single thread per warp to write/store
-    // crossover mask to global memory
-    if( lane_id == 0) {
-        seq[ warp_id ] = mask;
-    }
-}
-
-template < class IntType >
-__device__ void persist_mask( unsigned char mask, IntType warp_id, IntType lane_id, unsigned char * seq ) {
-    seq[ warp_id * 32 + lane_id ] = mask;
 }
 
 template < class RealType, class IntType >
@@ -348,7 +288,7 @@ __global__ void crossover_kernel_2(  StateType * states
             cmask = (((cmask + evt_lo) & 1) * (1 << lane_id));  // translate event count to lane relative crossover mask
 
 ///////////////////////////////////////////////////////////
-            persist_mask( cmask, (tid >> 5), lane_id, seq );
+            persist_mask_unrolled( cmask, (tid >> 5), lane_id, seq );
             __syncthreads();
 ///////////////////////////////////////////////////////////
 
@@ -472,7 +412,7 @@ __global__ void crossover_kernel_2a( typename XOVER::state_type * states
             cmask = (((cmask + evt_lo) & 1) * (1 << lane_id));  // translate event count to lane relative crossover mask
 
 ///////////////////////////////////////////////////////////
-            persist_mask( cmask, (tid >> 5), lane_id, seq );
+            persist_mask_unrolled( cmask, (tid >> 5), lane_id, seq );
             __syncthreads();
 ///////////////////////////////////////////////////////////
 
@@ -519,7 +459,7 @@ void crossover< 2 >::initialize( ) {
 #else
 
     assert( cudaMalloc( (void ** ) &dStates, BLOCKS_PER_KERNEL * THREADS_PER_BLOCK * sizeof( state_type ) ) == cudaSuccess );
-    setup_state_kernel<<< BLOCKS_PER_KERNEL, THREADS_PER_BLOCK >>>( dStates, m_seed );
+    clotho::cuda::setup_state_kernel<<< BLOCKS_PER_KERNEL, THREADS_PER_BLOCK >>>( dStates, m_seed );
 
 #endif  // USE_MERSENNE_TWISTER
 }
@@ -541,9 +481,8 @@ void crossover< 2 >::operator()(  real_type * rand_pool
     cudaBindTexture(0, allele_tex, allele_list, nAlleles * 4);
 #endif  // USE_TEXTURE_MEMORY_FOR_ALLELE
 
-    rho /= 32.0;
-
-    make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, rho );
+    real_type lambda = rho / 32.0;
+    make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, lambda );
 
     crossover_kernel_2a< crossover< 2 > ><<< BLOCKS_PER_KERNEL, THREADS_PER_BLOCK >>>( dStates, rand_pool, allele_list, event_list, sequences, nSequences, nAlleles, sequence_width, dPoisCDF );
 }

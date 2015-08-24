@@ -22,15 +22,41 @@
 
 #include "clotho/cuda/crossover/crossover_matrix_3.cuh"
 #include "clotho/utility/log_helper.hpp"
+#include "validate_event_sequence.hpp"
 
 #include <algorithm>
 #include <vector>
+#include <unordered_map>
+
+template < class HashVector, class EventMap >
+void compute_prefix_sum( HashVector & h, EventMap & em ) {
+
+    std::ostringstream oss;
+    typename HashVector::value_type sum = 0;
+
+    for( unsigned int i = 0; i < h.size(); ++i ) {
+        typename HashVector::value_type p = h[i];
+        h[i] = sum;
+        sum += p;
+
+        oss << "," << p;
+    }
+
+    h.push_back( sum );
+
+    typename EventMap::iterator it = em.find( oss.str() );
+    if( it == em.end() ) {
+        em.insert( std::make_pair( oss.str(), 1 ) );
+    } else {
+        it->second++;
+    }
+}
 
 template < class Iter, class HashVector, class EventVector >
 unsigned int build_crossover( Iter first, Iter last, const HashVector & hash, const EventVector & evts ) {
     unsigned int res = 0, b = 1;
     while( first != last ) {
-        int h = (int)( *first * 256.0 );
+        int h = (int)( *first * (crossover< 3 >::THREADS_PER_BLOCK) );
 
         unsigned int lo = hash[ h++ ];
         unsigned int hi = hash[ h ];
@@ -77,12 +103,15 @@ bool validate( crossover_test< crossover< 3 > > &ct, boost::property_tree::ptree
         err.put( "message", "Invalid number of alleles" );
         err.put( "observed", ct.allele_list.size() );
         err.put( "expected", ((ct.allele_list.size() / crossover_type::ALLELE_PER_INT) + 1) * crossover_type::ALLELE_PER_INT);
+        return valid;
     }
 
     allele_vector alleles;
     alleles.reserve( ct.allele_list.size() );
 
     std::copy( ct.allele_list.begin(), ct.allele_list.end(), std::back_inserter( alleles ) );
+
+    std::unordered_map< std::string, unsigned int > emap;
 
     int sidx = 0;
     while( valid ) {
@@ -100,35 +129,36 @@ bool validate( crossover_test< crossover< 3 > > &ct, boost::property_tree::ptree
         }
 
         hash_vector vHash;
-        vHash.reserve( 256 + 1);
-        vHash.push_back(0);
+        vHash.reserve( crossover_type::THREADS_PER_BLOCK + 1);
 
         event_vector vEvents;
-        vEvents.reserve( 256 );
+        vEvents.reserve( crossover_type::THREADS_PER_BLOCK );
 
-        std::copy( c_it, c_it + 256, std::back_inserter( vHash) );
-
+        std::copy( c_it, c_it + crossover_type::THREADS_PER_BLOCK, std::back_inserter( vHash ) );
         
-        std::copy( e_it, e_it + 256, std::back_inserter( vEvents ) );
+        compute_prefix_sum( vHash, emap );
+        
+        std::copy( e_it, e_it + crossover_type::THREADS_PER_BLOCK, std::back_inserter( vEvents ) );
 
-        c_it += 256;
-        e_it += 256;
-
-        valid = std::is_sorted( vEvents.begin(), vEvents.begin() + vHash.back() );
+        valid = valid && std::is_sorted( vEvents.begin(), vEvents.begin() + vHash.back() );
 
         if( !valid ) {
             err.put("message", "Unordered event list" );
             err.put("sequence_index", sidx );
 
-            boost::property_tree::ptree c, e;
+            boost::property_tree::ptree i, c, e;
+            clotho::utility::add_value_array( i, c_it, c_it + crossover_type::THREADS_PER_BLOCK );
             clotho::utility::add_value_array( c, vHash.begin(), vHash.end() );
             clotho::utility::add_value_array( e, vEvents.begin(), vEvents.begin() + vHash.back() );
 
+            err.add_child("events.input", i );
             err.add_child("events.prefix_sum", c );
             err.add_child("events.location", e );
             break;
         }
 
+        c_it += crossover_type::THREADS_PER_BLOCK;
+        e_it += crossover_type::THREADS_PER_BLOCK;
         allele_iterator a_it = alleles.begin();
         unsigned int soff = 0;
         while( a_it != alleles.end() ) {
@@ -167,6 +197,8 @@ bool validate( crossover_test< crossover< 3 > > &ct, boost::property_tree::ptree
         }
         ++sidx;
     }
+
+    valid = valid && validate_event_sequence_distribution( emap, err );
 
     return valid;
 }

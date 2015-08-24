@@ -27,19 +27,8 @@
 #include <unordered_map>
 
 #include "clotho/utility/log_helper.hpp"
-
-template < class Iter >
-std::string list_to_string( Iter first, Iter last ) {
-    if( first == last ) return std::string("");
-
-    std::ostringstream oss;
-    oss << *first;
-    while( ++first != last ) {
-        oss << ":" << *first;
-    }
-
-    return oss.str();
-}
+#include "list_to_string.hpp"
+#include "validate_event_sequence.hpp"
 
 template < class Iter >
 bool validate_allele_ordering( Iter first, Iter last, boost::property_tree::ptree & err ) {
@@ -95,39 +84,6 @@ std::vector< unsigned int > build_event_range( Iter first, Iter last ) {
     assert( res.size() == 3 * N );
 
     return res;
-}
-
-template < class TableType >
-bool validate_event_sequence_distribution( TableType & edt, boost::property_tree::ptree & err ) {
-    int total = 0;  // total event sequences
-    typename TableType::iterator it = edt.begin();
-
-    std::vector< int > dist( edt.size(), 0 );
-
-    typename TableType::iterator most_freq = edt.begin();
-
-    while( it != edt.end() ) {
-        total += it->second;
-        dist[ it->second ] += 1;
-        if( it->second > most_freq->second ) {
-            most_freq = it;
-        }
-        ++it;
-    }
-
-    double percent_not_unique = (1.0 - ((double)dist[ 1 ] / (double) total));
-
-    bool valid = (percent_not_unique < 0.001);  // valid if percent_unique >= 99.9% == percent_not_unique < 0.001
-
-    if( !valid ) {
-        err.put( "message", "Event sequence distribution is not sufficiently unqiue" );
-        err.put( "event_sequence.not_unique.percent", percent_not_unique );
-        err.put( "event_sequence.most_frequent.sequence", most_freq->first );
-        err.put( "event_sequence.most_frequent.frequency", most_freq->second );
-        err.put( "event_sequence.total", total );
-    }
-
-    return valid;
 }
 
 template < class EvtVector >
