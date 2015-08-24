@@ -200,7 +200,7 @@ __global__ void crossover_kernel_3( typename XOVER::state_type * states
     evt_list += blockIdx.x * XOVER::THREADS_PER_BLOCK;
 #endif  // LOG_RANDOM_EVENTS
 
-    int seq_idx = blockIdx.x;
+    int_type seq_idx = blockIdx.x;
     while( seq_idx < nSequences ) {
 
         unsigned int * seq = sequences + (seq_idx * sequence_width);
@@ -214,12 +214,12 @@ __global__ void crossover_kernel_3( typename XOVER::state_type * states
 #endif  // USE_MERSENNE_TWISTER
 
         unsigned int rand = _find_poisson_maxk32( s_pois_cdf, x, max_k );
-        __syncthreads();
 
 #ifdef LOG_RANDOM_EVENTS
         evt_list[tid] = rand;
         evt_list += XOVER::BLOCKS_PER_KERNEL * XOVER::THREADS_PER_BLOCK;
 #endif  // LOG_RANDOM_EVENTS
+        __syncthreads();
 
         for( i = 1; i < 32; i <<= 1 ) {
             unsigned int r = __shfl_up( rand, i );
@@ -247,15 +247,17 @@ __global__ void crossover_kernel_3( typename XOVER::state_type * states
         i = event_hash[tid];    // minimum event index
         __syncthreads();
 
+        // BEGIN divergent code
         real_type accum = 0.;
         while (i < rand) {
-            real_type t = rand_pool[ i ];
+            x = rand_pool[ i ];
 
-            accum += (log( t ) / (real_type)(rand - i));
+            accum += (log( x ) / (real_type)(rand - i));
 
             rand_pool[i++] = ((((real_type)tid) + (1.0 - exp(accum))) / ((real_type)XOVER::THREADS_PER_BLOCK));
         }
         __syncthreads();
+        // END divergent code
 
 #ifdef LOG_RANDOM_EVENTS
         pool[tid] = rand_pool[ tid ];
@@ -266,23 +268,25 @@ __global__ void crossover_kernel_3( typename XOVER::state_type * states
         i = tid;
         while( i < nAlleles ) {
 #ifdef USE_TEXTURE_MEMORY_FOR_ALLELE
-            real_type _allele = tex1Dfetch( allele_tex, i );
+            x = tex1Dfetch( allele_tex, i );
 #else
-            real_type _allele = allele_list[ i ];
+            x = allele_list[ i ];
 #endif  // USE_TEXTURE_MEMORY_FOR_ALLELE
 
-            rand = (unsigned int) (_allele * ((real_type)XOVER::THREADS_PER_BLOCK));
+            rand = (unsigned int) ( x * ((real_type)XOVER::THREADS_PER_BLOCK));
 
             unsigned int e_min = event_hash[ rand++ ];
             _sum = event_hash[ rand ];
 
             int_type cmask = e_min;
 
+            // BEGIN divergent code
             while( e_min < _sum ) {
                 accum = rand_pool[ e_min++ ];
-                cmask += ( _allele > accum);
+                cmask += ( x > accum);
             }
             __syncthreads();
+            // END divergent code
 
             cmask = ((cmask & 1) * (1 << lane_id));
 
