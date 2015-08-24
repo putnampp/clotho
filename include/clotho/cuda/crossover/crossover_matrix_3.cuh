@@ -48,10 +48,9 @@ public:
     static const unsigned int ALLELE_PER_INT = 32;
     static const unsigned int MAX_EVENTS = ((comp_cap_type::MAX_CONSTANT_MEMORY / sizeof( event_count_type )) >> 1);    // use half of the constant space for event counts
 
-    static const unsigned int STREAM_COUNT = 8;
-
-    typedef curandStateMtgp32_t state_type;
-    typedef mtgp32_kernel_params_t state_param_type;
+    typedef unsigned long long      seed_type;
+    typedef curandStateMtgp32_t     state_type;
+    typedef mtgp32_kernel_params_t  state_param_type;
 
     crossover( );
 
@@ -75,9 +74,7 @@ public:
 protected:
     state_type * dStates;
     state_param_type * dParams;
-    std::vector< unsigned long long > m_seeds;
-
-    cudaStream_t streams[ STREAM_COUNT ];
+    seed_type m_seed;
 };
 
 /**
@@ -293,25 +290,14 @@ void crossover< 3 >::initialize( ) {
     // THREAD_NUM == MTGPDC_FLOOR_2P == 256
     // BLOCK_NUM_MAX == CURAND_NUM_MTGP32_PARAMS == 200
 
-    //m_seed = clotho::utility::clock_type::now().time_since_epoch().count();
-
-    m_seeds.reserve( STREAM_COUNT );
+    m_seed = clotho::utility::clock_type::now().time_since_epoch().count();
 
     assert( cudaMalloc( (void ** ) &dStates, STREAM_COUNT * BLOCK_NUM_MAX * sizeof( state_type ) ) == cudaSuccess );
     assert( cudaMalloc( (void ** ) &dParams, sizeof( state_param_type ) ) == cudaSuccess );
 
     assert( curandMakeMTGP32Constants( MTGPDC_PARAM_TABLE, dParams ) == CURAND_STATUS_SUCCESS );
 
-
-    for( unsigned int i = 0; i < STREAM_COUNT; ++i ) {
-        cudaStreamCreate( &streams[i] );
-
-        unsigned long long seed = clotho::utility::clock_type::now().time_since_epoch().count();
-
-        assert( curandMakeMTGP32KernelState( dStates + i * BLOCK_NUM_MAX, MTGPDC_PARAM_TABLE, dParams, BLOCK_NUM_MAX, seed) == CURAND_STATUS_SUCCESS );
-
-        m_seeds.push_back(seed);
-    }
+    assert( curandMakeMTGP32KernelState( dStates, MTGPDC_PARAM_TABLE, dParams, BLOCK_NUM_MAX, m_seed) == CURAND_STATUS_SUCCESS );
 }
 
 void crossover< 3 >::operator()(  real_type * rand_pool
@@ -326,18 +312,6 @@ void crossover< 3 >::operator()(  real_type * rand_pool
 #ifdef USE_TEXTURE_MEMORY_FOR_ALLELE
     cudaBindTexture(0, allele_tex, allele_list, nAlleles * 4);
 #endif  // USE_TEXTURE_MEMORY_FOR_ALLELE
-
-//    unsigned int seqs = (nSequences / STREAM_COUNT) + 1;
-//    unsigned int i = 0;
-//    while( nSequences ) {
-//        unsigned int N = ((nSequences > seqs) ? seqs : nSequences);
-//        
-//        crossover_kernel_3<<< BLOCK_NUM_MAX, THREAD_NUM, 0, streams[ i ] >>>( dStates + i * BLOCK_NUM_MAX, allele_list, event_list, dSequences, N, nAlleles, sequence_width );
-//
-//        sequences += N * sequence_width;
-//        nSequences -= N;
-//        ++i;
-//    }
 
     crossover_kernel_3<<< BLOCK_NUM_MAX, THREAD_NUM >>>( dStates, rand_pool, allele_list, event_list, sequences, nSequences, nAlleles, sequence_width, rho );
 }
@@ -362,22 +336,13 @@ void crossover< 3 >::generate_test( real_type * rand_pool, size_t N ) {
 crossover< 3 >::~crossover() {
     cudaFree( dStates );
     cudaFree( dParams );
-
-    for( unsigned int i = 0; i < STREAM_COUNT; ++i ) {
-        cudaStreamSynchronize( streams[i] );
-
-        cudaStreamDestroy( streams[i] );
-    }
 }
 
 void crossover< 3 >::get_state( boost::property_tree::ptree & n ) {
     n.put( "crossover.version", 3 );
     n.put( "crossover.curand.state_type", clotho::cuda::curand_helper< typename crossover< 3 >::state_type >::StateName );
     
-    boost::property_tree::ptree sds;
-    clotho::utility::add_value_array( sds, m_seeds.begin(), m_seeds.end() );
-
-    n.add_child( "crossover.curand.seed", sds  );
+    n.add_child( "crossover.curand.seed", m_seed  );
 
 #ifdef USE_TEXTURE_MEMORY_FOR_ALLELE
     n.put( "crossover.use_texture_memory_for_allele", true );
