@@ -186,6 +186,19 @@ void crossover_test< crossover< 2 > >::simulate( CountGenerator & cGen, EventGen
 }
 #endif  // USE_CROSSOVER_MATRIX == 2
 
+void configure_device( float d ) {
+    std::cerr << "Configuring device to use 4-byte bank size" << std::endl;
+    
+    assert( cudaDeviceSetSharedMemConfig( cudaSharedMemBankSizeFourByte ) == cudaSuccess );
+}
+
+void configure_device( double d ) {
+
+    std::cerr << "Configuring device to use 8-byte bank size" << std::endl;
+
+    assert( cudaDeviceSetSharedMemConfig( cudaSharedMemBankSizeEightByte ) == cudaSuccess );
+}
+
 int main(int argc, char ** argv ) {
 
     if( argc !=  7) {
@@ -221,6 +234,9 @@ int main(int argc, char ** argv ) {
 
     boost::property_tree::ptree init_perf_log, sim_perf_log;
     unsigned int s = samples;
+
+    typename crossover_type::real_type d = 0;
+    configure_device( d );
 
     crossover_test< crossover_type > ct;
     while( s-- ) {

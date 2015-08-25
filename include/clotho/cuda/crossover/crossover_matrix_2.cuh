@@ -44,11 +44,11 @@
 template < >
 class crossover< 2 > {
 public:
-    typedef float                      real_type;
-    typedef float                      allele_type;
-    typedef unsigned int                event_count_type;
+    typedef double                     real_type;
+    typedef real_type                  allele_type;
+    typedef unsigned int               event_count_type;
     typedef unsigned int               int_type;
-    typedef unsigned int                size_type;
+    typedef unsigned int               size_type;
     typedef compute_capability< 3, 0 >  comp_cap_type;
 
     typedef poisson_cdf< real_type, 32> poisson_type;
