@@ -39,8 +39,8 @@
 template < >
 class crossover< 3 > {
 public:
-    typedef float                      real_type;
-    typedef float                      allele_type;
+    typedef double                      real_type;
+    typedef real_type                  allele_type;
     typedef unsigned int                event_count_type;
     typedef unsigned int               int_type;
     typedef unsigned int                size_type;
