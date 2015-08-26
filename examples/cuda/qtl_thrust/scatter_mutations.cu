@@ -13,7 +13,7 @@
 //   limitations under the License.
 #include "scatter_mutations.hpp"
 
-#include "popcount_kernel.h"
+#include "clotho/cuda/popcount_kernel.h"
 
 const unsigned int BLOCK_PER_STRIDE = 32;
 const unsigned int MAX_THREADS = 1024;
