@@ -17,10 +17,33 @@
 #include "clotho/cuda/allele_space/device_allele_space_def.hpp"
 
 #include "clotho/cuda/allele_space/tags/unordered_tag.hpp"
+#include "clotho/cuda/popcount_kernel.h"
 
 template < class RealType, class IntType >
 __global__ void _update_free_count( device_allele_space< RealType, IntType, unordered_tag > * aspace ) {
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
+    IntType * flist = aspace->free_list;
+    IntType N = aspace->free_list_size();
+    popcountGPU< IntType > pc;
+
+    unsigned int _count = 0;
+    while( tid < N ) {
+        IntType c = flist[tid];
+
+        _count += pc.evalGPU( c );
+        tid += 32;
+    }
+    __syncthreads();
+
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        IntType t = __shfl_up( _count, i );
+        _count += (( (tid & 31) >= i ) * t);
+    }
+
+    if( (tid & 31) == 31) {
+        aspace->free_count = _count;
+    }
 }
 
 #endif  // DEVICE_ALLELE_SPACE_UNORDERED_HPP_

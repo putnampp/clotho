@@ -51,7 +51,7 @@ std::ostream & operator<<( std::ostream & out, const device_allele_space< RealTy
     out << "\"locations\": 0x" << std::hex << rhs.locations;
     out << ",\n\"free_list\": 0x" << std::hex << rhs.free_list;
     out << std::dec;
-    out << ",\n\"free_count\":" << rhs.free_count;
+    out << ",\n\"free_count\": " << rhs.free_count;
     out << ",\n\"size\": " << rhs.size;
     out << ",\n\"capacity\": " << rhs.capacity;
     out << "}";
