@@ -34,7 +34,7 @@
 #include "clotho/utility/timer.hpp"
 #include "clotho/utility/log_helper.hpp"
 
-#include "clotho/cuda/crossover/poisson_distribution.hpp"
+#include "clotho/cuda/distributions/poisson_distribution.hpp"
 #include "clotho/cuda/crossover/persist_sequence.hpp"
 
 //#ifndef USE_MERSENNE_TWISTER
