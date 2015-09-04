@@ -14,14 +14,15 @@
 #ifndef DEVICE_ALLELE_SPACE_UNIT_ORDERED_HPP_
 #define DEVICE_ALLELE_SPACE_UNIT_ORDERED_HPP_
 
-#include "clotho/cuda/allele_space/device_allele_space_def.hpp"
+#include "clotho/cuda/data_spaces/allele_space/device_allele_space_def.hpp"
 
-#include "clotho/cuda/allele_space/tags/unit_ordered_tag.hpp"
+#include "clotho/cuda/data_spaces/tags/unit_ordered_tag.hpp"
 
 template < class RealType, class IntType >
 struct device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > {
-    typedef RealType    real_type;
-    typedef IntType     int_type;
+    typedef RealType                    real_type;
+    typedef IntType                     int_type;
+    typedef unit_ordered_tag< IntType > order_tag_type;
 
     typedef unit_ordered_tag< IntType > order_type;
 

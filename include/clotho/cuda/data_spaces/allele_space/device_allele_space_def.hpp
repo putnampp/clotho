@@ -25,6 +25,7 @@ template < class RealType, class IntType, class OrderTag >
 struct device_allele_space {
     typedef RealType    real_type;
     typedef IntType     int_type;
+    typedef OrderTag    order_tag_type;
 
     static const unsigned int ALIGNMENT_SIZE = 128;
 

@@ -21,23 +21,51 @@
 namespace clotho {
 namespace cuda {
 
+template < class StateType >
+__global__ void setup_state_kernel( StateType * states, unsigned long long seed ) {
+    int id = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+
+    curand_init( seed, id, 0, &states[id] );
+}
+
 template < class State >
 struct curand_helper {
+    typedef State               state_type;
+    typedef unsigned long long  seed_type;
+
     static const std::string StateName;
+
+    static void make_states( state_type *& states, seed_type seed, unsigned int blocks, unsigned int threads );
+
+    static void cleanup_states( state_type * states );
 };
 
 template <>
 const std::string curand_helper< curandStateMtgp32_t >::StateName = "MTGP32";
 
 template <>
+void curand_helper< curandStateMtgp32_t >::make_states( state_type *& states, seed_type seed, unsigned int blocks, unsigned int threads ) {
+
+}
+
+template <>
+void curand_helper< curandStateMtgp32_t >::cleanup_states( state_type * states ) {
+    cudaFree( states );
+}
+
+template <>
 const std::string curand_helper< curandStateXORWOW >::StateName = "XORWOW";
 
+template <>
+void curand_helper< curandStateXORWOW >::make_states( state_type *& states, seed_type seed, unsigned int blocks, unsigned int threads ) {
+    assert( cudaMalloc( (void **) &states, blocks * threads * sizeof(state_type) ) == cudaSuccess );
 
-template < class StateType >
-__global__ void setup_state_kernel( StateType * states, unsigned long long seed ) {
-    int id = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+    setup_state_kernel<<< blocks, threads >>>( states, seed );
+}
 
-    curand_init( seed, id, 0, &states[id] );
+template <>
+void curand_helper< curandStateXORWOW >::cleanup_states( state_type * states ) {
+    cudaFree( states );
 }
 
 }   // namespace cuda

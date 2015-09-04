@@ -14,6 +14,9 @@
 #ifndef DEVICE_ALLELE_SPACE_API_HPP_
 #define DEVICE_ALLELE_SPACE_API_HPP_
 
+#include "clotho/cuda/data_spaces/data_space_api.hpp"
+
+/*
 template < class SpaceType >
 void create_allele_space( SpaceType *& space, unsigned int N = 0 );
 
@@ -26,6 +29,7 @@ unsigned int resize_space( SpaceType * space, unsigned int N );
 template < class SpaceType >
 void resize_allele_space( SpaceType * space, unsigned int N );
 
+
 template < class SpaceType >
 bool check_free_space( SpaceType * space );
 
@@ -34,5 +38,13 @@ void update_free_count( SpaceType * space );
 
 template < class SpaceType >
 void merge_allele_space( SpaceType * a, SpaceType * b, SpaceType * output );
+*/
+
+#include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
+
+template < class RealType, class IntType, class OrderTag >
+void merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
+                , device_event_space< IntType > * evts
+                , device_allele_space< RealType, IntType, OrderTag > * out_space );
 
 #endif  // DEVICE_ALLELE_SPACE_API_HPP_

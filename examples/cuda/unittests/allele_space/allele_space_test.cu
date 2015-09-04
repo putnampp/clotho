@@ -17,21 +17,23 @@
 #include "clotho/cuda/allele_space/allele_space.hpp"
 #include "clotho/utility/timer.hpp"
 
-#ifdef USE_PARTIALLY_ORDERED
-typedef partially_ordered_tag tag_type;
+typedef double          real_type;
+typedef unsigned int    int_type;
+
+#ifdef USE_UNIT_ORDERED
+typedef unit_ordered_tag< int_type > tag_type;
 #else
 typedef unordered_tag tag_type;
-#endif  // USE_PARTIALLY_ORDERED
+#endif  // USE_UNIT_ORDERED
 
 typedef clotho::utility::timer timer_type;
 
 int main( int argc, char ** argv ) {
-    AlleleSpace< double, unsigned int, tag_type > as;
-
     const unsigned int COUNT = 3;
     unsigned int sizes[COUNT] = { 128, 64, 1024 };
 
     for( unsigned int i = 0; i < COUNT; ++i ) {
+        AlleleSpace< real_type, int_type, tag_type > as;
         timer_type t;
         as.resize( sizes[i] );
         t.stop();

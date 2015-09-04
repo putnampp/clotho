@@ -14,11 +14,13 @@
 #ifndef DEVICE_ALLELE_SPACE_UNORDERED_KERNELS_HPP_
 #define DEVICE_ALLELE_SPACE_UNORDERED_KERNELS_HPP_
 
-#include "clotho/cuda/allele_space/device_allele_space_def.hpp"
-#include "clotho/cuda/allele_space/device_allele_space_kernel_api.hpp"
+#include "clotho/cuda/data_spaces/allele_space/device_allele_space_def.hpp"
+#include "clotho/cuda/data_spaces/allele_space/device_allele_space_kernel_api.hpp"
 
-#include "clotho/cuda/allele_space/tags/unordered_tag.hpp"
+#include "clotho/cuda/data_spaces/tags/unordered_tag.hpp"
 #include "clotho/cuda/popcount_kernel.h"
+
+#include <stdlib.h>
 
 template < class RealType, class IntType >
 __global__ void _update_free_count( device_allele_space< RealType, IntType, unordered_tag > * aspace ) {
@@ -72,4 +74,22 @@ __global__ void _merge_allele_space( device_allele_space< RealType, IntType, uno
     *output = O;
 }
 
+template < class RealType, class IntType >
+__global__ void _merge_space( device_allele_space< RealType, IntType, unordered_tag > * in_space
+                            , device_event_space< IntType > * evts
+                            , device_allele_space< RealType, IntType, unordered_tag > * out_space ) {
+    device_allele_space< RealType, IntType, unordered_tag > local = *in_space;
+
+    unsigned int N = local.size - local.free_count;
+    N += evts->total;
+
+    if( local.size > N ) { N = local.size; }
+
+    _resize_space_impl( out_space, N );
+
+    if( local.locations ) {
+        memcpy( out_space->locations, local.locations, local.size * sizeof( typename device_allele_space< RealType, IntType, unordered_tag >::real_type ) );
+        memcpy( out_space->free_list, local.free_list, local.free_list_size() * sizeof( typename device_allele_space< RealType, IntType, unordered_tag >::int_type ));
+    }
+}
 #endif  // DEVICE_ALLELE_SPACE_UNORDERED_KERNELS_HPP_

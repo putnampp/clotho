@@ -14,7 +14,7 @@
 #ifndef GENERATE_ALLELE_CUH_
 #define GENERATE_ALLELE_CUH_
 
-#include "clotho/cuda/allele_space.hpp"
+#include "clotho/cuda/allele_space/device_allele_space.hpp"
 #include "clotho/cuda/mutation/mutation_space.hpp"
 
 template < class RealType >

@@ -14,27 +14,14 @@
 #ifndef DEVICE_ALLELE_SPACE_HPP_
 #define DEVICE_ALLELE_SPACE_HPP_
 
-#include "clotho/cuda/allele_space/device_allele_space_def.hpp"
-#include "clotho/cuda/allele_space/device_allele_space_api.hpp"
+#include "clotho/cuda/data_spaces/allele_space/device_allele_space_def.hpp"
+#include "clotho/cuda/data_spaces/allele_space/device_allele_space_api.hpp"
 
-#include "clotho/cuda/space_api.hpp"
-
-#include "clotho/cuda/allele_space/device_allele_space_unordered_kernels.hpp"
-#include "clotho/cuda/allele_space/device_allele_space_unit_ordered_kernels.hpp"
-
-/*template < class RealType, class IntType, class OrderTag >
-void create_allele_space( device_allele_space< RealType, IntType, OrderTag > *& a, unsigned int N ) {
-    size_t n = sizeof( device_allele_space< RealType, IntType, OrderTag > );
-    assert( cudaMalloc( (void ** ) &a, n ) == cudaSuccess );
-    assert( cudaMemset( a, 0, n ) == cudaSuccess );
-
-    if( N ) {
-        resize_space( a, N );
-    }
-}*/
+#include "clotho/cuda/data_spaces/allele_space/device_allele_space_unordered_kernels.hpp"
+#include "clotho/cuda/data_spaces/allele_space/device_allele_space_unit_ordered_kernels.hpp"
 
 template < class RealType, class IntType, class OrderTag >
-__global__ void _resize_space( device_allele_space< RealType, IntType, OrderTag > * aspace, unsigned int N ) {
+__device__ void _resize_space_impl( device_allele_space< RealType, IntType, OrderTag > * aspace, unsigned int N ) {
     typedef device_allele_space< RealType, IntType, OrderTag > space_type;
     if( N % space_type::ALIGNMENT_SIZE != 0 ) {
         N -= (N % space_type::ALIGNMENT_SIZE);
@@ -53,66 +40,23 @@ __global__ void _resize_space( device_allele_space< RealType, IntType, OrderTag 
 
         unsigned int free_size = compute_free_list_size<typename space_type::int_type >( N );
         aspace->free_list = new typename space_type::int_type[free_size];
+
+        memset(aspace->free_list, -1, free_size * sizeof( typename space_type::int_type ) );
+
         aspace->capacity = N;
     }
 
     aspace->size = N;
 }
 
-/*
 template < class RealType, class IntType, class OrderTag >
-unsigned int resize_space( device_allele_space< RealType, IntType, OrderTag > * aspace, unsigned int N ) {
-    _resize_allele_space<<< 1,1 >>>( aspace, N );
-    return 0;
-}*/
+__global__ void _resize_space( device_allele_space< RealType, IntType, OrderTag > * aspace, unsigned int N ) {
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
-/*
-template < class RealType, class IntType, class OrderTag >
-unsigned int resize_space( device_allele_space< RealType, IntType, OrderTag > * a, unsigned int N ) {
-    typedef device_allele_space< RealType, IntType, OrderTag > space_type;
-    space_type hSpace;
-    cudaMemcpy( &hSpace, a, sizeof( space_type ), cudaMemcpyDeviceToHost );
-
-    if( hSpace.capacity < N ) {
-        // need to increase capacity
-        std::cerr << "Increasing allele space capacity and size: " << hSpace.capacity << " -> " << N << std::endl;
-        typename space_type::real_type * locs;
-
-        size_t loc_size = N * sizeof( typename space_type::real_type );
-        assert( cudaMalloc( (void **) &locs, loc_size) == cudaSuccess );
-
-        typename space_type::int_type * free;
-        size_t free_size = compute_free_list_size< typename space_type::int_type>( N ) * sizeof( typename space_type::int_type );
-        assert( cudaMalloc( (void **) &free, free_size) == cudaSuccess );
-        assert( cudaMemset( free, 255, free_size ) == cudaSuccess );
-
-        if( hSpace.allele_count() ) {
-            // Copy existing lists
-            assert( cudaMemcpy( locs, hSpace.locations, hSpace.allele_count() * sizeof( typename space_type::real_type), cudaMemcpyDeviceToDevice ) == cudaSuccess );
-            assert( cudaMemcpy( free, hSpace.free_list, hSpace.free_list_size() * sizeof( typename space_type::int_type), cudaMemcpyDeviceToDevice ) == cudaSuccess);
-
-            cudaFree( hSpace.locations );
-            cudaFree( hSpace.free_list );
-        }
-
-        hSpace.locations = locs;
-        hSpace.free_list = free;
-        hSpace.size = N;
-        hSpace.capacity = N;
-
-        cudaMemcpy( a, &hSpace, sizeof( space_type ), cudaMemcpyHostToDevice );
-
-        update_free_count( a );
-    } else if( hSpace.size != N ) {
-        std::cerr << "Resizing allele space: " << hSpace.size << " -> " << N << std::endl;
-        hSpace.size = N;
-
-        cudaMemcpy( a, &hSpace, sizeof( space_type ), cudaMemcpyHostToDevice );
-        update_free_count( a );
+    if( tid == 0 ) {
+        _resize_space_impl( aspace, N );
     }
-
-    return N;
-}*/
+}
 
 template < class RealType, class IntType, class OrderTag >
 __global__ void _delete_space( device_allele_space< RealType, IntType, OrderTag > * aspace ) {
@@ -131,21 +75,20 @@ void update_free_count( device_allele_space< RealType, IntType, OrderTag > * a )
     _update_free_count<<< 1, 32 >>>( a );
 }
 
-/*
-template < class RealType, class IntType, class OrderTag >
-void delete_allele_space( device_allele_space< RealType, IntType, OrderTag > * aspace ) {
-
-    _delete_allele_space<<< 1,1 >>>( aspace );
-//    cudaDeviceSynchronize();    // wait for device to finish freeing allele space
-
-    cudaFree( aspace );
-}*/
-
 template < class RealType, class IntType, class OrderTag >
 void merge_allele_space( device_allele_space< RealType, IntType, OrderTag > * a
                         , device_allele_space< RealType, IntType, OrderTag > * b
                         , device_allele_space< RealType, IntType, OrderTag > * output ) {
 
+}
+
+template < class RealType, class IntType, class OrderTag >
+void merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
+                            , device_event_space< IntType > * evts
+                            , device_allele_space< RealType, IntType, OrderTag > * out_space ) {
+    std::cerr << "Merge space called" << std::endl;
+    _merge_space<<< 1, 1 >>>( in_space, evts, out_space );
+    _update_free_count<<< 1, 32 >>>(out_space);
 }
 
 #endif  // DEVICE_ALLELE_SPACE_HPP_

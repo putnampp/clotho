@@ -14,15 +14,16 @@
 #ifndef ALLELE_SPACE_HPP_
 #define ALLELE_SPACE_HPP_
 
-#include "clotho/cuda/allele_space/device_allele_space.hpp"
+#include "clotho/cuda/data_spaces/allele_space/device_allele_space.hpp"
 
 template < class RealType, class IntType, class OrderTag >
 class AlleleSpace {
 public:
-    typedef device_allele_space< RealType, IntType, OrderTag > device_space_type;
+    typedef device_allele_space< RealType, IntType, OrderTag >  device_space_type;
 
     typedef typename device_space_type::real_type   real_type;
     typedef typename device_space_type::int_type    int_type;
+    typedef typename device_space_type::order_tag_type  order_tag_type;
 
     typedef AlleleSpace< RealType, IntType, OrderTag > self_type;
 
@@ -34,7 +35,9 @@ public:
 
     device_space_type * get_device_space();
 
-    void merge_alleles( self_type * alls, self_type * muts);
+//    void merge_alleles( self_type & alls, self_type * muts);
+
+    void expand_relative_to( self_type & alls, device_event_space< int_type > * space );
 
     virtual ~AlleleSpace();
 
@@ -58,7 +61,7 @@ _CLASS::AlleleSpace() : dAlleles( NULL ) {
 
 _HEADER
 void _CLASS::initialize() {
-    create_allele_space( dAlleles, 0 );
+    create_space( dAlleles, 0 );
 }
 
 _HEADER
@@ -68,7 +71,7 @@ unsigned int _CLASS::total_free_space() {
 
 _HEADER
 void _CLASS::resize( unsigned int N ) {
-    resize_allele_space( dAlleles, N );
+    resize_space( dAlleles, N );
 }
 
 _HEADER
@@ -76,14 +79,20 @@ typename _CLASS::device_space_type * _CLASS::get_device_space() {
     return dAlleles;
 }
 
+/*
 _HEADER
 void _CLASS::merge_alleles( self_type * A, self_type * B ) {
     merge_allele_space( A->dAlleles, B->dAlleles, dAlleles );
+}*/
+
+_HEADER
+void _CLASS::expand_relative_to( self_type & alls, device_event_space< int_type > * muts ) {
+    merge_space( alls.dAlleles, muts, dAlleles );
 }
 
 _HEADER
 _CLASS::~AlleleSpace( ) {
-    delete_allele_space( dAlleles );
+    delete_space( dAlleles );
 }
 
 _HEADER
