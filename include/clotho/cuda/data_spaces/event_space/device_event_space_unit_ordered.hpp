@@ -11,20 +11,24 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef DEVICE_EVENT_SPACE_DEF_HPP_
-#define DEVICE_EVENT_SPACE_DEF_HPP_
+#ifndef DEVICE_EVENT_SPACE_UNIT_ORDERED_HPP_
+#define DEVICE_EVENT_SPACE_UNIT_ORDERED_HPP_
 
-template < class IntType, class OrderTag >
-struct device_event_space {
+#include "clotho/cuda/data_spaces/event_space/device_event_space_def.hpp"
+#include "clotho/cuda/data_spaces/tags/unit_ordered_tag.hpp"
+
+template < class IntType >
+struct device_event_space< IntType, unit_ordered_tag< IntType > > {
     typedef IntType     int_type;
-    typedef OrderTag    order_tag_type;
+    typedef unit_ordered_tag< IntType > order_tag_type;
 
     typedef int_type *  pointer;
 
     pointer         event_count;
+    int_type        bin_summary[ order_tag_type::OBJECTS_PER_UNIT ];
 
     unsigned int    total;
     unsigned int    size, capacity;
 };
 
-#endif  // DEVICE_EVENT_SPACE_DEF_HPP_
+#endif  // DEVICE_EVENT_SPACE_UNIT_ORDERED_HPP_

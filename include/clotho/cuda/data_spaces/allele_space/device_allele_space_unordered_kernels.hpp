@@ -76,7 +76,7 @@ __global__ void _merge_allele_space( device_allele_space< RealType, IntType, uno
 
 template < class RealType, class IntType >
 __global__ void _merge_space( device_allele_space< RealType, IntType, unordered_tag > * in_space
-                            , device_event_space< IntType > * evts
+                            , device_event_space< IntType, unordered_tag > * evts
                             , device_allele_space< RealType, IntType, unordered_tag > * out_space ) {
     device_allele_space< RealType, IntType, unordered_tag > local = *in_space;
 

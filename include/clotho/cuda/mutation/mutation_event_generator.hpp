@@ -34,7 +34,7 @@ template < class RealType, class IntType, class OrderTag >
 class MutationEventGenerator {
 public:
     typedef RealType  real_type;
-    typedef device_event_space< IntType > space_type;
+    typedef device_event_space< IntType, OrderTag > space_type;
 
     typedef curandState_t                               state_type;
     typedef clotho::cuda::curand_helper< state_type >   helper_type;
@@ -58,7 +58,7 @@ public:
     void operator()( space_type * space, unsigned int N ) {
         unsigned int event_counts = space_helper_type::get( N );
         resize_space( space, event_counts );
-        _simple_mutation_generator<<< 1, 32 >>>( m_states, space, dPoisCDF, N, (OrderTag * ) NULL);
+        _simple_mutation_generator<<< 1, 32 >>>( m_states, space, dPoisCDF, N);
     }
 
     virtual ~MutationEventGenerator() {

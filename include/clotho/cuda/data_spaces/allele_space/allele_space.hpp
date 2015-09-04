@@ -37,7 +37,7 @@ public:
 
 //    void merge_alleles( self_type & alls, self_type * muts);
 
-    void expand_relative_to( self_type & alls, device_event_space< int_type > * space );
+    void expand_relative_to( self_type & alls, device_event_space< IntType, OrderTag > * space );
 
     virtual ~AlleleSpace();
 
@@ -86,7 +86,7 @@ void _CLASS::merge_alleles( self_type * A, self_type * B ) {
 }*/
 
 _HEADER
-void _CLASS::expand_relative_to( self_type & alls, device_event_space< int_type > * muts ) {
+void _CLASS::expand_relative_to( self_type & alls, device_event_space< IntType, OrderTag > * muts ) {
     merge_space( alls.dAlleles, muts, dAlleles );
 }
 

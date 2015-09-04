@@ -15,7 +15,11 @@
 #define DEVICE_EVENT_SPACE_HPP_
 
 #include "clotho/cuda/data_spaces/event_space/device_event_space_def.hpp"
+#include "clotho/cuda/data_spaces/event_space/device_event_space_unit_ordered.hpp"
+
 #include "clotho/cuda/data_spaces/event_space/device_event_space_kernels.hpp"
+
+#include "clotho/cuda/data_spaces/event_space/device_event_space_helpers.hpp"
 
 /*
 template < class IntType, class OrderTag >

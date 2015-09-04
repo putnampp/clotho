@@ -84,7 +84,7 @@ void merge_allele_space( device_allele_space< RealType, IntType, OrderTag > * a
 
 template < class RealType, class IntType, class OrderTag >
 void merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
-                            , device_event_space< IntType > * evts
+                            , device_event_space< IntType, OrderTag > * evts
                             , device_allele_space< RealType, IntType, OrderTag > * out_space ) {
     std::cerr << "Merge space called" << std::endl;
     _merge_space<<< 1, 1 >>>( in_space, evts, out_space );

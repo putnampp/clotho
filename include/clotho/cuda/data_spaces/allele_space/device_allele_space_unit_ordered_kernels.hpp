@@ -41,8 +41,8 @@ __global__ void _update_free_count( device_allele_space< RealType, IntType, unit
 
 template < class RealType, class IntType >
 __global__ void _merge_space( device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > * in_space
-                            , device_event_space< IntType > * evts
-                            , device_allele_space< RealType, IntType, unordered_tag > * out_space ) {
+                            , device_event_space< IntType, unit_ordered_tag< IntType > > * evts
+                            , device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > * out_space ) {
 
 }
 

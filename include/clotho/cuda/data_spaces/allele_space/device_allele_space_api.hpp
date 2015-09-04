@@ -44,7 +44,7 @@ void merge_allele_space( SpaceType * a, SpaceType * b, SpaceType * output );
 
 template < class RealType, class IntType, class OrderTag >
 void merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
-                , device_event_space< IntType > * evts
+                , device_event_space< IntType, OrderTag > * evts
                 , device_allele_space< RealType, IntType, OrderTag > * out_space );
 
 #endif  // DEVICE_ALLELE_SPACE_API_HPP_

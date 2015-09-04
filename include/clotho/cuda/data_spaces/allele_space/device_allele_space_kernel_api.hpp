@@ -52,7 +52,7 @@ __global__ void _merge_allele_space( device_allele_space< RealType, IntType, Ord
 
 template < class RealType, class IntType, class OrderTag >
 __global__ void _merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
-                            , device_event_space< IntType > * evts
+                            , device_event_space< IntType, OrderTag > * evts
                             , device_allele_space< RealType, IntType, OrderTag > * out_space );
 
 

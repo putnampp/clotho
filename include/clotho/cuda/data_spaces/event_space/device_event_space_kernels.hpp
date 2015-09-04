@@ -17,18 +17,18 @@
 #include "clotho/cuda/data_spaces/event_space/device_event_space_def.hpp"
 #include "clotho/cuda/data_spaces/data_space_kernel_api.hpp"
 
-template < class IntType >
-__global__ void _delete_space( device_event_space< IntType > * space ) {
-    typename device_event_space< IntType >::int_type * evts = space->event_count;
+template < class IntType, class OrderTag >
+__global__ void _delete_space( device_event_space< IntType, OrderTag > * space ) {
+    typename device_event_space< IntType, OrderTag >::int_type * evts = space->event_count;
 
     if( evts ) {
         delete evts;
     }
 }
 
-template < class IntType >
-__global__ void _resize_space( device_event_space< IntType > * space, unsigned int N ) {
-    typedef device_event_space< IntType > space_type;
+template < class IntType, class OrderTag >
+__global__ void _resize_space( device_event_space< IntType, OrderTag > * space, unsigned int N ) {
+    typedef device_event_space< IntType, OrderTag > space_type;
 
     if( space->capacity < N ) {
         typename space_type::pointer tmp = space->event_count;

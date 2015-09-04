@@ -22,10 +22,12 @@
 
 template < class StateType, class RealType, class IntType >
 __global__ void _simple_mutation_generator( StateType * states
-                                            , device_event_space< IntType > * mut_events
+                                            , device_event_space< IntType, unordered_tag > * mut_events
                                             , poisson_cdf< RealType, 32 > * dist
-                                            , unsigned int sequence_size
-                                            , unordered_tag * tag ) {
+                                            , unsigned int sequence_size ) {
+    typedef device_event_space< IntType, unordered_tag > space_type;
+    typedef typename space_type::pointer    event_ptr;
+
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
     __shared__ RealType cdf[ 32 ];
@@ -35,9 +37,6 @@ __global__ void _simple_mutation_generator( StateType * states
     __syncthreads();
 
     StateType local_state = states[ tid ];
-
-    typedef device_event_space< IntType > space_type;
-    typedef typename space_type::pointer    event_ptr;
 
     event_ptr evt = mut_events->event_count;
     __syncthreads();
@@ -70,10 +69,12 @@ __global__ void _simple_mutation_generator( StateType * states
 
 template < class StateType, class RealType, class IntType >
 __global__ void _simple_mutation_generator( StateType * states
-                                            , device_event_space< IntType > * mut_events
+                                            , device_event_space< IntType, unit_ordered_tag< IntType > > * mut_events
                                             , poisson_cdf< RealType, 32 > * dist
-                                            , unsigned int sequence_size
-                                            , unit_ordered_tag< IntType > * tag ) {
+                                            , unsigned int sequence_size ) {
+
+    typedef device_event_space< IntType, unit_ordered_tag< IntType > > space_type;
+    typedef typename space_type::pointer    event_ptr;
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
@@ -84,9 +85,6 @@ __global__ void _simple_mutation_generator( StateType * states
     __syncthreads();
 
     StateType local_state = states[ tid ];
-
-    typedef device_event_space< IntType > space_type;
-    typedef typename space_type::pointer    event_ptr;
 
     event_ptr evt = mut_events->event_count;
     __syncthreads();
