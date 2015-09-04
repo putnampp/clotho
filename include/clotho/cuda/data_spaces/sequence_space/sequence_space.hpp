@@ -29,7 +29,7 @@ public:
     }
 
     template < class ASpaceType >
-    void resize_space( ASpaceType * aspace, unsigned int seq_count ) {
+    void resize( ASpaceType * aspace, unsigned int seq_count ) {
         resize_space( dSequences, aspace, seq_count );
     }
 

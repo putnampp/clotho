@@ -11,20 +11,20 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef DEVICE_SEQUENCE_SPACE_HPP_
-#define DEVICE_SEQUENCE_SPACE_HPP_
+#ifndef MERGE_SPACE_HELPER_HPP_
+#define MERGE_SPACE_HELPER_HPP_
 
-#include "clotho/cuda/data_spaces/sequence_space/device_sequence_space_def.hpp"
+template < class OrderTag >
+struct merge_execution_config {
+    static const unsigned int BLOCK_COUNT = 1;
+    static const unsigned int THREAD_COUNT = 1;
+};
 
-#include "clotho/cuda/data_spaces/data_space_api.hpp"
+template < class IntType>
+struct merge_execution_config < unit_ordered_tag< IntType > > {
+    static const unsigned int BLOCK_COUNT = 1;
+    static const unsigned int THREAD_COUNT = unit_ordered_tag< IntType >::OBJECTS_PER_UNIT;
+};
 
-#include "clotho/cuda/data_spaces/sequence_space/device_sequence_space_kernels.hpp"
 
-template < class IntType, class SpaceType >
-void resize_space( device_sequence_space< IntType > * seqs
-                 , SpaceType * column_space
-                 , unsigned int row_count ) {
-    _resize_space<<< 1, 1 >>>( seqs, column_space, row_count );
-}
-
-#endif  // DEVICE_SEQUENCE_SPACE_HPP_
+#endif  // MERGE_SPACE_HELPER_HPP_

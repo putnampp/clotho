@@ -35,8 +35,8 @@ __global__ void _resize_space( device_sequence_space< IntType > * sspace, unsign
 template < class RealType, class IntType, class OrderTag >
 __global__ void _resize_space( device_sequence_space< IntType > * sspace, device_allele_space< RealType, IntType, OrderTag > * aspace, unsigned int seq_count ) {
     typedef typename device_sequence_space< IntType >::int_type int_type;
-    unsigned int W = aspace->free_list_size();
 
+    unsigned int W = aspace->free_list_size();
     unsigned int N = seq_count * W;
 
     if( sspace->capacity < N ) {

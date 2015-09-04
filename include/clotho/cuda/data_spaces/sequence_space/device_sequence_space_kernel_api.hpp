@@ -15,13 +15,9 @@
 #define DEVICE_SEQUENCE_SPACE_KERNEL_API_HPP_
 
 #include <cuda.h>
+#include "clotho/cuda/data_spaces/sequence_space/device_sequence_space_def.hpp"
 
-/*
-template < class SSpaceType, class ASpaceType >
-__global__ void _resize_sequence_space( SSpaceType * sspace, ASpaceType * aspace, unsigned int seq_count );
-
-template < class SpaceType >
-__global__ void _delete_sequence_space( SpaceType * sspace );
-*/
+template < class IntType, class ASpaceType >
+__global__ void _resize_space( device_sequence_space< IntType > * sspace, ASpaceType * aspace, unsigned int seq_count );
 
 #endif  // DEVICE_SEQUENCE_SPACE_KERNEL_API_HPP_

@@ -78,6 +78,7 @@ template < class RealType, class IntType >
 __global__ void _merge_space( device_allele_space< RealType, IntType, unordered_tag > * in_space
                             , device_event_space< IntType, unordered_tag > * evts
                             , device_allele_space< RealType, IntType, unordered_tag > * out_space ) {
+
     device_allele_space< RealType, IntType, unordered_tag > local = *in_space;
 
     unsigned int N = local.size - local.free_count;
@@ -85,7 +86,7 @@ __global__ void _merge_space( device_allele_space< RealType, IntType, unordered_
 
     if( local.size > N ) { N = local.size; }
 
-    _resize_space_impl( out_space, N );
+    _resize_space_impl( out_space, N ); // will pad space based upon ALIGNMENT_SIZE
 
     if( local.locations ) {
         memcpy( out_space->locations, local.locations, local.size * sizeof( typename device_allele_space< RealType, IntType, unordered_tag >::real_type ) );

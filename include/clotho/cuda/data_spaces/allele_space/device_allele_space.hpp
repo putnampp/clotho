@@ -20,6 +20,8 @@
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_unordered_kernels.hpp"
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_unit_ordered_kernels.hpp"
 
+#include "clotho/cuda/data_spaces/allele_space/merge_space_helper.hpp"
+
 template < class RealType, class IntType, class OrderTag >
 __device__ void _resize_space_impl( device_allele_space< RealType, IntType, OrderTag > * aspace, unsigned int N ) {
     typedef device_allele_space< RealType, IntType, OrderTag > space_type;
@@ -87,7 +89,9 @@ void merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
                             , device_event_space< IntType, OrderTag > * evts
                             , device_allele_space< RealType, IntType, OrderTag > * out_space ) {
     std::cerr << "Merge space called" << std::endl;
-    _merge_space<<< 1, 1 >>>( in_space, evts, out_space );
+
+    typedef merge_execution_config< OrderTag > config_type;
+    _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, evts, out_space );
     _update_free_count<<< 1, 32 >>>(out_space);
 }
 

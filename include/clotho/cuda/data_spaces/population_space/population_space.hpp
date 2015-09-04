@@ -23,10 +23,11 @@ struct PopulationSpace {
     sequence_space_type sequences;
     allele_space_type   alleles;
 
-    void resize( self_type * pop, allele_space_type * mut, unsigned int seqs ) {
-        alleles.merge_alleles( pop->alleles, mut );
+    template < class EventSpaceType >
+    void resize( self_type * pop, EventSpaceType * mut_events, unsigned int seqs ) {
+        alleles.expand_relative_to( pop->alleles, mut_events );
 
-        sequences.resize( alleles, seqs );
+        sequences.resize( alleles.get_device_space(), seqs );
     }
 };
 

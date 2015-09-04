@@ -59,8 +59,7 @@ public:
         unsigned int cur_seq_count = 2 * N;
 
         mut_gen( dMutations, cur_seq_count );
-        current_pop->alleles.expand_relative_to( prev_pop->alleles, dMutations );
-//        current_pop->resize( prev_pop, dMutations, cur_seq_count );
+        current_pop->resize( prev_pop, dMutations , cur_seq_count );
 
         std::cerr << dMutations << std::endl;
     }
