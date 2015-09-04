@@ -31,7 +31,12 @@ typedef clotho::configuration_manager::config_manager       config_manager_type;
 
 typedef float           real_type;
 typedef unsigned int    int_type;
+
+#ifdef USE_UNIT_ORDERING
+typedef unit_ordered_tag< int_type > order_tag_type;
+#else
 typedef unordered_tag   order_tag_type;
+#endif
 
 typedef AlleleSpace< real_type, int_type, order_tag_type >  allele_space_type;
 typedef SequenceSpace< int_type >                           sequence_space_type;

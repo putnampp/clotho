@@ -101,7 +101,7 @@ __global__ void _simple_mutation_generator( StateType * states
     }
     __syncthreads();
 
-//    mut_events->bin_summary[tid] = count;
+    mut_events->bin_summary[tid] = count;
 
     for( i = 1; i < 32; i <<= 1 ) {
         unsigned int _c = __shfl_up( count, i );
@@ -114,8 +114,6 @@ __global__ void _simple_mutation_generator( StateType * states
     }
 
     states[ tid ] = local_state;
-
-    
 }
 
 #endif  // SIMPLE_MUTATION_GENERATOR_HPP_

@@ -27,7 +27,7 @@ template < class RealType, class IntType >
 struct scaled_mean_helper< RealType, unit_ordered_tag< IntType > > {
 
     static RealType get( RealType m ) {
-        RealType s = (m / ((RealType) unit_ordered_tag< IntType >::OBJECTS_PER_INT ));
+        RealType s = (m / ((RealType) unit_ordered_tag< IntType >::OBJECTS_PER_UNIT ));
         return s;
     }
 };

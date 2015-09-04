@@ -26,7 +26,7 @@ struct event_space_helper {
 template < class IntType >
 struct event_space_helper< unit_ordered_tag< IntType > > {
     static unsigned int get( unsigned int N ) {
-        unsigned int n = N * unit_ordered_tag< IntType >::OBJECTS_PER_INT;
+        unsigned int n = N * unit_ordered_tag< IntType >::OBJECTS_PER_UNIT;
         return n;
     }
 };

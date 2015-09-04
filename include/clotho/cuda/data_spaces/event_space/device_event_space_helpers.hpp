@@ -28,7 +28,7 @@ void write_summary( std::ostream & out, device_event_space< IntType, OrderTag > 
 template < class IntType >
 void write_summary( std::ostream & out, device_event_space< IntType, unit_ordered_tag< IntType > > & lspace ) {
     out << ",\n\"bin_summary\": [ " << lspace.bin_summary[0];
-    for( unsigned int i = 1; i < unit_ordered_tag< IntType >::OBJECTS_PER_INT; ++i ) {
+    for( unsigned int i = 1; i < unit_ordered_tag< IntType >::OBJECTS_PER_UNIT; ++i ) {
         out << ",\n" << lspace.bin_summary[i];
     }
     out << "]";

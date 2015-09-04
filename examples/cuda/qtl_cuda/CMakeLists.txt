@@ -42,7 +42,15 @@ LIST(APPEND SIM_SRC simulation_log.cpp)
 #LIST(APPEND SIM_SRC scatter_mutations.cu )
 #LIST(APPEND SIM_SRC population_metadata.cu )
 
-CUDA_ADD_EXECUTABLE(qtl_cuda ${SIM_SRC} ${OPTIONS_SRC})
-SET_TARGET_PROPERTIES( qtl_cuda PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
+CUDA_ADD_EXECUTABLE(qtl_cuda_unordered ${SIM_SRC} ${OPTIONS_SRC})
+SET_TARGET_PROPERTIES( qtl_cuda_unordered PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
 #SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
-TARGET_LINK_LIBRARIES(qtl_cuda ${LOCAL_LIBS})
+TARGET_LINK_LIBRARIES(qtl_cuda_unordered ${LOCAL_LIBS})
+
+
+CUDA_ADD_EXECUTABLE(qtl_cuda_unit_ordered ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DUSE_UNIT_ORDERING)
+SET_TARGET_PROPERTIES( qtl_cuda_unit_ordered PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
+#SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
+TARGET_LINK_LIBRARIES(qtl_cuda_unit_ordered ${LOCAL_LIBS})
+
+ADD_CUSTOM_TARGET( qtl_cuda DEPENDS qtl_cuda_unordered qtl_cuda_unit_ordered )
