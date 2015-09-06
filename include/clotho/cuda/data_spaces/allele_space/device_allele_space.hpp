@@ -15,11 +15,13 @@
 #define DEVICE_ALLELE_SPACE_HPP_
 
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_def.hpp"
-#include "clotho/cuda/data_spaces/allele_space/device_allele_space_api.hpp"
+#include "clotho/cuda/data_spaces/allele_space/device_allele_space_unit_ordered.hpp"
 
+#include "clotho/cuda/data_spaces/allele_space/device_allele_space_api.hpp"
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_unordered_kernels.hpp"
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_unit_ordered_kernels.hpp"
 
+#include "clotho/cuda/data_spaces/allele_space/device_allele_space_helper.hpp"
 #include "clotho/cuda/data_spaces/allele_space/merge_space_helper.hpp"
 
 template < class RealType, class IntType, class OrderTag >
@@ -40,9 +42,10 @@ __device__ void _resize_space_impl( device_allele_space< RealType, IntType, Orde
             delete aspace->free_list;
         }
 
-        unsigned int free_size = compute_free_list_size<typename space_type::int_type >( N );
+        unsigned int free_size = compute_free_list_size< typename space_type::int_type >( N );
         aspace->free_list = new typename space_type::int_type[free_size];
 
+        memset(aspace->locations, 0, N * sizeof( typename space_type::real_type ) );
         memset(aspace->free_list, -1, free_size * sizeof( typename space_type::int_type ) );
 
         aspace->capacity = N;

@@ -28,10 +28,17 @@ public:
         initialize();
     }
 
+    device_space_type * get_device_space() {
+        return dSequences;
+    }
+
     template < class ASpaceType >
     void resize( ASpaceType * aspace, unsigned int seq_count ) {
         resize_space( dSequences, aspace, seq_count );
     }
+
+    template < class I >
+    friend std::ostream & operator<<( std::ostream & out, const SequenceSpace< I > & s );
 
     virtual ~SequenceSpace() {
         delete_space( dSequences );
@@ -44,5 +51,18 @@ protected:
 
     device_space_type * dSequences;
 };
+
+template < class IntType >
+std::ostream & operator<<( std::ostream & out, const SequenceSpace< IntType > & rhs ) {
+    typedef typename SequenceSpace< IntType >::device_space_type space_type;
+
+    space_type hCopy;
+
+    assert( cudaMemcpy( &hCopy, rhs.dSequences, sizeof( space_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
+
+    out << hCopy;
+
+    return out;
+}
 
 #endif  // SEQUENCE_SPACE_HPP_

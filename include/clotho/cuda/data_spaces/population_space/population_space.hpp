@@ -31,4 +31,14 @@ struct PopulationSpace {
     }
 };
 
+template < class SSpaceType, class ASpaceType >
+std::ostream & operator<<( std::ostream & out, const PopulationSpace< SSpaceType, ASpaceType > & pop ) {
+    out << "{";
+    out << "\n\"sequences\": " << pop.sequences;
+    out << ",\n\"alleles\": " << pop.alleles;
+    out << "\n}";
+
+    return out;
+}
+
 #endif  // POPULATION_SPACE_HPP_

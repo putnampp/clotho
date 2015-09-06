@@ -27,8 +27,8 @@
 
 #include "clotho/cuda/distributions/poisson_distribution.hpp"
 
-#include "clotho/cuda/mutation/event_space_helper.hpp"
-#include "clotho/cuda/mutation/scaled_mean_helper.hpp"
+#include "clotho/cuda/helpers/event_space_helper.hpp"
+#include "clotho/cuda/helpers/scaled_mean_helper.hpp"
 
 template < class RealType, class IntType, class OrderTag >
 class MutationEventGenerator {
@@ -55,14 +55,20 @@ public:
         initialize();
     }
 
-    void operator()( space_type * space, unsigned int N ) {
+    void generate( space_type * space, unsigned int N ) {
         unsigned int event_counts = space_helper_type::get( N );
         resize_space( space, event_counts );
         _simple_mutation_generator<<< 1, 32 >>>( m_states, space, dPoisCDF, N);
     }
 
+    template < class PopulationType >
+    void scatter( PopulationType * pop, space_type * events ) {
+//        _scatter_mutation<<< 1, 32 >>>( m_states, pop->alleles, events, pop->sequences );
+    }
+
     virtual ~MutationEventGenerator() {
         helper_type::cleanup_states( m_states );
+        cudaFree( dPoisCDF );
     }
 
 protected:
@@ -81,10 +87,6 @@ protected:
         make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, smean );
     }
 
-    real_type    get_scaled_mean( real_type m );
-
-    unsigned int event_space_size( unsigned int N );
-
     void parse_configuration( boost::property_tree::ptree & config ) {
         boost::property_tree::ptree lconfig;
 
@@ -98,13 +100,13 @@ protected:
             m_mutation_rate = lconfig.get< real_type >( "mutation_per_sequence", m_mutation_rate );
         }
 
-        if( lconfig.get_child_optional( "generator.seed" ) != boost::none ) {
-            m_seed = lconfig.get< seed_type >( "generator.seed", m_seed );
+        if( lconfig.get_child_optional( "rng.seed" ) != boost::none ) {
+            m_seed = lconfig.get< seed_type >( "rng.seed", m_seed );
         }
 
         if( m_seed == 0 ) {
             m_seed = clotho::utility::clock_type::now().time_since_epoch().count();
-            lconfig.put("generator.seed", m_seed );
+            lconfig.put("rng.seed", m_seed );
         }
 
         config.put_child( "mutation", lconfig );

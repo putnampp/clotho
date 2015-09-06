@@ -15,28 +15,74 @@
 #define POPULATION_MUTATION_GENERATOR_HPP_
 
 #include <boost/property_tree/ptree.hpp>
-#include "clotho/cuda/mutation/mutation_event_generator.hpp"
+
+#include "clotho/cuda/data_space/event_space/device_event_space.hpp"
+
+#include "clotho/utility/timer.hpp"
+
+#include <curand.h>
+#include <curand_kernel.h>
+
+#include "clotho/cuda/curand_helper.hpp"
 
 template < class PopulationType >
 class population_mutation_generator {
 public:
     typedef PopulationType                              population_type;
 
+    typedef typename population_type::sequence_space_type     sequence_space_type;
+
     typedef typename population_type::allele_space_type allele_space_type;
-    typedef MutationEventGenerator< allele_space_type >        generator_type;
 
-    population_mutation_generator( boost::property_tree::ptree & config ) :
-        m_gen(config)
-    {}
+    typedef typename allele_space_type::real_type       real_type;
+    typedef typename allele_space_type::order_tag_type  order_tag_type;
+    typedef typename sequence_space_type::int_type      int_type;
 
-    void operator()( allele_space_type * space, unsigned int N) {
+    typedef device_event_space< int_type, order_tag_type >  event_space_type;
+
+    typedef curandState_t                               state_type;
+    typedef clotho::cuda::curand_helper< state_type >   helper_type;
+    typedef typename helper_type::seed_type             seed_type;
+
+    population_mutation_generator( boost::property_tree::ptree & config ) {
+        parse_configuration( config );
+        initialize();
+    }
+
+    void operator()( population_type * pop, event_space_type * mut ) {
 
     }
 
     virtual ~population_mutation_generator() {}
 
 protected:
-    generator_type  m_gen;
+    void parse_configuration( boost::property_tree::ptree & config ) {
+        boost::property_tree::ptree lconfig;
+
+        if( config.get_child_optional( "mutation" ) != boost::none ) {
+            lconfig = config.get_child( "mutation" );
+        }
+
+        if( lconfig.get_child_optional( "mutation_per_sequence" ) == boost::none ) {
+            lconfig.put("mutation_per_sequence", m_mutation_rate );
+        } else {
+            m_mutation_rate = lconfig.get< real_type >( "mutation_per_sequence", m_mutation_rate );
+        }
+
+        if( lconfig.get_child_optional( "rng.seed" ) != boost::none ) {
+            m_seed = lconfig.get< seed_type >( "rng.seed", m_seed );
+        }
+
+        if( m_seed == 0 ) {
+            m_seed = clotho::utility::clock_type::now().time_since_epoch().count();
+            lconfig.put("rng.seed", m_seed );
+        }
+
+        config.put_child( "mutation", lconfig );
+    }
+
+    state_type          * m_states;
+    seed_type           m_seed;
 };
 
 #endif  // POPULATION_MUTATION_GENERATOR_HPP_

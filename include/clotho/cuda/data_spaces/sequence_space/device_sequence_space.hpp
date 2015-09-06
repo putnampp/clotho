@@ -15,6 +15,7 @@
 #define DEVICE_SEQUENCE_SPACE_HPP_
 
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space_def.hpp"
+#include "clotho/cuda/data_spaces/sequence_space/device_sequence_space_helper.hpp"
 
 #include "clotho/cuda/data_spaces/data_space_api.hpp"
 

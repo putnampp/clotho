@@ -44,18 +44,4 @@ struct device_allele_space {
     }
 };
 
-
-template < class RealType, class IntType, class OrderTag >
-std::ostream & operator<<( std::ostream & out, const device_allele_space< RealType, IntType, OrderTag > & rhs ) {
-    out << "{";
-    out << "\"locations\": " << std::hex << rhs.locations;
-    out << ",\n\"free_list\": " << std::hex << rhs.free_list;
-    out << std::dec;
-    out << ",\n\"free_count\": " << rhs.free_count;
-    out << ",\n\"size\": " << rhs.size;
-    out << ",\n\"capacity\": " << rhs.capacity;
-    out << "}";
-    return out;
-}
-
 #endif  // DEVICE_ALLELE_SPACE_DEF_HPP_

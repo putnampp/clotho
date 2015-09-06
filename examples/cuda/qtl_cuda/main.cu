@@ -25,6 +25,7 @@
 #include "clotho/cuda/data_spaces/data_space.hpp"
 
 #include "options/configuration_option.hpp"
+
 #include "qtl_cuda_simulate_engine.hpp"
 
 typedef clotho::configuration_manager::config_manager       config_manager_type;
@@ -52,18 +53,22 @@ int main( int argc, char ** argv ) {
     if( ret ) return ret;
 
     boost::property_tree::ptree infile;
+    bool print_config_only = true;
     if( vm.count( configuration_option::CONFIG_K ) ) {
         std::string p = vm[ configuration_option::CONFIG_K ].as< configuration_option::path_type >();
 
         boost::property_tree::read_json( p, infile );
+        print_config_only = false;
     }
 
     boost::property_tree::ptree config = infile.get_child( "configuration", infile );
-
+    
     engine_type sim_engine( config );
 
-    for( unsigned int i = 0; i < 100; ++i ) {
-        sim_engine.simulate(10000);
+    if( !print_config_only ) {
+        for( unsigned int i = 0; i < 100; ++i ) {
+            sim_engine.simulate(10000);
+        }
     }
 
     boost::property_tree::ptree ofile;

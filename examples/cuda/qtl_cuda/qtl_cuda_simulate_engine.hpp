@@ -22,6 +22,7 @@
 //#include "clotho/cuda/mutation/population_mutation_generator.hpp"
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/mutation/mutation_event_generator.hpp"
+#include "clotho/cuda/crossover/crossover_generator.hpp"
 
 static const std::string GEN_K = "generations";
 
@@ -43,11 +44,14 @@ public:
     typedef MutationEventGenerator< real_type, int_type, order_tag_type >   mutation_generator_type;
     typedef typename mutation_generator_type::space_type         mutation_event_space_type;
 
+    typedef CrossoverGenerator< population_space_type >          crossover_generator_type;
+
     qtl_cuda_simulate_engine( boost::property_tree::ptree & config ) :
         current_pop( &hPop0 )
         , prev_pop( &hPop1 )
         , m_log( config )
         , mut_gen( config )
+        , xover_gen( config )
         , m_gen(0)
     {
         parse_config( config );
@@ -58,10 +62,19 @@ public:
 
         unsigned int cur_seq_count = 2 * N;
 
-        mut_gen( dMutations, cur_seq_count );
+        mut_gen.generate( dMutations, cur_seq_count );
         current_pop->resize( prev_pop, dMutations , cur_seq_count );
 
-        std::cerr << dMutations << std::endl;
+        xover_gen( current_pop );
+
+        // recombine parents 
+        // recombine( prev_pop, current_pop, parent_map );
+
+        mut_gen.scatter( current_pop, dMutations );
+
+        cudaDeviceSynchronize();
+
+        std::cerr << current_pop << std::endl;
     }
 
     void swap() {
@@ -94,6 +107,7 @@ protected:
 
     simulation_log          m_log;
     mutation_generator_type mut_gen;
+    crossover_generator_type xover_gen;
 
     unsigned int            m_gen;
 };

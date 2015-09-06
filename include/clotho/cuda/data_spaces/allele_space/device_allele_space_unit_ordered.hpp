@@ -43,6 +43,7 @@ struct device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > {
     }
 };
 
+/*
 template < class RealType, class IntType >
 std::ostream & operator<<( std::ostream & out, const device_allele_space< RealType, IntType, unit_ordered_tag< IntType >  > & rhs ) {
     out << "{";
@@ -60,6 +61,6 @@ std::ostream & operator<<( std::ostream & out, const device_allele_space< RealTy
     out << ",\n\"capacity\": " << rhs.capacity;
     out << "}";
     return out;
-}
+}*/
 
 #endif  // DEVICE_ALLELE_SPACE_UNIT_ORDERED_HPP_
