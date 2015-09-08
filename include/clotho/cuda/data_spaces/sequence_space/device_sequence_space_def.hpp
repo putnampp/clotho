@@ -18,6 +18,8 @@ template < class IntType >
 struct device_sequence_space {
     typedef IntType int_type;
 
+    static const unsigned int OBJECTS_PER_INT = (sizeof( int_type) * 8 );
+
     int_type    * sequences;
 
     unsigned int size, capacity;
