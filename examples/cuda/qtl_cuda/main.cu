@@ -29,6 +29,8 @@
 #include "qtl_cuda_simulate_engine.hpp"
 #include "clotho/genetics/population_growth_toolkit.hpp"
 
+#include "simulation_log.hpp"
+
 typedef clotho::configuration_manager::config_manager       config_manager_type;
 
 #ifdef USE_DOUBLE_REAL
@@ -73,7 +75,7 @@ int main( int argc, char ** argv ) {
     }
 
     boost::property_tree::ptree config = infile.get_child( "configuration", infile );
-    
+
     engine_type sim_engine( config );
 
     unsigned int nGens = 100;
@@ -94,17 +96,25 @@ int main( int argc, char ** argv ) {
         pop_grow = population_growth_toolkit::getInstance()->get_tool( config )->generate();
     }
 
+    simulation_log log( config );
+
     unsigned int p_size = 0;
     unsigned int i = 0;
+
     while( i < nGens ) {
         p_size = (*pop_grow)( p_size, i++ );
 
         sim_engine.simulate(p_size);
+
+        if( log( &sim_engine ) ) {
+            log.write();
+        }
     }
 
     boost::property_tree::ptree ofile;
     ofile.add_child( "configuration", config );
     boost::property_tree::write_json( std::cout, ofile );
+
 
     return 0;
 }

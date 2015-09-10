@@ -13,12 +13,59 @@
 //   limitations under the License.
 #include "simulation_log.hpp"
 
-#include <iostream>
+#include <boost/property_tree/json_parser.hpp>
+#include <sstream>
 
 simulation_log::simulation_log( boost::property_tree::ptree & config ) :
     m_activated( false )
+    , m_prefix("")
+    , m_count(0)
+    , m_frequency(0)
+    , m_log_idx(0)
 {
     parse_configuration( config );
+}
+
+void simulation_log::set_path_prefix( std::string & prefix ) {
+    m_prefix = prefix;
+}
+
+std::string simulation_log::get_path_prefix() const {
+    return m_prefix;
+}
+
+bool simulation_log::operator()( iStateObject * obj ) {
+    if( m_count-- == 0 ) {
+        obj->get_state( m_log );
+        m_count = m_frequency - 1;
+
+        return true;
+    }
+    return false;
+}
+
+void simulation_log::add_record( std::string name, const record_type & rec ) {
+
+    m_log.add_child( name, rec );
+}
+
+void simulation_log::write( std::ostream & out ) {
+    boost::property_tree::write_json( out, m_log );
+
+    purge();
+}
+
+void simulation_log::write() {
+    std::ostringstream oss;
+    oss << m_prefix << "_" << (++m_log_idx) << ".json";
+
+    boost::property_tree::write_json( oss.str(), m_log );
+
+    purge();
+}
+
+void simulation_log::purge() {
+    m_log.clear();
 }
 
 void simulation_log::parse_configuration( boost::property_tree::ptree & config ) {
@@ -27,11 +74,21 @@ void simulation_log::parse_configuration( boost::property_tree::ptree & config )
         lconfig = config.get_child( "logging" );
     }
 
-    if( lconfig.get_child_optional( "activated" ) == boost::none ) {
-        lconfig.put( "activated", m_activated );
+    if( lconfig.get_child_optional( "path_prefix" ) == boost::none ) {
+        lconfig.put( "path_prefix", m_prefix );
     } else {
-        m_activated = lconfig.get<bool>( "activated", m_activated );
+        m_prefix = lconfig.get< std::string >( "path_prefix", m_prefix );
+    }
+
+    if( lconfig.get_child_optional( "frequency" ) == boost::none ) {
+        lconfig.put( "frequency", m_frequency );
+    } else {
+        m_frequency = lconfig.get< unsigned int >( "frequency", m_frequency );
+
+        m_count = m_frequency - 1;
     }
 
     config.put_child( "logging", lconfig );
 }
+
+simulation_log::~simulation_log() { }

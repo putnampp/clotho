@@ -84,9 +84,8 @@ __global__ void _scatter_mutation( StateType * states
     }
 }*/
 
-template < class StateType, class IntType >
-__global__ void _scatter_mutation_single_thread( StateType * states
-                                    , device_free_space< IntType, unordered_tag > * fspace 
+template < class IntType >
+__global__ void _scatter_mutation_single_thread( device_free_space< IntType, unordered_tag > * fspace 
                                     , device_event_space< IntType, unordered_tag >  * events
                                     , device_sequence_space< IntType >              * sequences
                                     , unsigned int offset ) {

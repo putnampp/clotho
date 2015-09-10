@@ -19,8 +19,9 @@
 template < class IntType, class OrderTag >
 void update_free_space( device_sequence_space< IntType > * seq_space
                        , device_free_space< IntType, OrderTag > * free_space ) {
-//    std::cerr << "Updating free space" << std::endl;
-    update_free_space_kernel<<< 1, 32 >>>( seq_space, free_space );
+    resize_free_space_kernel<<< 1, 1 >>>( seq_space, free_space);
+
+    update_free_space_kernel2<<< 200, 32 >>>( seq_space, free_space );
 
     dim3 blocks(1,1,1), threads( 32, 32, 1 );
     update_free_map_kernel<<< blocks, threads >>>( free_space );

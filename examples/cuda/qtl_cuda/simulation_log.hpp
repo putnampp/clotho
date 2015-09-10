@@ -15,15 +15,38 @@
 #define SIMULATION_LOG_HPP_
 
 #include <boost/property_tree/ptree.hpp>
+#include <cstring>
+
+#include "state_object.hpp"
 
 class simulation_log {
 public:
+    typedef boost::property_tree::ptree record_type;
+
     simulation_log( boost::property_tree::ptree & config );
 
+    void set_path_prefix( std::string & prefix );
+    std::string get_path_prefix() const;
+
+    bool operator()( iStateObject * obj );
+
+    void add_record( std::string name, const record_type & rec );
+
+    void purge();
+
+    void write( std::ostream & out );
+    void write();
+
+    virtual ~simulation_log();
 protected:
     void parse_configuration( boost::property_tree::ptree & config );
 
     bool m_activated;
+    std::string m_prefix;
+
+    boost::property_tree::ptree m_log;
+    unsigned int m_count, m_frequency;
+    unsigned int m_log_idx;
 };
 
 #endif  // SIMULATION_LOG_HPP_

@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <boost/property_tree/ptree.hpp>
 
-#include "simulation_log.hpp"
+#include "state_object.hpp"
 
 //#include "clotho/cuda/mutation/population_mutation_generator.hpp"
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
@@ -26,9 +26,10 @@
 #include "clotho/cuda/selection/selection_event_generator.hpp"
 
 #include "clotho/utility/timer.hpp"
+#include "clotho/utility/log_helper.hpp"
 
 template < class PopulationSpaceType > 
-class qtl_cuda_simulate_engine {
+class qtl_cuda_simulate_engine : public iStateObject {
 public:
     typedef PopulationSpaceType                                 population_space_type;
 
@@ -55,7 +56,6 @@ public:
     qtl_cuda_simulate_engine( boost::property_tree::ptree & config ) :
         current_pop( &hPop0 )
         , prev_pop( &hPop1 )
-        , m_log( config )
         , mut_gen( config )
         , xover_gen( config )
         , sel_gen(config)
@@ -66,14 +66,9 @@ public:
 
     void simulate( unsigned int N ) {
 
-        timer_type t;
         unsigned int cur_seq_count = 2 * N;
 
         mut_gen.generate( dMutations, cur_seq_count );
-
-//        cudaDeviceSynchronize();
-
-//        std::cerr << "Events: " << dMutations << std::endl;
 
         current_pop->resize( prev_pop, dMutations, cur_seq_count );
 
@@ -85,10 +80,11 @@ public:
         mut_gen.scatter( current_pop, dMutations, cur_seq_count );
 
         cudaDeviceSynchronize();
-        t.stop();
-//        std::cerr << "Current Population: " << *current_pop << std::endl;
-        std::cerr << "Lapse: " << t << std::endl;
+
         swap();
+    }
+
+    void get_state( boost::property_tree::ptree & state ) {
     }
 
     void swap() {
@@ -112,7 +108,6 @@ protected:
     population_space_type   hPop0, hPop1;
     population_space_type   * prev_pop, * current_pop;
 
-    simulation_log              m_log;
     mutation_generator_type     mut_gen;
     crossover_generator_type    xover_gen;
     selection_generator_type    sel_gen;

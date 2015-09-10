@@ -16,6 +16,7 @@
 
 #include <string>
 #include <curand.h>
+#include <curand_kernel.h>
 #include <curand_mtgp32.h>
 
 namespace clotho {
@@ -45,7 +46,7 @@ const std::string curand_helper< curandStateMtgp32_t >::StateName = "MTGP32";
 
 template <>
 void curand_helper< curandStateMtgp32_t >::make_states( state_type *& states, seed_type seed, unsigned int blocks, unsigned int threads ) {
-
+    assert(false);
 }
 
 template <>
@@ -57,15 +58,20 @@ template <>
 const std::string curand_helper< curandStateXORWOW >::StateName = "XORWOW";
 
 template <>
-void curand_helper< curandStateXORWOW >::make_states( state_type *& states, seed_type seed, unsigned int blocks, unsigned int threads ) {
-    assert( cudaMalloc( (void **) &states, blocks * threads * sizeof(state_type) ) == cudaSuccess );
-
-    setup_state_kernel<<< blocks, threads >>>( states, seed );
+void curand_helper< curandStateXORWOW >::cleanup_states( state_type * states ) {
+    if( states != NULL )
+        cudaFree( states );
 }
 
 template <>
-void curand_helper< curandStateXORWOW >::cleanup_states( state_type * states ) {
-    cudaFree( states );
+void curand_helper< curandStateXORWOW >::make_states( state_type *& states, seed_type seed, unsigned int blocks, unsigned int threads ) {
+//    if( states != NULL ) {
+//        cleanup_states( states );
+//    }
+
+    assert( cudaMalloc( (void **) &states, blocks * threads * sizeof(state_type) ) == cudaSuccess );
+
+    setup_state_kernel<<< blocks, threads >>>( states, seed );
 }
 
 }   // namespace cuda

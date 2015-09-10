@@ -60,7 +60,8 @@ Useful CMake Configuration Options:
 
 Configuration Variable: WITH_CUDA_EXAMPLES
 Description: Turns on/off whether the CUDA examples are compiled or not
-Example Command: mkdir -p build/cuda; cd build/cuda; cmake -DWITH_CUDA_EXAMPLES=ON ../..; make; cd ../..
+              TC_MALLOC and GPerfProfiler will occassionally result in a seg fault after the execution of CUDA code. (Reason unknown)
+Example Command: mkdir -p build/cuda; cd build/cuda; cmake -DWITH_CUDA_EXAMPLES=ON -DWITH_TC_MALLOC=OFF -DWITH_PROFILER=OFF ../..; make; cd ../..
 
 Configuration Variable: WITH_GSL [=OFF by default]
 Description: Turns on/off whether binaries should be linked with GSL libraries.  Intended for future examples.
