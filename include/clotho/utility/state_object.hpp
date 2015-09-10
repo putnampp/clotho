@@ -16,8 +16,14 @@
 
 #include <boost/property_tree/ptree.hpp>
 
+namespace clotho {
+namespace utility {
+
 struct iStateObject {
     virtual void get_state( boost::property_tree::ptree & state ) = 0;
 };
+
+}   // namespace utility
+}   // namespace clotho
 
 #endif  // STATE_OBJECT_HPP_

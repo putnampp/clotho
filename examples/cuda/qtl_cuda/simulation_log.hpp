@@ -18,7 +18,7 @@
 #include <cstring>
 #include <sstream>
 
-#include "state_object.hpp"
+#include "clotho/utility/state_object.hpp"
 
 class simulation_log {
 public:
@@ -29,7 +29,7 @@ public:
     void set_path_prefix( std::string & prefix );
     std::string get_path_prefix() const;
 
-    bool operator()( iStateObject * obj );
+    bool operator()( clotho::utility::iStateObject * obj );
 
     void add_record( std::string name, const record_type & rec );
 

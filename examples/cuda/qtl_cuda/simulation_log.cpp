@@ -34,7 +34,7 @@ std::string simulation_log::get_path_prefix() const {
     return m_prefix;
 }
 
-bool simulation_log::operator()( iStateObject * obj ) {
+bool simulation_log::operator()( clotho::utility::iStateObject * obj ) {
     if( m_count-- == 0 ) {
         obj->get_state( m_log );
         m_count = m_frequency - 1;

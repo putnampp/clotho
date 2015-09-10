@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <boost/property_tree/ptree.hpp>
 
-#include "state_object.hpp"
+#include "clotho/utility/state_object.hpp"
 
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/mutation/mutation_event_generator.hpp"
@@ -28,7 +28,7 @@
 #include "clotho/utility/log_helper.hpp"
 
 template < class PopulationSpaceType > 
-class qtl_cuda_simulate_engine : public iStateObject {
+class qtl_cuda_simulate_engine : public clotho::utility::iStateObject {
 public:
     typedef PopulationSpaceType                                 population_space_type;
 
