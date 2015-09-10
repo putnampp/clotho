@@ -56,11 +56,12 @@ void simulation_log::write( std::ostream & out ) {
 }
 
 void simulation_log::write() {
-    std::ostringstream oss;
-    oss << m_prefix << "_" << (++m_log_idx) << ".json";
+    std::string p = make_path( (++m_log_idx) );
+    write( p );
+}
 
-    boost::property_tree::write_json( oss.str(), m_log );
-
+void simulation_log::write( std::string & path ) {
+    boost::property_tree::write_json( path, m_log );
     purge();
 }
 

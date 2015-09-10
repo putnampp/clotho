@@ -25,11 +25,15 @@
 #include "clotho/cuda/data_spaces/data_space.hpp"
 
 #include "options/configuration_option.hpp"
+#include "options/log_prefix_option.hpp"
 
 #include "qtl_cuda_simulate_engine.hpp"
 #include "clotho/genetics/population_growth_toolkit.hpp"
 
 #include "simulation_log.hpp"
+
+#include "clotho/utility/timer.hpp"
+#include "clotho/utility/log_helper.hpp"
 
 typedef clotho::configuration_manager::config_manager       config_manager_type;
 
@@ -54,6 +58,8 @@ typedef PopulationSpace< real_type, int_type, order_tag_type > population_space_
 
 typedef qtl_cuda_simulate_engine< population_space_type >   engine_type;
 
+typedef clotho::utility::timer                              timer_type;
+
 static const std::string GEN_K = "generations";
 
 typedef std::shared_ptr< ipopulation_growth_generator >                     population_growth_generator_type;
@@ -74,9 +80,12 @@ int main( int argc, char ** argv ) {
         print_config_only = false;
     }
 
-    boost::property_tree::ptree config = infile.get_child( "configuration", infile );
+    std::string prefix;
+    if( vm.count( log_prefix_option::PREFIX_K ) ) {
+        prefix = vm[ log_prefix_option::PREFIX_K ].as< std::string >();
+    }
 
-    engine_type sim_engine( config );
+    boost::property_tree::ptree config = infile.get_child( "configuration", infile );
 
     unsigned int nGens = 100;
 
@@ -85,7 +94,6 @@ int main( int argc, char ** argv ) {
     } else {
         nGens = config.get< unsigned int >( GEN_K, nGens);
     }
-    std::cerr << "Generations: " << nGens << std::endl;
 
     population_growth_type pop_grow;
     if( print_config_only ) {
@@ -96,25 +104,45 @@ int main( int argc, char ** argv ) {
         pop_grow = population_growth_toolkit::getInstance()->get_tool( config )->generate();
     }
 
+    timer_type r;
+    timer_type i_time;
+    engine_type sim_engine( config );
     simulation_log log( config );
+    i_time.stop();
+
+    if( !prefix.empty() ) {
+        log.set_path_prefix( prefix );
+    }
 
     unsigned int p_size = 0;
-    unsigned int i = 0;
+    unsigned int gen = 0;
 
-    while( i < nGens ) {
-        p_size = (*pop_grow)( p_size, i++ );
+    boost::property_tree::ptree _sim;
+    while( gen < nGens ) {
+        p_size = (*pop_grow)( p_size, gen++ );
 
+        timer_type t;
         sim_engine.simulate(p_size);
+        t.stop();
 
+        clotho::utility::add_value_array( _sim, t );
         if( log( &sim_engine ) ) {
+            std::cerr << gen << ": Writing log file" << std::endl;
             log.write();
         }
     }
+    r.stop();
 
-    boost::property_tree::ptree ofile;
-    ofile.add_child( "configuration", config );
-    boost::property_tree::write_json( std::cout, ofile );
+    boost::property_tree::ptree _run;
+    _run.put( "total", r );
+    _run.put( "init", i_time );
+    _run.put_child( "simulate", _sim );
 
+    log.add_record( "configuration", config );
+    log.add_record( "runtime", _run );
+
+    std::string p = log.make_path( "profile" );
+    log.write( p );
 
     return 0;
 }

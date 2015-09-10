@@ -31,7 +31,7 @@ LIST(APPEND LOCAL_LIBS ${Boost_CHRONO_LIBRARY})
 LIST(APPEND LOCAL_LIBS ${COMMON_LIBRARIES})
 
 LIST(APPEND OPTIONS_SRC options/configuration_option.cpp )
-#LIST(APPEND OPTIONS_SRC options/qtl_thrust_general_options.cpp)
+LIST(APPEND OPTIONS_SRC options/log_prefix_option.cpp)
 #LIST(APPEND OPTIONS_SRC options/random_number_options.cpp)
 #LIST(APPEND OPTIONS_SRC options/mutation_rate_option.cpp)
 #LIST(APPEND OPTIONS_SRC options/recombination_rate_option.cpp)

@@ -19,7 +19,6 @@
 
 #include "state_object.hpp"
 
-//#include "clotho/cuda/mutation/population_mutation_generator.hpp"
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/mutation/mutation_event_generator.hpp"
 #include "clotho/cuda/crossover/crossover_generator.hpp"
@@ -36,10 +35,6 @@ public:
     typedef typename population_space_type::allele_space_type   allele_space_type;
     typedef typename population_space_type::sequence_space_type sequence_space_type;
 
-//    typedef population_mutation_generator< population_space_type >  mutation_generator_type;
-//    typedef MutationGenType                                     mutation_generator_type;
-//
-//
     typedef typename allele_space_type::real_type                       real_type;
     typedef typename allele_space_type::int_type                        int_type;
     typedef typename allele_space_type::order_tag_type                  order_tag_type;
@@ -65,7 +60,7 @@ public:
     }
 
     void simulate( unsigned int N ) {
-
+        swap();
         unsigned int cur_seq_count = 2 * N;
 
         mut_gen.generate( dMutations, cur_seq_count );
@@ -80,8 +75,6 @@ public:
         mut_gen.scatter( current_pop, dMutations, cur_seq_count );
 
         cudaDeviceSynchronize();
-
-        swap();
     }
 
     void get_state( boost::property_tree::ptree & state ) {

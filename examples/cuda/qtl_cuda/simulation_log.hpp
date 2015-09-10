@@ -16,6 +16,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <cstring>
+#include <sstream>
 
 #include "state_object.hpp"
 
@@ -34,8 +35,18 @@ public:
 
     void purge();
 
+    template < class FillType >
+    std::string make_path( FillType suffix ) {
+        std::ostringstream oss;
+
+        oss << m_prefix << "_" << suffix << ".json";
+
+        return oss.str();
+    }
+
     void write( std::ostream & out );
     void write();
+    void write( std::string & path );
 
     virtual ~simulation_log();
 protected:
