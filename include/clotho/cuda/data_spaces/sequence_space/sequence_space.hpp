@@ -46,10 +46,11 @@ public:
 
 protected:
     void initialize() {
+//        std::cerr << "initializing sequence space" << std::endl;
         create_space( dSequences );
     }
 
-    device_space_type * dSequences;
+    device_space_type   * dSequences;
 };
 
 template < class IntType >

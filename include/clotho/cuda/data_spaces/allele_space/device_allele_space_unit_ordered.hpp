@@ -29,9 +29,9 @@ struct device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > {
     static const unsigned int ALIGNMENT_SIZE = 128;
 
     real_type   * locations;
-    int_type    * free_list;
-
-    unsigned int free_count[ order_type::OBJECTS_PER_UNIT ];
+//    int_type    * free_list;
+//
+//    unsigned int free_count[ order_type::OBJECTS_PER_UNIT ];
     unsigned int size, capacity;
 
     __host__ __device__ unsigned int allele_count( ) {

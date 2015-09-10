@@ -47,6 +47,7 @@ void dump_data( std::ostream & out, const device_sequence_space< IntType > & spa
     }
 
     out << "]";
+    out << std::dec;
 
     cudaFree( dSeq );
     delete seqs;
@@ -55,13 +56,14 @@ void dump_data( std::ostream & out, const device_sequence_space< IntType > & spa
 template < class IntType >
 std::ostream & operator<<( std::ostream & out, const device_sequence_space< IntType > & space ) {
     out << "{";
-#ifdef DUMP_HEAP_VARIABLES 
     out << "\n\"data\": ";
+#ifdef DUMP_HEAP_VARIABLES 
     dump_data( out, space );
-    out << ",";
+#else
+    out << "[]";
 #endif  // DUMP_HEAP_VARIABLES
 
-    out << "\n\"seq_count\": " << space.seq_count;
+    out << ",\n\"seq_count\": " << space.seq_count;
     out << ",\n\"seq_width\": " << space.seq_width;
     out << ",\n\"size\": " << space.size;
     out << ",\n\"capacity\": " << space.capacity;

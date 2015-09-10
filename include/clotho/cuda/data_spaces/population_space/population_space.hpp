@@ -14,31 +14,7 @@
 #ifndef POPULATION_SPACE_HPP_
 #define POPULATION_SPACE_HPP_
 
-template < class SSpaceType, class ASpaceType >
-struct PopulationSpace {
-    typedef PopulationSpace< SSpaceType, ASpaceType > self_type;
-    typedef SSpaceType  sequence_space_type;
-    typedef ASpaceType  allele_space_type;
-
-    sequence_space_type sequences;
-    allele_space_type   alleles;
-
-    template < class EventSpaceType >
-    void resize( self_type * pop, EventSpaceType * mut_events, unsigned int seqs ) {
-        alleles.expand_relative_to( pop->alleles, mut_events );
-
-        sequences.resize( alleles.get_device_space(), seqs );
-    }
-};
-
-template < class SSpaceType, class ASpaceType >
-std::ostream & operator<<( std::ostream & out, const PopulationSpace< SSpaceType, ASpaceType > & pop ) {
-    out << "{";
-    out << "\n\"sequences\": " << pop.sequences;
-    out << ",\n\"alleles\": " << pop.alleles;
-    out << "\n}";
-
-    return out;
-}
+#include "clotho/cuda/data_spaces/population_space/population_space_def.hpp"
+#include "clotho/cuda/data_spaces/population_space/population_space_helpers.hpp"
 
 #endif  // POPULATION_SPACE_HPP_

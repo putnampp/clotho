@@ -18,6 +18,7 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR}/cuda )
 SET(LOCAL_LIBS)
 
 LIST(APPEND LOCAL_LIBS ${PROJECT_NAME}_config_manager )
+LIST(APPEND LOCAL_LIBS ${PROJECT_NAME}_popgrowth )
 LIST(APPEND LOCAL_LIBS ${CUDA_curand_LIBRARY})
 LIST(APPEND LOCAL_LIBS ${CUDA_cuda_LIBRARY})
 LIST(APPEND LOCAL_LIBS ${Boost_PROGRAM_OPTIONS_LIBRARY})
@@ -53,4 +54,14 @@ SET_TARGET_PROPERTIES( qtl_cuda_unit_ordered PROPERTIES LINK_FLAGS "-Wl,--no-as-
 #SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
 TARGET_LINK_LIBRARIES(qtl_cuda_unit_ordered ${LOCAL_LIBS})
 
-ADD_CUSTOM_TARGET( qtl_cuda DEPENDS qtl_cuda_unordered qtl_cuda_unit_ordered )
+CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_verbose ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DDUMP_HEAP_VARIABLES)
+SET_TARGET_PROPERTIES( qtl_cuda_unordered_verbose PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
+#SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
+TARGET_LINK_LIBRARIES(qtl_cuda_unordered_verbose ${LOCAL_LIBS})
+
+CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_double ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DUSE_DOUBLE_REAL)
+SET_TARGET_PROPERTIES( qtl_cuda_unordered_double PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
+#SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
+TARGET_LINK_LIBRARIES(qtl_cuda_unordered_double ${LOCAL_LIBS})
+
+ADD_CUSTOM_TARGET( qtl_cuda DEPENDS qtl_cuda_unordered qtl_cuda_unordered_verbose qtl_cuda_unordered_double )

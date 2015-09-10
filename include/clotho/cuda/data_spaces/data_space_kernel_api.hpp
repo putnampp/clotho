@@ -25,4 +25,9 @@ __global__ void _resize_space( SpaceType * aspace, unsigned int N );
 template < class SpaceType1, class SpaceType2, class OutputSpaceType >
 __global__ void _merge_space( SpaceType1 * a, SpaceType2 * b, OutputSpaceType * out );
 
+template < class DataType >
+__global__ void copy_heap( DataType * d_loc, DataType * d_heap, unsigned int N ) {
+    memcpy( d_loc, d_heap, N * sizeof( DataType ) );
+}
+
 #endif  // SPACE_KERNEL_API_HPP_

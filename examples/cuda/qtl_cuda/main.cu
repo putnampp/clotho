@@ -27,10 +27,15 @@
 #include "options/configuration_option.hpp"
 
 #include "qtl_cuda_simulate_engine.hpp"
+#include "clotho/genetics/population_growth_toolkit.hpp"
 
 typedef clotho::configuration_manager::config_manager       config_manager_type;
 
+#ifdef USE_DOUBLE_REAL
+typedef double          real_type;
+#else
 typedef float           real_type;
+#endif
 typedef unsigned int    int_type;
 
 #ifdef USE_UNIT_ORDERING
@@ -42,9 +47,15 @@ typedef unordered_tag   order_tag_type;
 typedef AlleleSpace< real_type, int_type, order_tag_type >  allele_space_type;
 typedef SequenceSpace< int_type >                           sequence_space_type;
 
-typedef PopulationSpace< sequence_space_type, allele_space_type > population_space_type;
+//typedef PopulationSpace< sequence_space_type, allele_space_type > population_space_type;
+typedef PopulationSpace< real_type, int_type, order_tag_type > population_space_type;
 
 typedef qtl_cuda_simulate_engine< population_space_type >   engine_type;
+
+static const std::string GEN_K = "generations";
+
+typedef std::shared_ptr< ipopulation_growth_generator >                     population_growth_generator_type;
+typedef std::shared_ptr< ipopulation_growth >                               population_growth_type;
 
 int main( int argc, char ** argv ) {
 
@@ -65,10 +76,30 @@ int main( int argc, char ** argv ) {
     
     engine_type sim_engine( config );
 
-    if( !print_config_only ) {
-        for( unsigned int i = 0; i < 100; ++i ) {
-            sim_engine.simulate(10000);
-        }
+    unsigned int nGens = 100;
+
+    if( config.get_child_optional( GEN_K ) == boost::none ) {
+        config.put(GEN_K, nGens);
+    } else {
+        nGens = config.get< unsigned int >( GEN_K, nGens);
+    }
+    std::cerr << "Generations: " << nGens << std::endl;
+
+    population_growth_type pop_grow;
+    if( print_config_only ) {
+        population_growth_toolkit::getInstance()->tool_configurations( config );
+
+        nGens = 0;
+    } else {
+        pop_grow = population_growth_toolkit::getInstance()->get_tool( config )->generate();
+    }
+
+    unsigned int p_size = 0;
+    unsigned int i = 0;
+    while( i < nGens ) {
+        p_size = (*pop_grow)( p_size, i++ );
+
+        sim_engine.simulate(p_size);
     }
 
     boost::property_tree::ptree ofile;

@@ -38,15 +38,15 @@ __device__ void _resize_space_impl( device_allele_space< RealType, IntType, Orde
         }
         aspace->locations = new typename space_type::real_type[N];
         
-        if( aspace->free_list ) {
-            delete aspace->free_list;
-        }
+//        if( aspace->free_list ) {
+//            delete aspace->free_list;
+//        }
 
-        unsigned int free_size = compute_free_list_size< typename space_type::int_type >( N );
-        aspace->free_list = new typename space_type::int_type[free_size];
+//        unsigned int free_size = compute_free_list_size< typename space_type::int_type >( N );
+//        aspace->free_list = new typename space_type::int_type[free_size];
 
         memset(aspace->locations, 0, N * sizeof( typename space_type::real_type ) );
-        memset(aspace->free_list, -1, free_size * sizeof( typename space_type::int_type ) );
+//        memset(aspace->free_list, -1, free_size * sizeof( typename space_type::int_type ) );
 
         aspace->capacity = N;
     }
@@ -71,14 +71,14 @@ __global__ void _delete_space( device_allele_space< RealType, IntType, OrderTag 
 
     if( local.locations ) {
         delete local.locations;
-        delete local.free_list;
+//        delete local.free_list;
     }
 }
 
-template < class RealType, class IntType, class OrderTag >
-void update_free_count( device_allele_space< RealType, IntType, OrderTag > * a ) {
-    _update_free_count<<< 1, 32 >>>( a );
-}
+//template < class RealType, class IntType, class OrderTag >
+//void update_free_count( device_allele_space< RealType, IntType, OrderTag > * a ) {
+//    _update_free_count<<< 1, 32 >>>( a );
+//}
 
 template < class RealType, class IntType, class OrderTag >
 void merge_allele_space( device_allele_space< RealType, IntType, OrderTag > * a
@@ -87,15 +87,24 @@ void merge_allele_space( device_allele_space< RealType, IntType, OrderTag > * a
 
 }
 
+/*
 template < class RealType, class IntType, class OrderTag >
 void merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
                             , device_event_space< IntType, OrderTag > * evts
                             , device_allele_space< RealType, IntType, OrderTag > * out_space ) {
-    std::cerr << "Merge space called" << std::endl;
-
     typedef merge_execution_config< OrderTag > config_type;
     _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, evts, out_space );
-    _update_free_count<<< 1, 32 >>>(out_space);
+//    _update_free_count<<< 1, 32 >>>(out_space);
+}*/
+
+template < class RealType, class IntType, class OrderTag >
+void merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
+                , device_free_space< IntType, OrderTag > * fspace
+                , device_event_space< IntType, OrderTag > * evts
+                , device_allele_space< RealType, IntType, OrderTag > * out_space ) {
+
+    typedef merge_execution_config< OrderTag > config_type;
+    _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, fspace, evts, out_space );
 }
 
 #endif  // DEVICE_ALLELE_SPACE_HPP_

@@ -48,10 +48,12 @@ __global__ void _merge_allele_space( device_allele_space< RealType, IntType, Ord
                                     , device_allele_space< RealType, IntType, OrderedTag > * bspace
                                     , device_allele_space< RealType, IntType, OrderedTag > * output );
 
+#include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 
 template < class RealType, class IntType, class OrderTag >
 __global__ void _merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
+                            , device_free_space< IntType, OrderTag > * fspace
                             , device_event_space< IntType, OrderTag > * evts
                             , device_allele_space< RealType, IntType, OrderTag > * out_space );
 

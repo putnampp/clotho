@@ -116,4 +116,62 @@ __global__ void _simple_mutation_generator( StateType * states
     states[ tid ] = local_state;
 }
 
+template < class StateType, class RealType, class IntType >
+__global__ void _simple_mutation_generator2( StateType * states
+                                            , device_event_space< IntType, unordered_tag > * mut_events
+                                            , poisson_cdf< RealType, 32 > * dist
+                                            , unsigned int sequence_size ) {
+    typedef device_event_space< IntType, unordered_tag > space_type;
+    typedef typename space_type::pointer    event_ptr;
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    __shared__ RealType cdf[ 32 ];
+
+    unsigned int max_k = dist->max_k;
+    cdf[ tid ] = dist->_cdf[ tid ];
+    __syncthreads();
+
+    StateType local_state = states[ tid ];
+
+    event_ptr evt = mut_events->event_count;
+    __syncthreads();
+
+    unsigned int i = tid;
+    unsigned int count = 0;
+
+    unsigned int padded_size = ((sequence_size & 31) ? ((sequence_size & (~31)) + 32) : sequence_size);  // ==> % 32
+
+    while ( i < padded_size ) {
+        RealType x = curand_uniform( &local_state );
+        unsigned int _c = _find_poisson_maxk32( cdf, x, max_k );
+
+        _c *= (i < sequence_size);
+
+        for( unsigned int j = 1; j < 32; j <<= 1 ) {
+            unsigned int t = __shfl_up( _c, j );
+            _c += (tid >= j) * t;
+        }
+
+        count += _c;
+
+        if( i < sequence_size ) {
+            evt[ i ] = count;
+        }
+        __syncthreads();
+        i += (blockDim.x * blockDim.y);
+
+        unsigned int t = __shfl(count, 31);
+        count = t;
+    }
+    __syncthreads();
+
+    if( tid == 31 ) {
+        // has total number of mutations generated
+        mut_events->total = count;    
+    }
+
+    states[ tid ] = local_state;
+}
+
 #endif  // SIMPLE_MUTATION_GENERATOR_HPP_

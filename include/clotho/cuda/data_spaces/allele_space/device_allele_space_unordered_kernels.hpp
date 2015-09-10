@@ -22,6 +22,7 @@
 
 #include <stdlib.h>
 
+/*
 template < class RealType, class IntType >
 __global__ void _update_free_count( device_allele_space< RealType, IntType, unordered_tag > * aspace ) {
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
@@ -47,8 +48,8 @@ __global__ void _update_free_count( device_allele_space< RealType, IntType, unor
     if( (tid & 31) == 31) {
         aspace->free_count = _count;
     }
-}
-
+}*/
+/*
 template < class RealType, class IntType >
 __global__ void _merge_allele_space( device_allele_space< RealType, IntType, unordered_tag > * aspace
                                     , device_allele_space< RealType, IntType, unordered_tag > * bspace
@@ -72,16 +73,17 @@ __global__ void _merge_allele_space( device_allele_space< RealType, IntType, uno
 
     // persist output allele space
     *output = O;
-}
+}*/
 
 template < class RealType, class IntType >
 __global__ void _merge_space( device_allele_space< RealType, IntType, unordered_tag > * in_space
+                            , device_free_space< IntType, unordered_tag > * fspace
                             , device_event_space< IntType, unordered_tag > * evts
                             , device_allele_space< RealType, IntType, unordered_tag > * out_space ) {
 
     device_allele_space< RealType, IntType, unordered_tag > local = *in_space;
 
-    unsigned int N = local.size - local.free_count;
+    unsigned int N = local.size - fspace->total;
     N += evts->total;
 
     if( local.size > N ) { N = local.size; }
@@ -90,7 +92,7 @@ __global__ void _merge_space( device_allele_space< RealType, IntType, unordered_
 
     if( local.locations ) {
         memcpy( out_space->locations, local.locations, local.size * sizeof( typename device_allele_space< RealType, IntType, unordered_tag >::real_type ) );
-        memcpy( out_space->free_list, local.free_list, local.free_list_size() * sizeof( typename device_allele_space< RealType, IntType, unordered_tag >::int_type ));
+//        memcpy( out_space->free_list, local.free_list, local.free_list_size() * sizeof( typename device_allele_space< RealType, IntType, unordered_tag >::int_type ));
     }
 }
 #endif  // DEVICE_ALLELE_SPACE_UNORDERED_KERNELS_HPP_

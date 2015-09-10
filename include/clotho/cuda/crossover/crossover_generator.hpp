@@ -56,6 +56,7 @@ public:
     }
 
     void operator()( population_type * pop ) {
+//        std::cerr << "Generating Random Crossover" << std::endl;
         crossover_kernel<<< BLOCKS_PER_GRID, THREADS_PER_BLOCK >>>( m_states, pop->alleles.get_device_space(), dPoisCDF, pop->sequences.get_device_space() );
     }
 
@@ -63,6 +64,7 @@ public:
         helper_type::cleanup_states( m_states );
         cudaFree( dPoisCDF );
     }
+
 protected:
 
     void parse_configuration( boost::property_tree::ptree & config ) {
@@ -102,14 +104,14 @@ protected:
     void initialize_poisson( real_type mean, unordered_tag * p ) {
         real_type lambda =  ( mean / (real_type) THREADS_PER_BLOCK);
 
-        std::cerr << "Scaled recombination rate for unordered space: " << mean << " -> " << lambda << std::endl;
+//        std::cerr << "Scaled recombination rate for unordered space: " << mean << " -> " << lambda << std::endl;
         make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, lambda );
     }
 
     void initialize_poisson( real_type mean, unit_ordered_tag< int_type > * p ) {
         real_type lambda = (mean / 32.0);
 
-        std::cerr << "Scaled recombination rate for unit ordered space: " << mean << " -> " << lambda << std::endl;
+//        std::cerr << "Scaled recombination rate for unit ordered space: " << mean << " -> " << lambda << std::endl;
 
         make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, lambda );
     }

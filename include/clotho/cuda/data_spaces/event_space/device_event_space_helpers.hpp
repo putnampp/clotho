@@ -19,7 +19,34 @@
 
 template < class IntType, class OrderTag >
 void write_data( std::ostream & out, device_event_space< IntType, OrderTag > & lspace ) {
-    out << "\n\"event_count\": []";
+
+    if( lspace.size == 0 ) {
+        out << "[]";
+        return;
+    }
+
+    typedef device_event_space< IntType, OrderTag > space_type;
+    typedef typename space_type::int_type           event_int_type;
+
+    event_int_type * events = new event_int_type[ lspace.size ];
+
+    event_int_type * dEvt;
+    assert( cudaMalloc( (void **) &dEvt, lspace.size * sizeof( event_int_type) ) == cudaSuccess );
+
+    copy_heap<<< 1, 1 >>>( dEvt, lspace.event_count, lspace.size );
+    cudaDeviceSynchronize();
+
+    assert( cudaMemcpy( events, dEvt, lspace.size * sizeof( event_int_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
+
+    out << "[" << events[0];
+    for( int i = 1; i < lspace.size; ++i ) {
+        out << ",\n" << events[i];
+    }
+
+    out << "]";
+    cudaFree( dEvt );
+
+    delete events;
 }
 
 template < class IntType, class OrderTag >
@@ -52,7 +79,12 @@ std::ostream & operator<<( std::ostream & out, device_event_space< IntType, Orde
     assert( cudaMemcpy( &lspace, space, sizeof( space_type ) , cudaMemcpyDeviceToHost ) == cudaSuccess );
 
     out << "{";
+    out << "\"event_count\": ";
+#ifdef DUMP_HEAP_VARIABLES
     write_data( out, lspace );
+#else
+    out << "[]";
+#endif  // DUMP_HEAP_VARIABLES
     write_summary( out, lspace );
     write_stats( out, lspace );
     out << "\n}";

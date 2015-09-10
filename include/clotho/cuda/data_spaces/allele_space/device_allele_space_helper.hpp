@@ -14,10 +14,10 @@
 #ifndef DEVICE_ALLELE_SPACE_HELPER_HPP_
 #define DEVICE_ALLELE_SPACE_HELPER_HPP_
 
-template < class DataType >
-__global__ void copy_heap( DataType * d_loc, DataType * d_heap, unsigned int N ) {
-    memcpy( d_loc, d_heap, N * sizeof( DataType ) );
-}
+//template < class DataType >
+//__global__ void copy_heap( DataType * d_loc, DataType * d_heap, unsigned int N ) {
+//    memcpy( d_loc, d_heap, N * sizeof( DataType ) );
+//}
 
 template < class RealType, class IntType, class OrderTag >
 void dump_locations( std::ostream & out, const device_allele_space< RealType, IntType, OrderTag > & rhs ) {
@@ -51,6 +51,7 @@ void dump_locations( std::ostream & out, const device_allele_space< RealType, In
     delete locations;
 }
 
+/*
 template < class RealType, class IntType, class OrderTag >
 void dump_free_list( std::ostream & out, const device_allele_space< RealType, IntType, OrderTag > & rhs ) {
     if( rhs.free_list == NULL || rhs.size == 0 ) {
@@ -95,23 +96,27 @@ void dump_free_count ( std::ostream & out, const device_allele_space< RealType, 
         out << ",\n" << rhs.free_count[i];
     }
     out << "]";
-}
+}*/
 
 template < class RealType, class IntType, class OrderTag >
 std::ostream & operator<<( std::ostream & out, const device_allele_space< RealType, IntType, OrderTag > & rhs ) {
     out << "{";
 
-#ifdef DUMP_HEAP_VARIABLES
     out << "\n\"locations\": "; // << std::hex << rhs.locations;
+#ifdef DUMP_HEAP_VARIABLES
     dump_locations( out, rhs );
+#else
+    out << "[]";
+#endif  // DUMP_HEAP_VARIABLES
 
-    out << ",\n\"free_list\": ";
-    dump_free_list( out, rhs );
-    out << ",";
-#endif  // LOG_LEVEL
-
-    out << "\n\"free_count\": ";
-    dump_free_count( out, rhs );
+//    out << ",\n\"free_list\": ";
+//#ifdef DUMP_HEAP_VARIABLES
+//    dump_free_list( out, rhs );
+//#else
+//    out << "[]";
+//#endif  // DUMP_HEAP_VARIABLES
+//    out << ",\n\"free_count\": ";
+//    dump_free_count( out, rhs );
 
     out << ",\n\"size\": " << rhs.size;
     out << ",\n\"capacity\": " << rhs.capacity;

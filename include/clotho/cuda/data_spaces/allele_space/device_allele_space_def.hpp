@@ -30,18 +30,18 @@ struct device_allele_space {
     static const unsigned int ALIGNMENT_SIZE = 128;
 
     real_type   * locations;
-    int_type    * free_list;
+//    int_type    * free_list;
 
     unsigned int    size, capacity;
-    unsigned int    free_count;
+//    unsigned int    free_count;
 
     __host__ __device__ unsigned int allele_count( ) {
         return size;
     }
 
-    __host__ __device__ unsigned int free_list_size( ) {
-        return compute_free_list_size< IntType >( size );
-    }
+//    __host__ __device__ unsigned int free_list_size( ) {
+//        return compute_free_list_size< IntType >( size );
+//    }
 };
 
 #endif  // DEVICE_ALLELE_SPACE_DEF_HPP_

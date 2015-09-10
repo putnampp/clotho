@@ -30,6 +30,11 @@
 #include "clotho/cuda/helpers/event_space_helper.hpp"
 #include "clotho/cuda/helpers/scaled_mean_helper.hpp"
 
+#include "clotho/cuda/mutation/generate_mutation_kernel_api.hpp"
+#include "clotho/cuda/mutation/generate_mutation_kernel_impl.hpp"
+
+#include "clotho/cuda/mutation/scatter_unordered_impl.hpp"
+
 template < class RealType, class IntType, class OrderTag >
 class MutationEventGenerator {
 public:
@@ -56,14 +61,25 @@ public:
     }
 
     void generate( space_type * space, unsigned int N ) {
+//        std::cerr << "Generating Random Events" << std::endl;
         unsigned int event_counts = space_helper_type::get( N );
         resize_space( space, event_counts );
-        _simple_mutation_generator<<< 1, 32 >>>( m_states, space, dPoisCDF, N);
+        _simple_mutation_generator2<<< 1, 32 >>>( m_states, space, dPoisCDF, N);
     }
 
     template < class PopulationType >
-    void scatter( PopulationType * pop, space_type * events ) {
-//        _scatter_mutation<<< 1, 32 >>>( m_states, pop->alleles, events, pop->sequences );
+    void scatter( PopulationType * pop, space_type * events, unsigned int N ) {
+//        std::cerr << "Scattering events" << std::endl;
+        const unsigned int MAX_BLOCKS = 40000;  // arbitrary limitation (think 65535 is max for any single grid dimension)
+        unsigned int offset = 0;
+        while( offset < N ) {
+            unsigned int bcount = N - offset;
+            bcount = (( bcount > MAX_BLOCKS ) ? MAX_BLOCKS : bcount);
+            _scatter_mutation_single_thread<<< bcount, 1 >>>(m_states, pop->free_space, events, pop->sequences.get_device_space(), offset );
+            offset += bcount;
+        }
+
+        _generate_mutation_kernel<<< 1, 32 >>>( m_states, pop->free_space, events, pop->alleles.get_device_space() );
     }
 
     virtual ~MutationEventGenerator() {

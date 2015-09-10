@@ -17,6 +17,7 @@
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_unit_ordered.hpp"
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_kernel_api.hpp"
 
+/*
 template < class RealType, class IntType >
 __global__ void _update_free_count( device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > * aspace ) {
     IntType tid = threadIdx.y *blockDim.x + threadIdx.x;
@@ -36,11 +37,11 @@ __global__ void _update_free_count( device_allele_space< RealType, IntType, unit
     }
 
     fcounts[tid] = _count;
-}
-
+}*/
 
 template < class RealType, class IntType >
 __global__ void _merge_space( device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > * in_space
+                            , device_free_space< IntType, unit_ordered_tag< IntType > > * fspace
                             , device_event_space< IntType, unit_ordered_tag< IntType > > * evts
                             , device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > * out_space ) {
     typedef device_allele_space< RealType, IntType, unit_ordered_tag< IntType > >   allele_space_type;
@@ -51,7 +52,7 @@ __global__ void _merge_space( device_allele_space< RealType, IntType, unit_order
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
-    int_type in_free = in_space->free_count[tid];
+    int_type in_free = fspace->free_count[tid];
     int_type bin = evts->bin_summary[tid];
 
     int n_units = 0;
@@ -82,8 +83,8 @@ __global__ void _merge_space( device_allele_space< RealType, IntType, unit_order
         if( locs ) {
             memcpy( out_space->locations, locs, size * sizeof( real_type ) );
 
-            size = compute_free_list_size< int_type >( size );
-            memcpy( out_space->free_list, in_space->free_list, size * sizeof( int_type ));
+//            size = compute_free_list_size< int_type >( size );
+//            memcpy( out_space->free_list, in_space->free_list, size * sizeof( int_type ));
         }
     }
 }
