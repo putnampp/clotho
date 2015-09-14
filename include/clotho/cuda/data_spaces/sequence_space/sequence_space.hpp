@@ -18,8 +18,10 @@
 
 #include <algorithm>
 
+#include "clotho/cuda/device_state_object.hpp"
+
 template < class IntType >
-class SequenceSpace {
+class SequenceSpace : public clotho::utility::iStateObject {
 public:
     typedef IntType int_type;
     typedef device_sequence_space< int_type > device_space_type;
@@ -35,6 +37,10 @@ public:
     template < class ASpaceType >
     void resize( ASpaceType * aspace, unsigned int seq_count ) {
         resize_space( dSequences, aspace, seq_count );
+    }
+
+    void get_state( boost::property_tree::ptree & state ) {
+        get_device_object_state(state, dSequences );
     }
 
     template < class I >

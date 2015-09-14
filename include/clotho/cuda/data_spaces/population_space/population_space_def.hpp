@@ -19,9 +19,10 @@
 #include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
 
 #include "clotho/cuda/data_spaces/population_space/population_space_helper_api.hpp"
+#include "clotho/cuda/device_state_object.hpp"
 
 template < class RealType, class IntType, class OrderTag >
-struct PopulationSpace {
+struct PopulationSpace : public clotho::utility::iStateObject {
 
     typedef PopulationSpace< RealType, IntType, OrderTag >  self_type;
 
@@ -48,6 +49,19 @@ struct PopulationSpace {
         alleles.expand_relative_to( parent_pop->alleles, free_space, mut_events );
 
         sequences.resize( alleles.get_device_space(), seqs );
+    }
+
+    void get_state( boost::property_tree::ptree & state ) {
+        boost::property_tree::ptree a, s, f;
+
+        alleles.get_state( a );
+        sequences.get_state( s );
+
+        get_device_object_state( f, free_space );
+
+        state.put_child( "alleles", a );
+        state.put_child( "sequences", s );
+        state.put_child( "free_space", f );
     }
 
     virtual ~PopulationSpace() {

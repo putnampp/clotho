@@ -92,4 +92,17 @@ std::ostream & operator<<( std::ostream & out, device_event_space< IntType, Orde
     return out;
 }
 
+namespace clotho {
+namespace utility {
+
+template < class IntType, class OrderTag >
+void get_state( boost::property_tree::ptree & state, const device_event_space< IntType, OrderTag > & obj ) {
+    state.put( "total", obj.total );
+    state.put( "size", obj.size );
+    state.put( "capacity", obj.capacity );
+}
+
+}   // namespace utility
+}   // namespace clotho
+
 #endif  // DEVICE_EVENT_SPACE_HELPERS_HPP_

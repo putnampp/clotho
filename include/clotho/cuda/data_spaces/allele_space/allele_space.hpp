@@ -15,9 +15,10 @@
 #define ALLELE_SPACE_HPP_
 
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space.hpp"
+#include "clotho/cuda/device_state_object.hpp"
 
 template < class RealType, class IntType, class OrderTag >
-class AlleleSpace {
+class AlleleSpace : public clotho::utility::iStateObject {
 public:
     typedef device_allele_space< RealType, IntType, OrderTag >  device_space_type;
 
@@ -38,6 +39,8 @@ public:
 //    void merge_alleles( self_type & alls, self_type * muts);
 
     void expand_relative_to( self_type & alls, device_free_space< IntType, OrderTag > * fspace, device_event_space< IntType, OrderTag > * space );
+
+    void get_state( boost::property_tree::ptree & state );
 
     virtual ~AlleleSpace();
 
@@ -88,6 +91,11 @@ void _CLASS::merge_alleles( self_type * A, self_type * B ) {
 _HEADER
 void _CLASS::expand_relative_to( self_type & alls, device_free_space< IntType, OrderTag > * fspace, device_event_space< IntType, OrderTag > * muts ) {
     merge_space( alls.dAlleles, fspace, muts, dAlleles );
+}
+
+_HEADER
+void _CLASS::get_state( boost::property_tree::ptree & state ) {
+    get_device_object_state( state, dAlleles );
 }
 
 _HEADER

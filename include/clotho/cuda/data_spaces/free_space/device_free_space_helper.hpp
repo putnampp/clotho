@@ -116,4 +116,19 @@ std::ostream & operator<<( std::ostream & out, device_free_space< IntType, Order
     return out;
 }
 
+#include "clotho/utility/state_object.hpp"
+
+namespace clotho {
+namespace utility {
+
+template < class IntType, class OrderTag >
+void get_state( boost::property_tree::ptree & state, const device_free_space< IntType, OrderTag > & obj ) {
+    state.put( "total", obj.total);
+    state.put( "size", obj.size );
+    state.put( "capacity", obj.capacity );
+}
+
+}   // namespace utility
+}   // namespace clotho
+
 #endif  // DEVICE_FREE_SPACE_HELPER_HPP_

@@ -27,7 +27,9 @@
 #include "clotho/cuda/selection/random_select_parents.hpp"
 #include "clotho/cuda/recombination/recombine_parents.hpp"
 
-class SelectionEventGenerator {
+#include "clotho/cuda/device_state_object.hpp"
+
+class SelectionEventGenerator : public clotho::utility::iStateObject {
 public:
     typedef device_event_space< unsigned int, no_order_tag > event_space_type;
 
@@ -62,6 +64,10 @@ public:
         recombine_parents_kernel<<< 200, 32 >>>( parent_pop->sequences.get_device_space()
                                                 , dEvents
                                                 , child_pop->sequences.get_device_space() );
+    }
+
+    void get_state( boost::property_tree::ptree & state ) {
+        get_device_object_state( state, dEvents );
     }
 
     virtual ~SelectionEventGenerator() {

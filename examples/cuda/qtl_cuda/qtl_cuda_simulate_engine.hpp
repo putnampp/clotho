@@ -78,6 +78,16 @@ public:
     }
 
     void get_state( boost::property_tree::ptree & state ) {
+        boost::property_tree::ptree cur, prev;
+        current_pop->get_state( cur );
+        prev_pop->get_state( prev );
+
+        boost::property_tree::ptree sel;
+        sel_gen.get_state( sel );
+
+        state.put_child( "population.current", cur );
+        state.put_child( "population.previous", prev );
+        state.put_child( "selection", sel );
     }
 
     void swap() {

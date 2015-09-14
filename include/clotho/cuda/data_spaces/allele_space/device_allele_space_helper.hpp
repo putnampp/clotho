@@ -124,4 +124,18 @@ std::ostream & operator<<( std::ostream & out, const device_allele_space< RealTy
     return out;
 }
 
+#include "clotho/utility/state_object.hpp"
+
+namespace clotho {
+namespace utility {
+
+template < class RealType, class IntType, class OrderTag > 
+void get_state( boost::property_tree::ptree & state, const device_allele_space< RealType, IntType, OrderTag > & obj ) {
+    state.put( "size", obj.size );
+    state.put( "capacity", obj.capacity );
+}
+
+}   // namespace utility
+}   // namespace clotho
+
 #endif  // DEVICE_ALLELE_SPACE_HELPER_HPP_
