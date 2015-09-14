@@ -18,6 +18,7 @@
 
 #include "clotho/cuda/data_spaces/tags/unit_ordered_tag.hpp"
 
+/*
 template < class RealType, class IntType >
 struct device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > {
     typedef RealType                    real_type;
@@ -41,7 +42,7 @@ struct device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > {
     __host__ __device__ unsigned int free_list_size( ) {
         return compute_free_list_size< IntType >( size );
     }
-};
+};*/
 
 /*
 template < class RealType, class IntType >

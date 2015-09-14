@@ -15,18 +15,19 @@
 #define DEVICE_ALLELE_SPACE_HPP_
 
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_def.hpp"
-#include "clotho/cuda/data_spaces/allele_space/device_allele_space_unit_ordered.hpp"
-
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_api.hpp"
+
+#include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
+#include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
+
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_unordered_kernels.hpp"
-#include "clotho/cuda/data_spaces/allele_space/device_allele_space_unit_ordered_kernels.hpp"
 
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_helper.hpp"
 #include "clotho/cuda/data_spaces/allele_space/merge_space_helper.hpp"
 
-template < class RealType, class IntType, class OrderTag >
-__device__ void _resize_space_impl( device_allele_space< RealType, IntType, OrderTag > * aspace, unsigned int N ) {
-    typedef device_allele_space< RealType, IntType, OrderTag > space_type;
+template < class RealType/*, class IntType, class OrderTag*/ >
+__device__ void _resize_space_impl( device_allele_space< RealType/*, IntType, OrderTag*/ > * aspace, unsigned int N ) {
+    typedef device_allele_space< RealType/*, IntType, OrderTag*/ > space_type;
     if( N % space_type::ALIGNMENT_SIZE != 0 ) {
         N -= (N % space_type::ALIGNMENT_SIZE);
         N += space_type::ALIGNMENT_SIZE;
@@ -54,8 +55,8 @@ __device__ void _resize_space_impl( device_allele_space< RealType, IntType, Orde
     aspace->size = N;
 }
 
-template < class RealType, class IntType, class OrderTag >
-__global__ void _resize_space( device_allele_space< RealType, IntType, OrderTag > * aspace, unsigned int N ) {
+template < class RealType/*, class IntType, class OrderTag*/ >
+__global__ void _resize_space( device_allele_space< RealType/*, IntType, OrderTag*/ > * aspace, unsigned int N ) {
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
     if( tid == 0 ) {
@@ -63,9 +64,9 @@ __global__ void _resize_space( device_allele_space< RealType, IntType, OrderTag 
     }
 }
 
-template < class RealType, class IntType, class OrderTag >
-__global__ void _delete_space( device_allele_space< RealType, IntType, OrderTag > * aspace ) {
-    typedef device_allele_space< RealType, IntType, OrderTag > space_type;
+template < class RealType/*, class IntType, class OrderTag*/ >
+__global__ void _delete_space( device_allele_space< RealType/*, IntType, OrderTag*/ > * aspace ) {
+    typedef device_allele_space< RealType/*, IntType, OrderTag*/ > space_type;
 
     space_type local = *aspace;
 
@@ -80,10 +81,10 @@ __global__ void _delete_space( device_allele_space< RealType, IntType, OrderTag 
 //    _update_free_count<<< 1, 32 >>>( a );
 //}
 
-template < class RealType, class IntType, class OrderTag >
-void merge_allele_space( device_allele_space< RealType, IntType, OrderTag > * a
-                        , device_allele_space< RealType, IntType, OrderTag > * b
-                        , device_allele_space< RealType, IntType, OrderTag > * output ) {
+template < class RealType/*, class IntType, class OrderTag*/ >
+void merge_allele_space( device_allele_space< RealType/*, IntType, OrderTag*/ > * a
+                        , device_allele_space< RealType/*, IntType, OrderTag*/ > * b
+                        , device_allele_space< RealType/*, IntType, OrderTag*/ > * output ) {
 
 }
 
@@ -98,10 +99,10 @@ void merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
 }*/
 
 template < class RealType, class IntType, class OrderTag >
-void merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
+void merge_space( device_allele_space< RealType/*, IntType, OrderTag*/ > * in_space
                 , device_free_space< IntType, OrderTag > * fspace
                 , device_event_space< IntType, OrderTag > * evts
-                , device_allele_space< RealType, IntType, OrderTag > * out_space ) {
+                , device_allele_space< RealType/*, IntType, OrderTag*/ > * out_space ) {
 
     typedef merge_execution_config< OrderTag > config_type;
     _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, fspace, evts, out_space );

@@ -16,6 +16,7 @@
 
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space.hpp"
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space.hpp"
+#include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
 #include "clotho/cuda/distributions/poisson_distribution.hpp"
 
 #include "clotho/cuda/data_spaces/tags/unordered_tag.hpp"
@@ -23,11 +24,12 @@
 
 template < class StateType, class RealType, class IntType >
 __global__ void crossover_kernel( StateType * states
-                                , device_allele_space< RealType, IntType, unordered_tag > * alleles
+                                , device_allele_space< RealType/*, IntType, unordered_tag*/ > * alleles
+                                , device_free_space< IntType, unordered_tag > * free_space
                                 , poisson_cdf< RealType, 32 > * pois
                                 , device_sequence_space< IntType > * sequences ) {
 
-    typedef device_allele_space< RealType, IntType, unordered_tag > allele_space_type;
+    typedef device_allele_space< RealType/*, IntType, unordered_tag*/ > allele_space_type;
     typedef RealType   real_type;
     typedef StateType  state_type;
     typedef IntType    int_type;

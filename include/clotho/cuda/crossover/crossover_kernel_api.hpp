@@ -16,9 +16,10 @@
 
 #include <cuda.h>
 
-template < class StateType, class AlleleSpaceType, class EventSpaceType, class SequenceSpaceType >
+template < class StateType, class AlleleSpaceType, class FreeSpaceType, class EventSpaceType, class SequenceSpaceType >
 __global__ void crossover_kernel( StateType * states
                                 , AlleleSpaceType * alleles
+                                , FreeSpaceType * free_space
                                 , EventSpaceType * xover_events
                                 , SequenceSpaceType * sequences );
 

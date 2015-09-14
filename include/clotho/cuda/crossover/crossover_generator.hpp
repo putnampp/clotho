@@ -31,11 +31,11 @@ class CrossoverGenerator {
 public:
     typedef PopulationType                                                      population_type;
     typedef typename population_type::allele_space_type::device_space_type      allele_space_type;
-    typedef typename population_type::sequence_space_type                       sequence_space_type;
+//    typedef typename population_type::sequence_space_type                       sequence_space_type;
 
-    typedef typename allele_space_type::real_type           real_type;
-    typedef typename allele_space_type::int_type            int_type;
-    typedef typename allele_space_type::order_tag_type      order_tag_type;
+    typedef typename population_type::real_type             real_type;
+    typedef typename population_type::int_type              int_type;
+    typedef typename population_type::order_tag_type        order_tag_type;
 
 //    typedef curandState_t                                   state_type;
 //    typedef clotho::cuda::curand_helper< state_type >       helper_type;
@@ -63,7 +63,7 @@ public:
 //        crossover_kernel<<< BLOCKS_PER_GRID, THREADS_PER_BLOCK >>>( m_states, pop->alleles.get_device_space(), dPoisCDF, pop->sequences.get_device_space() );
         unsigned int bcount = state_pool_type::getInstance()->get_max_blocks();
         unsigned int tcount = state_pool_type::getInstance()->get_max_threads();
-        crossover_kernel<<< bcount, tcount >>>( state_pool_type::getInstance()->get_device_states(), pop->alleles.get_device_space(), dPoisCDF, pop->sequences.get_device_space() );
+        crossover_kernel<<< bcount, tcount >>>( state_pool_type::getInstance()->get_device_states(), pop->alleles.get_device_space(), pop->free_space, dPoisCDF, pop->sequences.get_device_space() );
     }
 
     virtual ~CrossoverGenerator() {

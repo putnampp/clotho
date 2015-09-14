@@ -16,13 +16,15 @@
 
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space.hpp"
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space.hpp"
+#include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
 #include "clotho/cuda/distributions/poisson_distribution.hpp"
 
 #include "clotho/cuda/data_spaces/tags/unit_ordered_tag.hpp"
 
 template < class StateType, class RealType, class IntType >
 __global__ void crossover_kernel( StateType * states
-                                , device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > * alleles
+                                , device_allele_space< RealType/*, IntType, unit_ordered_tag< IntType >*/ > * alleles
+                                , device_free_space< IntType, unit_ordered_tag< IntType > > * free_space
                                 , poisson_cdf< RealType, 32 > * events
                                 , device_sequence_space< IntType > * sequences ) {
 

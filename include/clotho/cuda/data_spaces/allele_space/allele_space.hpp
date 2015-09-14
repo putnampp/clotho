@@ -15,18 +15,20 @@
 #define ALLELE_SPACE_HPP_
 
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space.hpp"
+#include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
+#include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/device_state_object.hpp"
 
-template < class RealType, class IntType, class OrderTag >
+template < class RealType/*, class IntType, class OrderTag*/ >
 class AlleleSpace : public clotho::utility::iStateObject {
 public:
-    typedef device_allele_space< RealType, IntType, OrderTag >  device_space_type;
+    typedef device_allele_space< RealType/*, IntType, OrderTag*/ >  device_space_type;
 
     typedef typename device_space_type::real_type   real_type;
-    typedef typename device_space_type::int_type    int_type;
-    typedef typename device_space_type::order_tag_type  order_tag_type;
+//    typedef typename device_space_type::int_type    int_type;
+//    typedef typename device_space_type::order_tag_type  order_tag_type;
 
-    typedef AlleleSpace< RealType, IntType, OrderTag > self_type;
+    typedef AlleleSpace< RealType/*, IntType, OrderTag*/ > self_type;
 
     AlleleSpace( );
 
@@ -38,14 +40,15 @@ public:
 
 //    void merge_alleles( self_type & alls, self_type * muts);
 
+    template < class IntType, class OrderTag >
     void expand_relative_to( self_type & alls, device_free_space< IntType, OrderTag > * fspace, device_event_space< IntType, OrderTag > * space );
 
     void get_state( boost::property_tree::ptree & state );
 
     virtual ~AlleleSpace();
 
-    template < class R, class I, class O >
-    friend std::ostream & operator<<( std::ostream & out, const AlleleSpace< R, I, O> & s );
+    template < class R/*, class I, class O*/ >
+    friend std::ostream & operator<<( std::ostream & out, const AlleleSpace< R/*, I, O*/> & s );
 
 protected:
     void initialize();
@@ -54,8 +57,11 @@ protected:
 };
 
 
-#define _HEADER template < class RealType, class IntType, class OrderTag >
-#define _CLASS  AlleleSpace< RealType, IntType, OrderTag >
+//#define _HEADER template < class RealType, class IntType, class OrderTag >
+//#define _CLASS  AlleleSpace< RealType, IntType, OrderTag >
+//
+#define _HEADER template < class RealType >
+#define _CLASS  AlleleSpace< RealType >
 
 _HEADER
 _CLASS::AlleleSpace() : dAlleles( NULL ) {
@@ -88,7 +94,7 @@ void _CLASS::merge_alleles( self_type * A, self_type * B ) {
     merge_allele_space( A->dAlleles, B->dAlleles, dAlleles );
 }*/
 
-_HEADER
+_HEADER template < class IntType, class OrderTag >
 void _CLASS::expand_relative_to( self_type & alls, device_free_space< IntType, OrderTag > * fspace, device_event_space< IntType, OrderTag > * muts ) {
     merge_space( alls.dAlleles, fspace, muts, dAlleles );
 }

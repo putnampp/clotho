@@ -32,12 +32,12 @@ class qtl_cuda_simulate_engine : public clotho::utility::iStateObject {
 public:
     typedef PopulationSpaceType                                 population_space_type;
 
-    typedef typename population_space_type::allele_space_type   allele_space_type;
-    typedef typename population_space_type::sequence_space_type sequence_space_type;
+    typedef typename population_space_type::allele_space_type       allele_space_type;
+    typedef typename population_space_type::sequence_space_type     sequence_space_type;
 
-    typedef typename allele_space_type::real_type                       real_type;
-    typedef typename allele_space_type::int_type                        int_type;
-    typedef typename allele_space_type::order_tag_type                  order_tag_type;
+    typedef typename allele_space_type::real_type                           real_type;
+    typedef typename sequence_space_type::int_type                          int_type;
+    typedef typename population_space_type::free_space_type::order_tag_type order_tag_type;
 
     typedef MutationEventGenerator< real_type, int_type, order_tag_type >   mutation_generator_type;
     typedef typename mutation_generator_type::space_type            mutation_event_space_type;

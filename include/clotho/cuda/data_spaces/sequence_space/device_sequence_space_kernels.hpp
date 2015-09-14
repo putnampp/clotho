@@ -32,8 +32,8 @@ __global__ void _resize_space( device_sequence_space< IntType > * sspace, unsign
     sspace->size = N;
 };
 
-template < class RealType, class IntType, class OrderTag >
-__global__ void _resize_space( device_sequence_space< IntType > * sspace, device_allele_space< RealType, IntType, OrderTag > * aspace, unsigned int seq_count ) {
+template < class RealType, class IntType/*, class OrderTag*/ >
+__global__ void _resize_space( device_sequence_space< IntType > * sspace, device_allele_space< RealType/*, IntType, OrderTag*/ > * aspace, unsigned int seq_count ) {
     typedef device_sequence_space< IntType > space_type;
     typedef typename space_type::int_type int_type;
 

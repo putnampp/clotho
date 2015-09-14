@@ -19,14 +19,14 @@
 //    memcpy( d_loc, d_heap, N * sizeof( DataType ) );
 //}
 
-template < class RealType, class IntType, class OrderTag >
-void dump_locations( std::ostream & out, const device_allele_space< RealType, IntType, OrderTag > & rhs ) {
+template < class RealType/*, class IntType, class OrderTag*/ >
+void dump_locations( std::ostream & out, const device_allele_space< RealType/*, IntType, OrderTag*/ > & rhs ) {
     if( rhs.locations == NULL || rhs.size == 0 ) {
         out << "[]";
         return;
     }
 
-    typedef device_allele_space< RealType, IntType, OrderTag >  space_type;
+    typedef device_allele_space< RealType/*, IntType, OrderTag*/ >  space_type;
     typedef typename space_type::real_type                      real_type;
 
     unsigned int N = rhs.size;
@@ -98,8 +98,8 @@ void dump_free_count ( std::ostream & out, const device_allele_space< RealType, 
     out << "]";
 }*/
 
-template < class RealType, class IntType, class OrderTag >
-std::ostream & operator<<( std::ostream & out, const device_allele_space< RealType, IntType, OrderTag > & rhs ) {
+template < class RealType/*, class IntType, class OrderTag*/ >
+std::ostream & operator<<( std::ostream & out, const device_allele_space< RealType/*, IntType, OrderTag*/ > & rhs ) {
     out << "{";
 
     out << "\n\"locations\": "; // << std::hex << rhs.locations;
@@ -129,8 +129,8 @@ std::ostream & operator<<( std::ostream & out, const device_allele_space< RealTy
 namespace clotho {
 namespace utility {
 
-template < class RealType, class IntType, class OrderTag > 
-void get_state( boost::property_tree::ptree & state, const device_allele_space< RealType, IntType, OrderTag > & obj ) {
+template < class RealType/*, class IntType, class OrderTag*/ > 
+void get_state( boost::property_tree::ptree & state, const device_allele_space< RealType/*, IntType, OrderTag*/ > & obj ) {
     state.put( "size", obj.size );
     state.put( "capacity", obj.capacity );
 }

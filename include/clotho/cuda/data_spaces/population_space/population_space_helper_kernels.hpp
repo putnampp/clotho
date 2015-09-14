@@ -22,6 +22,8 @@
 #include "clotho/cuda/data_spaces/tags/unordered_tag.hpp"
 #include "clotho/cuda/data_spaces/tags/unit_ordered_tag.hpp"
 
+#include "clotho/cuda/popcount_kernel.h"
+
 
 template < class IntType >
 __global__ void resize_free_space_kernel( device_sequence_space< IntType > * seq_space

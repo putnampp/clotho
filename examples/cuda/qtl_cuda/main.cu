@@ -50,8 +50,8 @@ typedef unit_ordered_tag< int_type > order_tag_type;
 typedef unordered_tag   order_tag_type;
 #endif
 
-typedef AlleleSpace< real_type, int_type, order_tag_type >  allele_space_type;
-typedef SequenceSpace< int_type >                           sequence_space_type;
+//typedef AlleleSpace< real_type/*, int_type, order_tag_type*/ >  allele_space_type;
+//typedef SequenceSpace< int_type >                           sequence_space_type;
 
 //typedef PopulationSpace< sequence_space_type, allele_space_type > population_space_type;
 typedef PopulationSpace< real_type, int_type, order_tag_type > population_space_type;

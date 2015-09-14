@@ -22,14 +22,14 @@ template < class StateType, class RealType, class IntType, class OrderTag >
 __global__ void _generate_mutation_kernel( StateType * states
                                         , device_free_space< IntType, OrderTag > * fspace
                                         , device_event_space< IntType, OrderTag > * events
-                                        , device_allele_space< RealType, IntType, OrderTag > * alleles ) {
+                                        , device_allele_space< RealType/*, IntType, OrderTag*/ > * alleles ) {
     typedef StateType                               state_type;
 
     typedef device_free_space< IntType, OrderTag >  free_space_type;
 
     typedef device_event_space< IntType, OrderTag > event_space_type;
 
-    typedef device_allele_space< RealType, IntType, OrderTag >  allele_space_type;
+    typedef device_allele_space< RealType/*, IntType, OrderTag*/ >  allele_space_type;
     typedef typename allele_space_type::real_type               location_type;
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;

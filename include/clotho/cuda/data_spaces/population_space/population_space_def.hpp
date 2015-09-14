@@ -17,6 +17,7 @@
 #include "clotho/cuda/data_spaces/allele_space/allele_space.hpp"
 #include "clotho/cuda/data_spaces/sequence_space/sequence_space.hpp"
 #include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
+#include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 
 #include "clotho/cuda/data_spaces/population_space/population_space_helper_api.hpp"
 #include "clotho/cuda/device_state_object.hpp"
@@ -27,8 +28,13 @@ struct PopulationSpace : public clotho::utility::iStateObject {
     typedef PopulationSpace< RealType, IntType, OrderTag >  self_type;
 
     typedef SequenceSpace< IntType >                        sequence_space_type;
-    typedef AlleleSpace< RealType, IntType, OrderTag >      allele_space_type;
+    typedef AlleleSpace< RealType/*, IntType, OrderTag*/ >      allele_space_type;
     typedef device_free_space< IntType, OrderTag >          free_space_type;
+    typedef device_event_space< IntType, OrderTag >         event_space_type;
+
+    typedef typename allele_space_type::real_type   real_type;
+    typedef typename sequence_space_type::int_type  int_type;
+    typedef typename free_space_type::order_tag_type         order_tag_type;
     
     sequence_space_type sequences;
     allele_space_type   alleles;
@@ -40,8 +46,8 @@ struct PopulationSpace : public clotho::utility::iStateObject {
         sequences.resize( alleles.get_device_space(), 2 );
     }
 
-    template < class EventSpaceType >
-    void resize( self_type * parent_pop, EventSpaceType * mut_events, unsigned int seqs ) {
+    //template < class EventSpaceType >
+    void resize( self_type * parent_pop, event_space_type * mut_events, unsigned int seqs ) {
 
 //        std::cerr << "Resizing population" << std::endl;
         update_free_space( parent_pop->sequences.get_device_space(), free_space );

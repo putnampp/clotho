@@ -76,12 +76,13 @@ __global__ void _merge_allele_space( device_allele_space< RealType, IntType, uno
 }*/
 
 template < class RealType, class IntType >
-__global__ void _merge_space( device_allele_space< RealType, IntType, unordered_tag > * in_space
+__global__ void _merge_space( device_allele_space< RealType/*, IntType, unordered_tag*/ > * in_space
                             , device_free_space< IntType, unordered_tag > * fspace
                             , device_event_space< IntType, unordered_tag > * evts
-                            , device_allele_space< RealType, IntType, unordered_tag > * out_space ) {
+                            , device_allele_space< RealType/*, IntType, unordered_tag*/ > * out_space ) {
 
-    device_allele_space< RealType, IntType, unordered_tag > local = *in_space;
+    typedef device_allele_space< RealType/*, IntType, unordered_tag*/ > space_type;
+    space_type local = *in_space;
 
     unsigned int N = local.size - fspace->total;
     N += evts->total;
@@ -91,7 +92,7 @@ __global__ void _merge_space( device_allele_space< RealType, IntType, unordered_
     _resize_space_impl( out_space, N ); // will pad space based upon ALIGNMENT_SIZE
 
     if( local.locations ) {
-        memcpy( out_space->locations, local.locations, local.size * sizeof( typename device_allele_space< RealType, IntType, unordered_tag >::real_type ) );
+        memcpy( out_space->locations, local.locations, local.size * sizeof( typename space_type::real_type ) );
 //        memcpy( out_space->free_list, local.free_list, local.free_list_size() * sizeof( typename device_allele_space< RealType, IntType, unordered_tag >::int_type ));
     }
 }

@@ -40,11 +40,11 @@ __global__ void _update_free_count( device_allele_space< RealType, IntType, unit
 }*/
 
 template < class RealType, class IntType >
-__global__ void _merge_space( device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > * in_space
+__global__ void _merge_space( device_allele_space< RealType/*, IntType, unit_ordered_tag< IntType >*/ > * in_space
                             , device_free_space< IntType, unit_ordered_tag< IntType > > * fspace
                             , device_event_space< IntType, unit_ordered_tag< IntType > > * evts
-                            , device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > * out_space ) {
-    typedef device_allele_space< RealType, IntType, unit_ordered_tag< IntType > >   allele_space_type;
+                            , device_allele_space< RealType/*, IntType, unit_ordered_tag< IntType >*/ > * out_space ) {
+    typedef device_allele_space< RealType/*, IntType, unit_ordered_tag< IntType >*/ >   allele_space_type;
     typedef device_event_space< IntType, unit_ordered_tag< IntType > >              event_space_type;
     
     typedef typename allele_space_type::int_type    int_type;
