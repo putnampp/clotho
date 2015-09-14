@@ -16,6 +16,8 @@
 
 #include <ostream>
 
+#include "clotho/cuda/data_spaces/data_space_helper.hpp"
+
 template < class IntType, class OrderTag >
 void dump_free_list( std::ostream & out, const device_free_space< IntType, OrderTag > & lspace ) {
     if( lspace.free_list == NULL || lspace.size == 0 ) {
@@ -29,6 +31,9 @@ void dump_free_list( std::ostream & out, const device_free_space< IntType, Order
     unsigned int N = lspace.size / space_type::OBJECTS_PER_INT;
 
     int_type    * _list = new int_type[ N ];
+
+    copy_heap_data( _list, lspace.free_list, N );
+/*
     int_type    * dList;
 
     assert( cudaMalloc( (void **) &dList, N * sizeof( int_type ) ) == cudaSuccess );
@@ -37,7 +42,7 @@ void dump_free_list( std::ostream & out, const device_free_space< IntType, Order
     cudaDeviceSynchronize();
 
     assert( cudaMemcpy( _list, dList, N * sizeof( int_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
-
+*/
     out << "[0x" << std::hex << std::setw(sizeof(int_type) * 2) << std::setfill('0') << _list[0];
     for( unsigned int i = 1; i < N; ++i ) {
         out << ",0x" << std::hex << std::setw(sizeof(int_type) * 2) << std::setfill('0') << _list[i];
@@ -46,7 +51,7 @@ void dump_free_list( std::ostream & out, const device_free_space< IntType, Order
     out << "]";
     out << std::dec;
 
-    cudaFree( dList );
+//    cudaFree( dList );
     delete _list;
 }
 
@@ -62,6 +67,9 @@ void dump_free_map( std::ostream & out, const device_free_space< IntType, OrderT
     unsigned int N = lspace.size;
 
     int_type    * _list = new int_type[ N ];
+
+    copy_heap_data( _list, lspace.free_map, N );
+/*
     int_type    * dList;
 
     assert( cudaMalloc( (void **) &dList, N * sizeof( int_type ) ) == cudaSuccess );
@@ -70,7 +78,7 @@ void dump_free_map( std::ostream & out, const device_free_space< IntType, OrderT
     cudaDeviceSynchronize();
 
     assert( cudaMemcpy( _list, dList, N * sizeof( int_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
-
+*/
     out << "[" << _list[0];
     for( unsigned int i = 1; i < N; ++i ) {
         out << "," << _list[i];
@@ -78,7 +86,7 @@ void dump_free_map( std::ostream & out, const device_free_space< IntType, OrderT
 
     out << "]";
 
-    cudaFree( dList );
+//    cudaFree( dList );
     delete _list;
 }
 

@@ -44,4 +44,9 @@ struct device_allele_space {
 //    }
 };
 
+template < class RealType >
+struct device_weighted_allele_space : public device_allele_space< RealType > {
+    typename device_allele_space< RealType >::real_type   * weights;
+};
+
 #endif  // DEVICE_ALLELE_SPACE_DEF_HPP_

@@ -22,14 +22,14 @@ template < class StateType, class RealType, class IntType, class OrderTag >
 __global__ void _generate_mutation_kernel( StateType * states
                                         , device_free_space< IntType, OrderTag > * fspace
                                         , device_event_space< IntType, OrderTag > * events
-                                        , device_allele_space< RealType/*, IntType, OrderTag*/ > * alleles ) {
+                                        , device_allele_space< RealType > * alleles ) {
     typedef StateType                               state_type;
 
     typedef device_free_space< IntType, OrderTag >  free_space_type;
 
     typedef device_event_space< IntType, OrderTag > event_space_type;
 
-    typedef device_allele_space< RealType/*, IntType, OrderTag*/ >  allele_space_type;
+    typedef device_allele_space< RealType >  allele_space_type;
     typedef typename allele_space_type::real_type               location_type;
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
@@ -50,6 +50,47 @@ __global__ void _generate_mutation_kernel( StateType * states
         location_type x = curand_uniform( &local_state );
 
         locs[idx] = x;
+        
+        i += (blockDim.x * blockDim.y);
+    }
+
+    states[tid] = local_state;
+}
+
+template < class StateType, class RealType, class IntType, class OrderTag >
+__global__ void _generate_mutation_kernel( StateType * states
+                                        , device_free_space< IntType, OrderTag > * fspace
+                                        , device_event_space< IntType, OrderTag > * events
+                                        , device_weighted_allele_space< RealType > * alleles ) {
+    typedef StateType                               state_type;
+
+    typedef device_free_space< IntType, OrderTag >  free_space_type;
+
+    typedef device_event_space< IntType, OrderTag > event_space_type;
+
+    typedef device_weighted_allele_space< RealType >  allele_space_type;
+    typedef typename allele_space_type::real_type     real_type;
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    unsigned int N = events->total;
+
+    unsigned int i = tid;
+
+    allele_space_type local_space = * alleles;
+    
+    unsigned int * fmap = fspace->free_map;
+
+    state_type local_state = states[tid];
+
+    while( i < N ) {
+        unsigned int idx = fmap[ i ];
+
+        real_type x = curand_uniform( &local_state );
+        real_type y = curand_normal( &local_state ); 
+
+        local_space.locations[idx] = x;
+        local_space.weights[idx] = y;
         
         i += (blockDim.x * blockDim.y);
     }

@@ -63,7 +63,7 @@ public:
 //        crossover_kernel<<< BLOCKS_PER_GRID, THREADS_PER_BLOCK >>>( m_states, pop->alleles.get_device_space(), dPoisCDF, pop->sequences.get_device_space() );
         unsigned int bcount = state_pool_type::getInstance()->get_max_blocks();
         unsigned int tcount = state_pool_type::getInstance()->get_max_threads();
-        crossover_kernel<<< bcount, tcount >>>( state_pool_type::getInstance()->get_device_states(), pop->alleles.get_device_space(), pop->free_space, dPoisCDF, pop->sequences.get_device_space() );
+        crossover_kernel<<< bcount, tcount >>>( state_pool_type::getInstance()->get_device_states(), (device_allele_space< real_type > * ) pop->alleles.get_device_space(), pop->free_space, dPoisCDF, pop->sequences.get_device_space() );
     }
 
     virtual ~CrossoverGenerator() {

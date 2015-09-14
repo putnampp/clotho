@@ -17,8 +17,6 @@
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space_def.hpp"
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space_kernel_api.hpp"
 
-#include "clotho/cuda/data_spaces/allele_space/device_allele_space_def.hpp"
-
 template < class IntType >
 __global__ void _resize_space( device_sequence_space< IntType > * sspace, unsigned int N ) {
     if( sspace->capacity < N ) {
@@ -32,12 +30,11 @@ __global__ void _resize_space( device_sequence_space< IntType > * sspace, unsign
     sspace->size = N;
 };
 
-template < class RealType, class IntType/*, class OrderTag*/ >
-__global__ void _resize_space( device_sequence_space< IntType > * sspace, device_allele_space< RealType/*, IntType, OrderTag*/ > * aspace, unsigned int seq_count ) {
+template < class IntType, class ColumnSpaceType >
+__global__ void _resize_space( device_sequence_space< IntType > * sspace, ColumnSpaceType * aspace, unsigned int seq_count ) {
     typedef device_sequence_space< IntType > space_type;
     typedef typename space_type::int_type int_type;
 
-    //unsigned int W = aspace->free_list_size();
     unsigned int W = aspace->size;
     W /= space_type::OBJECTS_PER_INT;
     unsigned int N = seq_count * W;

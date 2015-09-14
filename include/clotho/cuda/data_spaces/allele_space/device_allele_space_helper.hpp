@@ -14,6 +14,8 @@
 #ifndef DEVICE_ALLELE_SPACE_HELPER_HPP_
 #define DEVICE_ALLELE_SPACE_HELPER_HPP_
 
+#include "clotho/cuda/data_spaces/data_space_helper.hpp"
+
 //template < class DataType >
 //__global__ void copy_heap( DataType * d_loc, DataType * d_heap, unsigned int N ) {
 //    memcpy( d_loc, d_heap, N * sizeof( DataType ) );
@@ -32,13 +34,15 @@ void dump_locations( std::ostream & out, const device_allele_space< RealType/*, 
     unsigned int N = rhs.size;
     real_type * locations = new real_type[ N ];
 
-    real_type * dLoc;
+/*    real_type * dLoc;
     assert( cudaMalloc( (void **) &dLoc, N * sizeof( real_type ) ) == cudaSuccess );
 
     copy_heap<<< 1, 1 >>>( dLoc, rhs.locations, N );
     cudaDeviceSynchronize();
 
     assert( cudaMemcpy( locations, dLoc, N * sizeof( real_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
+*/
+    copy_heap_data( locations, rhs.locations, N );
 
     out << "[" << locations[0];
 
@@ -47,7 +51,7 @@ void dump_locations( std::ostream & out, const device_allele_space< RealType/*, 
     }
     out << "]";
 
-    cudaFree( dLoc );
+//    cudaFree( dLoc );
     delete locations;
 }
 
@@ -125,14 +129,47 @@ std::ostream & operator<<( std::ostream & out, const device_allele_space< RealTy
 }
 
 #include "clotho/utility/state_object.hpp"
+#include "clotho/utility/log_helper.hpp"
 
 namespace clotho {
 namespace utility {
 
-template < class RealType/*, class IntType, class OrderTag*/ > 
-void get_state( boost::property_tree::ptree & state, const device_allele_space< RealType/*, IntType, OrderTag*/ > & obj ) {
+template < class RealType > 
+void get_state( boost::property_tree::ptree & state, const device_allele_space< RealType > & obj ) {
     state.put( "size", obj.size );
     state.put( "capacity", obj.capacity );
+
+    typedef device_allele_space< RealType > space_type;
+    typename space_type::real_type * loc = new typename space_type::real_type[ obj.size ];
+
+    copy_heap_data( loc, obj.locations, obj.size );
+
+    boost::property_tree::ptree l;
+    for( unsigned int i = 0; i < obj.size; ++i ) {
+        clotho::utility::add_value_array( l, loc[i] );
+    }
+
+    state.add_child( "locations", l );
+    delete loc;
+}
+
+template < class RealType >
+void get_state( boost::property_tree::ptree & state, const device_weighted_allele_space< RealType > & obj ) {
+    get_state( state, (device_allele_space< RealType >) obj );
+
+    typedef typename device_weighted_allele_space< RealType >::real_type real_type;
+    real_type   * weights = new real_type[ obj.size ];
+
+    copy_heap_data( weights, obj.weights, obj.size );
+
+    boost::property_tree::ptree w;
+    for( unsigned int i = 0; i < obj.size; ++i ) {
+        clotho::utility::add_value_array( w, weights[i] );
+    }
+
+    state.add_child( "weights", w );
+
+    delete weights;
 }
 
 }   // namespace utility

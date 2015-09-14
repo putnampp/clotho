@@ -19,16 +19,16 @@
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/device_state_object.hpp"
 
-template < class RealType/*, class IntType, class OrderTag*/ >
+template < class RealType >
 class AlleleSpace : public clotho::utility::iStateObject {
 public:
-    typedef device_allele_space< RealType/*, IntType, OrderTag*/ >  device_space_type;
+//    typedef device_allele_space< RealType >  device_space_type;
+
+    typedef device_weighted_allele_space< RealType >    device_space_type;
 
     typedef typename device_space_type::real_type   real_type;
-//    typedef typename device_space_type::int_type    int_type;
-//    typedef typename device_space_type::order_tag_type  order_tag_type;
 
-    typedef AlleleSpace< RealType/*, IntType, OrderTag*/ > self_type;
+    typedef AlleleSpace< RealType > self_type;
 
     AlleleSpace( );
 
@@ -38,7 +38,6 @@ public:
 
     device_space_type * get_device_space();
 
-//    void merge_alleles( self_type & alls, self_type * muts);
 
     template < class IntType, class OrderTag >
     void expand_relative_to( self_type & alls, device_free_space< IntType, OrderTag > * fspace, device_event_space< IntType, OrderTag > * space );
@@ -47,8 +46,8 @@ public:
 
     virtual ~AlleleSpace();
 
-    template < class R/*, class I, class O*/ >
-    friend std::ostream & operator<<( std::ostream & out, const AlleleSpace< R/*, I, O*/> & s );
+    template < class R >
+    friend std::ostream & operator<<( std::ostream & out, const AlleleSpace< R > & s );
 
 protected:
     void initialize();

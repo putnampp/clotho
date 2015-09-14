@@ -26,13 +26,14 @@
 #include "clotho/cuda/data_spaces/allele_space/merge_space_helper.hpp"
 
 template < class RealType/*, class IntType, class OrderTag*/ >
-__device__ void _resize_space_impl( device_allele_space< RealType/*, IntType, OrderTag*/ > * aspace, unsigned int N ) {
+__device__ bool _resize_space_impl( device_allele_space< RealType/*, IntType, OrderTag*/ > * aspace, unsigned int N ) {
     typedef device_allele_space< RealType/*, IntType, OrderTag*/ > space_type;
     if( N % space_type::ALIGNMENT_SIZE != 0 ) {
         N -= (N % space_type::ALIGNMENT_SIZE);
         N += space_type::ALIGNMENT_SIZE;
     }
 
+    bool space_increased = false;
     if( aspace->capacity < N ) {
         if( aspace->locations ) {
             delete aspace->locations;
@@ -50,13 +51,28 @@ __device__ void _resize_space_impl( device_allele_space< RealType/*, IntType, Or
 //        memset(aspace->free_list, -1, free_size * sizeof( typename space_type::int_type ) );
 
         aspace->capacity = N;
+        space_increased = true;
     }
 
     aspace->size = N;
+    return space_increased;
 }
 
-template < class RealType/*, class IntType, class OrderTag*/ >
-__global__ void _resize_space( device_allele_space< RealType/*, IntType, OrderTag*/ > * aspace, unsigned int N ) {
+template < class RealType >
+__device__ void _resize_space_impl( device_weighted_allele_space< RealType > * aspace, unsigned int N ) {
+    typedef device_allele_space< RealType > space_type;
+
+    if( _resize_space_impl( (device_allele_space< RealType > *) aspace, N ) ) {
+        if( aspace->weights != NULL ) {
+            delete aspace->weights;
+        }
+
+        aspace->weights = new typename space_type::real_type[ N ];
+    }    
+}
+
+template < class RealType >
+__global__ void _resize_space( device_allele_space< RealType > * aspace, unsigned int N ) {
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
     if( tid == 0 ) {
@@ -64,39 +80,45 @@ __global__ void _resize_space( device_allele_space< RealType/*, IntType, OrderTa
     }
 }
 
-template < class RealType/*, class IntType, class OrderTag*/ >
-__global__ void _delete_space( device_allele_space< RealType/*, IntType, OrderTag*/ > * aspace ) {
-    typedef device_allele_space< RealType/*, IntType, OrderTag*/ > space_type;
+template < class RealType >
+__global__ void _resize_space( device_weighted_allele_space< RealType > * aspace, unsigned int N ) {
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    if( tid == 0 ) {
+        _resize_space_impl( aspace, N );
+    }
+}
+
+template < class RealType >
+__global__ void _delete_space( device_allele_space< RealType > * aspace ) {
+    typedef device_allele_space< RealType > space_type;
 
     space_type local = *aspace;
 
     if( local.locations ) {
         delete local.locations;
-//        delete local.free_list;
     }
 }
 
-//template < class RealType, class IntType, class OrderTag >
-//void update_free_count( device_allele_space< RealType, IntType, OrderTag > * a ) {
-//    _update_free_count<<< 1, 32 >>>( a );
-//}
+template < class RealType >
+__global__ void _delete_space( device_weighted_allele_space< RealType > * aspace ) {
+    typedef device_weighted_allele_space< RealType > space_type;
 
-template < class RealType/*, class IntType, class OrderTag*/ >
-void merge_allele_space( device_allele_space< RealType/*, IntType, OrderTag*/ > * a
-                        , device_allele_space< RealType/*, IntType, OrderTag*/ > * b
-                        , device_allele_space< RealType/*, IntType, OrderTag*/ > * output ) {
+    space_type local = *aspace;
 
+    if( local.locations ) {
+        delete local.locations;
+        delete local.weights;
+    }
 }
 
-/*
-template < class RealType, class IntType, class OrderTag >
-void merge_space( device_allele_space< RealType, IntType, OrderTag > * in_space
-                            , device_event_space< IntType, OrderTag > * evts
-                            , device_allele_space< RealType, IntType, OrderTag > * out_space ) {
-    typedef merge_execution_config< OrderTag > config_type;
-    _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, evts, out_space );
-//    _update_free_count<<< 1, 32 >>>(out_space);
-}*/
+
+template < class RealType >
+void merge_allele_space( device_allele_space< RealType > * a
+                        , device_allele_space< RealType > * b
+                        , device_allele_space< RealType > * output ) {
+
+}
 
 template < class RealType, class IntType, class OrderTag >
 void merge_space( device_allele_space< RealType/*, IntType, OrderTag*/ > * in_space

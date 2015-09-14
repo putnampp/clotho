@@ -17,23 +17,23 @@
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_def.hpp"
 #include "clotho/cuda/data_spaces/data_space_kernel_api.hpp"
 
-template < class RealType/*, class IntType, class OrderTag*/ >
-__device__ void _resize_space_impl( device_allele_space< RealType/*, IntType, OrderTag*/ > * aspace, unsigned int N );
+template < class RealType >
+__device__ bool  _resize_space_impl( device_allele_space< RealType > * aspace, unsigned int N );
 
 /**
  *
  *
  *
  */
-template < class RealType/*, class IntType, class OrderedTag*/ >
-__global__ void _update_free_count( device_allele_space< RealType/*, IntType, OrderedTag*/ > * aspace );
+template < class RealType >
+__global__ void _update_free_count( device_allele_space< RealType > * aspace );
 
 /**
  *
  *
  */
-template < class RealType/*, class IntType, class OrderedTag*/ >
-__global__ void _generate_allele_space( device_allele_space< RealType/*, IntType, OrderedTag*/ > * aspace );
+template < class RealType >
+__global__ void _generate_allele_space( device_allele_space< RealType > * aspace );
 
 /**
  * Merge of allele spaces takes two spaces
@@ -43,19 +43,19 @@ __global__ void _generate_allele_space( device_allele_space< RealType/*, IntType
  *  - If an element is indicated as free in A, then it will be replaced by a non-free element of B.
  *  - Elements will be merged according to the defined order (OrderedTag) of the space
  */
-template < class RealType/*, class IntType, class OrderedTag*/ >
-__global__ void _merge_allele_space( device_allele_space< RealType/*, IntType, OrderedTag*/ > * aspace
-                                    , device_allele_space< RealType/*, IntType, OrderedTag*/ > * bspace
-                                    , device_allele_space< RealType/*, IntType, OrderedTag*/ > * output );
+template < class RealType >
+__global__ void _merge_allele_space( device_allele_space< RealType > * aspace
+                                    , device_allele_space< RealType > * bspace
+                                    , device_allele_space< RealType > * output );
 
 #include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 
 template < class RealType, class IntType, class OrderTag >
-__global__ void _merge_space( device_allele_space< RealType/*, IntType, OrderTag*/ > * in_space
+__global__ void _merge_space( device_allele_space< RealType > * in_space
                             , device_free_space< IntType, OrderTag > * fspace
                             , device_event_space< IntType, OrderTag > * evts
-                            , device_allele_space< RealType/*, IntType, OrderTag*/ > * out_space );
+                            , device_allele_space< RealType > * out_space );
 
 
 #endif  // DEVICE_ALLELE_SPACE_KERNEL_API_HPP_

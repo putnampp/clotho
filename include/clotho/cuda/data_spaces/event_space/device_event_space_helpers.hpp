@@ -17,6 +17,9 @@
 #include <cuda.h>
 #include <ostream>
 
+#include "clotho/cuda/data_spaces/data_space_helper.hpp"
+#include "clotho/utility/log_helper.hpp"
+
 template < class IntType, class OrderTag >
 void write_data( std::ostream & out, device_event_space< IntType, OrderTag > & lspace ) {
 
@@ -30,13 +33,7 @@ void write_data( std::ostream & out, device_event_space< IntType, OrderTag > & l
 
     event_int_type * events = new event_int_type[ lspace.size ];
 
-    event_int_type * dEvt;
-    assert( cudaMalloc( (void **) &dEvt, lspace.size * sizeof( event_int_type) ) == cudaSuccess );
-
-    copy_heap<<< 1, 1 >>>( dEvt, lspace.event_count, lspace.size );
-    cudaDeviceSynchronize();
-
-    assert( cudaMemcpy( events, dEvt, lspace.size * sizeof( event_int_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
+    copy_heap_data( events, lspace.event_count, lspace.size );
 
     out << "[" << events[0];
     for( int i = 1; i < lspace.size; ++i ) {
@@ -44,21 +41,33 @@ void write_data( std::ostream & out, device_event_space< IntType, OrderTag > & l
     }
 
     out << "]";
-    cudaFree( dEvt );
+//    cudaFree( dEvt );
 
     delete events;
 }
 
-template < class IntType, class OrderTag >
-void write_summary( std::ostream & out, device_event_space< IntType, OrderTag > & lspace ) {}
+template < class OutputType, class IntType, class OrderTag >
+void write_summary( OutputType & out, const device_event_space< IntType, OrderTag > & lspace ) {}
 
 template < class IntType >
-void write_summary( std::ostream & out, device_event_space< IntType, unit_ordered_tag< IntType > > & lspace ) {
+void write_summary( std::ostream & out, const device_event_space< IntType, unit_ordered_tag< IntType > > & lspace ) {
     out << ",\n\"bin_summary\": [ " << lspace.bin_summary[0];
     for( unsigned int i = 1; i < unit_ordered_tag< IntType >::OBJECTS_PER_UNIT; ++i ) {
         out << ",\n" << lspace.bin_summary[i];
     }
     out << "]";
+}
+
+template < class IntType >
+void write_summary( boost::property_tree::ptree & out, const device_event_space< IntType, unit_ordered_tag< IntType > > & lspace ) {
+    typedef device_event_space< IntType, unit_ordered_tag< IntType > > space_type;
+    
+    boost::property_tree::ptree s;
+    for( unsigned int i = 0; i < space_type::order_tag_type::OBJECTS_PER_UNIT; ++i ) {
+        clotho::utility::add_value_array( s, lspace.bin_summary[i] );
+    }
+
+    out.add_child( "bin_summary", s );
 }
 
 template < class IntType, class OrderTag >
@@ -100,6 +109,23 @@ void get_state( boost::property_tree::ptree & state, const device_event_space< I
     state.put( "total", obj.total );
     state.put( "size", obj.size );
     state.put( "capacity", obj.capacity );
+
+    typedef typename device_event_space< IntType, OrderTag >::int_type int_type;
+
+    int_type * ecount = new int_type[ obj.size ];
+
+    copy_heap_data( ecount, obj.event_count, obj.size );
+
+    boost::property_tree::ptree e;
+    for( unsigned int i = 0; i < obj.size; ++i ) {
+        clotho::utility::add_value_array( e, ecount[ i ] );
+    }
+
+    state.add_child( "event_count", e );
+
+    write_summary( state, obj );
+
+    delete ecount;
 }
 
 }   // namespace utility
