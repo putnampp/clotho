@@ -134,43 +134,63 @@ std::ostream & operator<<( std::ostream & out, const device_allele_space< RealTy
 namespace clotho {
 namespace utility {
 
-template < class RealType > 
-void get_state( boost::property_tree::ptree & state, const device_allele_space< RealType > & obj ) {
-    state.put( "size", obj.size );
-    state.put( "capacity", obj.capacity );
-
-    typedef device_allele_space< RealType > space_type;
-    typename space_type::real_type * loc = new typename space_type::real_type[ obj.size ];
-
-    copy_heap_data( loc, obj.locations, obj.size );
-
-    boost::property_tree::ptree l;
-    for( unsigned int i = 0; i < obj.size; ++i ) {
-        clotho::utility::add_value_array( l, loc[i] );
-    }
-
-    state.add_child( "locations", l );
-    delete loc;
-}
+//template < class RealType > 
+//void get_state( boost::property_tree::ptree & state, const device_allele_space< RealType > & obj ) {
 
 template < class RealType >
-void get_state( boost::property_tree::ptree & state, const device_weighted_allele_space< RealType > & obj ) {
-    get_state( state, (device_allele_space< RealType >) obj );
+struct state_getter< device_allele_space< RealType > > {
 
-    typedef typename device_weighted_allele_space< RealType >::real_type real_type;
-    real_type   * weights = new real_type[ obj.size ];
+    void operator()( boost::property_tree::ptree & state, const device_allele_space< RealType > & obj ) {
+//        std::cerr << "Basic allele" << std::endl;
 
-    copy_heap_data( weights, obj.weights, obj.size );
+        state.put( "size", obj.size );
+        state.put( "capacity", obj.capacity );
 
-    boost::property_tree::ptree w;
-    for( unsigned int i = 0; i < obj.size; ++i ) {
-        clotho::utility::add_value_array( w, weights[i] );
+        if( obj.size == 0 ) return;
+
+        typedef device_allele_space< RealType > space_type;
+        typename space_type::real_type * loc = new typename space_type::real_type[ obj.size ];
+
+        copy_heap_data( loc, obj.locations, obj.size );
+
+        boost::property_tree::ptree l;
+        for( unsigned int i = 0; i < obj.size; ++i ) {
+            clotho::utility::add_value_array( l, loc[i] );
+        }
+
+        state.add_child( "locations", l );
+        delete loc;
     }
+};
 
-    state.add_child( "weights", w );
+//template < class RealType >
+//void get_state( boost::property_tree::ptree & state, const device_weighted_allele_space< RealType > & obj ) {
+template < class RealType >
+struct state_getter< device_weighted_allele_space < RealType > > {
 
-    delete weights;
-}
+    void operator()( boost::property_tree::ptree & state, const device_weighted_allele_space< RealType > & obj ) {
+        state_getter< device_allele_space< RealType > > base_getter;
+        base_getter( state, (device_allele_space< RealType >) obj );
+
+        //std::cerr<< "Weighted allele" << std::endl;
+
+        if( obj.size == 0 ) return;
+
+        typedef typename device_weighted_allele_space< RealType >::real_type real_type;
+        real_type   * weights = new real_type[ obj.size ];
+
+        copy_heap_data( weights, obj.weights, obj.size );
+
+        boost::property_tree::ptree w;
+        for( unsigned int i = 0; i < obj.size; ++i ) {
+            clotho::utility::add_value_array( w, weights[i] );
+        }
+
+        state.add_child( "weights", w );
+
+        delete weights;
+    }
+};
 
 }   // namespace utility
 }   // namespace clotho

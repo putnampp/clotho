@@ -18,11 +18,16 @@
 
 template < class ObjectType >
 void get_device_object_state( boost::property_tree::ptree & state, ObjectType * obj ) {
+    if( obj == NULL ) return;
+
     ObjectType local_obj;
 
     assert( cudaMemcpy( &local_obj, obj, sizeof( ObjectType ), cudaMemcpyDeviceToHost ) == cudaSuccess );
 
-    clotho::utility::get_state( state, local_obj );
+    //clotho::utility::get_state( state, local_obj );
+    clotho::utility::state_getter< ObjectType > s_get;
+
+    s_get(state, local_obj );
 }
 
 #endif  // DEVICE_GET_STATE_HPP_

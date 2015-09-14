@@ -23,8 +23,13 @@ struct iStateObject {
     virtual void get_state( boost::property_tree::ptree & state ) = 0;
 };
 
-template < class Object >
-void get_state( boost::property_tree::ptree & s, const Object & obj );
+//template < class Object >
+//void get_state( boost::property_tree::ptree & s, const Object & obj );
+
+template < class ObjectType >
+struct state_getter {
+    void operator()( boost::property_tree::ptree & s, const ObjectType & obj );
+};
 
 }   // namespace utility
 }   // namespace clotho

@@ -101,32 +101,39 @@ std::ostream & operator<<( std::ostream & out, device_event_space< IntType, Orde
     return out;
 }
 
+#include "clotho/utility/state_object.hpp"
+
 namespace clotho {
 namespace utility {
 
+//template < class IntType, class OrderTag >
+//void get_state( boost::property_tree::ptree & state, const device_event_space< IntType, OrderTag > & obj ) {
+
 template < class IntType, class OrderTag >
-void get_state( boost::property_tree::ptree & state, const device_event_space< IntType, OrderTag > & obj ) {
-    state.put( "total", obj.total );
-    state.put( "size", obj.size );
-    state.put( "capacity", obj.capacity );
+struct state_getter< device_event_space< IntType, OrderTag > > {
+    void operator()( boost::property_tree::ptree & state, const device_event_space< IntType, OrderTag > & obj ) {
+        state.put( "total", obj.total );
+        state.put( "size", obj.size );
+        state.put( "capacity", obj.capacity );
 
-    typedef typename device_event_space< IntType, OrderTag >::int_type int_type;
+        typedef typename device_event_space< IntType, OrderTag >::int_type int_type;
 
-    int_type * ecount = new int_type[ obj.size ];
+        int_type * ecount = new int_type[ obj.size ];
 
-    copy_heap_data( ecount, obj.event_count, obj.size );
+        copy_heap_data( ecount, obj.event_count, obj.size );
 
-    boost::property_tree::ptree e;
-    for( unsigned int i = 0; i < obj.size; ++i ) {
-        clotho::utility::add_value_array( e, ecount[ i ] );
+        boost::property_tree::ptree e;
+        for( unsigned int i = 0; i < obj.size; ++i ) {
+            clotho::utility::add_value_array( e, ecount[ i ] );
+        }
+
+        state.add_child( "event_count", e );
+
+        write_summary( state, obj );
+
+        delete ecount;
     }
-
-    state.add_child( "event_count", e );
-
-    write_summary( state, obj );
-
-    delete ecount;
-}
+};
 
 }   // namespace utility
 }   // namespace clotho

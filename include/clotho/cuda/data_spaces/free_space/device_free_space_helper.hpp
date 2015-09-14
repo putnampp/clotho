@@ -130,11 +130,15 @@ namespace clotho {
 namespace utility {
 
 template < class IntType, class OrderTag >
-void get_state( boost::property_tree::ptree & state, const device_free_space< IntType, OrderTag > & obj ) {
-    state.put( "total", obj.total);
-    state.put( "size", obj.size );
-    state.put( "capacity", obj.capacity );
-}
+//void get_state( boost::property_tree::ptree & state, const device_free_space< IntType, OrderTag > & obj ) {
+struct state_getter< device_free_space< IntType, OrderTag > > {
+
+    void operator()( boost::property_tree::ptree & state, const device_free_space< IntType, OrderTag > & obj ) {
+        state.put( "total", obj.total);
+        state.put( "size", obj.size );
+        state.put( "capacity", obj.capacity );
+    }
+};
 
 }   // namespace utility
 }   // namespace clotho

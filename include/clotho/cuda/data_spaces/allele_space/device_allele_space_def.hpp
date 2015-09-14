@@ -24,24 +24,16 @@ static __host__ __device__ unsigned int compute_free_list_size( unsigned int N )
 template < class RealType/*, class IntType, class OrderTag*/ >
 struct device_allele_space {
     typedef RealType    real_type;
-//    typedef IntType     int_type;
-//    typedef OrderTag    order_tag_type;
 
     static const unsigned int ALIGNMENT_SIZE = 128;
 
     real_type   * locations;
-//    int_type    * free_list;
 
     unsigned int    size, capacity;
-//    unsigned int    free_count;
 
     __host__ __device__ unsigned int allele_count( ) {
         return size;
     }
-
-//    __host__ __device__ unsigned int free_list_size( ) {
-//        return compute_free_list_size< IntType >( size );
-//    }
 };
 
 template < class RealType >

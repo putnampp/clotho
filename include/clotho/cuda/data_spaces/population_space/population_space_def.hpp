@@ -16,6 +16,8 @@
 
 #include "clotho/cuda/data_spaces/allele_space/allele_space.hpp"
 #include "clotho/cuda/data_spaces/sequence_space/sequence_space.hpp"
+#include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
+
 #include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 
@@ -28,7 +30,9 @@ struct PopulationSpace : public clotho::utility::iStateObject {
     typedef PopulationSpace< RealType, IntType, OrderTag >  self_type;
 
     typedef SequenceSpace< IntType >                        sequence_space_type;
-    typedef AlleleSpace< RealType/*, IntType, OrderTag*/ >      allele_space_type;
+    typedef AlleleSpace< RealType >                         allele_space_type;
+
+    typedef device_phenotype_space< RealType >              phenotype_space_type;
     typedef device_free_space< IntType, OrderTag >          free_space_type;
     typedef device_event_space< IntType, OrderTag >         event_space_type;
 
@@ -39,10 +43,13 @@ struct PopulationSpace : public clotho::utility::iStateObject {
     sequence_space_type sequences;
     allele_space_type   alleles;
 
-    free_space_type    * free_space;
+    free_space_type         * free_space;
+    phenotype_space_type    * pheno_space;
 
     PopulationSpace() {
         create_space( free_space );
+        create_space( pheno_space );
+
         sequences.resize( alleles.get_device_space(), 2 );
     }
 
@@ -58,20 +65,23 @@ struct PopulationSpace : public clotho::utility::iStateObject {
     }
 
     void get_state( boost::property_tree::ptree & state ) {
-        boost::property_tree::ptree a, s, f;
+        boost::property_tree::ptree a, s, f, p;
 
         alleles.get_state( a );
         sequences.get_state( s );
 
         get_device_object_state( f, free_space );
+        get_device_object_state( p, pheno_space );
 
         state.put_child( "alleles", a );
         state.put_child( "sequences", s );
         state.put_child( "free_space", f );
+        state.put_child( "phenotypes", p );
     }
 
     virtual ~PopulationSpace() {
         delete_space( free_space );
+        delete_space( pheno_space );
     }
 };
 

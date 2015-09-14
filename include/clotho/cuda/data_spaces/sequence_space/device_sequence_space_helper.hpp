@@ -72,17 +72,21 @@ std::ostream & operator<<( std::ostream & out, const device_sequence_space< IntT
     return out;
 }
 
+#include "clotho/utility/state_object.hpp"
+
 namespace clotho {
 namespace utility {
 
-template < >
-void get_state( boost::property_tree::ptree & state, const device_sequence_space< unsigned int > & obj ) {
-    state.put( "dimensions.rows", obj.seq_count );
-    state.put( "dimensions.columns", obj.seq_width );
+template < typename IntType >
+struct state_getter< device_sequence_space< IntType > > {
+    void operator()( boost::property_tree::ptree & state, const device_sequence_space< IntType > & obj ) {
+        state.put( "dimensions.rows", obj.seq_count );
+        state.put( "dimensions.columns", obj.seq_width );
 
-    state.put( "size", obj.size);
-    state.put( "capacity", obj.capacity );
-}
+        state.put( "size", obj.size);
+        state.put( "capacity", obj.capacity );
+    }
+};
 
 }   // namespace utility
 }   // namespace clotho

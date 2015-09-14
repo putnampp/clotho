@@ -15,10 +15,11 @@
 #define SEQUENCE_SPACE_HPP_
 
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space.hpp"
+#include "clotho/cuda/data_spaces/sequence_space/device_sequence_space_helper.hpp"
 
 #include <algorithm>
 
-#include "clotho/cuda/device_state_object.hpp"
+//#include "clotho/cuda/device_state_object.hpp"
 
 template < class IntType >
 class SequenceSpace : public clotho::utility::iStateObject {

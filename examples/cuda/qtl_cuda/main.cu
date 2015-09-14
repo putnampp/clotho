@@ -24,6 +24,8 @@
 //#include "clotho/cuda/population_space/population_space.hpp"
 #include "clotho/cuda/data_spaces/data_space.hpp"
 
+#include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
+
 #include "options/configuration_option.hpp"
 #include "options/log_prefix_option.hpp"
 

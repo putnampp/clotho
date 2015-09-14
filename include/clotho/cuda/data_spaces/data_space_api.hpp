@@ -11,8 +11,8 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef SPACE_API_HPP_
-#define SPACE_API_HPP_
+#ifndef DATA_SPACE_API_HPP_
+#define DATA_SPACE_API_HPP_
 
 template < class SpaceType >
 void create_space( SpaceType *& space, unsigned int N = 0 );
@@ -23,4 +23,4 @@ void resize_space( SpaceType * space, unsigned int N );
 template < class SpaceType >
 void delete_space( SpaceType * space );
 
-#endif  // SPACE_API_HPP_
+#endif  // DATA_SPACE_API_HPP_

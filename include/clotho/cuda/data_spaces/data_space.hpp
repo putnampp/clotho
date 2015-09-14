@@ -21,6 +21,8 @@
 #include "clotho/cuda/data_spaces/population_space/population_space.hpp"
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 
+#include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
+
 #include "clotho/cuda/data_spaces/data_space_api_impl.hpp"
 
 #endif  // DATA_SPACE_HPP_
