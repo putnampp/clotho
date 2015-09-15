@@ -37,6 +37,7 @@ __device__ void _resize_space_impl( device_phenotype_space< RealType > * space, 
         }
 
         space->phenotypes = new typename space_type::real_type[ N ];
+        memset( space->phenotypes, 0, N * sizeof( typename space_type::real_type) );
         space->capacity = N;
     }
 

@@ -23,6 +23,7 @@
 #include "clotho/cuda/mutation/mutation_event_generator.hpp"
 #include "clotho/cuda/crossover/crossover_generator.hpp"
 #include "clotho/cuda/selection/selection_event_generator.hpp"
+#include "clotho/cuda/phenotype/phenotype_translator.hpp"
 
 #include "clotho/utility/timer.hpp"
 #include "clotho/utility/log_helper.hpp"
@@ -54,6 +55,7 @@ public:
         , mut_gen( config )
         , xover_gen( config )
         , sel_gen(config)
+        , pheno_trans(config)
     {
         parse_config( config );
         initialize();
@@ -73,6 +75,8 @@ public:
         sel_gen.generate( prev_pop, current_pop );
 
         mut_gen.scatter( current_pop, dMutations, cur_seq_count );
+
+        pheno_trans.translate( current_pop );
 
         cudaDeviceSynchronize();
     }
@@ -114,6 +118,7 @@ protected:
     mutation_generator_type     mut_gen;
     crossover_generator_type    xover_gen;
     selection_generator_type    sel_gen;
+    phenotype_translator        pheno_trans;
 };
 
 #endif  // QTL_CUDA_SIMULATE_ENGINE_HPP_

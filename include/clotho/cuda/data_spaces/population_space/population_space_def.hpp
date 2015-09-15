@@ -56,7 +56,8 @@ struct PopulationSpace : public clotho::utility::iStateObject {
     //template < class EventSpaceType >
     void resize( self_type * parent_pop, event_space_type * mut_events, unsigned int seqs ) {
 
-//        std::cerr << "Resizing population" << std::endl;
+        resize_space( pheno_space, seqs/2); // 1 phenotype per pair of sequences
+
         update_free_space( parent_pop->sequences.get_device_space(), free_space );
 
         alleles.expand_relative_to( parent_pop->alleles, free_space, mut_events );

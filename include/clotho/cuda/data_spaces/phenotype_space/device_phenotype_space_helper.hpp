@@ -28,7 +28,7 @@ struct state_getter< device_phenotype_space< RealType > > {
         state.put( "size", obj.size );
         state.put( "capacity", obj.capacity );
 
-        if( obj.size == 0 ) return;
+        if( obj.phenotypes == NULL || obj.size == 0 ) return;
 
         typedef typename device_phenotype_space< RealType >::real_type real_type;
 

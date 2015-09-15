@@ -327,4 +327,5 @@ __global__ void clear_free_space_kernel2( device_sequence_space< IntType > * seq
         i += seq_offset;
     }
 }
+
 #endif  // POPULATION_SPACE_HELPER_KERNELS_HPP_

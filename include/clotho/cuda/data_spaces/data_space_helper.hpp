@@ -16,11 +16,15 @@
 
 template < class DataType >
 __global__ void copy_heap( DataType * d_loc, DataType * d_heap, unsigned int N ) {
+    if( d_heap == NULL || N == 0 ) return;
+
     memcpy( d_loc, d_heap, N * sizeof( DataType ) );
 }
 
 template < class DataType >
 void copy_heap_data( DataType * hMem, DataType * dMem, unsigned int N ) {
+    if( hMem == NULL || dMem == NULL || N == 0 ) return;
+
     DataType * tmp;
 
     size_t sBytes = N * sizeof( DataType );
