@@ -72,7 +72,6 @@ public:
 
     template < class PopulationType >
     void scatter( PopulationType * pop, space_type * events, unsigned int N ) {
-//        std::cerr << "Scattering events" << std::endl;
         const unsigned int MAX_BLOCKS = 40000;  // arbitrary limitation (think 65535 is max for any single grid dimension)
         unsigned int offset = 0;
         while( offset < N ) {
@@ -83,12 +82,10 @@ public:
             offset += bcount;
         }
 
-//        _generate_mutation_kernel<<< 1, 32 >>>( m_states, pop->free_space, events, pop->alleles.get_device_space() );
         _generate_mutation_kernel<<< 1, 32 >>>( state_pool_type::getInstance()->get_device_states(), pop->free_space, events, pop->alleles.get_device_space() );
     }
 
     virtual ~MutationEventGenerator() {
-//        helper_type::cleanup_states( m_states );
         cudaFree( dPoisCDF );
     }
 
