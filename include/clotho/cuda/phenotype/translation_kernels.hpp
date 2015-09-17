@@ -18,12 +18,13 @@
 
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space.hpp"
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space.hpp"
-#include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
+//#include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
+#include "clotho/cuda/data_spaces/basic_data_space.hpp"
 
 template < class RealType, class IntType >
 __global__ void _translate( device_weighted_allele_space< RealType > * alleles
                             , device_sequence_space< IntType > * sequences
-                            , device_phenotype_space< RealType > * phenos ) {
+                            , basic_data_space< RealType > * phenos ) {
 
     unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
 
@@ -41,7 +42,7 @@ __global__ void _translate( device_weighted_allele_space< RealType > * alleles
     unsigned int s_width = sequences->seq_width;
 
     typedef typename device_allele_space< RealType >::real_type     effect_type;
-    typedef typename device_phenotype_space< RealType >::real_type  real_type;
+    typedef typename basic_data_space< RealType >::value_type  real_type;
     typedef typename device_sequence_space< IntType >::int_type     int_type;
 
     int_type    * seqs = sequences->sequences;
@@ -95,7 +96,7 @@ __global__ void _translate( device_weighted_allele_space< RealType > * alleles
         __syncthreads();
 
         if( tid == 31 ) {
-            phenos->phenotypes[ seq_idx / 2 ] = pheno;
+            phenos->data[ seq_idx / 2 ] = pheno;
         }
         __syncthreads();
 

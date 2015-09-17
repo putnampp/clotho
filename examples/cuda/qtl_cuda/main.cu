@@ -119,7 +119,7 @@ int main( int argc, char ** argv ) {
     unsigned int p_size = 0;
     unsigned int gen = 0;
 
-    boost::property_tree::ptree _sim;
+    boost::property_tree::ptree _sim, _an;
     while( gen < nGens ) {
         p_size = (*pop_grow)( p_size, gen++ );
 
@@ -128,6 +128,13 @@ int main( int argc, char ** argv ) {
         t.stop();
 
         clotho::utility::add_value_array( _sim, t );
+
+        t.start();
+        sim_engine.analyze_population();
+        t.stop();
+
+        clotho::utility::add_value_array( _an, t );
+
         if( log( &sim_engine ) ) {
             std::cerr << gen << ": Writing log file" << std::endl;
             log.write();
@@ -139,6 +146,7 @@ int main( int argc, char ** argv ) {
     _run.put( "total", r );
     _run.put( "init", i_time );
     _run.put_child( "simulate", _sim );
+    _run.put_child( "analyze", _an );
 
     log.add_record( "configuration", config );
     log.add_record( "runtime", _run );

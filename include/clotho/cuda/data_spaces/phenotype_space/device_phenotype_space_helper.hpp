@@ -24,26 +24,29 @@ template < class RealType >
 struct state_getter< device_phenotype_space< RealType > > {
     void operator()( boost::property_tree::ptree & state, const device_phenotype_space< RealType > & obj ) {
 //        std::cerr << "Phenotype" << std::endl;
-
+/*
         state.put( "size", obj.size );
         state.put( "capacity", obj.capacity );
 
-        if( obj.phenotypes == NULL || obj.size == 0 ) return;
+        if( obj.data == NULL || obj.size == 0 ) return;
 
         typedef typename device_phenotype_space< RealType >::real_type real_type;
 
         real_type * ecount = new real_type[ obj.size ];
 
-        copy_heap_data( ecount, obj.phenotypes, obj.size );
+        copy_heap_data( ecount, obj.data, obj.size );
 
         boost::property_tree::ptree e;
         for( unsigned int i = 0; i < obj.size; ++i ) {
             clotho::utility::add_value_array( e, ecount[ i ] );
         }
 
-        state.add_child( "phenotypes", e );
+        state.add_child( "data", e );
 
         delete ecount;
+*/
+        state_getter< basic_data_space< RealType > > sget;
+        sget( state, (basic_data_space< RealType >) obj );
     }
 };
 

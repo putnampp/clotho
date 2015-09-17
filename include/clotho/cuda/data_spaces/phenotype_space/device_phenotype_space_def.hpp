@@ -14,6 +14,7 @@
 #ifndef DEVICE_PHENOTYPE_SPACE_DEF_HPP_
 #define DEVICE_PHENOTYPE_SPACE_DEF_HPP_
 
+/*
 template < class RealType >
 struct device_phenotype_space {
     typedef RealType    real_type;
@@ -21,6 +22,14 @@ struct device_phenotype_space {
     real_type   * phenotypes;
 
     unsigned int size, capacity;
+};*/
+
+
+#include "clotho/cuda/data_spaces/basic_data_space.hpp"
+
+template < class RealType >
+struct device_phenotype_space : public basic_data_space< RealType > {
+    typedef typename basic_data_space< RealType >::value_type    real_type;
 };
 
 #endif  // DEVICE_PHENOTYPE_SPACE_DEF_HPP_

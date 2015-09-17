@@ -19,37 +19,37 @@
 
 template < class RealType >
 __global__ void _delete_space( device_phenotype_space< RealType > * space ) {
-    typename device_phenotype_space< RealType >::real_type * tmp = space->phenotypes;
+    typename device_phenotype_space< RealType >::real_type * tmp = space->data;
 
     if( tmp ) {
         delete tmp;
     }
 }
 
-template < class RealType >
+/*template < class RealType >
 __device__ void _resize_space_impl( device_phenotype_space< RealType > * space, unsigned int N ) {
     typedef device_phenotype_space< RealType > space_type;
 
     if( space->capacity < N ) {
-        typename space_type::real_type * tmp = space->phenotypes;
+        typename space_type::real_type * tmp = space->data;
         if( tmp ) {
             delete tmp;
         }
 
-        space->phenotypes = new typename space_type::real_type[ N ];
-        memset( space->phenotypes, 0, N * sizeof( typename space_type::real_type) );
+        space->data = new typename space_type::real_type[ N ];
+        memset( space->data, 0, N * sizeof( typename space_type::real_type) );
         space->capacity = N;
     }
 
     space->size = N;
-}
+}*/
 
 template < class RealType >
 __global__ void _resize_space( device_phenotype_space< RealType > * space, unsigned int N ) {
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
     if( tid == 0 ) {
-        _resize_space_impl( space, N );
+        _resize_space_impl( (basic_data_space< RealType > *) space, N );
     }
 }
 

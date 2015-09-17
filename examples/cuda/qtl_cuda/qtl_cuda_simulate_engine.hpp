@@ -25,6 +25,8 @@
 #include "clotho/cuda/selection/selection_event_generator.hpp"
 #include "clotho/cuda/phenotype/phenotype_translator.hpp"
 
+#include "clotho/cuda/analysis/allele_frequency.hpp"
+
 #include "clotho/utility/timer.hpp"
 #include "clotho/utility/log_helper.hpp"
 
@@ -56,6 +58,7 @@ public:
         , xover_gen( config )
         , sel_gen(config)
         , pheno_trans(config)
+        , all_freq( config )
     {
         parse_config( config );
         initialize();
@@ -81,6 +84,12 @@ public:
         cudaDeviceSynchronize();
     }
 
+    void analyze_population( ) {
+        all_freq.evaluate( current_pop );
+
+        cudaDeviceSynchronize();
+    }
+
     void get_state( boost::property_tree::ptree & state ) {
         boost::property_tree::ptree cur, prev;
         current_pop->get_state( cur );
@@ -89,9 +98,14 @@ public:
         boost::property_tree::ptree sel;
         sel_gen.get_state( sel );
 
+        boost::property_tree::ptree afreq;
+        all_freq.get_state( afreq );
+
         state.put_child( "population.current", cur );
         state.put_child( "population.previous", prev );
         state.put_child( "selection", sel );
+
+        state.put_child( "analysis", afreq );
     }
 
     void swap() {
@@ -119,6 +133,8 @@ protected:
     crossover_generator_type    xover_gen;
     selection_generator_type    sel_gen;
     phenotype_translator        pheno_trans;
+
+    AlleleFrequency             all_freq;
 };
 
 #endif  // QTL_CUDA_SIMULATE_ENGINE_HPP_

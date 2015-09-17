@@ -32,7 +32,8 @@ struct PopulationSpace : public clotho::utility::iStateObject {
     typedef SequenceSpace< IntType >                        sequence_space_type;
     typedef AlleleSpace< RealType >                         allele_space_type;
 
-    typedef device_phenotype_space< RealType >              phenotype_space_type;
+//    typedef device_phenotype_space< RealType >              phenotype_space_type;
+    typedef basic_data_space< RealType >                    phenotype_space_type;
     typedef device_free_space< IntType, OrderTag >          free_space_type;
     typedef device_event_space< IntType, OrderTag >         event_space_type;
 
