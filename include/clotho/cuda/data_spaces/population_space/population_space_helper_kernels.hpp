@@ -31,11 +31,11 @@ __global__ void resize_free_space_kernel( device_sequence_space< IntType > * seq
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
     unsigned int seq_width = seq_space->seq_width;
-    if( tid == 0 ) {
+    if( tid == 0 && seq_width != 0 ) {
         _resize_space_impl( free_space, seq_width * device_sequence_space< IntType >::OBJECTS_PER_INT );
     }
 }
-
+/*
 template < class IntType >
 __global__ void update_free_space_kernel( device_sequence_space< IntType > * seq_space
                                         , device_free_space< IntType, unordered_tag > * free_space ) {
@@ -54,12 +54,12 @@ __global__ void update_free_space_kernel( device_sequence_space< IntType > * seq
 
     unsigned int column = tid;
 
-    free_int_type * flist = free_space->free_list + tid;
+    free_int_type * flist = free_space->free_list;
 
     while( column < seq_width ) {
-        sequence_int_type * seq = seq_space->sequences + column;
+        sequence_int_type * seq = seq_space->sequences;
 
-        sequence_int_type union_mask = * seq;
+        sequence_int_type union_mask = seq[column];
         sequence_int_type int_mask = union_mask;
 
         unsigned int i = 1;
@@ -73,12 +73,11 @@ __global__ void update_free_space_kernel( device_sequence_space< IntType > * seq
             ++i;
         }
 
-        *flist = (int_mask | (~union_mask));
+        flist[column] = (int_mask | (~union_mask));
 
-        flist += blockDim.x;
         column += blockDim.x;
     }
-}
+}*/
 
 template < class IntType >
 __global__ void update_free_space_kernel2( device_sequence_space< IntType > * seq_space
@@ -93,7 +92,7 @@ __global__ void update_free_space_kernel2( device_sequence_space< IntType > * se
     unsigned int seq_width = seq_space->seq_width;
     unsigned int seq_count = seq_space->seq_count;
 
-    if( seq_count == 0 ) return;
+    if( seq_count == 0 || seq_width == 0 ) return;
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
     unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
@@ -101,6 +100,9 @@ __global__ void update_free_space_kernel2( device_sequence_space< IntType > * se
     unsigned int column = bid;
 
     free_int_type * flist = free_space->free_list;
+    free_int_type * xlist = free_space->fixed_list;
+    free_int_type * llist = free_space->lost_list;
+
     sequence_int_type * seqs = seq_space->sequences;
 
     unsigned int row_offset = (blockDim.x * blockDim.y) * seq_width;
@@ -137,6 +139,8 @@ __global__ void update_free_space_kernel2( device_sequence_space< IntType > * se
         }
 
         if( tid == 31 ) {
+            llist[column] = ~union_mask;
+            xlist[column] = inter_mask;
             flist[column] = (inter_mask | (~union_mask));
         }
         __syncthreads();
@@ -146,23 +150,35 @@ __global__ void update_free_space_kernel2( device_sequence_space< IntType > * se
 
 /**
  *
- * Intended to be executed single block, single warp
+ * Intended to be executed two blocks, single warp
  */
 template < class IntType, class OrderTag >
 __global__ void update_free_space_total_kernel( device_free_space< IntType, OrderTag > * fspace ) {
     typedef device_free_space< IntType, OrderTag >      space_type;
     typedef typename space_type::int_type               int_type;
+
+    unsigned int bid = blockIdx.y * gridDim.x + blockDim.x;
+
+    if( bid >= 2 ) return;
     popcountGPU< int_type > pc;
 
     unsigned int count = 0;
     unsigned int width = fspace->size;
+
     width /= (sizeof( int_type ) * 8);
 
     unsigned int idx = threadIdx.y * blockDim.x + threadIdx.x;
 
-    int_type * flist = fspace->free_list;
+    int_type * _list;
+    if(bid == 0 ) { // true for all threads in block
+        _list = fspace->free_list;
+    } else {
+        _list = fspace->fixed_list;
+    }
+    __syncthreads();
+
     while( idx < width ) {
-        int_type c = flist[idx];
+        int_type c = _list[idx];
 
         count += pc.evalGPU( c );
 
@@ -178,14 +194,13 @@ __global__ void update_free_space_total_kernel( device_free_space< IntType, Orde
     }
 
     if( idx == 31 ) {
-        fspace->total = count;
+        if( bid == 0 ) {
+            fspace->total = count;
+        } else {
+            fspace->fixed_count = count;
+        }
     }
 }
-
-//template < class IntType >
-//__global__ void update_free_space_kernel( device_sequence_space< IntType > * seq_space
-//                                        , device_free_space< IntType, unit_ordered_tag< IntType > > * free_space );
-
 
 template < class IntType >
 __global__ void update_free_map_kernel( device_free_space< IntType, unordered_tag > * free_space ) {
@@ -277,10 +292,7 @@ __global__ void update_free_map_kernel( device_free_space< IntType, unordered_ta
     }
 }
 
-//template < class IntType >
-//__global__ void update_free_map_kernel( device_free_space< IntType, unit_ordered_tag< IntType> > * free_space );
-
-
+/*
 template < class IntType, class OrderTag >
 __global__ void clear_free_space_kernel( device_sequence_space< IntType > * seq_space, device_free_space< IntType, OrderTag > * free_space ) {
     typedef device_sequence_space< IntType >        sequence_space_type;
@@ -323,8 +335,9 @@ __global__ void clear_free_space_kernel( device_sequence_space< IntType > * seq_
         flist += blockDim.x;
         column += blockDim.x;
     }
-}
+}*/
 
+/*
 template < class IntType, class OrderTag >
 __global__ void clear_free_space_kernel2( device_sequence_space< IntType > * seq_space, device_free_space< IntType, OrderTag > * free_space ) {
     typedef device_sequence_space< IntType >        sequence_space_type;
@@ -333,12 +346,12 @@ __global__ void clear_free_space_kernel2( device_sequence_space< IntType > * seq
     typedef device_free_space< IntType, OrderTag >  free_space_type;
     typedef typename free_space_type::int_type      free_int_type;
 
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
     unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
 
     unsigned int seq_count = seq_space->seq_count;
-    if( seq_count == 0 ) { return; }
+    if( bid >= seq_count ) { return; }
 
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
     unsigned int seq_width = seq_space->seq_width;
 
     unsigned int seq_offset = gridDim.x * gridDim.y;
@@ -347,11 +360,9 @@ __global__ void clear_free_space_kernel2( device_sequence_space< IntType > * seq
     sequence_int_type * seqs = seq_space->sequences;
     free_int_type * flist = free_space->free_list;
 
-    unsigned int i = bid;
+    while( bid < seq_count ) {
 
-    while( i < seq_count ) {
-
-        unsigned int sidx = i * seq_width + tid;
+        unsigned int sidx = bid * seq_width + tid;
         unsigned int j = tid;
         while( j < seq_width ) {
             free_int_type mask = flist[j];
@@ -363,7 +374,48 @@ __global__ void clear_free_space_kernel2( device_sequence_space< IntType > * seq
             sidx += flist_offset;
         }
         __syncthreads();
-        i += seq_offset;
+        bid += seq_offset;
+    }
+}*/
+
+template < class IntType, class OrderTag >
+__global__ void clear_free_space_kernel3( device_sequence_space< IntType > * seq_space, device_free_space< IntType, OrderTag > * free_space ) {
+    typedef device_sequence_space< IntType >        sequence_space_type;
+    typedef typename sequence_space_type::int_type  sequence_int_type;
+
+    typedef device_free_space< IntType, OrderTag >  free_space_type;
+    typedef typename free_space_type::int_type      free_int_type;
+
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+    unsigned int seq_width = seq_space->seq_width;
+
+    if( bid >= seq_width ) { return; }  // get out quick for unnecessary blocks
+
+    unsigned int _size = seq_space->size;
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    unsigned int seq_offset = blockDim.x * blockDim.y * seq_width;
+    unsigned int flist_offset = gridDim.x * gridDim.y;
+
+    sequence_int_type * seqs = seq_space->sequences;
+    free_int_type * flist = free_space->free_list;
+
+    while( bid < seq_width ) {  // true for all threads in block
+        free_int_type mask = flist[ bid ];
+        mask = ~mask;
+
+        unsigned int sidx = tid * seq_width + bid;
+        while( sidx < _size ) { // threads access memory in different strides
+            sequence_int_type s = seqs[sidx];
+
+            s &= mask;
+            seqs[sidx] = s;
+
+            sidx += seq_offset;
+        }
+        __syncthreads();
+
+        bid += flist_offset;
     }
 }
 

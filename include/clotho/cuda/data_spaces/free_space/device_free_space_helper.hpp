@@ -33,16 +33,7 @@ void dump_free_list( std::ostream & out, const device_free_space< IntType, Order
     int_type    * _list = new int_type[ N ];
 
     copy_heap_data( _list, lspace.free_list, N );
-/*
-    int_type    * dList;
 
-    assert( cudaMalloc( (void **) &dList, N * sizeof( int_type ) ) == cudaSuccess );
-
-    copy_heap<<< 1,1 >>>( dList, lspace.free_list, N );
-    cudaDeviceSynchronize();
-
-    assert( cudaMemcpy( _list, dList, N * sizeof( int_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
-*/
     out << "[0x" << std::hex << std::setw(sizeof(int_type) * 2) << std::setfill('0') << _list[0];
     for( unsigned int i = 1; i < N; ++i ) {
         out << ",0x" << std::hex << std::setw(sizeof(int_type) * 2) << std::setfill('0') << _list[i];
@@ -51,7 +42,6 @@ void dump_free_list( std::ostream & out, const device_free_space< IntType, Order
     out << "]";
     out << std::dec;
 
-//    cudaFree( dList );
     delete _list;
 }
 
@@ -125,12 +115,15 @@ struct state_getter< device_free_space< IntType, OrderTag > > {
 
     void operator()( boost::property_tree::ptree & state, const device_free_space< IntType, OrderTag > & obj ) {
         state.put( "total", obj.total);
+        state.put( "fixed_count", obj.fixed_count );
         state.put( "size", obj.size );
         state.put( "capacity", obj.capacity );
 
         if( obj.free_list == NULL ) {
             state.put( "free_list", "" );
             state.put( "free_map", "" );
+            state.put( "fixed_list", "" );
+            state.put( "lost_list", "" );
             return;
         }
 
@@ -142,12 +135,30 @@ struct state_getter< device_free_space< IntType, OrderTag > > {
 
         copy_heap_data( flist, obj.free_list, nInts );
 
-        boost::property_tree::ptree fl;
+        boost::property_tree::ptree fl, xl, ll;
         for( unsigned int i = 0; i < nInts; ++i ) {
             std::ostringstream oss;
             oss << "0x" << std::hex << std::setw( sizeof( int_type) * 2 ) << std::setfill( '0' ) << flist[i];
 
             clotho::utility::add_value_array( fl, oss.str() );
+        }
+
+        copy_heap_data( flist, obj.fixed_list, nInts );
+
+        for( unsigned int i = 0; i < nInts; ++i ) {
+            std::ostringstream oss;
+            oss << "0x" << std::hex << std::setw( sizeof( int_type) * 2 ) << std::setfill( '0' ) << flist[i];
+
+            clotho::utility::add_value_array( xl, oss.str() );
+        }
+
+        copy_heap_data( flist, obj.lost_list, nInts );
+
+        for( unsigned int i = 0; i < nInts; ++i ) {
+            std::ostringstream oss;
+            oss << "0x" << std::hex << std::setw( sizeof( int_type) * 2 ) << std::setfill( '0' ) << flist[i];
+
+            clotho::utility::add_value_array( ll, oss.str() );
         }
 
         unsigned int * fmap = new unsigned int[ obj.size ];
@@ -161,6 +172,8 @@ struct state_getter< device_free_space< IntType, OrderTag > > {
 
         state.add_child( "free_list", fl );
         state.add_child( "free_map", fm );
+        state.add_child( "lost_list", ll );
+        state.add_child( "fixed_list", xl );
 
         delete flist;
         delete fmap;

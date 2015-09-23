@@ -109,9 +109,11 @@ __global__ void _merge_space( device_weighted_allele_space< RealType > * in_alle
 //    printf( "Padded Population: %d\n", C );
 
     _resize_space_impl( out_free, C );     // resize offspring free space relative to offsrping allele space
-    
-    _update_space( in_alleles, out_alleles );
-    _update_space( in_free, out_free );
+ 
+    if( P > 0 ) {   
+        _update_space( in_alleles, out_alleles );
+        _update_space( in_free, out_free );
+    }
 }
 
 #endif  // DEVICE_ALLELE_SPACE_UNORDERED_KERNELS_HPP_

@@ -21,10 +21,12 @@ struct device_free_space {
 
     static const unsigned int OBJECTS_PER_INT = (sizeof( int_type ) * 8);
 
+    int_type        * lost_list;
+    int_type        * fixed_list;
     int_type        * free_list;
     unsigned int    * free_map;
 
-    unsigned int total;
+    unsigned int total, fixed_count;
     unsigned int size, capacity;
 };
 

@@ -22,6 +22,7 @@ void update_free_map( device_free_space< IntType, OrderTag > * free_space ) {
     update_free_map_kernel<<< blocks, threads >>>( free_space );
 }
 
+/*
 template < class IntType, class OrderTag >
 void update_free_space( device_sequence_space< IntType > * seq_space
                        , device_free_space< IntType, OrderTag > * free_space ) {
@@ -34,15 +35,16 @@ void update_free_space( device_sequence_space< IntType > * seq_space
     update_free_map( free_space );
 
     cudaDeviceSynchronize();
-}
+}*/
 
 template < class IntType, class OrderTag >
 void update_free_space2( device_sequence_space< IntType > * seq_space
                             , device_free_space< IntType, OrderTag > * free_space ) {
     update_free_space_kernel2<<< 200, 32 >>>( seq_space, free_space );
-    update_free_space_total_kernel<<< 1, 32 >>>( free_space );
+    update_free_space_total_kernel<<< 2, 32 >>>( free_space );
 
-    clear_free_space_kernel2<<< 200, 32 >>> ( seq_space, free_space );
+//    clear_free_space_kernel2<<< 200, 32 >>> ( seq_space, free_space );
+    clear_free_space_kernel3<<< 200, 1024 >>> ( seq_space, free_space );
 }
 
 template < class RealType, class IntType, class OrderTag >

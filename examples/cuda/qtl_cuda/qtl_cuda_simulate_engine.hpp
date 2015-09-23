@@ -68,6 +68,8 @@ public:
         swap();
         unsigned int cur_seq_count = 2 * N;
 
+        prev_pop->record_fixed( fixed_alleles );
+
         mut_gen.generate( dMutations, cur_seq_count );
 
         current_pop->resize( prev_pop, dMutations, cur_seq_count );
@@ -97,6 +99,9 @@ public:
         current_pop->get_state( cur );
         prev_pop->get_state( prev );
 
+        boost::property_tree::ptree fx;
+        fixed_alleles.get_state( fx );
+
         boost::property_tree::ptree mut;
         get_device_object_state( mut, dMutations );
 
@@ -111,6 +116,7 @@ public:
         state.put_child( "mutations", mut );
         state.put_child( "selection", sel );
         state.put_child( "analysis", afreq );
+        state.put_child( "fixed", fx );
     }
 
     void swap() {
@@ -133,6 +139,8 @@ protected:
     mutation_event_space_type     * dMutations;
     population_space_type   hPop0, hPop1;
     population_space_type   * prev_pop, * current_pop;
+
+    allele_space_type       fixed_alleles;
 
     mutation_generator_type     mut_gen;
     crossover_generator_type    xover_gen;

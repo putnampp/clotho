@@ -57,5 +57,7 @@ __global__ void _merge_space( device_allele_space< RealType > * in_space
                             , device_event_space< IntType, OrderTag > * evts
                             , device_allele_space< RealType > * out_space );
 
+template < class AlleleSpaceType >
+__device__ bool _move_allele( AlleleSpaceType * in_space, unsigned int in_idx, AlleleSpaceType * out_space, unsigned int out_idx );
 
 #endif  // DEVICE_ALLELE_SPACE_KERNEL_API_HPP_

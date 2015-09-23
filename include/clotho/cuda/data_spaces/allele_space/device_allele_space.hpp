@@ -26,27 +26,34 @@
 #include "clotho/cuda/data_spaces/allele_space/merge_space_helper.hpp"
 
 template < class RealType >
-__device__ bool _resize_space_impl( device_allele_space< RealType > * aspace, unsigned int N ) {
+__device__ bool _resize_space_impl( device_allele_space< RealType > * aspace, unsigned int N, bool copy_content = false ) {
     typedef device_allele_space< RealType > space_type;
-    if( N % space_type::ALIGNMENT_SIZE != 0 ) {
-        N -= (N % space_type::ALIGNMENT_SIZE);
-        N += space_type::ALIGNMENT_SIZE;
+    typedef typename space_type::real_type  real_type;
+
+    unsigned int cap = N;
+    if( cap % space_type::ALIGNMENT_SIZE != 0 ) {
+        cap -= (cap % space_type::ALIGNMENT_SIZE);
+        cap += space_type::ALIGNMENT_SIZE;
     }
 
+    unsigned int M = aspace->size;
     bool cap_increased = false;
-    if( aspace->capacity < N ) {
-        //printf("Resizing allele location space: %d -> %d\n", aspace->capacity, N );
+    if( aspace->capacity < cap ) {
+        real_type * l = new real_type[ cap ];
+
+        assert( l != NULL );
+
+        memset(l, 0, cap * sizeof( real_type ) );
         if( aspace->locations ) {
+            if( copy_content ) {
+                memcpy(l, aspace->locations, M * sizeof(real_type));
+            }
             delete aspace->locations;
         }
 
-        aspace->locations = new typename space_type::real_type[N];
-        
-        assert( aspace->locations != NULL );
 
-        memset(aspace->locations, 0, N * sizeof( typename space_type::real_type ) );
-
-        aspace->capacity = N;
+        aspace->locations = l;
+        aspace->capacity = cap;
         cap_increased = true;
     }
 
@@ -55,22 +62,32 @@ __device__ bool _resize_space_impl( device_allele_space< RealType > * aspace, un
 }
 
 template < class RealType >
-__device__ void _resize_space_impl( device_weighted_allele_space< RealType > * aspace, unsigned int N ) {
+__device__ bool  _resize_space_impl( device_weighted_allele_space< RealType > * aspace, unsigned int N, bool copy_content = false ) {
     typedef device_allele_space< RealType > space_type;
+    typedef typename space_type::real_type  real_type;
 
-    if( _resize_space_impl( (device_allele_space< RealType > *) aspace, N ) ) {
+    unsigned int M = aspace->size;
+    bool cap_increase =  _resize_space_impl( (device_allele_space< RealType > *) aspace, N, copy_content );
+
+    if( cap_increase ) {
         N = aspace->capacity;
-        //printf("Resize allele weight space: %d\n", N);
 
+        real_type * w = new typename space_type::real_type[ N ];
+        assert( w != NULL );
+
+        memset( w, 0, N * sizeof( real_type ) );
         if( aspace->weights != NULL ) {
+            if( copy_content ) {
+                memcpy(w, aspace->weights, M * sizeof( real_type ));    
+            }
+        
             delete aspace->weights;
         }
 
-        aspace->weights = new typename space_type::real_type[ N ];
-        assert( aspace->weights != NULL );
+        aspace->weights = w;
+    }
 
-        memset( aspace->weights, 0, N * sizeof( typename space_type::real_type ) );
-    }    
+    return cap_increase;
 }
 
 template < class RealType >
@@ -92,28 +109,30 @@ __global__ void _resize_space( device_weighted_allele_space< RealType > * aspace
 }
 
 template < class RealType >
-__global__ void _delete_space( device_allele_space< RealType > * aspace ) {
-    typedef device_allele_space< RealType > space_type;
-
-    space_type local = *aspace;
-
-    if( local.locations ) {
-        delete local.locations;
+__device__ void _delete_space_impl( device_allele_space< RealType > * aspace ) {
+    if( aspace->locations ) {
+        delete aspace->locations;
+        aspace->locations = NULL;
     }
 }
 
 template < class RealType >
-__global__ void _delete_space( device_weighted_allele_space< RealType > * aspace ) {
-    typedef device_weighted_allele_space< RealType > space_type;
+__device__ void _delete_space_impl( device_weighted_allele_space< RealType > * aspace ) {
 
-    space_type local = *aspace;
+    _delete_space_impl( (device_allele_space< RealType > * ) aspace);
 
-    if( local.locations ) {
-        delete local.locations;
-        delete local.weights;
+    if( aspace->weights ) {
+        delete aspace->weights;
+        aspace->weights = NULL;
     }
 }
 
+template < class AlleleSpaceType >
+__global__ void _delete_space( AlleleSpaceType * aspace ) {
+    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
+        _delete_space_impl( aspace );
+    }
+}
 
 template < class RealType >
 void merge_allele_space( device_allele_space< RealType > * a
@@ -141,7 +160,6 @@ void merge_space( device_weighted_allele_space< RealType > * in_space
                 , device_weighted_allele_space< RealType > * out_space ) {
 
     typedef merge_execution_config< OrderTag > config_type;
-    std::cerr << "Merge Weighted Alleles: " << config_type::BLOCK_COUNT << ", " << config_type::THREAD_COUNT << std::endl;
 
     _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, fspace, evts, ofspace, out_space );
 
@@ -150,6 +168,93 @@ void merge_space( device_weighted_allele_space< RealType > * in_space
     if( err != cudaSuccess ) {
         std::cerr << "CUDA error: " << cudaGetErrorString( err ) << std::endl;
         assert(false);
+    }
+}
+
+template < class RealType >
+__device__ bool _move_allele( device_allele_space< RealType > * in_space
+                                , unsigned int in_idx
+                                , device_allele_space< RealType > * out_space
+                                , unsigned int out_idx ) {
+    unsigned int in_size = in_space->size;
+    unsigned int out_size = out_space->size;
+
+    bool success = ((in_idx < in_size) && (out_idx < out_size));
+
+    if( success ) {
+        out_space->locations[out_idx] = in_space->locations[in_idx];
+    }   
+
+    return success;
+}
+
+template < class RealType >
+__device__ bool _move_allele( device_weighted_allele_space< RealType > * in_space
+                                , unsigned int in_idx
+                                , device_weighted_allele_space< RealType > * out_space
+                                , unsigned int out_idx ) {
+    typedef device_allele_space< RealType > base_type;
+
+    bool success = _move_allele( (base_type *) in_space, in_idx, (base_type *) out_space, out_idx);
+    if( success ) {
+        out_space->weights[ out_idx ] = in_space->weights[ in_idx ];
+    }
+    return success;
+}
+
+template < class AlleleSpaceType, class IntType, class OrderTag >
+__global__ void resize_fixed_allele_kernel( AlleleSpaceType * alls, device_free_space< IntType, OrderTag > * free_space ) {
+
+    unsigned int _count = free_space->fixed_count;
+    if( _count == 0 ) return;
+
+    printf( "%d fixed allele encountered\n", _count );
+
+    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
+        _count += alls->size;
+
+        _resize_space_impl( alls, _count, true );
+    }
+}
+
+/// quick implementation
+/// should be re-written to make use of parallelism
+/// in addition to efficient bit walking (as done in sequential code)
+template < class AlleleSpaceType, class IntType, class OrderTag >
+__global__ void move_fixed_allele_kernel( AlleleSpaceType * dest, AlleleSpaceType * src, device_free_space< IntType, OrderTag > * free_space ) {
+    unsigned int _count = free_space->fixed_count;
+    if( _count == 0 ) { return; }
+
+    printf( "%d fixed allele encountered\n", _count );
+
+    unsigned int M = dest->size;
+
+    _count += M;
+    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
+        _resize_space_impl( dest, _count, true );
+    }
+    __syncthreads();
+
+    typedef device_free_space< IntType, OrderTag >  space_type;
+    typedef typename space_type::int_type           int_type;
+
+    int_type * xlist = free_space->fixed_list;
+    unsigned int offset = 0;
+    while( M < _count ) {
+        int_type x = xlist[offset];
+
+        unsigned int bit = 0;
+        while( x != 0 ) {
+
+            if( x & 1 ) {
+                unsigned int idx = offset * space_type::OBJECTS_PER_INT + bit;
+                _move_allele( src, idx, dest, M);
+                ++M;
+            }
+            x >>= 1;
+            ++bit;
+        }
+        ++offset;
     }
 }
 

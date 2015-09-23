@@ -22,4 +22,7 @@ void update_free_space2( device_sequence_space< IntType > * seq_space
 template < class IntType, class OrderTag >
 void update_free_map( device_free_space< IntType, OrderTag > * fspace );
 
+template < class AlleleSpaceType, class FreeSpaceType >
+void update_fixed_alleles( AlleleSpaceType * alleles, FreeSpaceType * free_space );
+
 #endif  // POPULATION_SPACE_HELPER_API_HPP_

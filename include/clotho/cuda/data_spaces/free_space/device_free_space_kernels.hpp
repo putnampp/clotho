@@ -34,20 +34,27 @@ __device__ void _resize_space_impl( device_free_space< IntType, OrderTag > * s, 
 
         if( s->free_list != NULL ) {
             delete s->free_list;
+            delete s->fixed_list;
+            delete s->lost_list;
+            delete s->free_map;
         }
 
         int_type * flist = new int_type [ free_list_size ];
         memset( flist, -1, free_list_size * sizeof( int_type ) );
 
-        unsigned int * fmap = new unsigned int[ N ];
-        if( s->free_map != NULL ) {
-            delete s->free_map;
-        }
+        int_type * xlist = new int_type[ free_list_size ];
+        memset( xlist, 0, free_list_size * sizeof( int_type ) );
 
-        fmap = new unsigned int[ N ];
+        int_type * llist = new int_type[ free_list_size ];
+        memset( llist, 0, free_list_size * sizeof( int_type ) );
+
+        unsigned int * fmap = new unsigned int[ N ];
         memset( fmap, 0, N * sizeof( unsigned int ) );
         
         s->free_list = flist;
+        s->fixed_list = xlist;
+        s->lost_list = llist;
+
         s->free_map = fmap;
         s->capacity = N;
     }
@@ -68,8 +75,16 @@ __global__ void _delete_space( device_free_space< IntType, OrderTag > * s ) {
 
     if( s->free_list != NULL ) {
         delete s->free_list;
+        delete s->fixed_list;
+        delete s->lost_list;
         delete s->free_map;
     }
+
+    
+    s->free_list = NULL;
+    s->fixed_list = NULL;
+    s->lost_list = NULL;
+    s->free_map = NULL;
 }
 
 template < class IntType, class OrderTag >
@@ -82,14 +97,21 @@ __device__ void _update_space( device_free_space< IntType, OrderTag > * in_space
     unsigned int M = out_space->size;
 
     N /= (sizeof(int_type) * 8);
+    N *= sizeof(int_type);
+
     M /= (sizeof(int_type) * 8);
+    M *= sizeof(int_type);
 
     //printf("updating free space: %d -> %d\n", N, M );
     // reset out_space free list
-    memset( out_space->free_list, 255, M * sizeof( int_type ) );
+    memset( out_space->free_list, 255, M );
+    memset( out_space->fixed_list, 0, M );
+    memset( out_space->lost_list, 0, M );
 
     // copy the in_space free list into out_space
-    memcpy( out_space->free_list, in_space->free_list, N * sizeof(int_type) );
+    memcpy( out_space->free_list, in_space->free_list, N );
+    memcpy( out_space->fixed_list, in_space->fixed_list, N );
+    memcpy( out_space->lost_list, in_space->lost_list, N );
 }
 
 #endif  // DEVICE_FREE_SPACE_KERNELS_HPP_
