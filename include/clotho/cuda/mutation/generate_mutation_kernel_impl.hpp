@@ -77,7 +77,10 @@ __global__ void _generate_mutation_kernel( StateType * states
 
     unsigned int i = tid;
 
-    allele_space_type local_space = * alleles;
+//    allele_space_type local_space = * alleles;
+
+    real_type * locs = alleles->locations;
+    real_type * wghts = alleles->weights;
     
     unsigned int * fmap = fspace->free_map;
 
@@ -89,8 +92,8 @@ __global__ void _generate_mutation_kernel( StateType * states
         real_type x = curand_uniform( &local_state );
         real_type y = curand_normal( &local_state ); 
 
-        local_space.locations[idx] = x;
-        local_space.weights[idx] = y;
+        locs[idx] = x;
+        wghts[idx] = y;
         
         i += (blockDim.x * blockDim.y);
     }

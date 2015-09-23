@@ -63,6 +63,7 @@ typedef qtl_cuda_simulate_engine< population_space_type >   engine_type;
 typedef clotho::utility::timer                              timer_type;
 
 static const std::string GEN_K = "generations";
+static const std::string HEAP_K = "device.heap.malloc.size";
 
 typedef std::shared_ptr< ipopulation_growth_generator >                     population_growth_generator_type;
 typedef std::shared_ptr< ipopulation_growth >                               population_growth_type;
@@ -95,6 +96,17 @@ int main( int argc, char ** argv ) {
         config.put(GEN_K, nGens);
     } else {
         nGens = config.get< unsigned int >( GEN_K, nGens);
+    }
+
+    if( config.get_child_optional( HEAP_K ) == boost::none ) {
+        size_t hlimit = 0;
+        cudaDeviceGetLimit( &hlimit, cudaLimitMallocHeapSize );
+
+        config.put( HEAP_K, hlimit );
+    } else {
+        size_t hlimit = config.get< size_t >( HEAP_K );
+
+        cudaDeviceSetLimit( cudaLimitMallocHeapSize, hlimit );
     }
 
     population_growth_type pop_grow;

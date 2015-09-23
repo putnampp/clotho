@@ -43,7 +43,7 @@ public:
 
         get_device_object_state( f, dCounts );
 
-        state.add_child( "allele_frequency", f );
+        state.add_child( "allele_count_spectrum", f );
     }
 
     virtual ~AlleleFrequency() {

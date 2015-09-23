@@ -17,18 +17,32 @@
 #include "clotho/cuda/data_spaces/population_space/population_space_helper_kernels.hpp"
 
 template < class IntType, class OrderTag >
+void update_free_map( device_free_space< IntType, OrderTag > * free_space ) {
+    dim3 blocks(1,1,1), threads( 32, 32, 1 );
+    update_free_map_kernel<<< blocks, threads >>>( free_space );
+}
+
+template < class IntType, class OrderTag >
 void update_free_space( device_sequence_space< IntType > * seq_space
                        , device_free_space< IntType, OrderTag > * free_space ) {
     resize_free_space_kernel<<< 1, 1 >>>( seq_space, free_space);
 
     update_free_space_kernel2<<< 200, 32 >>>( seq_space, free_space );
 
-    dim3 blocks(1,1,1), threads( 32, 32, 1 );
-    update_free_map_kernel<<< blocks, threads >>>( free_space );
-
     clear_free_space_kernel2<<< 200, 32 >>> ( seq_space, free_space );
 
+    update_free_map( free_space );
+
     cudaDeviceSynchronize();
+}
+
+template < class IntType, class OrderTag >
+void update_free_space2( device_sequence_space< IntType > * seq_space
+                            , device_free_space< IntType, OrderTag > * free_space ) {
+    update_free_space_kernel2<<< 200, 32 >>>( seq_space, free_space );
+    update_free_space_total_kernel<<< 1, 32 >>>( free_space );
+
+    clear_free_space_kernel2<<< 200, 32 >>> ( seq_space, free_space );
 }
 
 template < class RealType, class IntType, class OrderTag >

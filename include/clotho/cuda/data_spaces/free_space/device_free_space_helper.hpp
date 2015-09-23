@@ -69,16 +69,7 @@ void dump_free_map( std::ostream & out, const device_free_space< IntType, OrderT
     int_type    * _list = new int_type[ N ];
 
     copy_heap_data( _list, lspace.free_map, N );
-/*
-    int_type    * dList;
 
-    assert( cudaMalloc( (void **) &dList, N * sizeof( int_type ) ) == cudaSuccess );
-
-    copy_heap<<< 1,1 >>>( dList, lspace.free_map, N );
-    cudaDeviceSynchronize();
-
-    assert( cudaMemcpy( _list, dList, N * sizeof( int_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
-*/
     out << "[" << _list[0];
     for( unsigned int i = 1; i < N; ++i ) {
         out << "," << _list[i];
@@ -86,7 +77,6 @@ void dump_free_map( std::ostream & out, const device_free_space< IntType, OrderT
 
     out << "]";
 
-//    cudaFree( dList );
     delete _list;
 }
 
@@ -137,6 +127,43 @@ struct state_getter< device_free_space< IntType, OrderTag > > {
         state.put( "total", obj.total);
         state.put( "size", obj.size );
         state.put( "capacity", obj.capacity );
+
+        if( obj.free_list == NULL ) {
+            state.put( "free_list", "" );
+            state.put( "free_map", "" );
+            return;
+        }
+
+        typedef device_free_space< IntType, OrderTag > space_type;
+        typedef typename space_type::int_type  int_type;
+
+        unsigned int nInts = obj.size / space_type::OBJECTS_PER_INT;
+        int_type * flist = new int_type[ nInts ];
+
+        copy_heap_data( flist, obj.free_list, nInts );
+
+        boost::property_tree::ptree fl;
+        for( unsigned int i = 0; i < nInts; ++i ) {
+            std::ostringstream oss;
+            oss << "0x" << std::hex << std::setw( sizeof( int_type) * 2 ) << std::setfill( '0' ) << flist[i];
+
+            clotho::utility::add_value_array( fl, oss.str() );
+        }
+
+        unsigned int * fmap = new unsigned int[ obj.size ];
+
+        copy_heap_data( fmap, obj.free_map, obj.size );
+
+        boost::property_tree::ptree fm;
+        for( unsigned int i = 0; i < obj.size; ++i ) {
+            clotho::utility::add_value_array( fm, fmap[i] );
+        }
+
+        state.add_child( "free_list", fl );
+        state.add_child( "free_map", fm );
+
+        delete flist;
+        delete fmap;
     }
 };
 

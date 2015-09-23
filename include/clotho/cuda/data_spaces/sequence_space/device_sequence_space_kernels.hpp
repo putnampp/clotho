@@ -25,6 +25,8 @@ __global__ void _resize_space( device_sequence_space< IntType > * sspace, unsign
         }
 
         sspace->sequences = new typename device_sequence_space< IntType >::int_type[ N ];
+
+        memset( sspace->sequences, 0, N * sizeof( typename device_sequence_space< IntType >::int_type ) );
         sspace->capacity = N;
     }
     sspace->size = N;
@@ -40,12 +42,16 @@ __global__ void _resize_space( device_sequence_space< IntType > * sspace, Column
     unsigned int N = seq_count * W;
 
     if( sspace->capacity < N ) {
+        //printf("Resizing sequence space by column space: %d -> %d \n", sspace->capacity, N );
+
         int_type * seqs = sspace->sequences;
         if( seqs ) {
             delete seqs;
         }
 
         seqs = new int_type[ N ];
+
+        assert( seqs != NULL );
 
         sspace->sequences = seqs;
         sspace->capacity = N;

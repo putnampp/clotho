@@ -57,7 +57,6 @@ __global__ void update_free_space_kernel( device_sequence_space< IntType > * seq
     free_int_type * flist = free_space->free_list + tid;
 
     while( column < seq_width ) {
-
         sequence_int_type * seq = seq_space->sequences + column;
 
         sequence_int_type union_mask = * seq;
@@ -104,24 +103,26 @@ __global__ void update_free_space_kernel2( device_sequence_space< IntType > * se
     free_int_type * flist = free_space->free_list;
     sequence_int_type * seqs = seq_space->sequences;
 
-    unsigned int row_offset = (blockDim.x * blockDim.y);
+    unsigned int row_offset = (blockDim.x * blockDim.y) * seq_width;
     unsigned int col_offset = (gridDim.x * gridDim.y);
 
+    unsigned int _count = seq_space->size;
+
     while( column < seq_width ) {
-        unsigned int row = tid;
+        unsigned int ridx = tid * seq_width + column;
 
         free_int_type union_mask = 0, inter_mask = (free_int_type) -1;
-        if( row < seq_count ) {
-            sequence_int_type v = seqs[ row * seq_width + column ];
+        if( ridx < _count ) {
+            sequence_int_type v = seqs[ ridx ];
             union_mask = v;
             inter_mask = v;
-            row += row_offset;
+            ridx += row_offset;
 
-            while( row < seq_count ) {
-                sequence_int_type v = seqs[ row * seq_width + column ];
+            while( ridx < _count ) {
+                v = seqs[ ridx ];
                 union_mask |= v;
                 inter_mask &= v;
-                row += row_offset;
+                ridx += row_offset;
             }
         }
         __syncthreads();
@@ -140,6 +141,44 @@ __global__ void update_free_space_kernel2( device_sequence_space< IntType > * se
         }
         __syncthreads();
         column += col_offset;
+    }
+}
+
+/**
+ *
+ * Intended to be executed single block, single warp
+ */
+template < class IntType, class OrderTag >
+__global__ void update_free_space_total_kernel( device_free_space< IntType, OrderTag > * fspace ) {
+    typedef device_free_space< IntType, OrderTag >      space_type;
+    typedef typename space_type::int_type               int_type;
+    popcountGPU< int_type > pc;
+
+    unsigned int count = 0;
+    unsigned int width = fspace->size;
+    width /= (sizeof( int_type ) * 8);
+
+    unsigned int idx = threadIdx.y * blockDim.x + threadIdx.x;
+
+    int_type * flist = fspace->free_list;
+    while( idx < width ) {
+        int_type c = flist[idx];
+
+        count += pc.evalGPU( c );
+
+        idx += (blockDim.x * blockDim.y);
+    }
+    __syncthreads();
+
+    idx = threadIdx.y * blockDim.x + threadIdx.x;
+
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        unsigned int c = __shfl_up( count, i );
+        count += ( idx >= i ) * c;
+    }
+
+    if( idx == 31 ) {
+        fspace->total = count;
     }
 }
 

@@ -101,6 +101,10 @@ __global__ void _scatter_mutation_single_thread( device_free_space< IntType, uno
 //    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
     unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x + offset;
 
+    unsigned int _count = sequences->seq_count;
+
+    if( bid >= _count ) return;
+
     event_int_type  e_max = events->event_count[ bid ];
     event_int_type  e_min = ((bid == 0 ) ? 0 : events->event_count[ bid - 1]);
 
@@ -110,34 +114,35 @@ __global__ void _scatter_mutation_single_thread( device_free_space< IntType, uno
 
     fixed_width_converter< sequence_type::OBJECTS_PER_INT > converter;
 
-    free_space_type loc_free = *fspace;
+//    free_space_type loc_free = *fspace;
+
+    unsigned int * fmap = fspace->free_map;
 
     sequence_int_type seq_width = sequences->seq_width;
     sequence_int_type * seq = sequences->sequences;
-    seq += bid * seq_width;
-
+    
     unsigned int cur_block = 0;
-    sequence_int_type b = seq[cur_block]; // read current bit_block
+    unsigned int seq_offset = bid * seq_width;
+    sequence_int_type b = seq[ seq_offset + cur_block]; // read current bit_block
 
     while( e_min < e_max ) {
-        unsigned int fidx = loc_free.free_map[ e_min++ ];
+        unsigned int fidx = fmap[ e_min++ ];
 
         unsigned int block_idx = converter.major_offset( fidx );
         unsigned int bit_idx = converter.minor_offset( fidx );
 
         if( block_idx != cur_block ) {
-            seq[cur_block] = b;   // persist current bit block to
+            seq[seq_offset + cur_block] = b;   // persist current bit block to
 
             cur_block = block_idx;             // update current bit block
 
-            b = seq[cur_block];   // read current bit block
+            b = seq[seq_offset + cur_block];   // read current bit block
         }
 
         b |= ((sequence_int_type) 1 << bit_idx );
     }
 
-
-    seq[cur_block] = b;   // persist current bit block
+    seq[seq_offset + cur_block] = b;   // persist current bit block
 }
                                 
 #endif  // SCATTER_UNORDERED_IMPL_HPP_

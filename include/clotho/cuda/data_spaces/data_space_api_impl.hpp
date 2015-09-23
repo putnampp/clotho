@@ -34,6 +34,7 @@ void resize_space( SpaceType * space, unsigned int N ) {
 
 template < class SpaceType >
 void delete_space( SpaceType * space ) {
+
     _delete_space<<< 1, 1 >>>( space );
 
     cudaFree( space );

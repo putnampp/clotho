@@ -52,18 +52,27 @@ struct PopulationSpace : public clotho::utility::iStateObject {
         create_space( pheno_space );
 
         sequences.resize( alleles.get_device_space(), 2 );
+//        resize_space( free_space, allele_space_type::device_space_type::ALIGNMENT_SIZE );
+        resize_space( free_space, 896 );
+
+        cudaDeviceSynchronize();
+
+        update_metadata();
     }
 
-    //template < class EventSpaceType >
     void resize( self_type * parent_pop, event_space_type * mut_events, unsigned int seqs ) {
 
         resize_space( pheno_space, seqs/2); // 1 phenotype per pair of sequences
 
-        update_free_space( parent_pop->sequences.get_device_space(), free_space );
+        alleles.expand_relative_to( parent_pop->alleles, parent_pop->free_space, free_space, mut_events );
 
-        alleles.expand_relative_to( parent_pop->alleles, free_space, mut_events );
+        update_free_map( free_space );
 
         sequences.resize( alleles.get_device_space(), seqs );
+    }
+
+    void update_metadata() {
+        update_free_space2( sequences.get_device_space(), free_space );
     }
 
     void get_state( boost::property_tree::ptree & state ) {

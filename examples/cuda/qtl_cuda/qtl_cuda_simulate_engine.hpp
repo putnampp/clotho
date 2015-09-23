@@ -80,6 +80,8 @@ public:
         mut_gen.scatter( current_pop, dMutations, cur_seq_count );
 
         pheno_trans.translate( current_pop );
+        
+        current_pop->update_metadata();
 
         cudaDeviceSynchronize();
     }
@@ -95,6 +97,9 @@ public:
         current_pop->get_state( cur );
         prev_pop->get_state( prev );
 
+        boost::property_tree::ptree mut;
+        get_device_object_state( mut, dMutations );
+
         boost::property_tree::ptree sel;
         sel_gen.get_state( sel );
 
@@ -103,8 +108,8 @@ public:
 
         state.put_child( "population.current", cur );
         state.put_child( "population.previous", prev );
+        state.put_child( "mutations", mut );
         state.put_child( "selection", sel );
-
         state.put_child( "analysis", afreq );
     }
 

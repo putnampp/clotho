@@ -25,37 +25,33 @@
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_helper.hpp"
 #include "clotho/cuda/data_spaces/allele_space/merge_space_helper.hpp"
 
-template < class RealType/*, class IntType, class OrderTag*/ >
-__device__ bool _resize_space_impl( device_allele_space< RealType/*, IntType, OrderTag*/ > * aspace, unsigned int N ) {
-    typedef device_allele_space< RealType/*, IntType, OrderTag*/ > space_type;
+template < class RealType >
+__device__ bool _resize_space_impl( device_allele_space< RealType > * aspace, unsigned int N ) {
+    typedef device_allele_space< RealType > space_type;
     if( N % space_type::ALIGNMENT_SIZE != 0 ) {
         N -= (N % space_type::ALIGNMENT_SIZE);
         N += space_type::ALIGNMENT_SIZE;
     }
 
-    bool space_increased = false;
+    bool cap_increased = false;
     if( aspace->capacity < N ) {
+        //printf("Resizing allele location space: %d -> %d\n", aspace->capacity, N );
         if( aspace->locations ) {
             delete aspace->locations;
         }
+
         aspace->locations = new typename space_type::real_type[N];
         
-//        if( aspace->free_list ) {
-//            delete aspace->free_list;
-//        }
-
-//        unsigned int free_size = compute_free_list_size< typename space_type::int_type >( N );
-//        aspace->free_list = new typename space_type::int_type[free_size];
+        assert( aspace->locations != NULL );
 
         memset(aspace->locations, 0, N * sizeof( typename space_type::real_type ) );
-//        memset(aspace->free_list, -1, free_size * sizeof( typename space_type::int_type ) );
 
         aspace->capacity = N;
-        space_increased = true;
+        cap_increased = true;
     }
 
     aspace->size = N;
-    return space_increased;
+    return cap_increased;
 }
 
 template < class RealType >
@@ -63,11 +59,17 @@ __device__ void _resize_space_impl( device_weighted_allele_space< RealType > * a
     typedef device_allele_space< RealType > space_type;
 
     if( _resize_space_impl( (device_allele_space< RealType > *) aspace, N ) ) {
+        N = aspace->capacity;
+        //printf("Resize allele weight space: %d\n", N);
+
         if( aspace->weights != NULL ) {
             delete aspace->weights;
         }
 
         aspace->weights = new typename space_type::real_type[ N ];
+        assert( aspace->weights != NULL );
+
+        memset( aspace->weights, 0, N * sizeof( typename space_type::real_type ) );
     }    
 }
 
@@ -121,13 +123,34 @@ void merge_allele_space( device_allele_space< RealType > * a
 }
 
 template < class RealType, class IntType, class OrderTag >
-void merge_space( device_allele_space< RealType/*, IntType, OrderTag*/ > * in_space
+void merge_space( device_allele_space< RealType > * in_space
                 , device_free_space< IntType, OrderTag > * fspace
                 , device_event_space< IntType, OrderTag > * evts
-                , device_allele_space< RealType/*, IntType, OrderTag*/ > * out_space ) {
+                , device_free_space< IntType, OrderTag > * ofspace
+                , device_allele_space< RealType > * out_space ) {
 
     typedef merge_execution_config< OrderTag > config_type;
-    _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, fspace, evts, out_space );
+    _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, fspace, evts, ofspace, out_space );
+}
+
+template < class RealType, class IntType, class OrderTag >
+void merge_space( device_weighted_allele_space< RealType > * in_space
+                , device_free_space< IntType, OrderTag > * fspace
+                , device_event_space< IntType, OrderTag > * evts
+                , device_free_space< IntType, OrderTag > * ofspace
+                , device_weighted_allele_space< RealType > * out_space ) {
+
+    typedef merge_execution_config< OrderTag > config_type;
+    std::cerr << "Merge Weighted Alleles: " << config_type::BLOCK_COUNT << ", " << config_type::THREAD_COUNT << std::endl;
+
+    _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, fspace, evts, ofspace, out_space );
+
+    cudaError_t err = cudaGetLastError();
+
+    if( err != cudaSuccess ) {
+        std::cerr << "CUDA error: " << cudaGetErrorString( err ) << std::endl;
+        assert(false);
+    }
 }
 
 #endif  // DEVICE_ALLELE_SPACE_HPP_

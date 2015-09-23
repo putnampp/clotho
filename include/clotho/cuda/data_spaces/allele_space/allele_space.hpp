@@ -38,9 +38,8 @@ public:
 
     device_space_type * get_device_space();
 
-
     template < class IntType, class OrderTag >
-    void expand_relative_to( self_type & alls, device_free_space< IntType, OrderTag > * fspace, device_event_space< IntType, OrderTag > * space );
+    void expand_relative_to( self_type & alls, device_free_space< IntType, OrderTag > * fspace, device_free_space< IntType, OrderTag > * ofspace, device_event_space< IntType, OrderTag > * space );
 
     void get_state( boost::property_tree::ptree & state );
 
@@ -69,7 +68,8 @@ _CLASS::AlleleSpace() : dAlleles( NULL ) {
 
 _HEADER
 void _CLASS::initialize() {
-    create_space( dAlleles, 1 );
+    //create_space( dAlleles, 1 );
+    create_space( dAlleles, 896 );
 }
 
 _HEADER
@@ -94,8 +94,8 @@ void _CLASS::merge_alleles( self_type * A, self_type * B ) {
 }*/
 
 _HEADER template < class IntType, class OrderTag >
-void _CLASS::expand_relative_to( self_type & alls, device_free_space< IntType, OrderTag > * fspace, device_event_space< IntType, OrderTag > * muts ) {
-    merge_space( alls.dAlleles, fspace, muts, dAlleles );
+void _CLASS::expand_relative_to( self_type & alls, device_free_space< IntType, OrderTag > * fspace, device_free_space< IntType, OrderTag > * ofspace, device_event_space< IntType, OrderTag > * muts ) {
+    merge_space( alls.dAlleles, fspace, muts, ofspace, dAlleles );
 }
 
 _HEADER

@@ -19,36 +19,39 @@
 
 template < class IntType, class OrderTag >
 __device__ void _resize_space_impl( device_free_space< IntType, OrderTag > * s, unsigned int N ) {
+//    printf("Resize free space: %d\n", N );
+
     typedef device_free_space< IntType, OrderTag > space_type;
+    typedef typename space_type::int_type   int_type;
 
     unsigned int free_list_size = N / space_type::OBJECTS_PER_INT;
     if( N % space_type::OBJECTS_PER_INT ) {
         ++free_list_size;
+        N = free_list_size * space_type::OBJECTS_PER_INT;
     }
 
-    space_type loc = *s;
+    if( N > s->capacity ) {
 
-    if( N > loc.capacity ) {
-
-        if( loc.free_list != NULL ) {
-            delete loc.free_list;
+        if( s->free_list != NULL ) {
+            delete s->free_list;
         }
 
-        loc.free_list = new typename space_type::int_type [ free_list_size ];
-        memset( loc.free_list, -1, free_list_size * sizeof( typename space_type::int_type ) );
+        int_type * flist = new int_type [ free_list_size ];
+        memset( flist, -1, free_list_size * sizeof( int_type ) );
 
-        if( loc.free_map != NULL ) {
-            delete loc.free_map;
+        unsigned int * fmap = new unsigned int[ N ];
+        if( s->free_map != NULL ) {
+            delete s->free_map;
         }
 
-        loc.free_map = new unsigned int[ N ];
-        memset( loc.free_map, 0, N * sizeof( unsigned int ) );
+        fmap = new unsigned int[ N ];
+        memset( fmap, 0, N * sizeof( unsigned int ) );
         
-        loc.capacity = N;
+        s->free_list = flist;
+        s->free_map = fmap;
+        s->capacity = N;
     }
-    loc.size = N;
-
-    *s = loc;
+    s->size = N;
 }
 
 template < class IntType, class OrderTag >
@@ -67,6 +70,26 @@ __global__ void _delete_space( device_free_space< IntType, OrderTag > * s ) {
         delete s->free_list;
         delete s->free_map;
     }
+}
+
+template < class IntType, class OrderTag >
+__device__ void _update_space( device_free_space< IntType, OrderTag > * in_space
+                                , device_free_space< IntType, OrderTag > * out_space ) {
+
+    typedef typename device_free_space< IntType, OrderTag >::int_type int_type;
+
+    unsigned int N = in_space->size;
+    unsigned int M = out_space->size;
+
+    N /= (sizeof(int_type) * 8);
+    M /= (sizeof(int_type) * 8);
+
+    //printf("updating free space: %d -> %d\n", N, M );
+    // reset out_space free list
+    memset( out_space->free_list, 255, M * sizeof( int_type ) );
+
+    // copy the in_space free list into out_space
+    memcpy( out_space->free_list, in_space->free_list, N * sizeof(int_type) );
 }
 
 #endif  // DEVICE_FREE_SPACE_KERNELS_HPP_

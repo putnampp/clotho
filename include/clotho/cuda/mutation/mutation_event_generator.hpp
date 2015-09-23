@@ -36,8 +36,10 @@
 
 #include "clotho/cuda/mutation/scatter_unordered_impl.hpp"
 
+#include "clotho/cuda/device_state_object.hpp"
+
 template < class RealType, class IntType, class OrderTag >
-class MutationEventGenerator {
+class MutationEventGenerator : public clotho::utility::iStateObject {
 public:
     typedef RealType  real_type;
     typedef device_event_space< IntType, OrderTag > space_type;
@@ -74,6 +76,7 @@ public:
     void scatter( PopulationType * pop, space_type * events, unsigned int N ) {
         const unsigned int MAX_BLOCKS = 40000;  // arbitrary limitation (think 65535 is max for any single grid dimension)
         unsigned int offset = 0;
+
         while( offset < N ) {
             unsigned int bcount = N - offset;
             bcount = (( bcount > MAX_BLOCKS ) ? MAX_BLOCKS : bcount);
@@ -83,6 +86,9 @@ public:
         }
 
         _generate_mutation_kernel<<< 1, 32 >>>( state_pool_type::getInstance()->get_device_states(), pop->free_space, events, pop->alleles.get_device_space() );
+    }
+
+    void get_state( boost::property_tree::ptree & state ) {
     }
 
     virtual ~MutationEventGenerator() {
