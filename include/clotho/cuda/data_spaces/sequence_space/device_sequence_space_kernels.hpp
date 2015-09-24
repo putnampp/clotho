@@ -37,7 +37,7 @@ __global__ void _resize_space( device_sequence_space< IntType > * sspace, Column
     typedef device_sequence_space< IntType > space_type;
     typedef typename space_type::int_type int_type;
 
-    unsigned int W = aspace->size;
+    unsigned int W = aspace->capacity;
     W /= space_type::OBJECTS_PER_INT;
     unsigned int N = seq_count * W;
 

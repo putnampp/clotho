@@ -11,8 +11,8 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef POISSON_DISTRIBUTION_HPP_
-#define POISSON_DISTRIBUTION_HPP_
+#ifndef CLOTHO_CUDA_POISSON_DISTRIBUTION_HPP_
+#define CLOTHO_CUDA_POISSON_DISTRIBUTION_HPP_
 
 #include <cuda.h>
 
@@ -67,4 +67,4 @@ __host__ __device__ unsigned int _find_poisson_maxk32( volatile RealType * cdf, 
     }
     return k;
 }
-#endif  // POISSON_DISTRIBUTION_HPP_
+#endif  // CLOTHO_CUDA_POISSON_DISTRIBUTION_HPP_

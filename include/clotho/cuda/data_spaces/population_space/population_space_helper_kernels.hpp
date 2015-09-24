@@ -337,7 +337,7 @@ __global__ void clear_free_space_kernel( device_sequence_space< IntType > * seq_
     }
 }*/
 
-/*
+
 template < class IntType, class OrderTag >
 __global__ void clear_free_space_kernel2( device_sequence_space< IntType > * seq_space, device_free_space< IntType, OrderTag > * free_space ) {
     typedef device_sequence_space< IntType >        sequence_space_type;
@@ -376,7 +376,7 @@ __global__ void clear_free_space_kernel2( device_sequence_space< IntType > * seq
         __syncthreads();
         bid += seq_offset;
     }
-}*/
+}
 
 template < class IntType, class OrderTag >
 __global__ void clear_free_space_kernel3( device_sequence_space< IntType > * seq_space, device_free_space< IntType, OrderTag > * free_space ) {

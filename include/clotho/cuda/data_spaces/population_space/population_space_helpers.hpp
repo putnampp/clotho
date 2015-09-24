@@ -43,8 +43,8 @@ void update_free_space2( device_sequence_space< IntType > * seq_space
     update_free_space_kernel2<<< 200, 32 >>>( seq_space, free_space );
     update_free_space_total_kernel<<< 2, 32 >>>( free_space );
 
-//    clear_free_space_kernel2<<< 200, 32 >>> ( seq_space, free_space );
-    clear_free_space_kernel3<<< 200, 1024 >>> ( seq_space, free_space );
+    clear_free_space_kernel2<<< 200, 32 >>> ( seq_space, free_space );
+//    clear_free_space_kernel3<<< 200, 1024 >>> ( seq_space, free_space );
 }
 
 template < class RealType, class IntType, class OrderTag >
