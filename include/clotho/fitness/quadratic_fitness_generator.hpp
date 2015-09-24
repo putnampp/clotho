@@ -14,8 +14,8 @@
 #ifndef QUADRATIC_FITNESS_GENERATOR_HPP_
 #define QUADRATIC_FITNESS_GENERATOR_HPP_
 
-#include "clotho/genetics/ifitness_generator.hpp"
-#include "clotho/genetics/quadratic_fitness_metric.hpp"
+#include "clotho/fitness/ifitness_generator.hpp"
+#include "clotho/fitness/quadratic_fitness_metric.hpp"
 
 /**
  * Computes the phenotype scaling factor based upon:

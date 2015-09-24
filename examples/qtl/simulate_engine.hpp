@@ -58,7 +58,8 @@
 #include <boost/accumulators/statistics/weighted_median.hpp>
 #include <boost/accumulators/statistics/weighted_variance.hpp>
 
-#include "clotho/genetics/fitness_toolkit.hpp"
+#include "clotho/fitness/fitness_toolkit.hpp"
+
 #include "clotho/genetics/pairwise_statistic.hpp"
 #include "clotho/genetics/population_growth_toolkit.hpp"
 

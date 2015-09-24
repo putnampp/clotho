@@ -14,7 +14,7 @@
 #ifndef FITNESS_TOOLKIT_HPP_
 #define FITNESS_TOOLKIT_HPP_
 
-#include "clotho/genetics/ifitness_generator.hpp"
+#include "clotho/fitness/ifitness_generator.hpp"
 
 #include <unordered_map>
 #include <memory>

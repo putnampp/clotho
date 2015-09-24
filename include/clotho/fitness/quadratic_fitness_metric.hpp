@@ -14,7 +14,7 @@
 #ifndef QUADRATIC_FITNESS_METRIC_HPP_
 #define QUADRATIC_FITNESS_METRIC_HPP_
 
-#include "clotho/genetics/ifitness.hpp"
+#include "clotho/fitness/ifitness.hpp"
 
 extern const std::string QUAD_NAME;
 

@@ -14,7 +14,7 @@
 #ifndef IFITNESS_GENERATOR_HPP_
 #define IFITNESS_GENERATOR_HPP_
 
-#include "clotho/genetics/ifitness.hpp"
+#include "clotho/fitness/ifitness.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 #include <memory>

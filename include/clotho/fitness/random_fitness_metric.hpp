@@ -14,7 +14,7 @@
 #ifndef RANDOM_FITNESS_METRIC_HPP_
 #define RANDOM_FITNESS_METRIC_HPP_
 
-#include "clotho/genetics/ifitness.hpp"
+#include "clotho/fitness/ifitness.hpp"
 
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_01.hpp>

@@ -18,7 +18,7 @@
 #include <vector>
 #include <cmath>
 
-#include "clotho/genetics/ifitness.hpp"
+#include "clotho/fitness/ifitness.hpp"
 
 extern const std::string NORM_NAME;
 

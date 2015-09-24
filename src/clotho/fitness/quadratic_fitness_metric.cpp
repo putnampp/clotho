@@ -11,7 +11,7 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#include "clotho/genetics/quadratic_fitness_metric.hpp"
+#include "clotho/fitness/quadratic_fitness_metric.hpp"
 #include <cassert>
 
 const std::string QUAD_NAME = "quadratic";

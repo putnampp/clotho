@@ -14,8 +14,8 @@
 #ifndef NORMAL_FITNESS_GENERATOR_HPP_
 #define NORMAL_FITNESS_GENERATOR_HPP_
 
-#include "clotho/genetics/ifitness_generator.hpp"
-#include "clotho/genetics/normal_fitness_metric.hpp"
+#include "clotho/fitness/ifitness_generator.hpp"
+#include "clotho/fitness/normal_fitness_metric.hpp"
 
 class normal_fitness_generator : public ifitness_generator {
 public:

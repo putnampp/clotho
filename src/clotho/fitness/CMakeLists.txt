@@ -19,12 +19,4 @@ LIST( APPEND METRIC_SRCS quadratic_fitness_metric.cpp )
 LIST( APPEND METRIC_SRCS quadratic_fitness_generator.cpp )
 LIST( APPEND METRIC_SRCS fitness_toolkit.cpp )
 
-ADD_LIBRARY( ${PROJECT_NAME}_fitmetric SHARED ${METRIC_SRCS} )
-
-LIST( APPEND GROWTH_SRCS linear_population_growth.cpp )
-LIST( APPEND GROWTH_SRCS linear_population_growth_generator.cpp )
-LIST( APPEND GROWTH_SRCS predefined_population_growth.cpp )
-LIST( APPEND GROWTH_SRCS predefined_population_growth_generator.cpp )
-LIST( APPEND GROWTH_SRCS population_growth_toolkit.cpp )
-
-ADD_LIBRARY( ${PROJECT_NAME}_popgrowth SHARED ${GROWTH_SRCS} )
+ADD_LIBRARY( ${PROJECT_NAME}_fitness SHARED ${METRIC_SRCS} )

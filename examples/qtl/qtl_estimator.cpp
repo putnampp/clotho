@@ -40,7 +40,7 @@
 #include <boost/accumulators/statistics/weighted_median.hpp>
 #include <boost/accumulators/statistics/weighted_variance.hpp>
 
-#include "clotho/genetics/fitness_toolkit.hpp"
+#include "clotho/fitness/fitness_toolkit.hpp"
 
 #define XSTR( x ) #x
 #define STR( x )  XSTR( x )

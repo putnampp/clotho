@@ -14,8 +14,8 @@
 #ifndef RANDOM_FITNESS_GENERATOR_HPP_
 #define RANDOM_FITNESS_GENERATOR_HPP_
 
-#include "clotho/genetics/ifitness_generator.hpp"
-#include "clotho/genetics/random_fitness_metric.hpp"
+#include "clotho/fitness/ifitness_generator.hpp"
+#include "clotho/fitness/random_fitness_metric.hpp"
 
 /**
  * Computes the phenotype scaling factor based upon:
