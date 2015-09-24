@@ -23,7 +23,6 @@
 #include <curand.h>
 #include <curand_kernel.h>
 
-//#include "clotho/cuda/curand_helper.hpp"
 #include "clotho/cuda/curand_state_pool.hpp"
 
 #include "clotho/cuda/distributions/poisson_distribution.hpp"
@@ -37,6 +36,7 @@
 #include "clotho/cuda/mutation/scatter_unordered_impl.hpp"
 
 #include "clotho/cuda/device_state_object.hpp"
+#include "clotho/cuda/mutation/mutation_rate_parameter.hpp"
 
 template < class RealType, class IntType, class OrderTag >
 class MutationEventGenerator : public clotho::utility::iStateObject {
@@ -44,9 +44,6 @@ public:
     typedef RealType  real_type;
     typedef device_event_space< IntType, OrderTag > space_type;
 
-//    typedef curandState_t                               state_type;
-//    typedef clotho::cuda::curand_helper< state_type >   helper_type;
-//    typedef typename helper_type::seed_type             seed_type;
     typedef clotho::cuda::curand_state_pool             state_pool_type;
 
     typedef poisson_cdf< real_type, 32 >                poisson_type;
@@ -55,9 +52,7 @@ public:
     typedef event_space_helper< OrderTag >  space_helper_type;
 
     MutationEventGenerator( boost::property_tree::ptree & config ) :
-//        m_states( NULL )
-//        , m_seed( 0 )
-        m_mutation_rate( 0.001 )
+        m_mutation_rate( config )
     {
         parse_configuration( config );
 
@@ -65,10 +60,8 @@ public:
     }
 
     void generate( space_type * space, unsigned int N ) {
-//        std::cerr << "Generating Random Events" << std::endl;
         unsigned int event_counts = space_helper_type::get( N );
         resize_space( space, event_counts );
-//        _simple_mutation_generator2<<< 1, 32 >>>( m_states, space, dPoisCDF, N);
         _simple_mutation_generator2<<< 1, 32 >>>( state_pool_type::getInstance()->get_device_states(), space, dPoisCDF, N );
     }
 
@@ -101,9 +94,7 @@ protected:
 
         assert( cudaMalloc( (void **) &dPoisCDF, sizeof( poisson_type) ) == cudaSuccess );
 
-        initialize_poisson( m_mutation_rate );
-
-//        helper_type::make_states( m_states, m_seed, 1, 32 );
+        initialize_poisson( m_mutation_rate.m_mu );
     }
 
     void initialize_poisson( real_type mean ) {
@@ -112,39 +103,12 @@ protected:
     }
 
     void parse_configuration( boost::property_tree::ptree & config ) {
-        boost::property_tree::ptree lconfig;
-
-        if( config.get_child_optional( "mutation" ) != boost::none ) {
-            lconfig = config.get_child( "mutation" );
-        }
-
-        if( lconfig.get_child_optional( "mutation_per_sequence" ) == boost::none ) {
-            lconfig.put("mutation_per_sequence", m_mutation_rate );
-        } else {
-            m_mutation_rate = lconfig.get< real_type >( "mutation_per_sequence", m_mutation_rate );
-        }
-
-/*
-        if( lconfig.get_child_optional( "rng.seed" ) != boost::none ) {
-            m_seed = lconfig.get< seed_type >( "rng.seed", m_seed );
-        }
-
-        if( m_seed == 0 ) {
-            m_seed = clotho::utility::clock_type::now().time_since_epoch().count();
-            lconfig.put("rng.seed", m_seed );
-        }*/
-
         state_pool_type::getInstance()->initialize(config);
-
-        config.put_child( "mutation", lconfig );
     }
-
-//    state_type          * m_states;
-//    seed_type           m_seed;
 
     poisson_type        * dPoisCDF;
     
-    real_type           m_mutation_rate;
+    mutation_rate_parameter< real_type > m_mutation_rate;
 };
 
 #endif  // MUTATION_EVENT_GENERATOR_HPP_

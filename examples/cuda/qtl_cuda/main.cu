@@ -19,9 +19,6 @@
 
 #include "clotho/configuration_manager/config_manager.hpp"
 
-//#include "clotho/cuda/allele_space/allele_space.hpp"
-//#include "clotho/cuda/sequence_space/sequence_space.hpp"
-//#include "clotho/cuda/population_space/population_space.hpp"
 #include "clotho/cuda/data_spaces/data_space.hpp"
 
 #include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
@@ -52,10 +49,6 @@ typedef unit_ordered_tag< int_type > order_tag_type;
 typedef unordered_tag   order_tag_type;
 #endif
 
-//typedef AlleleSpace< real_type/*, int_type, order_tag_type*/ >  allele_space_type;
-//typedef SequenceSpace< int_type >                           sequence_space_type;
-
-//typedef PopulationSpace< sequence_space_type, allele_space_type > population_space_type;
 typedef PopulationSpace< real_type, int_type, order_tag_type > population_space_type;
 
 typedef qtl_cuda_simulate_engine< population_space_type >   engine_type;

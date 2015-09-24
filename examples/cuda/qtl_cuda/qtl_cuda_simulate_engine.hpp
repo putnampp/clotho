@@ -30,6 +30,8 @@
 #include "clotho/utility/timer.hpp"
 #include "clotho/utility/log_helper.hpp"
 
+#include "clotho/cuda/fitness/quadratic_fitness_translator.hpp"
+
 template < class PopulationSpaceType > 
 class qtl_cuda_simulate_engine : public clotho::utility::iStateObject {
 public:
@@ -49,6 +51,8 @@ public:
 
     typedef SelectionEventGenerator                                 selection_generator_type;
 
+    typedef QuadraticFitnessTranslator< typename population_space_type::phenotype_space_type >                 fitness_type;
+
     typedef clotho::utility::timer                                  timer_type;
 
     qtl_cuda_simulate_engine( boost::property_tree::ptree & config ) :
@@ -58,6 +62,7 @@ public:
         , xover_gen( config )
         , sel_gen(config)
         , pheno_trans(config)
+        , fit_trans( config )
         , all_freq( config )
     {
         parse_config( config );
@@ -82,6 +87,8 @@ public:
         mut_gen.scatter( current_pop, dMutations, cur_seq_count );
 
         pheno_trans.translate( current_pop );
+
+        fit_trans( current_pop->pheno_space, cur_seq_count );
         
         current_pop->update_metadata();
 
@@ -111,7 +118,12 @@ public:
         boost::property_tree::ptree afreq;
         all_freq.get_state( afreq );
 
+        boost::property_tree::ptree fit;
+        fit_trans.get_state( fit );
+
         state.put_child( "population.current", cur );
+        state.put_child( "population.current.fitness", fit );
+
         state.put_child( "population.previous", prev );
         state.put_child( "mutations", mut );
         state.put_child( "selection", sel );
@@ -146,6 +158,8 @@ protected:
     crossover_generator_type    xover_gen;
     selection_generator_type    sel_gen;
     phenotype_translator        pheno_trans;
+
+    fitness_type                fit_trans;
 
     AlleleFrequency             all_freq;
 };
