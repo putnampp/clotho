@@ -40,9 +40,6 @@ public:
 
     template < class PopulationType >
     void generate( PopulationType * parent_pop, PopulationType * child_pop ) {
-
-        typedef typename PopulationType::allele_space_type allele_space_type;
-
         typename state_pool_type::state_type * s = state_pool_type::getInstance()->get_device_states();
 
         random_select_parents_kernel<<< 1, 32 >>>( s

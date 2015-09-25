@@ -22,7 +22,8 @@
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/mutation/mutation_event_generator.hpp"
 #include "clotho/cuda/crossover/crossover_generator.hpp"
-#include "clotho/cuda/selection/selection_event_generator.hpp"
+//#include "clotho/cuda/selection/selection_event_generator.hpp"
+#include "clotho/cuda/selection/fit_selection_generator.hpp"
 #include "clotho/cuda/phenotype/phenotype_translator.hpp"
 
 #include "clotho/cuda/analysis/allele_frequency.hpp"
@@ -49,7 +50,8 @@ public:
 
     typedef CrossoverGenerator< population_space_type >             crossover_generator_type;
 
-    typedef SelectionEventGenerator                                 selection_generator_type;
+    //typedef SelectionEventGenerator                                 selection_generator_type;
+    typedef FitSelectionGenerator< int_type, real_type >            selection_generator_type;
 
     typedef QuadraticFitnessTranslator< typename population_space_type::phenotype_space_type >                 fitness_type;
 
@@ -82,7 +84,8 @@ public:
         xover_gen( current_pop );
 
         // recombine parents 
-        sel_gen.generate( prev_pop, current_pop );
+//        sel_gen.generate( prev_pop, current_pop );
+        sel_gen.generate( prev_pop, current_pop, fit_trans.get_device_space() );
 
         mut_gen.scatter( current_pop, dMutations, cur_seq_count );
 
