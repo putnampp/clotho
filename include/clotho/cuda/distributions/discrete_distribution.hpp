@@ -267,6 +267,162 @@ __global__ void finalize_discrete_distribution( discrete_table< IntType, RealTyp
     }
 }
 
+/**
+ *
+ * Uncertain of how to best parallelize this algorithm
+ *
+ */
+template < class IntType, class RealType >
+__global__ void finalize_discrete_distribution2( discrete_table< IntType, RealType > * tbl
+                                                , discrete_table< IntType, RealType > * above_buffer
+                                                , discrete_table< IntType, RealType > * below_buffer ) {
+
+    typedef discrete_table< IntType, RealType > table_type;
+    typedef typename table_type::real_type      real_type;
+    typedef typename table_type::int_type       int_type;
+
+    unsigned int N = tbl->size;
+    unsigned int A = above_buffer->size;
+    unsigned int B = below_buffer->size;
+
+    real_type * thresh_base = tbl->threshold;
+    real_type * a_thresh = above_buffer->threshold;
+    real_type * b_thresh = below_buffer->threshold;
+
+    int_type * alt_base = tbl->alternative;
+    int_type * a_alt = above_buffer->alternative;
+    int_type * b_alt = below_buffer->alternative;
+
+    assert( A + B == N );
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int lane_id = (tid & 31);
+
+    __shared__ unsigned int a_stack[ 32 ];
+    __shared__ unsigned int b_stack[ 32 ];
+
+    a_stack[ tid ] = tid;
+    b_stack[ tid ] = tid;
+
+    popcountGPU< unsigned int > pc;
+
+    while( true ) {
+
+        unsigned int a = a_stack[ tid ];
+        unsigned int b = b_stack[ tid ];
+        __syncthreads();
+
+        // horribly divergent code
+        unsigned int m = 0, all_done = 0;
+        if( a >= A ) {
+            if( b < B ) {
+                int_type _idx = b_alt[ b ];
+                thresh_base[ _idx ] = 1.0;
+            } else {
+                all_done = (1 << lane_id);
+            }
+        } else if( b >= B ) {
+            int_type _idx = a_alt[ a ];
+            thresh_base[ _idx ] = 1.0;
+            m = ( 1 << lane_id );
+        } else {
+            int_type b_idx = b_alt[ b ];
+            int_type a_idx = a_alt[ a ];
+
+            real_type   b_val = b_thresh[ b ];
+            real_type   a_val = a_thresh[ a ];
+
+            thresh_base[ b_idx ] = b_val;
+            alt_base[ b_idx ] = a_idx;
+
+            a_val -= (1.0 - b_val);
+
+            if( a_val < 1.0 ) { // remaining complement of current above element is now below normalized average (1.0)
+                // move complement to below stack
+                b_thresh[ b ] = a_val;
+                b_alt[ b ] = a_idx;
+                m = (1 << lane_id );
+            } else {
+                a_thresh[ a ] = a_val;
+            }
+        }
+        __syncthreads();
+        // end of horribleness
+
+        for( unsigned int i = 1; i < 32; i <<= 1 ) {
+            unsigned int _d = __shfl_up( all_done, i );
+            all_done |= ((lane_id >= i) * _d);
+        }
+
+        unsigned int _d = __shfl( all_done, 31 );
+        if( (~_d) == 0 ) { // true for all threads
+            break;
+        }
+
+        for( unsigned int i = 1; i < 32; i <<= 1 ) {
+            unsigned int _m = __shfl_up( m, i );
+            m |= (( lane_id >= i ) * _m);
+        }
+
+        unsigned int mask = __shfl( m, 31 );    // all 1's should update their a index;
+
+        unsigned int a_updates = pc.evalGPU( mask );
+        unsigned int b_updates = 32 - a_updates;
+
+        __syncthreads();
+
+        if( b_updates ) {   // true for all threads in block (no divergence)
+            // if there b updates then shift the non-updates down
+            //
+            // find the largest index in the current set of indices
+            unsigned int bmax = b;
+            for( unsigned int i = 1; i < 32; i <<= 1 ) {
+                unsigned int _m = __shfl_up( bmax, i );
+                bmax = ((bmax < _m ) ? _m : bmax);
+            }
+
+            unsigned int _b = __shfl( bmax, 31 );
+
+            unsigned int idx_offset = pc.evalGPU( (~mask) & (( 1 << lane_id) - 1) );
+
+            if( mask & (1 << lane_id ) ) {  // all above updates are paired with below values which should be shifted down
+                b_stack[ lane_id - idx_offset ] = b;
+            }
+            __syncthreads();
+
+            if( lane_id >= 32 - b_updates ) {
+                unsigned int tmp = _b + (b_updates - (32 - lane_id)) + 1;
+                b_stack[ lane_id ] =  ((tmp < B) ? tmp : B);
+            }
+            __syncthreads();
+        }
+
+        if( a_updates ) {   // true for all threads in block (no divergence)
+
+            unsigned int amax = a;
+            for( unsigned int i = 1; i < 32; i <<= 1 ) {
+                unsigned int _m = __shfl_up( amax, i );
+                amax = (( amax < a ) ? a : amax);
+            }
+
+            unsigned int _a = __shfl( amax, 31 );
+            unsigned int idx_offset = pc.evalGPU( (mask) & (( 1 << lane_id ) - 1));
+
+            if( (~mask) & (1 << lane_id ) ) {
+                a_stack[ lane_id - idx_offset ] = a;
+            }
+            __syncthreads();
+
+            if( lane_id >= (32 - a_updates) ) {
+                unsigned int tmp =_a + ( a_updates - (32 - lane_id ) + 1 );
+                a_stack[ lane_id ] = ((tmp < A) ? tmp : A);
+            }
+            __syncthreads();
+
+        }
+    }
+}
+
 template < class IntType, class RealType >
 __device__ IntType test_discrete( discrete_table< IntType, RealType > * tbl, IntType idx, RealType prob ) {
     typedef discrete_table< IntType, RealType > table_type;
@@ -300,7 +456,15 @@ public:
     void initialize_table( weight_space_type * weights ) {
         init_discrete_distribution<<< 1, 32 >>>( weights, dTable, dAboveBuffer, dBelowBuffer );
         partition_discrete_distribution<<< 2, 32 >>>( dTable, dAboveBuffer, dBelowBuffer );
-        finalize_discrete_distribution<<< 1, 1 >>>( dTable, dAboveBuffer, dBelowBuffer );
+//        finalize_discrete_distribution<<< 1, 1 >>>( dTable, dAboveBuffer, dBelowBuffer );
+        finalize_discrete_distribution2<<< 1, 32 >>>( dTable, dAboveBuffer, dBelowBuffer );
+
+        cudaError_t err = cudaGetLastError();
+
+        if( err != cudaSuccess ) {
+            std::cerr << "CUDA error: " << cudaGetErrorString( err ) << std::endl;
+            assert(false);
+        }
     }
 
     table_type  get_device_space() {

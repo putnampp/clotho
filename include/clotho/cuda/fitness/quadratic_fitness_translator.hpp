@@ -71,7 +71,7 @@ public:
     }
 
     void operator()( phenotype_space_type * phenos, unsigned int N ) {
-        resize_space( dFitness, N );
+        resize_space( dFitness, N / 2 );
 
         real_type stdev = 2.0 * ((real_type)N) * m_mutation_rate.m_mu;
         stdev = sqrt( stdev );
