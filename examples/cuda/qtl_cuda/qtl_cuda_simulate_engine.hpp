@@ -84,11 +84,10 @@ public:
         xover_gen( current_pop );
 
         // recombine parents 
-//        sel_gen.generate( prev_pop, current_pop );
         sel_gen.generate( prev_pop, current_pop, fit_trans.get_device_space() );
 
         mut_gen.scatter( current_pop, dMutations, cur_seq_count );
-
+        
         pheno_trans.translate( current_pop );
 
         fit_trans( current_pop->pheno_space, cur_seq_count );

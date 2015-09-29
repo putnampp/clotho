@@ -24,6 +24,7 @@
 
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_helper.hpp"
 #include "clotho/cuda/data_spaces/allele_space/merge_space_helper.hpp"
+#include "clotho/cuda/helper_macros.hpp"
 
 template < class RealType >
 __device__ bool _resize_space_impl( device_allele_space< RealType > * aspace, unsigned int N, bool copy_content = false ) {
@@ -162,13 +163,7 @@ void merge_space( device_weighted_allele_space< RealType > * in_space
     typedef merge_execution_config< OrderTag > config_type;
 
     _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, fspace, evts, ofspace, out_space );
-
-    cudaError_t err = cudaGetLastError();
-
-    if( err != cudaSuccess ) {
-        std::cerr << "CUDA error: " << cudaGetErrorString( err ) << std::endl;
-        assert(false);
-    }
+    CHECK_LAST_KERNEL_EXEC
 }
 
 template < class RealType >
@@ -208,7 +203,7 @@ __global__ void resize_fixed_allele_kernel( AlleleSpaceType * alls, device_free_
     unsigned int _count = free_space->fixed_count;
     if( _count == 0 ) return;
 
-    printf( "%d fixed allele encountered\n", _count );
+    //printf( "%d fixed allele encountered\n", _count );
 
     if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         _count += alls->size;
@@ -223,9 +218,10 @@ __global__ void resize_fixed_allele_kernel( AlleleSpaceType * alls, device_free_
 template < class AlleleSpaceType, class IntType, class OrderTag >
 __global__ void move_fixed_allele_kernel( AlleleSpaceType * dest, AlleleSpaceType * src, device_free_space< IntType, OrderTag > * free_space ) {
     unsigned int _count = free_space->fixed_count;
-    if( _count == 0 ) { return; }
-
-    printf( "%d fixed allele encountered\n", _count );
+    //printf( "%d fixed allele encountered\n", _count );
+    if( _count == 0 ) {
+        return;
+    }
 
     unsigned int M = dest->size;
 

@@ -101,16 +101,17 @@ __global__ void _merge_space( device_weighted_allele_space< RealType > * in_alle
 
     unsigned int C = P + (( N < M ) ? (M - N) : 0);
 
-//    printf( "Resize Population: %d = %d + |min(0, (%d - %d))|\n", C, P, N, M );
+    //printf( "Resize Population: %d = %d + |min(0, (%d - %d))|\n", C, P, N, M );
 
     _resize_space_impl(out_alleles, C );  // resize offspring allele space relative to parent space
 
-    C = out_alleles->size;  // the size of the offspring allele space
-//    printf( "Padded Population: %d\n", C );
+    C = out_alleles->capacity;  // the size of the offspring allele space
+    //printf( "Padded Population: %d\n", C );
 
     _resize_space_impl( out_free, C );     // resize offspring free space relative to offsrping allele space
  
-    if( P > 0 ) {   
+    if( P > 0 ) {
+        //printf( "Updating spaces \n" );
         _update_space( in_alleles, out_alleles );
         _update_space( in_free, out_free );
     }

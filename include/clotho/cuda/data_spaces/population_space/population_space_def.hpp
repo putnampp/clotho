@@ -51,10 +51,7 @@ struct PopulationSpace : public clotho::utility::iStateObject {
         create_space( free_space );
         create_space( pheno_space );
 
-//        sequences.resize( alleles.get_device_space(), 2 );
         resize_space( free_space, allele_space_type::device_space_type::ALIGNMENT_SIZE );
-
-        cudaDeviceSynchronize();
 
         update_metadata();
     }

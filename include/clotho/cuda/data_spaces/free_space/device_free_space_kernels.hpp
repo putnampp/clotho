@@ -91,7 +91,8 @@ template < class IntType, class OrderTag >
 __device__ void _update_space( device_free_space< IntType, OrderTag > * in_space
                                 , device_free_space< IntType, OrderTag > * out_space ) {
 
-    typedef typename device_free_space< IntType, OrderTag >::int_type int_type;
+    typedef device_free_space< IntType, OrderTag > space_type;
+    typedef typename space_type::int_type int_type;
 
     unsigned int N = in_space->size;
     unsigned int M = out_space->size;
@@ -101,6 +102,11 @@ __device__ void _update_space( device_free_space< IntType, OrderTag > * in_space
 
     M /= (sizeof(int_type) * 8);
     M *= sizeof(int_type);
+
+    if( N == 0 || M == 0 ) {
+        //printf( "Unexpected update of free space: M= %d; N=%d\n", M, N );
+        return;
+    }
 
     //printf("updating free space: %d -> %d\n", N, M );
     // reset out_space free list

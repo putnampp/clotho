@@ -19,16 +19,15 @@
 
 template< class IntType, class CountType >
 __global__ void count_alleles( device_sequence_space< IntType > * sequences, basic_data_space< CountType > * counts ) {
-    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+    unsigned int s_size = sequences->size;
 
-    unsigned int s_width = sequences->seq_width;
-
+    if( s_size == 0 ) return;
     typedef typename basic_data_space< CountType >::value_type   count_type;
 
     __shared__ count_type   s_data[ 1024 ];
 
-    //unsigned int s_count = sequences->seq_count;
-    unsigned int s_size = sequences->size;
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+    unsigned int s_width = sequences->seq_width;
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
     unsigned int warp_id = (tid >> 5);

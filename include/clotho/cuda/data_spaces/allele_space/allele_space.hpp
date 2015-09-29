@@ -18,6 +18,7 @@
 #include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/device_state_object.hpp"
+#include "clotho/cuda/helper_macros.hpp"
 
 template < class RealType >
 class AlleleSpace : public clotho::utility::iStateObject {
@@ -102,8 +103,9 @@ void _CLASS::expand_relative_to( self_type & alls, device_free_space< IntType, O
 
 _HEADER template < class IntType, class OrderTag >
 void _CLASS::move_fixed( self_type & alls, device_free_space< IntType, OrderTag > * free_space ) {
-//    resize_fixed_allele_kernel<<< 1, 1 >>>( alls.dAlleles, free_space);
+
     move_fixed_allele_kernel<<< 1, 1 >>>( alls.dAlleles, dAlleles, free_space );
+    CHECK_LAST_KERNEL_EXEC
 }
 
 _HEADER

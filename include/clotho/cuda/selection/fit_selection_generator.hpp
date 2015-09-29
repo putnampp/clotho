@@ -42,21 +42,20 @@ public:
     template < class PopulationSpaceType, class FitnessSpaceType >
     void generate( PopulationSpaceType * parent_pop, PopulationSpaceType * child_pop, FitnessSpaceType * fitness ) {
         m_discrete.initialize_table( fitness );
+        CHECK_LAST_KERNEL_EXEC
 
-//        generate_random_events<<< 1, 32 >>>( state_pool_type::getInstance()->get_device_states()
-//                                            , parent_pop->sequences.get_device_space()
-//                                            , child_pop->sequences.get_device_space()
-//                                            , m_discrete.get_device_space()
-//                                            , dEvents );
-//
-        random_select_parents_kernel<<< 1, 32 >>>(state_pool_type::getInstance()->get_device_states() 
-                                    , parent_pop->sequences.get_device_space()
-                                    , child_pop->sequences.get_device_space()
-                                    , dEvents );
+        make_random_list<<< 1, 32 >>>( state_pool_type::getInstance()->get_device_states()
+                                        , m_discrete.get_device_space()
+                                        , parent_pop->sequences.get_device_space()
+                                        , child_pop->sequences.get_device_space()
+                                        , dEvents );
+        CHECK_LAST_KERNEL_EXEC
+
 
         recombine_parents_kernel<<< 200, 32 >>>( parent_pop->sequences.get_device_space()
                                                 , dEvents
                                                 , child_pop->sequences.get_device_space() );
+        CHECK_LAST_KERNEL_EXEC
     }
 
     void get_state( boost::property_tree::ptree & state ) {
@@ -67,6 +66,7 @@ public:
         get_device_object_state( evts, dEvents );
 
         state.add_child( "distribution", fit );
+        state.add_child( "events", evts );
     }
 
     virtual ~FitSelectionGenerator() {

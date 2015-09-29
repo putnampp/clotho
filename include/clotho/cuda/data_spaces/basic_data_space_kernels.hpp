@@ -31,9 +31,8 @@ __device__ void _resize_space_impl( basic_data_space< ValueType > * space, unsig
     typedef basic_data_space< ValueType > space_type;
 
     if( space->capacity < N ) {
-        typename space_type::value_type * tmp = space->data;
-        if( tmp ) {
-            delete tmp;
+        if( space->data ) {
+            delete space->data;
         }
 
         space->data = new typename space_type::value_type[ N ];
@@ -54,10 +53,9 @@ __global__ void _resize_space( basic_data_space< ValueType > * space, unsigned i
 }
 
 template < class ValueType, class SpaceType >
-__global__ void _resize_space( basic_data_space< ValueType > * target, SpaceType * base ) {
-    unsigned int N = base->size;
-
+__global__ void _resize_space_to( basic_data_space< ValueType > * target, SpaceType * base ) {
     if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
+        unsigned int N = base->size;
         _resize_space_impl( target, N );
     }
 }

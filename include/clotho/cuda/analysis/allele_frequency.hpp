@@ -19,6 +19,7 @@
 #include "clotho/cuda/data_spaces/basic_data_space.hpp"
 #include "clotho/cuda/analysis/allele_frequency_kernels.hpp"
 
+#include "clotho/cuda/helper_macros.hpp"
 #include "clotho/cuda/device_state_object.hpp"
 
 class AlleleFrequency : public clotho::utility::iStateObject {
@@ -34,8 +35,11 @@ public:
 
     template < class PopulationSpaceType >
     void evaluate( PopulationSpaceType * pop ) {
-        _resize_space<<< 1, 1 >>>( dCounts, pop->alleles.get_device_space() );
-        count_alleles<<< blocks, threads >>>( pop->sequences.get_device_space(), dCounts ); 
+        _resize_space_to<<< 1, 1 >>>( dCounts, pop->alleles.get_device_space() );
+        CHECK_LAST_KERNEL_EXEC
+
+        count_alleles<<< blocks, threads >>>( pop->sequences.get_device_space(), dCounts );
+        CHECK_LAST_KERNEL_EXEC
     }
 
     void get_state( boost::property_tree::ptree & state ) {

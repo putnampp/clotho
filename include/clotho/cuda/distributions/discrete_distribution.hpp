@@ -209,6 +209,7 @@ __global__ void partition_discrete_distribution( discrete_table< IntType, RealTy
  * Uncertain of how to best parallelize this algorithm
  *
  */
+/*
 template < class IntType, class RealType >
 __global__ void finalize_discrete_distribution( discrete_table< IntType, RealType > * tbl
                                                 , discrete_table< IntType, RealType > * above_buffer
@@ -265,11 +266,11 @@ __global__ void finalize_discrete_distribution( discrete_table< IntType, RealTyp
 
         thresh_base[ idx ] = 1.0;
     }
-}
+}*/
 
 /**
  *
- * Uncertain of how to best parallelize this algorithm
+ * SINGLE BLOCK SINGLE WARP parallelization. 
  *
  */
 template < class IntType, class RealType >
@@ -423,17 +424,70 @@ __global__ void finalize_discrete_distribution2( discrete_table< IntType, RealTy
     }
 }
 
-template < class IntType, class RealType >
-__device__ IntType test_discrete( discrete_table< IntType, RealType > * tbl, IntType idx, RealType prob ) {
+template < class StateType, class IntType, class RealType >
+__global__ void make_random_list( StateType * states
+                                  , discrete_table< IntType, RealType > * tbl
+                                  , device_sequence_space< IntType > * parents
+                                  , device_sequence_space< IntType > * offspring
+                                  , device_event_space< IntType, no_order_tag > * events ) {
+    typedef StateType state_type;
+
     typedef discrete_table< IntType, RealType > table_type;
+    typedef typename table_type::int_type       int_type;
     typedef typename table_type::real_type      real_type;
 
-    real_type r = tbl->threshold[idx];
-    if( prob >= r ) {
-        idx = tbl->alternative[idx];
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    state_type local_state = states[ tid ];
+
+    unsigned int nParents = parents->seq_count / 2;
+    unsigned int nOff = offspring->seq_count;
+
+    if( tid == 0 ) {
+        _resize_space_impl( events, nOff );
+    }
+    __syncthreads();
+
+    unsigned int t_size = tbl->size;
+
+    assert( t_size == nParents );   // true for all threads
+
+    unsigned int * event_counts = events->event_count;
+    unsigned int _count = blockDim.x * blockDim.y;
+    if( t_size == 0 ) {
+        while( tid < nOff ) {
+            event_counts[ tid ] = 0;
+            tid += _count;
+        }
+        return;   
     }
 
-    return idx;
+    __syncthreads();
+
+    real_type * tlist = tbl->threshold;
+    int_type *  alts = tbl->alternative;
+
+    unsigned int nPad = nOff % _count;
+    nPad = (nOff - nPad) + _count;
+
+    while( tid < nPad ) {  
+        real_type p = curand_uniform( &local_state );
+        int_type  idx = curand( &local_state );
+        idx %= nParents;
+
+        real_type q = tlist[ idx ];
+        int_type tmp = alts[ idx ];
+        
+        idx = ((p < q) ? idx : tmp);
+
+        if( tid < nOff ) {
+            event_counts[ tid ] = idx;
+        }
+        __syncthreads();
+        tid += _count;
+    }
+
+    states[ threadIdx.y * blockDim.x + threadIdx.x ] = local_state;
 }
 
 template < class IntType, class RealType >
@@ -455,19 +509,16 @@ public:
 
     void initialize_table( weight_space_type * weights ) {
         init_discrete_distribution<<< 1, 32 >>>( weights, dTable, dAboveBuffer, dBelowBuffer );
+        CHECK_LAST_KERNEL_EXEC
+
         partition_discrete_distribution<<< 2, 32 >>>( dTable, dAboveBuffer, dBelowBuffer );
-//        finalize_discrete_distribution<<< 1, 1 >>>( dTable, dAboveBuffer, dBelowBuffer );
+        CHECK_LAST_KERNEL_EXEC
+
         finalize_discrete_distribution2<<< 1, 32 >>>( dTable, dAboveBuffer, dBelowBuffer );
-
-        cudaError_t err = cudaGetLastError();
-
-        if( err != cudaSuccess ) {
-            std::cerr << "CUDA error: " << cudaGetErrorString( err ) << std::endl;
-            assert(false);
-        }
+        CHECK_LAST_KERNEL_EXEC
     }
 
-    table_type  get_device_space() {
+    table_type *  get_device_space() {
         return dTable;
     }
 
