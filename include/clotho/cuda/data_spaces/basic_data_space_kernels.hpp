@@ -55,7 +55,7 @@ __global__ void _resize_space( basic_data_space< ValueType > * space, unsigned i
 template < class ValueType, class SpaceType >
 __global__ void _resize_space_to( basic_data_space< ValueType > * target, SpaceType * base ) {
     if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
-        unsigned int N = base->size;
+        unsigned int N = base->capacity;
         _resize_space_impl( target, N );
     }
 }
