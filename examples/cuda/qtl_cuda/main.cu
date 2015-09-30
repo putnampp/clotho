@@ -121,6 +121,15 @@ int main( int argc, char ** argv ) {
         log.set_path_prefix( prefix );
     }
 
+    log.add_record( "configuration", config );
+
+    std::string p = log.make_path( "config" );
+    log.write( p );
+
+    if( print_config_only ) {
+        return 0;
+    }
+
     unsigned int p_size = 0;
     unsigned int gen = 0;
 
@@ -153,10 +162,9 @@ int main( int argc, char ** argv ) {
     _run.put_child( "simulate", _sim );
     _run.put_child( "analyze", _an );
 
-    log.add_record( "configuration", config );
     log.add_record( "runtime", _run );
 
-    std::string p = log.make_path( "profile" );
+    p = log.make_path( "profile" );
     log.write( p );
 
     return 0;
