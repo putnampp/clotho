@@ -36,7 +36,7 @@
 #include "clotho/cuda/mutation/scatter_unordered_impl.hpp"
 
 #include "clotho/cuda/device_state_object.hpp"
-#include "clotho/cuda/mutation/mutation_rate_parameter.hpp"
+#include "clotho/mutation/mutation_rate_parameter.hpp"
 
 template < class RealType, class IntType, class OrderTag >
 class MutationEventGenerator : public clotho::utility::iStateObject {

@@ -17,7 +17,7 @@
 #include "clotho/fitness/fitness_translator.hpp"
 
 #include "clotho/cuda/data_spaces/basic_data_space.hpp"
-#include "clotho/cuda/mutation/mutation_rate_parameter.hpp"
+#include "clotho/mutation/mutation_rate_parameter.hpp"
 
 #include "clotho/cuda/device_state_object.hpp"
 
