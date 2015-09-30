@@ -25,6 +25,8 @@
 //#include "clotho/utility/log_helper.hpp"
 //#include <boost/property_tree/json_parser.hpp>
 //#include <iostream>
+//
+#include "clotho/recombination/recombination_rate_parameter.hpp"
 
 namespace clotho {
 namespace utility {
@@ -35,13 +37,17 @@ public:
     typedef clotho::classifiers::region_classifier< qtl_allele/*, Result, Tag*/ >   result_type;
     typedef random_generator< URNG, result_type > self_type;
 
-    typedef boost::random::uniform_01< double >                                 uniform_type;   // key distribution
-    typedef boost::random::poisson_distribution< unsigned int, double >         dist_type;      // region distribution
+    typedef double                                                              real_type;
+    typedef boost::random::uniform_01< real_type >                              uniform_type;   // key distribution
+    typedef boost::random::poisson_distribution< unsigned int, real_type >      dist_type;      // region distribution
+
+    typedef recombination_rate_parameter< real_type >                           rate_type;
 
     random_generator( URNG & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
         , m_dist( DEFAULT_RECOMB_RATE )
-        , m_bSkip(false) {
+        , m_bSkip(false)
+    {
         parseConfig( config );
     }
 
@@ -110,24 +116,33 @@ protected:
     }
 
     void parseConfig( boost::property_tree::ptree & config ) {
-        std::ostringstream oss;
-        oss /*<< CONFIG_BLOCK_K << "."*/ << REC_BLOCK_K << "." << RATE_PER_REGION_K;
+//        std::ostringstream oss;
+//        oss /*<< CONFIG_BLOCK_K << "."*/ << REC_BLOCK_K << "." << RATE_PER_REGION_K;
+//
+//        if( config.get_child_optional( oss.str() ) == boost::none ) {
+//            config.put( oss.str(), m_dist.mean() );
+//        } else {
+//            double m = config.get< double >( oss.str() );
+//
+//            m_bSkip = (m == 0.0);
+//
+//            if( m_bSkip ) {
+//                m = 0.00000000001;
+//            } else if( m < 0.0 ) {
+//                m = std::abs( m );
+//            }
+//
+//            typename dist_type::param_type p( m );
+//
+//            m_dist.param( p );
+//        }
+//
+        rate_type _rate( config );
 
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put( oss.str(), m_dist.mean() );
-        } else {
-            double m = config.get< double >( oss.str() );
+        m_bSkip = (_rate.m_rho <= 0.0);
 
-            m_bSkip = (m == 0.0);
-
-            if( m_bSkip ) {
-                m = 0.00000000001;
-            } else if( m < 0.0 ) {
-                m = std::abs( m );
-            }
-
-            typename dist_type::param_type p( m );
-
+        if( !m_bSkip ) {
+            typename dist_type::param_type p( _rate.m_rho );
             m_dist.param( p );
         }
     }
