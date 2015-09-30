@@ -29,10 +29,6 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
-//#include <boost/foreach.hpp>
-//
-//#include "clotho/powerset/variable_subset_iterator.hpp"
-//#include "clotho/genetics/individual_phenotyper.hpp"
 
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
@@ -101,10 +97,15 @@ int main( int argc, char ** argv ) {
     const unsigned int nRep = conf_child.get< unsigned int >( REPEAT_K, 1 );
     const unsigned int nGen = conf_child.get< unsigned int >( GEN_BLOCK_K + "." + SIZE_K, 1);
     const unsigned int nLog = conf_child.get< unsigned int >( LOG_BLOCK_K + "." + PERIOD_K, -1);
-    const unsigned int seed = conf_child.get< unsigned int >( RNG_BLOCK_K + "." + SEED_K, 0 );
+    unsigned int seed = conf_child.get< unsigned int >( RNG_BLOCK_K + "." + SEED_K, 0 );
     string out_path = conf_child.get<string>( OUTPUT_K, "");
 
     get_engine_config( out_path );
+
+    if( seed == 0 ) {
+        seed = clotho::utility::clock_type::now().time_since_epoch().count();
+        conf_child.put( RNG_BLOCK_K + "." + SEED_K, seed );
+    }
 
     rng_type rng(seed);
 
