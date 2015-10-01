@@ -27,12 +27,20 @@ LIST(APPEND LOCAL_LIBS ${Boost_CHRONO_LIBRARY})
 LIST(APPEND LOCAL_LIBS ${COMMON_LIBRARIES} )
 
 ADD_EXECUTABLE( qtl_estimator qtl_estimator.cpp )
-SET_TARGET_PROPERTIES( qtl_estimator PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_INLINE_DYNAMIC_AND_CLASSIFY" LINK_FLAGS "-Wl,--no-as-needed" )   # binary sequence combination determined by experimentation
+SET_TARGET_PROPERTIES( qtl_estimator PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_INLINE_DYNAMIC_AND_CLASSIFY;USE_FAST_GENERATOR" LINK_FLAGS "-Wl,--no-as-needed" )   # binary sequence combination determined by experimentation
 TARGET_LINK_LIBRARIES( qtl_estimator ${LOCAL_LIBS} )
 
 ADD_EXECUTABLE( qtl_estimator_vector qtl_estimator.cpp )
-SET_TARGET_PROPERTIES( qtl_estimator_vector PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_VECTOR_SUBSET" LINK_FLAGS "-Wl,--no-as-needed" )
+SET_TARGET_PROPERTIES( qtl_estimator_vector PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_VECTOR_SUBSET;USE_FAST_GENERATOR" LINK_FLAGS "-Wl,--no-as-needed" )
 TARGET_LINK_LIBRARIES( qtl_estimator_vector ${LOCAL_LIBS})
+
+ADD_EXECUTABLE( qtl_estimator_slow qtl_estimator.cpp )
+SET_TARGET_PROPERTIES( qtl_estimator_slow PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_INLINE_DYNAMIC_AND_CLASSIFY" LINK_FLAGS "-Wl,--no-as-needed" )   # binary sequence combination determined by experimentation
+TARGET_LINK_LIBRARIES( qtl_estimator_slow ${LOCAL_LIBS} )
+
+ADD_EXECUTABLE( qtl_estimator_vector_slow qtl_estimator.cpp )
+SET_TARGET_PROPERTIES( qtl_estimator_vector_slow PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_VECTOR_SUBSET" LINK_FLAGS "-Wl,--no-as-needed" )
+TARGET_LINK_LIBRARIES( qtl_estimator_vector_slow ${LOCAL_LIBS})
 
 #LIST(APPEND PROG_NAME "iterate")
 #LIST(APPEND PROG_NAME "scan")

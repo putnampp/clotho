@@ -59,11 +59,11 @@ public:
         typename result_type::param_type p;
         unsigned int n = ((m_bSkip) ? 0 : m_dist(*m_rng) );
 
+#ifdef USE_FAST_GENERATOR
         generate_ordered_list( p, n );
-
-//        boost::property_tree::ptree l;
-//        add_value_array(l, p.begin(), p.end() );
-//        boost::property_tree::write_json( std::cerr, l );
+#else
+        method1( p, n );
+#endif  // USE_GEN_ORDERED_LIST
 
         return result_type(p);
     }

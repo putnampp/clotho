@@ -27,6 +27,7 @@
 #include "clotho/cuda/phenotype/phenotype_translator.hpp"
 
 #include "clotho/cuda/analysis/allele_frequency.hpp"
+#include "clotho/cuda/analysis/sequence_hamming_weight.hpp"
 
 #include "clotho/utility/timer.hpp"
 #include "clotho/utility/log_helper.hpp"
@@ -66,6 +67,7 @@ public:
         , pheno_trans(config)
         , fit_trans( config )
         , all_freq( config )
+        , seq_weight( config )
     {
         parse_config( config );
         initialize();
@@ -99,6 +101,7 @@ public:
 
     void analyze_population( ) {
         all_freq.evaluate( current_pop );
+        seq_weight.evaluate( current_pop );
 
         cudaDeviceSynchronize();
     }
@@ -164,6 +167,7 @@ protected:
     fitness_type                fit_trans;
 
     AlleleFrequency             all_freq;
+    SequenceHammingWeight       seq_weight;
 };
 
 #endif  // QTL_CUDA_SIMULATE_ENGINE_HPP_
