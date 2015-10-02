@@ -92,10 +92,16 @@ __global__ void crossover_kernel( StateType * states
             _sum += (( lane_id >= i ) * s);
         }
 
-        unsigned int s = __shfl( _sum, warp_id - 1);
-        rand += (( warp_id != 0 ) * s);
+//        unsigned int s = __shfl( _sum, warp_id - 1);
+//        rand += (( warp_id != 0 ) * s);
+//        __syncthreads();
+        unsigned int s = 0;
+        if( warp_id > 0 ) {
+            s = __shfl( _sum, warp_id - 1);
+        }
         __syncthreads();
 
+        rand += s;
         event_hash[ tid + 1 ] = rand;
         __syncthreads();
 

@@ -50,12 +50,20 @@ public:
                                         , child_pop->sequences.get_device_space()
                                         , dEvents );
         CHECK_LAST_KERNEL_EXEC
+    }
 
+    template < class PopulationSpaceType, class FitnessSpaceType >
+    void generate_and_recombine( PopulationSpaceType * parent_pop, PopulationSpaceType * child_pop, FitnessSpaceType * fitness ) {
+        generate( parent_pop, child_pop, fitness );
 
         recombine_parents_kernel<<< 200, 32 >>>( parent_pop->sequences.get_device_space()
                                                 , dEvents
                                                 , child_pop->sequences.get_device_space() );
         CHECK_LAST_KERNEL_EXEC
+    }
+
+    event_space_type * get_device_space() {
+        return dEvents;
     }
 
     void get_state( boost::property_tree::ptree & state ) {

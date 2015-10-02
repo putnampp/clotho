@@ -46,10 +46,19 @@ public:
                                     , parent_pop->sequences.get_device_space()
                                     , child_pop->sequences.get_device_space()
                                     , dEvents );
+    }
+
+    template < class PopulationType >
+    void generate_and_recombine( PopulationType * parent_pop, PopulationType * child_pop ) {
+        generate( parent_pop, child_pop );
 
         recombine_parents_kernel<<< 200, 32 >>>( parent_pop->sequences.get_device_space()
                                                 , dEvents
                                                 , child_pop->sequences.get_device_space() );
+    }
+
+    event_space_type * get_device_space() {
+        return dEvents;
     }
 
     void get_state( boost::property_tree::ptree & state ) {

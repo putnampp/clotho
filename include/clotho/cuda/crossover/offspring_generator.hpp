@@ -18,7 +18,7 @@
 
 #include "clotho/cuda/curand_state_pool.hpp"
 
-#include "clotho/cuda/crossover/select_and_crossover_kernels.hpp"
+#include "clotho/cuda/crossover/select_and_crossover_unordered_impl.hpp"
 
 #include "clotho/cuda/distributions/poisson_distribution.hpp"
 #include "clotho/recombination/recombination_rate_parameter.hpp"
@@ -32,6 +32,10 @@ public:
     typedef typename population_type::int_type              int_type;
     typedef typename population_type::order_tag_type        order_tag_type;
 
+    typedef typename population_type::allele_space_type::device_space_type     allele_space_type;
+
+    typedef device_event_space< int_type, no_order_tag >    selection_type;
+
     typedef clotho::cuda::curand_state_pool                 state_pool_type;
 
     typedef recombination_rate_parameter< real_type > recombination_rate_type;
@@ -44,12 +48,20 @@ public:
         initialize();
     }
 
-    void operator()( population_type * parent, selection_type * fit, population_type * offspring ) {
+    void operator()( population_type * parent, selection_type * sel, population_type * offspring ) {
 
         unsigned int bcount = state_pool_type::getInstance()->get_max_blocks();
         unsigned int tcount = state_pool_type::getInstance()->get_max_threads();
 
-        select_and_crossover_kernel<<< bcount, tcount >>>( state_pool_type::getInstance()->get_device_states(), pop->sequences.get_device_space(), 
+        dim3 b( bcount, 1, 1), t(tcount, 1, 1);
+
+        select_and_crossover_kernel<<< b, t >>>( state_pool_type::getInstance()->get_device_states()
+                                                           , parent->sequences.get_device_space()
+                                                           , sel
+                                                           , parent->alleles.get_device_space()
+                                                           , offspring->free_space
+                                                           , dPoisCDF
+                                                           , offspring->sequences.get_device_space());
     }
 
     virtual ~OffspringGenerator() {
@@ -65,8 +77,21 @@ protected:
     void initialize() {
         assert( cudaMalloc( (void **) &dPoisCDF, sizeof( poisson_type) ) == cudaSuccess );
 
-        initialize_poisson( m_recombination_rate.m_rho, (order_tag_type *) NULL );
+        initialize_poisson( m_recomb_rate.m_rho, (order_tag_type *) NULL );
     }
+
+    void initialize_poisson( real_type mean, unordered_tag * p ) {
+        real_type lambda = (mean / (real_type) allele_space_type::ALIGNMENT_SIZE);
+
+        make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, lambda );
+    }
+
+    void initialize_poisson( real_type mean, unit_ordered_tag< int_type > * p ) {
+        real_type lambda = (mean / 32.0);
+
+        make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, lambda );
+    }
+
     poisson_type            * dPoisCDF;
     recombination_rate_type m_recomb_rate;
 };

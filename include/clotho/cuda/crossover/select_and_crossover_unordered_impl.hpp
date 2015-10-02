@@ -14,27 +14,30 @@
 #ifndef SELECT_AND_CROSSOVER_UNORDERED_IMPL_HPP_
 #define SELECT_AND_CROSSOVER_UNORDERED_IMPL_HPP_
 
-#include "clotho/cuda/data_spaces/device_sequence_space.hpp"
-#include "clotho/cuda/data_spaces/device_event_space.hpp"
-#include "clotho/cuda/data_spaces/device_free_space.hpp"
+#include "clotho/cuda/data_spaces/sequence_space/device_sequence_space.hpp"
+#include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
+#include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
 
+#include "clotho/cuda/distributions/poisson_distribution.hpp"
 #include "clotho/cuda/data_spaces/tags/unordered_tag.hpp"
-#include "clotho/cuda/data_sapces/tags/no_order_tag.hpp"
+#include "clotho/cuda/data_spaces/tags/no_order_tag.hpp"
 
 template < class StateType
            , class AlleleSpaceType
            , class SequenceIntType
+           , class RealType
            , class IntType1
-           , class IntType2 >
+        >
 __global__ void select_and_crossover_kernel( StateType * states
                                             , device_sequence_space< SequenceIntType > * parent_seqs
                                             , device_event_space< IntType1, no_order_tag >  * parent_ids
                                             , AlleleSpaceType * alleles
                                             , device_free_space< SequenceIntType, unordered_tag > * free_space
-                                            , device_event_space< IntType2, unorderd_tag > * xover_events
+                                            , poisson_cdf< RealType, 32 > * pois
                                             , device_sequence_space< SequenceIntType > * offspring_seqs ) {
 
     typedef StateType state_type;
+    typedef poisson_cdf< RealType, 32 >                     poisson_type;
     typedef device_sequence_space< SequenceIntType >        sequence_space_type;
     typedef typename sequence_space_type::int_type          sequence_int_type;
 
@@ -61,7 +64,7 @@ __global__ void select_and_crossover_kernel( StateType * states
     unsigned int wpb = (tpb >> 5);
     unsigned int bpg = (gridDim.x * gridDim.y);
 
-    assert( tpb & 31 == 0 );    // assert all warps are full
+    assert( (tpb & 31) == 0 );    // assert all warps are full
 
     state_type local_state = states[ bid * tpb + tid ];
 
@@ -71,6 +74,16 @@ __global__ void select_and_crossover_kernel( StateType * states
     selection_int_type  * par_ids = parent_ids->event_count;
 
     unsigned int par_count = parent_seqs->seq_count;
+
+    if( par_count == 0 ) {
+        if( bid == 0 && tid == 0 ) {
+            unsigned int off_cap = offspring_seqs->capacity;
+
+            memset( offspring_seqs->sequences, 0, off_cap * sizeof( sequence_int_type) );
+        }
+
+        return;
+    }
     unsigned int par_width = parent_seqs->seq_width;
 
     unsigned int off_width = offspring_seqs->seq_width;
@@ -140,10 +153,10 @@ __global__ void select_and_crossover_kernel( StateType * states
         // adjust rand_pool such that rand_pool[ [0, s_event_hash[ allele_space_type::ALIGNMENT_SIZE ] ) ] are ordered
         real_type accum = 0.;
         while( s < e ) {    // threads diverge
-            y = rand_pool[ s ];
+            y = s_rand_pool[ s ];
 
             accum += ( log(y) / (real_type)( e - s) );
-            rand_pool[ s++ ] = ( (((real_type)tid) + (1.0 - exp(accum) )) / ((real_type)allele_space_type::ALIGNMENT_SIZE );
+            s_rand_pool[ s++ ] = ( (((real_type)tid) + (1.0 - exp(accum) )) / ((real_type)allele_space_type::ALIGNMENT_SIZE ) );
         }
         __syncthreads();
 
@@ -151,7 +164,11 @@ __global__ void select_and_crossover_kernel( StateType * states
         selection_int_type id = par_ids[ bid ]; // all threads in block share same parent
 
         id <<= 1;
-        assert( (id + 1) < par_count );
+
+        if( (id + 1) >= par_count ) {
+            printf( "Index out of range: %d (>= %d)\n", (id + 1), par_count);
+            assert( false );
+        }
 
         unsigned int p0 = id * par_width + warp_id;
         unsigned int p1 = p0 + par_width;
@@ -175,7 +192,7 @@ __global__ void select_and_crossover_kernel( StateType * states
 
                 tmp = s;
                 while( s < e ) {
-                    y = rand_pool[ s++ ];
+                    y = s_rand_pool[ s++ ];
                     tmp += ( a > y );
                 }
 

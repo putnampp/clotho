@@ -21,7 +21,13 @@
 
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/mutation/mutation_event_generator.hpp"
+
+#ifndef USE_OFFSPRING_CROSSOVER
 #include "clotho/cuda/crossover/crossover_generator.hpp"
+#else
+#include "clotho/cuda/crossover/offspring_generator.hpp"
+#endif  // USE_OFFSPRING_CROSSOVER
+
 //#include "clotho/cuda/selection/selection_event_generator.hpp"
 #include "clotho/cuda/selection/fit_selection_generator.hpp"
 #include "clotho/cuda/phenotype/phenotype_translator.hpp"
@@ -49,7 +55,11 @@ public:
     typedef MutationEventGenerator< real_type, int_type, order_tag_type >   mutation_generator_type;
     typedef typename mutation_generator_type::space_type            mutation_event_space_type;
 
+#ifndef USE_OFFSPRING_CROSSOVER
     typedef CrossoverGenerator< population_space_type >             crossover_generator_type;
+#else
+    typedef OffspringGenerator< population_space_type >             crossover_generator_type;
+#endif  // USE_OFFSPRING_CROSSOVER
 
     //typedef SelectionEventGenerator                                 selection_generator_type;
     typedef FitSelectionGenerator< int_type, real_type >            selection_generator_type;
@@ -73,6 +83,7 @@ public:
         initialize();
     }
 
+#ifndef USE_OFFSPRING_CROSSOVER
     void simulate( unsigned int N ) {
         swap();
         unsigned int cur_seq_count = 2 * N;
@@ -86,7 +97,7 @@ public:
         xover_gen( current_pop );
 
         // recombine parents 
-        sel_gen.generate( prev_pop, current_pop, fit_trans.get_device_space() );
+        sel_gen.generate_and_recombine( prev_pop, current_pop, fit_trans.get_device_space() );
 
         mut_gen.scatter( current_pop, dMutations, cur_seq_count );
         
@@ -98,6 +109,32 @@ public:
 
         cudaDeviceSynchronize();
     }
+#else 
+    void simulate( unsigned int N ) {
+        swap();
+        unsigned int cur_seq_count = 2 * N;
+
+        prev_pop->record_fixed( fixed_alleles );
+
+        mut_gen.generate( dMutations, cur_seq_count );
+
+        current_pop->resize( prev_pop, dMutations, cur_seq_count );
+
+        sel_gen.generate( prev_pop, current_pop, fit_trans.get_device_space() );
+
+        xover_gen( prev_pop, sel_gen.get_device_space(), current_pop );
+
+        mut_gen.scatter( current_pop, dMutations, cur_seq_count );
+        
+        pheno_trans.translate( current_pop );
+
+        fit_trans( current_pop->pheno_space, cur_seq_count );
+        
+        current_pop->update_metadata();
+
+        cudaDeviceSynchronize();
+    }
+#endif  // USE_OFFSPRING_CROSSOVER
 
     void analyze_population( ) {
         all_freq.evaluate( current_pop );
@@ -120,8 +157,9 @@ public:
         boost::property_tree::ptree sel;
         sel_gen.get_state( sel );
 
-        boost::property_tree::ptree afreq;
-        all_freq.get_state( afreq );
+        boost::property_tree::ptree asis;
+        all_freq.get_state( asis );
+        seq_weight.get_state( asis );        
 
         boost::property_tree::ptree fit;
         fit_trans.get_state( fit );
@@ -132,8 +170,7 @@ public:
         state.put_child( "population.previous", prev );
         state.put_child( "mutations", mut );
         state.put_child( "selection", sel );
-        state.put_child( "analysis", afreq );
-        state.put_child( "fixed", fx );
+        state.put_child( "analysis", asis );
     }
 
     void swap() {
