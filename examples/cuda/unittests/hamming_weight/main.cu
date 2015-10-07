@@ -113,6 +113,11 @@ void upload_sequences( device_sequence_space< int_type > & seqs, device_sequence
     cudaFree( dTmp );
 }
 
+/*
+ * NOTE: device_sequence_space and basic_data_space objects allocate memory in the device's HEAP SPACE
+ * The size of the device's HEAP SPACE is configurable.  It's default value is 8MB.
+ * If expanding max_dim > 200, then consider increasing the size of the HEAP SPACE
+ */
 void build_sequence_space( device_sequence_space< int_type > * seqs, unsigned int max_dim = 200) {
     unsigned long long seed = clotho::utility::clock_type::now().time_since_epoch().count();
     boost::random::mt19937  rand_eng( seed );
