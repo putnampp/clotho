@@ -14,17 +14,24 @@
 #ifndef DEVICE_EVENT_SPACE_DEF_HPP_
 #define DEVICE_EVENT_SPACE_DEF_HPP_
 
+template < class SizeType = unsigned int >
+struct base_event_space {
+    typedef SizeType size_type;
+    size_type total;
+};
+
 template < class IntType, class OrderTag >
-struct device_event_space {
+struct device_event_space : public base_event_space< IntType > {
     typedef IntType     int_type;
     typedef OrderTag    order_tag_type;
 
+/*
     typedef int_type *  pointer;
 
     pointer         event_count;
 
-    unsigned int    total;
     unsigned int    size, capacity;
+*/
 };
 
 #endif  // DEVICE_EVENT_SPACE_DEF_HPP_

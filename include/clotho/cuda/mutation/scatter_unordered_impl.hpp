@@ -144,5 +144,145 @@ __global__ void _scatter_mutation_single_thread( device_free_space< IntType, uno
 
     seq[seq_offset + cur_block] = b;   // persist current bit block
 }
-                                
+
+template < class StateType, class AlleleSpaceType, class IntType >
+__global__ void _scatter_mutations( StateType * states
+                                    , device_free_space< IntType, unordered_tag >   * fspace 
+                                    , device_event_space< IntType, unordered_tag >  * events
+                                    , device_sequence_space< IntType >              * sequences
+                                    , AlleleSpaceType                               * alleles) {
+    typedef StateType   state_type;
+    
+    typedef device_sequence_space< IntType >                sequence_type;
+    typedef device_event_space< IntType, unordered_tag >    event_space_type;
+    typedef typename event_space_type::size_type            size_type;
+    typedef typename event_space_type::int_type             int_type;
+
+    typedef float                                           real_type;  // does not need same precision as AlleleSpaceType
+
+    assert( (blockDim.x*blockDim.y) == 1 );
+
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+    size_type   tot = events->total;
+    if( bid >= tot ) return;
+
+    unsigned int _width = sequences->seq_width;
+    if( _width == 0 ) return;
+
+//    if( bid == 0 )
+//        printf( "%d Free Space; %d New Mutation\n", fspace->total, tot );
+    assert( tot <= fspace->total ); // true for all blocks (enough free bits for new mutations)
+
+    fixed_width_converter< sequence_type::OBJECTS_PER_INT > converter;
+    unsigned int bpg = gridDim.x * gridDim.y;
+
+    unsigned int seq_count = sequences->seq_count;
+
+    unsigned int * fmap = fspace->free_map;
+    state_type local_state = states[ bid ];
+
+    unordered_tag * otag = NULL;
+
+    int_type *  seqs = sequences->sequences;
+
+    while( bid < tot ) {
+        unsigned int fidx = fmap[ bid ];
+
+        unsigned int block_idx = converter.major_offset( fidx );
+        unsigned int bit_idx = converter.minor_offset( fidx );
+
+        real_type r = curand_uniform( &local_state );
+
+        unsigned int idx = r * seq_count;
+
+        idx *= _width;
+        idx += block_idx;
+
+        // need to perform a bitonic sort to identify
+        // whether multiple bit indices within the same block
+        // are being updated
+
+        int_type b = seqs[ idx ];
+        b |= ( 1 << bit_idx );
+        seqs[ idx ] = b;
+
+        _generate_random_allele( &local_state, alleles, fidx, otag );
+
+        bid += bpg;
+    }
+
+    states[ bid ] = local_state;
+}
+
+template < class StateType, class AlleleSpaceType, class IntType >
+__global__ void _scatter_mutations( StateType * states
+                                    , device_free_space< IntType, unit_ordered_tag< IntType > >     * fspace 
+                                    , device_event_space< IntType, unit_ordered_tag< IntType > >    * events
+                                    , device_sequence_space< IntType >                              * sequences
+                                    , AlleleSpaceType                                               * alleles ) {
+    typedef StateType   state_type;
+    
+    typedef device_event_space< IntType, unit_ordered_tag< IntType > >    event_space_type;
+    typedef typename event_space_type::order_tag_type       order_tag_type;
+    typedef typename event_space_type::size_type            size_type;
+    typedef typename event_space_type::int_type             int_type;
+
+    typedef float                                           real_type;
+
+    assert( (blockDim.x * blockDim.y) == 1 );
+
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+    unsigned int bpg = gridDim.x * gridDim.y;
+    unsigned int wpb = (bpg >> 5);
+
+    unsigned int lane_id = (bid & 31);
+    unsigned int warp_id = (bid >> 5);
+
+    unsigned int lane_max = events->bin_summary[ lane_id ];
+
+    if( warp_id >= lane_max ) return;
+
+    unsigned int seq_count = sequences->seq_count;
+    unsigned int _width = sequences->seq_width;
+
+    unsigned int * flist = fspace->free_list;
+
+    state_type local_state = states[ bid ];
+
+    int_type *  seqs = sequences->sequences;
+
+    order_tag_type * otag = NULL;
+
+    unsigned int lidx = 0, k = 0;
+    while( warp_id < lane_max ) {   // should only be one thread per block so no divergence
+
+        // scan free_list for k-th free index in lane
+        while( warp_id + 1 != k && lidx < _width ) {
+            int_type f = flist[ lidx++ ];
+
+            if( ((f >> lane_id) & 1) ) {
+                ++k;
+            }
+        }
+
+        if( warp_id + 1 == k ) {
+            real_type r = curand_uniform( &local_state );
+
+            unsigned int idx = r * seq_count;
+
+            idx *= _width;
+            idx += (lidx - 1);
+
+            int_type b = seqs[ idx ];
+            b |= ( 1 << lane_id );
+            seqs[ idx ] = b;
+
+            idx = (lidx - 1) * 32 + lane_id;
+            _generate_random_allele( &local_state, alleles, idx, otag );
+        }
+
+        warp_id += wpb;
+    }
+}
+
 #endif  // SCATTER_UNORDERED_IMPL_HPP_

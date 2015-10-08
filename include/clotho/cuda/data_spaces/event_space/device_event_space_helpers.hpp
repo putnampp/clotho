@@ -19,7 +19,7 @@
 
 #include "clotho/cuda/data_spaces/data_space_helper.hpp"
 #include "clotho/utility/log_helper.hpp"
-
+/*
 template < class IntType, class OrderTag >
 void write_data( std::ostream & out, device_event_space< IntType, OrderTag > & lspace ) {
 
@@ -44,7 +44,7 @@ void write_data( std::ostream & out, device_event_space< IntType, OrderTag > & l
 //    cudaFree( dEvt );
 
     delete events;
-}
+}*/
 
 template < class OutputType, class IntType, class OrderTag >
 void write_summary( OutputType & out, const device_event_space< IntType, OrderTag > & lspace ) {}
@@ -73,8 +73,8 @@ void write_summary( boost::property_tree::ptree & out, const device_event_space<
 template < class IntType, class OrderTag >
 void write_stats( std::ostream & out, device_event_space< IntType, OrderTag > & lspace ) {
     out << ",\n\"total\": " << lspace.total;
-    out << ",\n\"size\": " << lspace.size;
-    out << ",\n\"capacity\": " << lspace.capacity;
+//    out << ",\n\"size\": " << lspace.size;
+//    out << ",\n\"capacity\": " << lspace.capacity;
 }
 
 template < class IntType, class OrderTag >
@@ -88,14 +88,14 @@ std::ostream & operator<<( std::ostream & out, device_event_space< IntType, Orde
     assert( cudaMemcpy( &lspace, space, sizeof( space_type ) , cudaMemcpyDeviceToHost ) == cudaSuccess );
 
     out << "{";
-    out << "\"event_count\": ";
-#ifdef DUMP_HEAP_VARIABLES
-    write_data( out, lspace );
-#else
-    out << "[]";
-#endif  // DUMP_HEAP_VARIABLES
-    write_summary( out, lspace );
+//    out << "\"event_count\": ";
+//#ifdef DUMP_HEAP_VARIABLES
+//    write_data( out, lspace );
+//#else
+//    out << "[]";
+//#endif  // DUMP_HEAP_VARIABLES
     write_stats( out, lspace );
+    write_summary( out, lspace );
     out << "\n}";
 
     return out;
@@ -106,12 +106,14 @@ std::ostream & operator<<( std::ostream & out, device_event_space< IntType, Orde
 namespace clotho {
 namespace utility {
 
-//template < class IntType, class OrderTag >
-//void get_state( boost::property_tree::ptree & state, const device_event_space< IntType, OrderTag > & obj ) {
 
 template < class IntType, class OrderTag >
 struct state_getter< device_event_space< IntType, OrderTag > > {
     void operator()( boost::property_tree::ptree & state, const device_event_space< IntType, OrderTag > & obj ) {
+        state.put( "total", obj.total );
+
+        write_summary( state, obj );
+/*
         state.put( "total", obj.total );
         state.put( "size", obj.size );
         state.put( "capacity", obj.capacity );
@@ -132,6 +134,7 @@ struct state_getter< device_event_space< IntType, OrderTag > > {
         write_summary( state, obj );
 
         delete ecount;
+*/
     }
 };
 

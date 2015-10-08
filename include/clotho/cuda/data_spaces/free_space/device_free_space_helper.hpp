@@ -114,7 +114,14 @@ template < class IntType, class OrderTag >
 struct state_getter< device_free_space< IntType, OrderTag > > {
 
     void operator()( boost::property_tree::ptree & state, const device_free_space< IntType, OrderTag > & obj ) {
-        state.put( "total", obj.total);
+//        state.put( "total", obj.total);
+//
+        typedef device_free_space< IntType, OrderTag > space_type;
+        typedef typename space_type::int_type  int_type;
+
+        state_getter < device_event_space< IntType, OrderTag > > base_getter;
+        base_getter( state, obj );
+
         state.put( "fixed_count", obj.fixed_count );
         state.put( "size", obj.size );
         state.put( "capacity", obj.capacity );
@@ -126,9 +133,6 @@ struct state_getter< device_free_space< IntType, OrderTag > > {
             state.put( "lost_list", "" );
             return;
         }
-
-        typedef device_free_space< IntType, OrderTag > space_type;
-        typedef typename space_type::int_type  int_type;
 
         unsigned int nInts = obj.size / space_type::OBJECTS_PER_INT;
         int_type * flist = new int_type[ nInts ];

@@ -20,11 +20,7 @@
 #include "clotho/cuda/data_spaces/basic_data_space.hpp"
 
 #include "clotho/cuda/popcount_kernel.h"
-
-template < unsigned char V = 4 >
-struct algo_version {
-    static const unsigned char VERSION = V;
-};
+#include "clotho/utility/algorithm_version.hpp"
 
 template < class IntType >
 __global__ void _resize_space_to( basic_data_space< unsigned int > * res, device_sequence_space< IntType > * seqs ) {
@@ -35,7 +31,7 @@ __global__ void _resize_space_to( basic_data_space< unsigned int > * res, device
 }
 
 template < class IntType >
-__global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType > * seqs, basic_data_space< unsigned int > * res, algo_version< 1 > * v ) {
+__global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType > * seqs, basic_data_space< unsigned int > * res, clotho::utility::algo_version< 1 > * v ) {
 
     typedef device_sequence_space< IntType >    space_type;
     typedef typename space_type::int_type       int_type;
@@ -109,7 +105,7 @@ __global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType >
 }
 
 template < class IntType >
-__global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType > * seqs, basic_data_space< unsigned int > * res, algo_version< 2 > * v ) {
+__global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType > * seqs, basic_data_space< unsigned int > * res, clotho::utility::algo_version< 2 > * v ) {
 
     typedef device_sequence_space< IntType >    space_type;
     typedef typename space_type::int_type       int_type;
@@ -181,7 +177,7 @@ __global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType >
 }
 
 template < class IntType >
-__global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType > * seqs, basic_data_space< unsigned int > * res, algo_version< 3 > * v ) {
+__global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType > * seqs, basic_data_space< unsigned int > * res, clotho::utility::algo_version< 3 > * v ) {
 
     typedef device_sequence_space< IntType >    space_type;
     typedef typename space_type::int_type       int_type;
@@ -210,10 +206,10 @@ __global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType >
 
     unsigned int * countptr = res->data;
 
-    unsigned int max_rounds = _count / wpb; // max_rounds = sequences * block/sequences 
-    max_rounds += ((_count % wpb) ? 1 : 0); // would !!(_count % spg) be more efficient?
+    unsigned int max_seq_id = _count / wpb; // max_rounds = sequences * block/sequences 
+    max_seq_id += ((_count % wpb) ? 1 : 0); // would !!(_count % spg) be more efficient?
+    max_seq_id *= wpb;
 
-    unsigned int max_seq_id = max_rounds * wpb;
     unsigned int seq_id = bid * wpb + warp_id;
 
     while( seq_id < max_seq_id ) {  // blocks of grid may terminate early; only block for tail may diverge
@@ -243,7 +239,7 @@ __global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType >
 }
 
 template < class IntType >
-__global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType > * seqs, basic_data_space< unsigned int > * res, algo_version< 4 > * v ) {
+__global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType > * seqs, basic_data_space< unsigned int > * res, clotho::utility::algo_version< 4 > * v ) {
 
     typedef device_sequence_space< IntType >    space_type;
     typedef typename space_type::int_type       int_type;
@@ -272,10 +268,10 @@ __global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType >
 
     unsigned int * countptr = res->data;
 
-    unsigned int max_rounds = _count / wpb; // max_rounds = sequences * block/sequences 
-    max_rounds += ((_count % wpb) ? 1 : 0); // would !!(_count % spg) be more efficient?
+    unsigned int max_seq_id = _count / wpb; // max_rounds = sequences * block/sequences 
+    max_seq_id += ((_count % wpb) ? 1 : 0); // would !!(_count % wpb) be more efficient?
+    max_seq_id *= wpb;
 
-    unsigned int max_seq_id = max_rounds * wpb;
     unsigned int seq_id = bid * wpb + warp_id;
 
     popcountGPU< int_type > pc;

@@ -18,32 +18,11 @@
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space_kernel_api.hpp"
 
 template < class IntType >
-__global__ void _resize_space( device_sequence_space< IntType > * sspace, unsigned int N ) {
-    if( sspace->capacity < N ) {
-        if( sspace->sequences ) {
-            delete sspace->sequences;
-        }
-
-        sspace->sequences = new typename device_sequence_space< IntType >::int_type[ N ];
-
-        memset( sspace->sequences, 0, N * sizeof( typename device_sequence_space< IntType >::int_type ) );
-        sspace->capacity = N;
-    }
-    sspace->size = N;
-};
-
-template < class IntType, class ColumnSpaceType >
-__global__ void _resize_space( device_sequence_space< IntType > * sspace, ColumnSpaceType * aspace, unsigned int seq_count ) {
-    typedef device_sequence_space< IntType > space_type;
-    typedef typename space_type::int_type int_type;
-
-    unsigned int W = aspace->capacity;
-    W /= space_type::OBJECTS_PER_INT;
-    unsigned int N = seq_count * W;
+__device__ void _resize_space_impl( device_sequence_space< IntType > * sspace, unsigned int cols, unsigned int rows ) {
+    typedef typename device_sequence_space< IntType >::int_type int_type;
+    unsigned int N = cols * rows;
 
     if( sspace->capacity < N ) {
-        //printf("Resizing sequence space by column space: %d -> %d \n", sspace->capacity, N );
-
         int_type * seqs = sspace->sequences;
         if( seqs ) {
             delete seqs;
@@ -58,8 +37,33 @@ __global__ void _resize_space( device_sequence_space< IntType > * sspace, Column
     }
 
     sspace->size = N;
-    sspace->seq_count = seq_count;
-    sspace->seq_width = W;
+    sspace->seq_count = rows;
+    sspace->seq_width = cols;
+}
+
+template < class IntType >
+__global__ void _resize_space( device_sequence_space< IntType > * sspace, unsigned int cols, unsigned int rows = 1 ) {
+    if( blockIdx.y * gridDim.x + blockIdx.x != 0 ) return;
+
+    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
+        _resize_space_impl( sspace, cols, rows );
+    }
+};
+
+template < class IntType, class ColumnSpaceType >
+__global__ void _resize_space( device_sequence_space< IntType > * sspace, ColumnSpaceType * aspace, unsigned int seq_count ) {
+
+    if( blockIdx.y * gridDim.x + blockIdx.x != 0 ) return;
+
+    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
+        typedef device_sequence_space< IntType > space_type;
+        typedef typename space_type::int_type int_type;
+
+        unsigned int W = aspace->capacity;
+        W /= space_type::OBJECTS_PER_INT;
+
+        _resize_space_impl( sspace, W, seq_count );
+    }
 }
 
 template < class IntType >

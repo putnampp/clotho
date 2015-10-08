@@ -171,6 +171,7 @@ public:
         state.put_child( "mutations", mut );
         state.put_child( "selection", sel );
         state.put_child( "analysis", asis );
+        state.put_child( "alleles.fixed", fx );
     }
 
     void swap() {

@@ -28,13 +28,14 @@
 class SequenceHammingWeight : public clotho::utility::iStateObject {
 public:
 
-    typedef basic_data_space< unsigned int >    space_type;
-    typedef algo_version< HAMMING_VERSION >    algo_version_type;
+    typedef basic_data_space< unsigned int >                    space_type;
+    typedef clotho::utility::algo_version< HAMMING_VERSION >    algo_version_type;
 
     SequenceHammingWeight( boost::property_tree::ptree & config ) :
         dWeights( NULL )
         , blocks( 200, 1, 1 )
         , threads( 32, 32, 1)
+        , ver( NULL )
     {
         create_space( dWeights );
         parse_configuration( config );
@@ -45,9 +46,7 @@ public:
         _resize_space_to<<< 1, 1 >>>( dWeights, pop->sequences.get_device_space() );
         CHECK_LAST_KERNEL_EXEC
 
-        algo_version_type * v = NULL;
-
-        sequence_hamming_weight_kernel<<< blocks, threads >>>( pop->sequences.get_device_space(), dWeights, v );
+        sequence_hamming_weight_kernel<<< blocks, threads >>>( pop->sequences.get_device_space(), dWeights, ver );
         CHECK_LAST_KERNEL_EXEC
     }
 
@@ -68,6 +67,7 @@ protected:
 
     space_type * dWeights;
     dim3 blocks, threads;
+    algo_version_type * ver;
 };
 
 #endif  // SEQUENCE_HAMMING_WEIGHT_HPP_

@@ -21,10 +21,22 @@
 //#include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
 #include "clotho/cuda/data_spaces/basic_data_space.hpp"
 
+#include "clotho/utility/algorithm_version.hpp"
+
+/**
+ * 
+ * Combine and Translate genetic sequence to phenotype
+ *
+ * 1 block == 1 sequence
+ */
 template < class RealType, class IntType >
 __global__ void _translate( device_weighted_allele_space< RealType > * alleles
                             , device_sequence_space< IntType > * sequences
-                            , basic_data_space< RealType > * phenos ) {
+                            , basic_data_space< RealType > * phenos 
+                            , clotho::utility::algo_version< 1 > * v) {
+
+    typedef device_weighted_allele_space< RealType >    allele_space_type;
+    typedef device_sequence_space< IntType >            sequence_space_type;
 
     unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
 
@@ -38,8 +50,10 @@ __global__ void _translate( device_weighted_allele_space< RealType > * alleles
     unsigned int warp_id = (tid >> 5);
     unsigned int lane_id = tid & 31;
 
-    unsigned int allele_count = alleles->size;
+    unsigned int allele_count = alleles->capacity;
     unsigned int s_width = sequences->seq_width;
+
+    assert( allele_count == s_width * sequence_space_type::OBJECTS_PER_INT );
 
     typedef typename device_allele_space< RealType >::real_type     effect_type;
     typedef typename basic_data_space< RealType >::value_type  real_type;
@@ -104,4 +118,85 @@ __global__ void _translate( device_weighted_allele_space< RealType > * alleles
     }
 }
 
+/**
+ *
+ * Translate genetic sequence to phenotype
+ * 1 warp == 1 sequence
+ */
+template < class RealType, class IntType >
+__global__ void _translate( device_weighted_allele_space< RealType > * alleles
+                            , device_sequence_space< IntType > * sequences
+                            , basic_data_space< RealType > * phenos 
+                            , clotho::utility::algo_version< 2 > * v) {
+
+    typedef device_weighted_allele_space< RealType >    allele_space_type;
+    typedef device_sequence_space< IntType >            sequence_space_type;
+
+    typedef typename device_allele_space< RealType >::real_type     effect_type;
+    typedef typename basic_data_space< RealType >::value_type  real_type;
+    typedef typename device_sequence_space< IntType >::int_type     int_type;
+
+    unsigned int allele_count = alleles->capacity;
+    unsigned int s_width = sequences->seq_width;
+
+    assert( allele_count == s_width * sequence_space_type::OBJECTS_PER_INT );
+
+    assert( ((blockDim.x * blockDim.y) & 31) == 0 );  // all warps are full
+
+    unsigned int wpb = ((blockDim.x * blockDim.y) >> 5);  // warp (==phenotype==individual)/block
+    unsigned int bpg = (gridDim.x * gridDim.y); // block/grid
+    unsigned int ppg = wpb * bpg;   // phenotypes (==individuals)/grid
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int lane_id = (tid & 31);
+
+    int_type    * seqs = sequences->sequences;
+    effect_type * effect_sizes = alleles->weights;
+
+    unsigned int pheno_count = phenos->capacity;
+    unsigned int seq_count = sequences->seq_count;
+
+    assert( (seq_count & 1) == 0 ); // even number of sequences
+    assert( (2 * pheno_count) == seq_count );   // reduce 2 sequences to 1 phenotype
+
+    unsigned int max_pheno_count = pheno_count / wpb;
+    max_pheno_count = ((pheno_count % wpb) ? 1 : 0);
+    max_pheno_count = wpb;
+
+    unsigned int pheno_idx =  (blockIdx.y * gridDim.x + blockIdx.x) * bpg + (tid >> 5);
+    while( pheno_idx < max_pheno_count ) {
+
+        real_type   pheno = 0.;
+        unsigned int a_idx = lane_id;
+
+        unsigned int end = 2 * (pheno_idx + 1) * s_width;
+        unsigned int start = end - (( pheno_idx < pheno_count ) ? (2 * s_width) : 0);
+
+        while( start < end ) {
+            effect_type eff = effect_sizes[a_idx];
+
+            int_type    mask = seqs[ start ];
+            pheno += ((real_type)((mask >> lane_id) & 1)) * eff;
+
+            mask = seqs[ start + s_width ];
+            pheno += ((real_type)((mask >> lane_id) & 1)) * eff;
+
+            a_idx += 32;
+            ++start;
+        }
+        __syncthreads();
+
+        for( unsigned int i = 1; i < 32; i <<= 1 ) {
+            real_type p = __shfl_up( pheno, i );
+            pheno += ((real_type)(lane_id >= i)) * p;
+        }
+
+        if( lane_id == 31 && (pheno_idx < pheno_count) ) {
+            phenos->data[ pheno_idx ] = pheno;
+        }
+        __syncthreads();
+
+        pheno_idx += ppg;
+    }
+}
 #endif  // TRANSLATE_KERNELS_HPP_

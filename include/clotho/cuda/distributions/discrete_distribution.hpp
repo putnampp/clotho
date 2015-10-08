@@ -429,7 +429,7 @@ __global__ void make_random_list( StateType * states
                                   , discrete_table< IntType, RealType > * tbl
                                   , device_sequence_space< IntType > * parents
                                   , device_sequence_space< IntType > * offspring
-                                  , device_event_space< IntType, no_order_tag > * events ) {
+                                  , basic_data_space< IntType > * events ) {
     typedef StateType state_type;
 
     typedef discrete_table< IntType, RealType > table_type;
@@ -452,12 +452,12 @@ __global__ void make_random_list( StateType * states
 
     assert( t_size == nParents );   // true for all threads
 
-    unsigned int * event_counts = events->event_count;
-    unsigned int _count = blockDim.x * blockDim.y;
-    if( t_size == 0 ) {
+    unsigned int * parent_index = events->data;
+    unsigned int tpb = blockDim.x * blockDim.y;
+    if( t_size == 0 ) { // true for all threads
         while( tid < nOff ) {
-            event_counts[ tid ] = 0;
-            tid += _count;
+            parent_index[ tid ] = 0;
+            tid += tpb;
         }
         return;   
     }
@@ -467,10 +467,7 @@ __global__ void make_random_list( StateType * states
     real_type * tlist = tbl->threshold;
     int_type *  alts = tbl->alternative;
 
-    unsigned int nPad = nOff % _count;
-    nPad = (nOff - nPad) + _count;
-
-    while( tid < nPad ) {  
+    while( tid < nOff ) {
         real_type p = curand_uniform( &local_state );
         int_type  idx = curand( &local_state );
         idx %= nParents;
@@ -480,13 +477,12 @@ __global__ void make_random_list( StateType * states
         
         idx = ((p < q) ? idx : tmp);
 
-        if( tid < nOff ) {
-            event_counts[ tid ] = idx;
-        }
+        parent_index[ tid ] = (idx << 1);
         __syncthreads();
-        tid += _count;
+        tid += tpb;
     }
-
+    __syncthreads();
+    
     states[ threadIdx.y * blockDim.x + threadIdx.x ] = local_state;
 }
 

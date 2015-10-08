@@ -15,10 +15,10 @@
 #define DATA_SPACE_HELPER_HPP_
 
 template < class DataType >
-__global__ void copy_heap( DataType * d_loc, DataType * d_heap, unsigned int N ) {
-    if( d_heap == NULL || N == 0 ) return;
+__global__ void copy_heap( DataType * d_dest, DataType * d_src, unsigned int N ) {
+    if( d_src == NULL || N == 0 ) return;
 
-    memcpy( d_loc, d_heap, N * sizeof( DataType ) );
+    memcpy( d_dest, d_src, N * sizeof( DataType ) );
 }
 
 template < class DataType >

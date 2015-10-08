@@ -25,7 +25,7 @@
 template < class RealType >
 __device__ void _update_space( device_allele_space< RealType > * in_space
                             , device_allele_space< RealType > * out_space ) {
-    memcpy( out_space->locations, in_space->locations, in_space->size * sizeof( typename device_allele_space< RealType >::real_type ) );
+    memcpy( out_space->locations, in_space->locations, in_space->capacity * sizeof( typename device_allele_space< RealType >::real_type ) );
 }
 
 template < class RealType >
@@ -33,80 +33,29 @@ __device__ void _update_space( device_weighted_allele_space< RealType > * in_spa
                             , device_weighted_allele_space< RealType > * out_space ) {
     _update_space( (device_allele_space< RealType > * ) in_space, (device_allele_space< RealType > * ) out_space );
 
-    memcpy( out_space->weights, in_space->weights, in_space->size * sizeof( typename device_allele_space< RealType >::real_type ) );
+    memcpy( out_space->weights, in_space->weights, in_space->capacity * sizeof( typename device_allele_space< RealType >::real_type ) );
 }
 
-/*
-template < class RealType, class IntType >
-__global__ void _merge_space( device_allele_space< RealType > * in_space
-                            , device_free_space< IntType, unordered_tag > * fspace
-                            , device_event_space< IntType, unordered_tag > * evts
-                            , device_allele_space< RealType > * out_space ) {
-
-    typedef device_allele_space< RealType > space_type;
-    space_type local_in = *in_space;
-
-    unsigned int N = local_in.size - fspace->total;
-    N += evts->total;
-
-    if( local_in.size > N ) { N = local_in.size; }
-
-    _resize_space_impl( out_space, N ); // will pad space based upon ALIGNMENT_SIZE
-
-    if( local_in.locations ) {
-        memcpy( out_space->locations, local_in.locations, local_in.size * sizeof( typename space_type::real_type ) );
-    }
-}
-*/
-
-/*
-template < class RealType, class IntType >
-__global__ void _merge_space( device_weighted_allele_space< RealType > * in_space
-                            , device_free_space< IntType, unordered_tag > * fspace
-                            , device_event_space< IntType, unordered_tag > * evts
-                            , device_free_space< IntType, unordered_tag > * ofspace
-                            , device_allele_space< RealType > * out_space ) {
-
-    typedef device_allele_space< RealType > space_type;
-    space_type local_in = *in_space;
-
-    unsigned int N = local_in.size - fspace->total;
-    N += evts->total;
-
-    if( local_in.size > N ) {
-        N = local_in.size; 
-    } else {
-        _resize_space_impl( out_space, N ); // will pad space based upon ALIGNMENT_SIZE
-        _resize_space_impl( out_space, ofspace );
-    }
-
-//    memcpy( out_space->locations, local_in.locations, local_in.size * sizeof( typename space_type::real_type ) );
-//    memcpy( out_space->weights, local_in.weights, local_in.size * sizeof( typename space_type::real_type ) );
-
-    _update_space( in_space, out_space );
-    _update_space( fspace, ofspace );    
-}*/
-
-template < class RealType, class IntType >
-__global__ void _merge_space( device_weighted_allele_space< RealType > * in_alleles
+template < class AlleleSpaceType, class IntType >
+__global__ void _merge_space( AlleleSpaceType * in_alleles
                             , device_free_space< IntType, unordered_tag > * in_free
                             , device_event_space< IntType, unordered_tag > * new_muts
                             , device_free_space< IntType, unordered_tag > * out_free
-                            , device_weighted_allele_space< RealType > * out_alleles ) {
+                            , AlleleSpaceType * out_alleles ) {
 
     unsigned int N = in_free->total;    // total number of free elements from parent allele space
     unsigned int M = new_muts->total;   // total number of new mutations to be added to offspring population
 
-    unsigned int P = in_alleles->size; // current allocated size of parent population
+    unsigned int P = in_alleles->capacity; // current allocated size of parent population
 
     unsigned int C = P + (( N < M ) ? (M - N) : 0);
 
-    //printf( "Resize Population: %d = %d + |min(0, (%d - %d))|\n", C, P, N, M );
+//    printf( "Resize Population: %d = %d + |min(0, (%d - %d))|\n", C, P, N, M );
 
     _resize_space_impl(out_alleles, C );  // resize offspring allele space relative to parent space
 
     C = out_alleles->capacity;  // the size of the offspring allele space
-    //printf( "Padded Population: %d\n", C );
+//    printf( "Padded Population: %d\n", C );
 
     _resize_space_impl( out_free, C );     // resize offspring free space relative to offsrping allele space
  

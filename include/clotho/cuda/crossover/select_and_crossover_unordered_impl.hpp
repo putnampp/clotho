@@ -26,24 +26,22 @@ template < class StateType
            , class AlleleSpaceType
            , class SequenceIntType
            , class RealType
-           , class IntType1
+           , class IntType
         >
 __global__ void select_and_crossover_kernel( StateType * states
                                             , device_sequence_space< SequenceIntType > * parent_seqs
-                                            , device_event_space< IntType1, no_order_tag >  * parent_ids
+                                            , basic_data_space< IntType >  * parent_ids
                                             , AlleleSpaceType * alleles
                                             , device_free_space< SequenceIntType, unordered_tag > * free_space
                                             , poisson_cdf< RealType, 32 > * pois
                                             , device_sequence_space< SequenceIntType > * offspring_seqs ) {
 
-    typedef StateType state_type;
+    typedef StateType                                       state_type;
     typedef poisson_cdf< RealType, 32 >                     poisson_type;
     typedef device_sequence_space< SequenceIntType >        sequence_space_type;
     typedef typename sequence_space_type::int_type          sequence_int_type;
 
-    assert( sizeof( sequence_int_type ) * 8 == 32 );
-
-    typedef device_event_space< IntType1, no_order_tag >    selection_type;
+    typedef device_event_space< IntType, no_order_tag >    selection_type;
     typedef typename selection_type::int_type               selection_int_type;
 
     typedef AlleleSpaceType                                 allele_space_type;
@@ -54,7 +52,7 @@ __global__ void select_and_crossover_kernel( StateType * states
 
     if( bid >= off_count ) return;
 
-    assert( off_count == offspring_seqs->seq_count );
+    assert( off_count == parent_ids->size );
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
     unsigned int warp_id = (tid >> 5 );
@@ -71,7 +69,7 @@ __global__ void select_and_crossover_kernel( StateType * states
     sequence_int_type   * par_seqs = parent_seqs->sequences;
     sequence_int_type   * off_seqs = offspring_seqs->sequences;
 
-    selection_int_type  * par_ids = parent_ids->event_count;
+    selection_int_type  * par_ids = parent_ids->data;
 
     unsigned int par_count = parent_seqs->seq_count;
 
@@ -112,7 +110,10 @@ __global__ void select_and_crossover_kernel( StateType * states
         s_event_hash[ tid ] = 0;    // clear hash
 
         real_type y = curand_uniform( &local_state );
-        s_rand_pool[ tid ] = curand_uniform( &local_state );
+        //s_rand_pool[ tid ] = curand_uniform( &local_state );
+//        s_rand_pool[ tid ] = y;
+//
+//        y = curand_uniform( &local_state );
 
         unsigned int e = _find_poisson_maxk32( s_pois_cdf, y, max_k );
         __syncthreads();
@@ -153,7 +154,8 @@ __global__ void select_and_crossover_kernel( StateType * states
         // adjust rand_pool such that rand_pool[ [0, s_event_hash[ allele_space_type::ALIGNMENT_SIZE ] ) ] are ordered
         real_type accum = 0.;
         while( s < e ) {    // threads diverge
-            y = s_rand_pool[ s ];
+//            y = s_rand_pool[ s ];
+            y = curand_uniform( &local_state );
 
             accum += ( log(y) / (real_type)( e - s) );
             s_rand_pool[ s++ ] = ( (((real_type)tid) + (1.0 - exp(accum) )) / ((real_type)allele_space_type::ALIGNMENT_SIZE ) );
@@ -171,19 +173,18 @@ __global__ void select_and_crossover_kernel( StateType * states
         }
 
         unsigned int p0 = id * par_width + warp_id;
-        unsigned int p1 = p0 + par_width;
+        //unsigned int p1 = p0 + par_width;
 
         unsigned int o_idx = bid * off_width + warp_id;
         unsigned int a_id = tid;
 
         while( a_id < par_allele_cap ) {    // true for all threads (no divergence) otherwise assert_1 would have failed
             sequence_int_type p = par_seqs[ p0 ];
-            sequence_int_type q = par_seqs[ p1 ];
+            sequence_int_type q = par_seqs[ p0 + par_width ];
+            real_type a = all_loc[ a_id ];  // every thread reads a location just in case
 
-            sequence_int_type x = ((a_id < par_allele_size) * ((p ^ q) & (1 << lane_id )));
+            sequence_int_type x = ((a_id < par_allele_size) & ((p ^ q) >> lane_id));
             if( x ) {   // thread divergence
-                real_type a = all_loc[ a_id ];
-
                 // count prior crossover events
                 unsigned int tmp = (unsigned int)( a * ((real_type)allele_space_type::ALIGNMENT_SIZE));
 
@@ -193,17 +194,17 @@ __global__ void select_and_crossover_kernel( StateType * states
                 tmp = s;
                 while( s < e ) {
                     y = s_rand_pool[ s++ ];
-                    tmp += ( a > y );
+                    tmp += ( y < a );
                 }
 
-                x *= (tmp & 1); // if odd number of events then crossover
+                x = ((tmp & 1) << lane_id); // if odd number of events then crossover
             }
             __syncthreads();
 
             // reduce crossover mask x
             for( unsigned int i = 1; i < 32; i <<= 1 ) {
                 sequence_int_type tmp = __shfl_up( x, i );
-                x |= ( lane_id >= i )* tmp;
+                x |= ( lane_id >= i ) * tmp;
             }
 
             sequence_int_type o = ((p & ~x) | (q & x));
@@ -212,7 +213,7 @@ __global__ void select_and_crossover_kernel( StateType * states
             }
             __syncthreads();
             p0 += wpb;
-            p1 += wpb;
+//            p1 += wpb;
 
             o_idx += wpb;
 
@@ -220,6 +221,8 @@ __global__ void select_and_crossover_kernel( StateType * states
         }
         bid += bpg;
     }
+
+    bid = blockIdx.y * gridDim.x + blockIdx.x;
 
     states[ bid * tpb + tid ] = local_state;
 }

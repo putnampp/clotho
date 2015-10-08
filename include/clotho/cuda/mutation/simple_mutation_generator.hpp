@@ -20,6 +20,7 @@
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/distributions/poisson_distribution.hpp"
 
+/*
 template < class StateType, class RealType, class IntType >
 __global__ void _simple_mutation_generator( StateType * states
                                             , device_event_space< IntType, unordered_tag > * mut_events
@@ -168,10 +169,67 @@ __global__ void _simple_mutation_generator2( StateType * states
 
     if( tid == 31 ) {
         // has total number of mutations generated
-        mut_events->total = count;    
+        mut_events->total = count;
     }
 
     states[ tid ] = local_state;
+}*/
+
+template < class StateType, class RealType, class IntType >
+__global__ void make_event_distribution_kernel( StateType * states
+                                            , device_event_space< IntType, unordered_tag > * _events
+                                            , RealType lambda
+                                            , unsigned int N ) {
+    typedef StateType state_type;
+    typedef RealType real_type;
+ 
+    if( (threadIdx.y * blockDim.x + threadIdx.x) == 0 ) {
+        lambda *= (real_type) N;
+        unsigned int n = curand_poisson( states, lambda );
+
+        _events->total = n;
+    }
 }
+
+template < class StateType, class RealType, class IntType >
+__global__ void make_event_distribution_kernel( StateType * states
+                                                , device_event_space< IntType, unit_ordered_tag< IntType > > * _events
+                                                , RealType lambda
+                                                , unsigned int N ) {
+    typedef StateType   state_type;
+    typedef RealType    real_type;
+    typedef unit_ordered_tag< IntType > ordered_tag_type;
+
+    if( blockIdx.y * gridDim.x + blockIdx.x != 0 ) return;
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int tpb = blockDim.x * blockDim.y;
+
+    assert( tpb == 32 );
+    assert( ordered_tag_type::OBJECTS_PER_UNIT == 32 );
+
+    lambda /= ((real_type) ordered_tag_type::OBJECTS_PER_UNIT );
+    lambda *= ((real_type) N );
+
+    state_type local_state = states[ tid ];
+
+    unsigned int count = curand_poisson( &local_state, lambda );
+    __syncthreads();
+
+    _events->bin_summary[ tid ] = count;
+    __syncthreads();
+
+    states[ tid ] = local_state;
+
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        unsigned int c = __shfl_up( count, i );
+        count += ((tid >= i ) * c );
+    }
+
+    if( tid == 31 ) {
+        _events->total = count;
+    }
+}
+
 
 #endif  // SIMPLE_MUTATION_GENERATOR_HPP_

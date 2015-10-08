@@ -28,8 +28,8 @@ public:
 
     template < class PopulationSpaceType >
     void translate( PopulationSpaceType * pop ) {
-
-        _translate<<< 200, 128 >>>( pop->alleles.get_device_space(), pop->sequences.get_device_space(), pop->pheno_space );
+        clotho::utility::algo_version< 2 > * v = NULL;
+        _translate<<< 100, 1024 >>>( pop->alleles.get_device_space(), pop->sequences.get_device_space(), pop->pheno_space, v );
     }
 
     virtual ~phenotype_translator() {}

@@ -143,18 +143,19 @@ struct state_getter< device_allele_space< RealType > > {
     void operator()( boost::property_tree::ptree & state, const device_allele_space< RealType > & obj ) {
 //        std::cerr << "Basic allele" << std::endl;
 
-        state.put( "size", obj.size );
+        //state.put( "size", obj.size );
         state.put( "capacity", obj.capacity );
 
-        if( obj.size == 0 ) return;
+        unsigned int N = obj.capacity;
+        if( N == 0 ) return;
 
         typedef device_allele_space< RealType > space_type;
-        typename space_type::real_type * loc = new typename space_type::real_type[ obj.size ];
+        typename space_type::real_type * loc = new typename space_type::real_type[ N ];
 
-        copy_heap_data( loc, obj.locations, obj.size );
+        copy_heap_data( loc, obj.locations, N );
 
         boost::property_tree::ptree l;
-        for( unsigned int i = 0; i < obj.size; ++i ) {
+        for( unsigned int i = 0; i < N; ++i ) {
             clotho::utility::add_value_array( l, loc[i] );
         }
 
@@ -174,15 +175,16 @@ struct state_getter< device_weighted_allele_space < RealType > > {
 
         //std::cerr<< "Weighted allele" << std::endl;
 
-        if( obj.size == 0 ) return;
+        unsigned int N = obj.capacity;
+        if( N == 0 ) return;
 
         typedef typename device_weighted_allele_space< RealType >::real_type real_type;
-        real_type   * weights = new real_type[ obj.size ];
+        real_type   * weights = new real_type[ N ];
 
-        copy_heap_data( weights, obj.weights, obj.size );
+        copy_heap_data( weights, obj.weights, N );
 
         boost::property_tree::ptree w;
-        for( unsigned int i = 0; i < obj.size; ++i ) {
+        for( unsigned int i = 0; i < N; ++i ) {
             clotho::utility::add_value_array( w, weights[i] );
         }
 

@@ -29,11 +29,11 @@ struct device_allele_space {
 
     real_type   * locations;
 
-    unsigned int    size, capacity;
+    unsigned int    /*size,*/ capacity;
 
-    __host__ __device__ unsigned int allele_count( ) {
-        return size;
-    }
+//    __host__ __device__ unsigned int allele_count( ) {
+//        return size;
+//    }
 };
 
 template < class RealType >

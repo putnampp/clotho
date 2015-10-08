@@ -14,6 +14,7 @@
 #ifndef POPULATION_SPACE_HELPER_API_HPP_
 #define POPULATION_SPACE_HELPER_API_HPP_
 
+
 template < class IntType, class OrderTag >
 void update_free_space2( device_sequence_space< IntType > * seq_space
                        , device_free_space< IntType, OrderTag > * free_space );

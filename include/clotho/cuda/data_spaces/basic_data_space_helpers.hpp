@@ -16,6 +16,7 @@
 
 
 #include "clotho/utility/state_object.hpp"
+#include "clotho/utility/log_helper.hpp"
 
 namespace clotho {
 namespace utility {

@@ -17,74 +17,51 @@
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_unit_ordered.hpp"
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space_kernel_api.hpp"
 
-/*
-template < class RealType, class IntType >
-__global__ void _update_free_count( device_allele_space< RealType, IntType, unit_ordered_tag< IntType > > * aspace ) {
-    IntType tid = threadIdx.y *blockDim.x + threadIdx.x;
-    IntType lane_mask = (1 << (tid & 31));
-
-    IntType * local_free_list = aspace->free_list;
-    unsigned int * fcounts = aspace->free_count;
-
-    unsigned int N = aspace->free_list_size();
-    unsigned int _count = 0;
-
-    while( N-- ) {
-        IntType f = *local_free_list;
-
-        _count += !!(f & lane_mask);
-        ++local_free_list;
-    }
-
-    fcounts[tid] = _count;
-}*/
-
-template < class RealType, class IntType >
-__global__ void _merge_space( device_allele_space< RealType/*, IntType, unit_ordered_tag< IntType >*/ > * in_space
-                            , device_free_space< IntType, unit_ordered_tag< IntType > > * fspace
+template < class AlleleSpaceType, class IntType >
+__global__ void _merge_space( AlleleSpaceType * in_space
+                            , device_free_space< IntType, unit_ordered_tag< IntType > > * in_free
                             , device_event_space< IntType, unit_ordered_tag< IntType > > * evts
-                            , device_allele_space< RealType/*, IntType, unit_ordered_tag< IntType >*/ > * out_space ) {
-    typedef device_allele_space< RealType/*, IntType, unit_ordered_tag< IntType >*/ >   allele_space_type;
-    typedef device_event_space< IntType, unit_ordered_tag< IntType > >              event_space_type;
+                            , device_free_space< IntType, unit_ordered_tag< IntType > > * out_free
+                            , AlleleSpaceType * out_space ) {
+    typedef AlleleSpaceType  allele_space_type;
+    typedef device_event_space< IntType, unit_ordered_tag< IntType > >  event_space_type;
     
-    typedef typename allele_space_type::int_type    int_type;
-    typedef typename allele_space_type::real_type   real_type;
+    typedef typename event_space_type::int_type         int_type;
+    typedef typename event_space_type::order_tag_type   order_tag_type;
+
+    if( (blockIdx.y * gridDim.x + blockIdx.x) != 0 ) return;
+
+    assert( order_tag_type::OBJECTS_PER_UNIT == 32 );
+    assert( (blockDim.x * blockDim.y) == order_tag_type::OBJECTS_PER_UNIT );
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
-    int_type in_free = fspace->free_count[tid];
-    int_type bin = evts->bin_summary[tid];
+    int_type lane_free = in_free->bin_summary[tid];
+    int_type lane_count = evts->bin_summary[tid];
 
-    int n_units = 0;
-    if( in_free < bin ) {   // determine whether there will be an overflow in this bin
-        int tmp = bin - in_free;
-        if( tmp > n_units ) {
-            n_units = tmp;
-        }
-    }
-    __syncthreads();
+    int lane_overflow = lane_count - (( lane_free < lane_count ) ? lane_free : lane_count);    // determine whether there will be an overflow in this bin
 
-    for( unsigned int i = 1; i < 32; i <<= 1 ) {
-        int t = __shfl_up( n_units, i );
-        n_units = (( (tid >= i ) && (n_units < t) ) ? t : n_units);
+
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {    // move the max overflow to lane_id==31
+        int t = __shfl_up( lane_overflow, i );
+        lane_overflow = ((lane_overflow < t ) ? t : lane_overflow);
     }
 
     if( tid == 31 ) {
         // only one thread should call resize_space_impl
-        // n_units for thread 31 has the maximum overflow size for all bins
+        // lane_overflow for thread 31 has the maximum overflow size for all bins
         //
         
-        int_type size = in_space->size;
-        int_type N = size + n_units * unit_ordered_tag< IntType >::OBJECTS_PER_UNIT;
+        unsigned int size = in_space->capacity;
+        unsigned int N = size + lane_overflow * order_tag_type::OBJECTS_PER_UNIT;
         _resize_space_impl( out_space, N );  // will pad space based upon ALIGNMENT_SIZE
 
-        real_type * locs = in_space->locations;
-        
-        if( locs ) {
-            memcpy( out_space->locations, locs, size * sizeof( real_type ) );
+        N = out_space->capacity;
+        _resize_space_impl( out_free, N );
 
-//            size = compute_free_list_size< int_type >( size );
-//            memcpy( out_space->free_list, in_space->free_list, size * sizeof( int_type ));
+        if( size > 0 ) {
+            _update_space( in_space, out_space );
+            _update_space( in_free, out_free );
         }
     }
 }

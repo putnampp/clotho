@@ -15,29 +15,31 @@
 #define RECOMBINE_PARENTS_HPP_
 
 #include <cuda.h>
+#include "clotho/utility/algorithm_version.hpp"
 
-template < class SequenceSpaceType, class EventSpaceType >
+template < class SequenceSpaceType, class VectorSpaceType, unsigned char V >
 __global__ void recombine_parents_kernel( SequenceSpaceType * parents
-                                        , EventSpaceType * events
-                                        , SequenceSpaceType * offspring );
+                                        , VectorSpaceType * ids
+                                        , SequenceSpaceType * offspring
+                                        , clotho::utility::algo_version< V > * v);
 
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space.hpp"
-#include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
-#include "clotho/cuda/data_spaces/tags/no_order_tag.hpp"
+#include "clotho/cuda/data_spaces/basic_data_space.hpp"
 
 template < class IntType >
 __global__ void recombine_parents_kernel( device_sequence_space< IntType > * parents
-                                        , device_event_space< IntType, no_order_tag > * events
-                                        , device_sequence_space< IntType > * offspring ) {
+                                        , basic_data_space< IntType > * ids
+                                        , device_sequence_space< IntType > * offspring 
+                                        , clotho::utility::algo_version< 1 > * v) {
 
     typedef device_sequence_space< IntType > sequence_space_type;
     typedef typename sequence_space_type::int_type  sequence_int_type;
 
-    typedef device_event_space< IntType, no_order_tag > event_space_type;
-    typedef typename event_space_type::int_type event_int_type;
+    typedef basic_data_space< IntType >             event_space_type;
+    typedef typename event_space_type::value_type   event_int_type;
 
-    unsigned int thread_offset = blockDim.x * blockDim.y;
-    unsigned int off_offset = gridDim.x * gridDim.y;
+    unsigned int tpb = blockDim.x * blockDim.y;
+    unsigned int bpg = gridDim.x * gridDim.y;
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
     unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
@@ -49,15 +51,14 @@ __global__ void recombine_parents_kernel( device_sequence_space< IntType > * par
     sequence_int_type   * par_seqs = parents->sequences;
     sequence_int_type   * off_seqs = offspring->sequences;
 
-    event_int_type      * evts = events->event_count;
+    event_int_type      * evts = ids->data;
     
-    unsigned int i = bid;
-    while(i < off_count ) {
+    while(bid < off_count ) {
 
-        unsigned int pidx = evts[i];
+        unsigned int pidx = evts[bid];
 
         unsigned int p0_idx = pidx * parent_width + tid;
-        unsigned int off_idx = i * off_width + tid;
+        unsigned int off_idx = bid * off_width + tid;
         unsigned int j = tid;
         while( j < parent_width ) {
             sequence_int_type p0 = par_seqs[ p0_idx ];
@@ -69,20 +70,102 @@ __global__ void recombine_parents_kernel( device_sequence_space< IntType > * par
 
             off_seqs[off_idx ] = off;
 
-            j += thread_offset;
-            p0_idx += thread_offset;
-            off_idx += thread_offset;
+            j += tpb;
+            p0_idx += tpb;
+            off_idx += tpb;
         }
         __syncthreads();
 
+        // clear the tail of a offspring sequence
         while( j < off_width ) {
             off_seqs[ off_idx ] = 0;
-            j += thread_offset;
-            off_idx += thread_offset;
+            j += tpb;
+            off_idx += tpb;
         }
         __syncthreads();
 
-        i += off_offset;
+        bid += bpg;
+    }
+}
+
+template < class IntType >
+__global__ void recombine_parents_kernel( device_sequence_space< IntType > * parents
+                                        , basic_data_space< IntType > * ids
+                                        , device_sequence_space< IntType > * offspring 
+                                        , clotho::utility::algo_version< 2 > * v) {
+
+    typedef device_sequence_space< IntType > sequence_space_type;
+    typedef typename sequence_space_type::int_type  sequence_int_type;
+
+    typedef basic_data_space< IntType >             event_space_type;
+    typedef typename event_space_type::value_type   event_int_type;
+
+    unsigned int tpb = blockDim.x * blockDim.y;
+    assert( (tpb & 31) == 0 );  // all warps are full
+
+    unsigned int wpb = (tpb >> 5);
+    unsigned int bpg = gridDim.x * gridDim.y;
+    unsigned int spg = wpb * bpg;
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+
+    unsigned int lane_id = (tid & 31);
+    unsigned int warp_id = (tid >> 5 );
+
+    unsigned int parent_width = parents->seq_width;
+    unsigned int off_width = offspring->seq_width;
+    unsigned int off_count = offspring->seq_count;
+
+    sequence_int_type   * par_seqs = parents->sequences;
+    sequence_int_type   * off_seqs = offspring->sequences;
+
+    event_int_type      * evts = ids->data;
+
+    unsigned int max_off_count = off_count / wpb;
+    max_off_count += ((off_count % wpb) ? 1 : 0);
+    max_off_count *= wpb;
+
+    unsigned int off_id = (bid * wpb) + warp_id;
+    
+    while(off_id < max_off_count ) {    // allows blocks to terminate 'early'
+        unsigned int pidx = 0;
+        if( off_id < off_count ) {  // true for all threads in warp
+            pidx = evts[off_id];
+        }
+        __syncthreads();
+
+        unsigned int p_end = (pidx + 1) * parent_width;
+        unsigned int p_start = p_end - ((off_id < off_count) ? parent_width : 0);
+        p_start += lane_id;
+
+        unsigned int end = (off_id + 1) * off_width;
+        unsigned int start = end - ((off_id < off_count) ? off_width : 0);
+        start += lane_id;
+
+        while( p_start < p_end ) {
+            sequence_int_type p0 = par_seqs[ p_start ];
+            sequence_int_type p1 = par_seqs[ p_start + parent_width ] ;
+
+            sequence_int_type cross = off_seqs[ start ];
+
+            sequence_int_type off = ((p0 & ~cross) | (p1 & cross));
+
+            off_seqs[ start ] = off;
+
+            p_start += 32;
+            start += 32;
+        }
+        __syncthreads();
+
+        // clear the tail of a offspring sequence
+        while( start < end ) {
+            off_seqs[ start ] = 0;
+            start += 32;
+        }
+        __syncthreads();
+
+        off_id += spg;
     }
 }
 

@@ -78,7 +78,7 @@ public:
 
         stdev *= m_scale;
 
-        quadratic_fitness_kernel<<< 1, 32 >>>( phenos, stdev, dFitness );
+        quadratic_fitness_kernel<<< 1, 1024 >>>( phenos, stdev, dFitness );
     }
 
     fitness_space_type * get_device_space() {

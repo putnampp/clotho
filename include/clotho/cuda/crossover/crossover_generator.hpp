@@ -23,6 +23,10 @@
 #include "clotho/cuda/distributions/poisson_distribution.hpp"
 #include "clotho/recombination/recombination_rate_parameter.hpp"
 
+#ifndef CROSSOVER_VERSION
+#define CROSSOVER_VERSION 1
+#endif  // CROSSOVER_VERSION
+
 template < class PopulationType >
 class CrossoverGenerator {
 public:
@@ -40,9 +44,11 @@ public:
     typedef poisson_cdf< real_type, 32 >                    poisson_type;
     typedef scaled_mean_helper< real_type, order_tag_type > scaled_mean_type;
 
+    typedef clotho::utility::algo_version< CROSSOVER_VERSION > algorithm_version_type;
+
     CrossoverGenerator( boost::property_tree::ptree & config ) :
-        //m_recombination_rate( 0.001 )
         m_recombination_rate( config )
+        , ver( NULL )
     {
         parse_configuration( config );
 
@@ -52,7 +58,12 @@ public:
     void operator()( population_type * pop ) {
         unsigned int bcount = state_pool_type::getInstance()->get_max_blocks();
         unsigned int tcount = state_pool_type::getInstance()->get_max_threads();
-        crossover_kernel<<< bcount, tcount >>>( state_pool_type::getInstance()->get_device_states(), (device_allele_space< real_type > * ) pop->alleles.get_device_space(), pop->free_space, dPoisCDF, pop->sequences.get_device_space() );
+        crossover_kernel<<< bcount, tcount >>>( state_pool_type::getInstance()->get_device_states()
+                                                , pop->alleles.get_device_space()
+                                                , pop->free_space
+                                                , dPoisCDF
+                                                , pop->sequences.get_device_space()
+                                                , ver );
     }
 
     virtual ~CrossoverGenerator() {
@@ -62,22 +73,7 @@ public:
 protected:
 
     void parse_configuration( boost::property_tree::ptree & config ) {
-//        boost::property_tree::ptree lconfig;
-//
-//        if( config.get_child_optional( "recombination" ) != boost::none ) {
-//            lconfig = config.get_child( "recombination" );
-//        }
-//
-//        if( lconfig.get_child_optional( "crossover_per_sequence" ) == boost::none ) {
-//            lconfig.put("crossover_per_sequence", m_recombination_rate );
-//        } else {
-//            m_recombination_rate = lconfig.get< real_type >( "crossover_per_sequence", m_recombination_rate );
-//        }
-        
-
         state_pool_type::getInstance()->initialize( config );
-
-//        config.put_child( "recombination", lconfig );
     }
 
     void initialize() {
@@ -88,7 +84,11 @@ protected:
     }
 
     void initialize_poisson( real_type mean, unordered_tag * p ) {
+#if CROSSOVER_VERSION == 2
+        real_type lambda = (mean / 32.0 );
+#else
         real_type lambda = (mean / (real_type) allele_space_type::ALIGNMENT_SIZE);
+#endif  // CROSSOVER_VERSION
 
         make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, lambda );
     }
@@ -101,6 +101,7 @@ protected:
 
     poisson_type * dPoisCDF;
     recombination_rate_type  m_recombination_rate;
+    algorithm_version_type      * ver;
 };
 
 #endif  // CROSSOVER_GENERATOR_HPP_

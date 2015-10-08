@@ -18,8 +18,13 @@
 
 template < class IntType, class OrderTag >
 void update_free_map( device_free_space< IntType, OrderTag > * free_space ) {
-    dim3 blocks(1,1,1), threads( 32, 32, 1 );
+    dim3 blocks(1,1,1), threads( 32, 1, 1 );
     update_free_map_kernel<<< blocks, threads >>>( free_space );
+}
+
+template < class IntType, class OrderTag >
+void validate_free_map( device_free_space< IntType, OrderTag > * free_space, device_event_space< IntType, OrderTag > * events ) {
+    validate_free_space_size<<< 1, 1 >>>( free_space, events );
 }
 
 /*
@@ -36,15 +41,17 @@ void update_free_space( device_sequence_space< IntType > * seq_space
 
     cudaDeviceSynchronize();
 }*/
-
 template < class IntType, class OrderTag >
 void update_free_space2( device_sequence_space< IntType > * seq_space
                             , device_free_space< IntType, OrderTag > * free_space ) {
-    update_free_space_kernel2<<< 200, 32 >>>( seq_space, free_space );
-    update_free_space_total_kernel<<< 2, 32 >>>( free_space );
+    clotho::utility::algo_version< 1 > * v2 = NULL;
+    update_free_space_kernel<<< 200, 32 >>>( seq_space, free_space, v2 );
 
-    clear_free_space_kernel2<<< 200, 32 >>> ( seq_space, free_space );
-//    clear_free_space_kernel3<<< 200, 1024 >>> ( seq_space, free_space );
+    dim3 blocks( 2, 1, 1), threads( 32, 1, 1);
+    update_free_space_total_kernel<<< blocks, threads >>>( free_space );
+
+    clotho::utility::algo_version< 4 > * v = NULL;
+    clear_free_space_kernel<<< 10, 1024 >>> ( seq_space, free_space, v );
 }
 
 template < class RealType, class IntType, class OrderTag >

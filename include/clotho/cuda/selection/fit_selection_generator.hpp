@@ -16,11 +16,10 @@
 
 #include "clotho/cuda/curand_state_pool.hpp"
 
-#include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
-#include "clotho/cuda/data_spaces/tags/no_order_tag.hpp"
+#include "clotho/cuda/data_spaces/basic_data_space.hpp"
 
 #include "clotho/cuda/distributions/discrete_distribution.hpp"
-#include "clotho/cuda/selection/random_select_parents.hpp"
+//#include "clotho/cuda/selection/random_select_parents.hpp"
 #include "clotho/cuda/recombination/recombine_parents.hpp"
 
 #include "clotho/cuda/device_state_object.hpp"
@@ -28,7 +27,7 @@
 template < typename IntType, typename RealType >
 class FitSelectionGenerator : public clotho::utility::iStateObject {
 public:
-    typedef device_event_space< IntType , no_order_tag > event_space_type;
+    typedef basic_data_space< IntType > event_space_type;
     
     typedef clotho::cuda::curand_state_pool             state_pool_type;
 
@@ -36,7 +35,7 @@ public:
 
     FitSelectionGenerator( boost::property_tree::ptree & config ) {
         state_pool_type::getInstance()->initialize( config );
-        create_space( dEvents );
+        create_space( dParentIndices );
     }
 
     template < class PopulationSpaceType, class FitnessSpaceType >
@@ -48,7 +47,7 @@ public:
                                         , m_discrete.get_device_space()
                                         , parent_pop->sequences.get_device_space()
                                         , child_pop->sequences.get_device_space()
-                                        , dEvents );
+                                        , dParentIndices );
         CHECK_LAST_KERNEL_EXEC
     }
 
@@ -56,14 +55,16 @@ public:
     void generate_and_recombine( PopulationSpaceType * parent_pop, PopulationSpaceType * child_pop, FitnessSpaceType * fitness ) {
         generate( parent_pop, child_pop, fitness );
 
-        recombine_parents_kernel<<< 200, 32 >>>( parent_pop->sequences.get_device_space()
-                                                , dEvents
-                                                , child_pop->sequences.get_device_space() );
+        clotho::utility::algo_version< 2 > * v = NULL;
+        recombine_parents_kernel<<< 10, 1024 >>>( parent_pop->sequences.get_device_space()
+                                                , dParentIndices
+                                                , child_pop->sequences.get_device_space() 
+                                                , v);
         CHECK_LAST_KERNEL_EXEC
     }
 
     event_space_type * get_device_space() {
-        return dEvents;
+        return dParentIndices;
     }
 
     void get_state( boost::property_tree::ptree & state ) {
@@ -71,18 +72,18 @@ public:
         m_discrete.get_state( fit );
 
         boost::property_tree::ptree evts;
-        get_device_object_state( evts, dEvents );
+        get_device_object_state( evts, dParentIndices );
 
         state.add_child( "distribution", fit );
         state.add_child( "events", evts );
     }
 
     virtual ~FitSelectionGenerator() {
-        delete_space( dEvents );
+        delete_space( dParentIndices );
     }
 
 protected:
-    event_space_type    * dEvents;
+    event_space_type    * dParentIndices;
     discrete_dist_type  m_discrete;
 };
 

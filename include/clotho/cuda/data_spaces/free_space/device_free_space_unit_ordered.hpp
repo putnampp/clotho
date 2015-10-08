@@ -14,6 +14,7 @@
 #ifndef DEVICE_FREE_SPACE_UNIT_ORDERED_HPP_
 #define DEVICE_FREE_SPACE_UNIT_ORDERED_HPP_
 
+/*
 #include "clotho/cuda/data_spaces/free_space/device_free_space_def.hpp"
 #include "clotho/cuda/data_spaces/tags/unit_ordered_tag.hpp"
 
@@ -31,6 +32,6 @@ struct device_free_space< IntType, unit_ordered_tag< IntType > > {
 
     unsigned int total;
     unsigned int size, capacity;
-};
+};*/
 
 #endif  // DEVICE_FREE_SPACE_UNIT_ORDERED_HPP_

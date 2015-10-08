@@ -23,7 +23,21 @@
 #include "clotho/cuda/data_spaces/tags/unit_ordered_tag.hpp"
 
 #include "clotho/cuda/popcount_kernel.h"
+#include "clotho/utility/algorithm_version.hpp"
 
+template < class IntType, class OrderTag >
+__global__ void validate_free_space_size( device_free_space< IntType, OrderTag > * free_space
+                                            , device_event_space< IntType, OrderTag > * events ) {
+    if( blockIdx.y * gridDim.x + blockIdx.x != 0 ) return;
+
+    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
+        if( free_space->total < events->total ) {
+            printf( "Resize Failed: Free space total: %d; Event total: %d\n", free_space->total, events->total );
+            printf( "Resize Failed: Free space capacity: %d\n", free_space->capacity );
+            assert(false);
+        }
+    }
+}
 
 template < class IntType >
 __global__ void resize_free_space_kernel( device_sequence_space< IntType > * seq_space
@@ -35,58 +49,16 @@ __global__ void resize_free_space_kernel( device_sequence_space< IntType > * seq
         _resize_space_impl( free_space, seq_width * device_sequence_space< IntType >::OBJECTS_PER_INT );
     }
 }
-/*
-template < class IntType >
+
+template < class IntType, class OrderTag >
 __global__ void update_free_space_kernel( device_sequence_space< IntType > * seq_space
-                                        , device_free_space< IntType, unordered_tag > * free_space ) {
-    typedef device_sequence_space< IntType >        sequence_space_type;
-    typedef typename sequence_space_type::int_type  sequence_int_type;
-
-    typedef device_free_space< IntType, unordered_tag >  free_space_type;
-    typedef typename free_space_type::int_type      free_int_type;
-
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
-
-    unsigned int seq_width = seq_space->seq_width;
-    unsigned int seq_count = seq_space->seq_count;
-
-    if( seq_count == 0 ) return;
-
-    unsigned int column = tid;
-
-    free_int_type * flist = free_space->free_list;
-
-    while( column < seq_width ) {
-        sequence_int_type * seq = seq_space->sequences;
-
-        sequence_int_type union_mask = seq[column];
-        sequence_int_type int_mask = union_mask;
-
-        unsigned int i = 1;
-        while( i < seq_count ) {
-            sequence_int_type s = *seq;
-
-            union_mask |= s;
-            int_mask &= s;
-
-            seq += seq_width;
-            ++i;
-        }
-
-        flist[column] = (int_mask | (~union_mask));
-
-        column += blockDim.x;
-    }
-}*/
-
-template < class IntType >
-__global__ void update_free_space_kernel2( device_sequence_space< IntType > * seq_space
-                                        , device_free_space< IntType, unordered_tag > * free_space ) {
+                                        , device_free_space< IntType, OrderTag > * free_space 
+                                        , clotho::utility::algo_version< 1 > * v) {
 
     typedef device_sequence_space< IntType >        sequence_space_type;
     typedef typename sequence_space_type::int_type  sequence_int_type;
 
-    typedef device_free_space< IntType, unordered_tag >  free_space_type;
+    typedef device_free_space< IntType, OrderTag >  free_space_type;
     typedef typename free_space_type::int_type      free_int_type;
 
     unsigned int seq_width = seq_space->seq_width;
@@ -148,6 +120,85 @@ __global__ void update_free_space_kernel2( device_sequence_space< IntType > * se
     }
 }
 
+
+template < class IntType, class OrderTag >
+__global__ void update_free_space_kernel( device_sequence_space< IntType > * seq_space
+                                        , device_free_space< IntType, OrderTag > * free_space 
+                                        , clotho::utility::algo_version< 2 > * v) {
+
+    typedef device_sequence_space< IntType >        sequence_space_type;
+    typedef typename sequence_space_type::int_type  sequence_int_type;
+
+    typedef device_free_space< IntType, OrderTag >  free_space_type;
+    typedef typename free_space_type::int_type      free_int_type;
+
+    unsigned int seq_width = seq_space->seq_width;
+    unsigned int seq_count = seq_space->seq_count;
+
+    if( seq_count == 0 || seq_width == 0 ) return;
+    
+    unsigned int tpb = blockDim.x * blockDim.y;
+    assert( (tpb & 31) == 0 );  // all warps full
+
+    unsigned int wpb = (tpb >> 5);
+    unsigned int bpg = (gridDim.x * gridDim.y);
+    unsigned int spg = ( wpb * bpg );
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+
+    unsigned int column = bid;
+
+    free_int_type * flist = free_space->free_list;
+    free_int_type * xlist = free_space->fixed_list;
+    free_int_type * llist = free_space->lost_list;
+
+    sequence_int_type * seqs = seq_space->sequences;
+
+    unsigned int row_offset = (blockDim.x * blockDim.y) * seq_width;
+    unsigned int col_offset = (gridDim.x * gridDim.y);
+
+    unsigned int _count = seq_space->size;
+
+    unsigned int seq_id = (tid >> 5); // warp_id
+    while( column < seq_width ) {
+        unsigned int ridx = tid * seq_width + column;
+
+        free_int_type union_mask = 0, inter_mask = (free_int_type) -1;
+        if( ridx < _count ) {
+            sequence_int_type v = seqs[ ridx ];
+            union_mask = v;
+            inter_mask = v;
+            ridx += row_offset;
+
+            while( ridx < _count ) {
+                v = seqs[ ridx ];
+                union_mask |= v;
+                inter_mask &= v;
+                ridx += row_offset;
+            }
+        }
+        __syncthreads();
+
+        // reduce the masks
+        for( unsigned int i = 1; i < 32; i <<= 1 ) {
+            sequence_int_type t = __shfl_up( inter_mask, i);
+            sequence_int_type u = __shfl_up( union_mask, i);
+
+            inter_mask &= ((tid >= i) ? t : (sequence_int_type) -1);
+            union_mask |= ((tid >= i) ? u : 0 );
+        }
+
+        if( tid == 31 ) {
+            llist[column] = ~union_mask;
+            xlist[column] = inter_mask;
+            flist[column] = (inter_mask | (~union_mask));
+        }
+        __syncthreads();
+        column += col_offset;
+    }
+}
+
 /**
  *
  * Intended to be executed two blocks, single warp
@@ -157,17 +208,19 @@ __global__ void update_free_space_total_kernel( device_free_space< IntType, Orde
     typedef device_free_space< IntType, OrderTag >      space_type;
     typedef typename space_type::int_type               int_type;
 
-    unsigned int bid = blockIdx.y * gridDim.x + blockDim.x;
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
 
     if( bid >= 2 ) return;
-    popcountGPU< int_type > pc;
+
+    assert( (blockDim.x * blockDim.y) == 32 );  // designed for single warp only
 
     unsigned int count = 0;
-    unsigned int width = fspace->size;
+    unsigned int width = fspace->capacity;
 
     width /= (sizeof( int_type ) * 8);
 
     unsigned int idx = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int lane_id = (idx & 31);
 
     int_type * _list;
     if(bid == 0 ) { // true for all threads in block
@@ -178,22 +231,18 @@ __global__ void update_free_space_total_kernel( device_free_space< IntType, Orde
     __syncthreads();
 
     while( idx < width ) {
-        int_type c = _list[idx];
+        int_type c = _list[idx++];
 
-        count += pc.evalGPU( c );
-
-        idx += (blockDim.x * blockDim.y);
+        count += (( c >> lane_id ) & 1);
     }
     __syncthreads();
 
-    idx = threadIdx.y * blockDim.x + threadIdx.x;
-
     for( unsigned int i = 1; i < 32; i <<= 1 ) {
         unsigned int c = __shfl_up( count, i );
-        count += ( idx >= i ) * c;
+        count += ( lane_id >= i ) * c;
     }
 
-    if( idx == 31 ) {
+    if( lane_id == 31 ) {
         if( bid == 0 ) {
             fspace->total = count;
         } else {
@@ -202,39 +251,30 @@ __global__ void update_free_space_total_kernel( device_free_space< IntType, Orde
     }
 }
 
+
 template < class IntType >
 __global__ void update_free_map_kernel( device_free_space< IntType, unordered_tag > * free_space ) {
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
-    unsigned int warp_id = (tid >> 5);
     unsigned int lane_id = (tid & 31);
 
     typedef device_free_space< IntType, unordered_tag > space_type;
     typedef typename space_type::int_type               int_type;
 
-    __shared__ unsigned int s_map[ 32 ];
-
-    space_type loc = *free_space;
-
-    popcountGPU< int_type > pc;
+    int_type *flist = free_space->free_list;
+    unsigned int *fmap = free_space->free_map;
 
     unsigned int count = 0, prev_sum = 0;
-    unsigned int i = warp_id;
+    unsigned int i = 0;
 
-    unsigned int N = (loc.size / space_type::OBJECTS_PER_INT);
-
-    unsigned int padded_N = ((N & 31) ? ((N & (~31)) + 32) : N);
-
-    while( i < padded_N ) {
-        int_type _c = 0;
-        if( i < N ) {
-            _c = loc.free_list[i];
-        }
+    unsigned int N = (free_space->capacity / space_type::OBJECTS_PER_INT);  
+    while( i < N ) {
+        int_type _c = flist[i];
         __syncthreads();
 
-        count += pc.evalGPU( _c );
-
         unsigned int offset = ((_c >> lane_id) & 1);
+
+        count += offset;
 
         bool is_free = (offset != 0);
 
@@ -243,103 +283,88 @@ __global__ void update_free_map_kernel( device_free_space< IntType, unordered_ta
             offset += ( lane_id >= j ) * t;
         }
 
-        if( lane_id == 31 ) {
-            s_map[ warp_id ] = offset;
+        offset += prev_sum;
+
+        if( is_free ) {
+            fmap[offset - 1] = i * 32 + lane_id;
         }
         __syncthreads();
 
-        unsigned int tmp = s_map[lane_id];
+        prev_sum = __shfl( offset, 31 );
+        ++i;
+    }
+
+    for( i = 1; i < 32; i <<= 1 ) {
+        unsigned int c = __shfl_up( count, i );
+        count += (( lane_id >= i ) * c );
+    }
+
+    if( lane_id == 31 ) {
+        free_space->total = count;
+    }
+}
+
+template < class IntType >
+__global__ void update_free_map_kernel( device_free_space< IntType, unit_ordered_tag< IntType > > * free_space ) {
+
+    assert( blockDim.x * blockDim.y == 32 );
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    unsigned int lane_id = (tid & 31);
+
+    typedef device_free_space< IntType, unit_ordered_tag< IntType > > space_type;
+    typedef typename space_type::int_type               int_type;
+
+    int_type *flist = free_space->free_list;
+    unsigned int *fmap = free_space->free_map;
+
+    unsigned int count = 0, prev_sum = 0;
+    unsigned int i = 0;
+
+    unsigned int N = (free_space->capacity / space_type::OBJECTS_PER_INT);  
+    while( i < N ) {
+        int_type _c = flist[i];
+        __syncthreads();
+
+        unsigned int offset = ((_c >> lane_id) & 1);
+
+        count += offset;
+
+        bool is_free = (offset != 0);
 
         for( unsigned int j = 1; j < 32; j <<= 1 ) {
-            unsigned int t = __shfl_up( tmp, j );
-            tmp += ( lane_id >= j ) * t;
+            unsigned int t = __shfl_up( offset, j );
+            offset += (( lane_id >= j ) * t);
         }
-
-        if( warp_id > 0 ) {
-            unsigned int t = __shfl( tmp, warp_id - 1);
-            offset += t;
-        }
-        __syncthreads();
 
         offset += prev_sum;
 
         if( is_free ) {
-            loc.free_map[offset - 1] = i * 32 + lane_id;
+            fmap[offset - 1] = i * 32 + lane_id;
         }
         __syncthreads();
 
-        unsigned int t = __shfl( tmp, 31 );
-        prev_sum = t;
-        i += 32;
+        prev_sum = __shfl( offset, 31 );
+        ++i;
     }
 
-    if( lane_id == 0 ) {
-        s_map[ warp_id ] = count;
-    }
+    free_space->bin_summary[ lane_id ] = count;
     __syncthreads();
 
-    if( warp_id == 0 ) {
-        count = s_map[ lane_id ];
+    // total the counts
+    for( i = 1; i < 32; i <<= 1 ) {
+        unsigned int c = __shfl_up( count, i );
+        count += (( lane_id >= i ) * c );
+    }
 
-        for( i = 1; i < 32; i <<= 1 ) {
-            unsigned int t = __shfl_up( count, i );
-            count += (tid >= i) * t;
-        }
-
-        if( tid == 31 ) {
-            free_space->total = count;
-        }
+    if( lane_id == 31 ) {
+        free_space->total = count;
     }
 }
 
-/*
 template < class IntType, class OrderTag >
-__global__ void clear_free_space_kernel( device_sequence_space< IntType > * seq_space, device_free_space< IntType, OrderTag > * free_space ) {
-    typedef device_sequence_space< IntType >        sequence_space_type;
-    typedef typename sequence_space_type::int_type  sequence_int_type;
-
-    typedef device_free_space< IntType, OrderTag >  free_space_type;
-    typedef typename free_space_type::int_type      free_int_type;
-
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
-
-    unsigned int seq_width = seq_space->seq_width;
-    unsigned int seq_count = seq_space->seq_count;
-
-    if( seq_count == 0 ) return;
-
-    unsigned int column = tid;
-
-    free_int_type * flist = free_space->free_list + tid;
-
-    while( column < seq_width ) {
-
-        sequence_int_type * seq = seq_space->sequences + column;
-
-        free_int_type mask = *flist;
-
-        mask = ~mask;   // keep all variable (ie. not fixed or lost)
-
-        unsigned int i = 0;
-        while( i < seq_count ) {
-            sequence_int_type s = *seq;
-
-            s &= mask;
-
-            *seq = s;
-
-            seq += seq_width;
-            ++i;
-        }
-
-        flist += blockDim.x;
-        column += blockDim.x;
-    }
-}*/
-
-
-template < class IntType, class OrderTag >
-__global__ void clear_free_space_kernel2( device_sequence_space< IntType > * seq_space, device_free_space< IntType, OrderTag > * free_space ) {
+__global__ void clear_free_space_kernel( device_sequence_space< IntType > * seq_space, device_free_space< IntType, OrderTag > * free_space, clotho::utility::algo_version< 2 > * v ) {
     typedef device_sequence_space< IntType >        sequence_space_type;
     typedef typename sequence_space_type::int_type  sequence_int_type;
 
@@ -379,7 +404,7 @@ __global__ void clear_free_space_kernel2( device_sequence_space< IntType > * seq
 }
 
 template < class IntType, class OrderTag >
-__global__ void clear_free_space_kernel3( device_sequence_space< IntType > * seq_space, device_free_space< IntType, OrderTag > * free_space ) {
+__global__ void clear_free_space_kernel( device_sequence_space< IntType > * seq_space, device_free_space< IntType, OrderTag > * free_space, clotho::utility::algo_version< 3 > * v ) {
     typedef device_sequence_space< IntType >        sequence_space_type;
     typedef typename sequence_space_type::int_type  sequence_int_type;
 
@@ -419,4 +444,58 @@ __global__ void clear_free_space_kernel3( device_sequence_space< IntType > * seq
     }
 }
 
+template < class IntType, class OrderTag >
+__global__ void clear_free_space_kernel( device_sequence_space< IntType > * seq_space
+                                            , device_free_space< IntType, OrderTag > * free_space
+                                            , clotho::utility::algo_version< 4 > * v ) {
+    typedef device_sequence_space< IntType >        sequence_space_type;
+    typedef typename sequence_space_type::int_type  sequence_int_type;
+
+    typedef device_free_space< IntType, OrderTag >  free_space_type;
+    typedef typename free_space_type::int_type      free_int_type;
+
+    unsigned int tpb = blockDim.x * blockDim.y;
+    assert( (tpb & 31) == 0);   // all warps full
+
+    unsigned int wpb = (tpb >> 5 );
+    unsigned int spg = (wpb * (gridDim.x * gridDim.y)); // wpb * bpg
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int lane_id = (tid & 31);
+
+    unsigned int seq_count = seq_space->seq_count;
+    unsigned int seq_width = seq_space->seq_width;
+    if( seq_width == 0 ) return;
+
+    assert( seq_width == (free_space->capacity / (sizeof( free_int_type ) * 8)));
+
+    sequence_int_type * seqs = seq_space->sequences;
+    free_int_type * flist = free_space->free_list;
+
+    unsigned int max_seq_id = seq_count / wpb;
+    max_seq_id += ((seq_count % wpb) ? 1 : 0);
+    max_seq_id *= wpb;
+
+    unsigned int seq_id = (blockIdx.y * gridDim.x + blockIdx.x) * wpb + (tid >> 5);
+
+    while( seq_id < max_seq_id ) {
+
+        unsigned int end = (seq_id + 1) * seq_width;
+        unsigned int start = end - (( seq_id >= seq_count ) ? 0 : seq_width);
+        start += lane_id;
+        unsigned int j = lane_id;
+        while( start < end ) {
+            free_int_type       mask = flist[j];
+            sequence_int_type   s = seqs[start];
+
+            seqs[start] = (s & ~mask);
+
+            j += 32;
+            start += 32;
+        }
+        __syncthreads();
+
+        seq_id += spg;
+    }
+}
 #endif  // POPULATION_SPACE_HELPER_KERNELS_HPP_

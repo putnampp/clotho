@@ -14,10 +14,13 @@
 #ifndef DEVICE_FREE_SPACE_DEF_HPP_
 #define DEVICE_FREE_SPACE_DEF_HPP_
 
+#include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
+
 template < class IntType, class OrderTag >
-struct device_free_space {
-    typedef IntType     int_type;
-    typedef OrderTag    order_tag_type;
+struct device_free_space : public device_event_space< IntType, OrderTag > {
+    typedef device_event_space< IntType, OrderTag > base_type;
+    typedef typename base_type::int_type            int_type;
+    typedef typename base_type::order_tag_type      order_tag_type;
 
     static const unsigned int OBJECTS_PER_INT = (sizeof( int_type ) * 8);
 
@@ -26,7 +29,7 @@ struct device_free_space {
     int_type        * free_list;
     unsigned int    * free_map;
 
-    unsigned int total, fixed_count;
+    unsigned int fixed_count;
     unsigned int size, capacity;
 };
 

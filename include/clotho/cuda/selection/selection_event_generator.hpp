@@ -18,8 +18,7 @@
 
 #include "clotho/cuda/curand_state_pool.hpp"
 
-#include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
-#include "clotho/cuda/data_spaces/tags/no_order_tag.hpp"
+#include "clotho/cuda/data_spaces/basic_data_space.hpp"
 
 #include "clotho/cuda/selection/random_select_parents.hpp"
 #include "clotho/cuda/recombination/recombine_parents.hpp"
@@ -28,8 +27,7 @@
 
 class SelectionEventGenerator : public clotho::utility::iStateObject {
 public:
-    typedef device_event_space< unsigned int, no_order_tag > event_space_type;
-
+    typedef basic_data_space< unsigned int >            event_space_type;
     typedef clotho::cuda::curand_state_pool             state_pool_type;
 
 
@@ -52,9 +50,11 @@ public:
     void generate_and_recombine( PopulationType * parent_pop, PopulationType * child_pop ) {
         generate( parent_pop, child_pop );
 
-        recombine_parents_kernel<<< 200, 32 >>>( parent_pop->sequences.get_device_space()
+        clotho::utility::algo_version< 2 > * v;
+        recombine_parents_kernel<<< 100, 1024 >>>( parent_pop->sequences.get_device_space()
                                                 , dEvents
-                                                , child_pop->sequences.get_device_space() );
+                                                , child_pop->sequences.get_device_space() 
+                                                , 2 );
     }
 
     event_space_type * get_device_space() {

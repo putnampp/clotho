@@ -28,4 +28,11 @@ void resize_space( device_sequence_space< IntType > * seqs
     _resize_space<<< 1, 1 >>>( seqs, column_space, row_count );
 }
 
+template < class IntType >
+void resize_space( device_sequence_space< IntType > * seqs
+                    , unsigned int cols
+                    , unsigned int rows ) {
+    _resize_space<<< 1, 1 >>>( seqs, cols, rows );
+}
+
 #endif  // DEVICE_SEQUENCE_SPACE_HPP_

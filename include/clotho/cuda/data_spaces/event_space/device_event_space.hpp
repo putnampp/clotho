@@ -21,28 +21,4 @@
 
 #include "clotho/cuda/data_spaces/event_space/device_event_space_helpers.hpp"
 
-/*
-template < class IntType, class OrderTag >
-void create_space( device_event_space< IntType, OrderTag > *& space, unsigned int N ) {
-    unsigned int n = sizeof( device_event_space< IntType, OrderTag > );
-    assert( cudaMalloc( (void **) &space, n ) == cudaSuccess );
-    assert( cudaMemset( space, 0, n ) == cudaSuccess );
-
-    if( N ) {
-        resize_space( space, N );
-    }
-}
-
-template < class IntType, class OrderTag >
-void resize_space( device_event_space< IntType, OrderTag > * space, unsigned int N ) {
-    _resize_space<<< 1, 1 >>>( space, N );
-}
-
-template < class IntType, class OrderTag >
-void delete_space( device_event_space< IntType, OrderTag > * space ) {
-    _delete_space<<< 1, 1 >>>( space );
-
-    cudaFree( space );
-}*/
-
 #endif  // DEVICE_EVENT_SPACE_HPP_

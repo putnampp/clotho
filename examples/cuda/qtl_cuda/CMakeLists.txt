@@ -46,7 +46,7 @@ LIST(APPEND SIM_SRC simulation_log.cpp)
 #LIST(APPEND SIM_SRC scatter_mutations.cu )
 #LIST(APPEND SIM_SRC population_metadata.cu )
 
-CUDA_ADD_EXECUTABLE(qtl_cuda_unordered ${SIM_SRC} ${OPTIONS_SRC})
+CUDA_ADD_EXECUTABLE(qtl_cuda_unordered ${SIM_SRC} ${OPTIONS_SRC} )
 SET_TARGET_PROPERTIES( qtl_cuda_unordered PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
 #SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
 TARGET_LINK_LIBRARIES(qtl_cuda_unordered ${LOCAL_LIBS})
@@ -73,3 +73,21 @@ CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_offcross ${SIM_SRC} ${OPTIONS_SRC} OPTION
 SET_TARGET_PROPERTIES( qtl_cuda_unordered_offcross PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
 #SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
 TARGET_LINK_LIBRARIES(qtl_cuda_unordered_offcross ${LOCAL_LIBS})
+
+CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_ham3 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DHAMMING_VERSION=3)
+SET_TARGET_PROPERTIES( qtl_cuda_unordered_ham3 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
+#SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
+TARGET_LINK_LIBRARIES(qtl_cuda_unordered_ham3 ${LOCAL_LIBS})
+
+CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_ham ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DHAMMING_VERSION)
+SET_TARGET_PROPERTIES( qtl_cuda_unordered_ham PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
+TARGET_LINK_LIBRARIES(qtl_cuda_unordered_ham ${LOCAL_LIBS})
+
+CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_ham4 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DHAMMING_VERSION=4)
+SET_TARGET_PROPERTIES( qtl_cuda_unordered_ham4 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
+#SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
+TARGET_LINK_LIBRARIES(qtl_cuda_unordered_ham4 ${LOCAL_LIBS})
+
+CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_xover2 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DCROSSOVER_VERSION=2 )
+SET_TARGET_PROPERTIES( qtl_cuda_unordered_xover2 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
+TARGET_LINK_LIBRARIES(qtl_cuda_unordered_xover2 ${LOCAL_LIBS})

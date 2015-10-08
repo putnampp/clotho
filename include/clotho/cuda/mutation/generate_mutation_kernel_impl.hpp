@@ -18,38 +18,30 @@
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
 
-template < class StateType, class RealType, class IntType, class OrderTag >
+template < class StateType, class AlleleSpaceType, class IntType, class OrderTag >
 __global__ void _generate_mutation_kernel( StateType * states
                                         , device_free_space< IntType, OrderTag > * fspace
                                         , device_event_space< IntType, OrderTag > * events
-                                        , device_allele_space< RealType > * alleles ) {
+                                        , AlleleSpaceType * alleles ) {
     typedef StateType                               state_type;
 
     typedef device_free_space< IntType, OrderTag >  free_space_type;
-
     typedef device_event_space< IntType, OrderTag > event_space_type;
-
-    typedef device_allele_space< RealType >  allele_space_type;
-    typedef typename allele_space_type::real_type               location_type;
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
     unsigned int N = events->total;
-
     unsigned int i = tid;
-
-    location_type * locs = alleles->locations;
-    
     unsigned int * fmap = fspace->free_map;
 
     state_type local_state = states[tid];
 
+    OrderTag * otag = NULL;
+
     while( i < N ) {
         unsigned int idx = fmap[ i ];
 
-        location_type x = curand_uniform( &local_state );
-
-        locs[idx] = x;
+        _generate_random_allele( &local_state, alleles, idx, otag );
         
         i += (blockDim.x * blockDim.y);
     }
@@ -57,6 +49,7 @@ __global__ void _generate_mutation_kernel( StateType * states
     states[tid] = local_state;
 }
 
+/*
 template < class StateType, class RealType, class IntType, class OrderTag >
 __global__ void _generate_mutation_kernel( StateType * states
                                         , device_free_space< IntType, OrderTag > * fspace
@@ -99,7 +92,7 @@ __global__ void _generate_mutation_kernel( StateType * states
     }
 
     states[tid] = local_state;
-}
+}*/
 
 #endif  // GENERATE_MUTATION_KERNEL_IMPL_HPP_
 

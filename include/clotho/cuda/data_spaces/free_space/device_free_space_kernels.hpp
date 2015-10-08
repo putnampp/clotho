@@ -94,8 +94,10 @@ __device__ void _update_space( device_free_space< IntType, OrderTag > * in_space
     typedef device_free_space< IntType, OrderTag > space_type;
     typedef typename space_type::int_type int_type;
 
-    unsigned int N = in_space->size;
-    unsigned int M = out_space->size;
+    unsigned int N = in_space->capacity;
+    unsigned int M = out_space->capacity;
+
+    assert( N <= M );
 
     N /= (sizeof(int_type) * 8);
     N *= sizeof(int_type);

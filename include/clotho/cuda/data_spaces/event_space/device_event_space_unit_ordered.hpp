@@ -18,17 +18,11 @@
 #include "clotho/cuda/data_spaces/tags/unit_ordered_tag.hpp"
 
 template < class IntType >
-struct device_event_space< IntType, unit_ordered_tag< IntType > > {
-    typedef IntType     int_type;
+struct device_event_space< IntType, unit_ordered_tag< IntType > > : public base_event_space< IntType > {
+    typedef IntType                     int_type;
     typedef unit_ordered_tag< IntType > order_tag_type;
 
-    typedef int_type *  pointer;
-
-    pointer         event_count;
     int_type        bin_summary[ order_tag_type::OBJECTS_PER_UNIT ];
-
-    unsigned int    total;
-    unsigned int    size, capacity;
 };
 
 #endif  // DEVICE_EVENT_SPACE_UNIT_ORDERED_HPP_
