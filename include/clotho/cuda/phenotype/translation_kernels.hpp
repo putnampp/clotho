@@ -160,17 +160,17 @@ __global__ void _translate( device_weighted_allele_space< RealType > * alleles
     assert( (2 * pheno_count) == seq_count );   // reduce 2 sequences to 1 phenotype
 
     unsigned int max_pheno_count = pheno_count / wpb;
-    max_pheno_count = ((pheno_count % wpb) ? 1 : 0);
-    max_pheno_count = wpb;
+    max_pheno_count += ((pheno_count % wpb) ? 1 : 0);
+    max_pheno_count *= wpb;
 
-    unsigned int pheno_idx =  (blockIdx.y * gridDim.x + blockIdx.x) * bpg + (tid >> 5);
+    unsigned int pheno_idx =  (blockIdx.y * gridDim.x + blockIdx.x) * wpb + (tid >> 5);
     while( pheno_idx < max_pheno_count ) {
 
         real_type   pheno = 0.;
         unsigned int a_idx = lane_id;
 
-        unsigned int end = 2 * (pheno_idx + 1) * s_width;
-        unsigned int start = end - (( pheno_idx < pheno_count ) ? (2 * s_width) : 0);
+        unsigned int end = (2 * pheno_idx + 1) * s_width;
+        unsigned int start = end - (( pheno_idx < pheno_count ) ? (s_width) : 0);
 
         while( start < end ) {
             effect_type eff = effect_sizes[a_idx];
