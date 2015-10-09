@@ -67,7 +67,6 @@ __global__ void crossover_kernel( StateType * states
     __syncthreads();
 
     real_type * all_loc = alleles->locations;
-
     sequence_int_type * off_seqs = offspring_seqs->sequences;
 
     while( bid < offspring_count ) {    // true for all threads
@@ -174,9 +173,9 @@ __global__ void crossover_kernel( StateType * states
     typedef AlleleSpaceType                                 allele_space_type;
     typedef typename allele_space_type::real_type           real_type;
 
-    unsigned int tpb = blockDim.x * blockDim.y;
-    assert( (tpb & 31) == 0 ); // no partial warps
+    assert( blockDim.x == 32 ); // every warp is full
 
+    real_type           * allele_loc = alleles->locations;
     unsigned int        allele_count = alleles->capacity;
     assert( (allele_count & 31) == 0);  // allele_count == 32*n
 
@@ -184,34 +183,31 @@ __global__ void crossover_kernel( StateType * states
     if( width == 0 ) return;
     assert( width * sequence_space_type::OBJECTS_PER_INT == allele_count);
 
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
-    unsigned int lane_id = (tid & 31);
+//    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
     const unsigned int MAX_EVENTS_PER_LANE = poisson_type::MAX_K;   // 32
     real_type l_rand_pool[ MAX_EVENTS_PER_LANE ];
     __shared__ real_type s_pois_cdf[ poisson_type::MAX_K ];
 
     unsigned int max_k = pois->max_k;
-    if( tid < poisson_type::MAX_K ) {
-        s_pois_cdf[ tid ] = pois->_cdf[ tid ];
+    if( threadIdx.y == 0 ) {
+        s_pois_cdf[ threadIdx.x ] = pois->_cdf[ threadIdx.x ];
     }
     __syncthreads();
 
-    unsigned int wpb = (tpb >> 5);
-    unsigned int bpg = (gridDim.x * gridDim.y);
-    unsigned int spg = (wpb * bpg); // sequences per grid
+    const unsigned int spg = (blockDim.y * (gridDim.x * gridDim.y)); // sequences per grid
 
     sequence_int_type   * seqs = offspring_seqs->sequences;
-    real_type           * allele_loc = alleles->locations;
-
-    state_type local_state = states[ (blockIdx.y * gridDim.x + blockIdx.x) * tpb + tid ];
-
     unsigned int seq_count = offspring_seqs->seq_count;
-    unsigned int max_seq_id = seq_count / wpb;
-    max_seq_id += ((seq_count % wpb) ? 1 : 0);
-    max_seq_id *= wpb;
 
-    unsigned int seq_id = (blockIdx.y * gridDim.x + blockIdx.x) * wpb + (tid >> 5);
+    unsigned int state_idx = (blockIdx.y * gridDim.x + blockIdx.x) * (blockDim.x*blockDim.y) + (threadIdx.y * blockDim.x + threadIdx.x);
+    state_type local_state = states[ state_idx ];   // poor global memory access; seems to perform the equivalent memcpy operation
+
+    unsigned int max_seq_id = seq_count / blockDim.y;
+    max_seq_id += ((seq_count % blockDim.y) ? 1 : 0);
+    max_seq_id *= blockDim.y;
+
+    unsigned int seq_id = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.y + threadIdx.y;
     while( seq_id < max_seq_id ) {  // allows blocks to terminate early
         real_type r = curand_uniform( &local_state );
 
@@ -228,23 +224,23 @@ __global__ void crossover_kernel( StateType * states
 
         for( unsigned int i = 1; i < 32; i <<= 1 ) {
             unsigned int e = __shfl_up( hi, i );
-            hi += ((lane_id >= i) * e);
+            hi += ((threadIdx.x >= i) * e);
         }
 
         unsigned int lo = __shfl_up( hi, 1 );
-        lo *= (lane_id != 0);   // make sure lo = 0 when lane_id == 0
+        lo *= (threadIdx.x != 0);   // make sure lo = 0 when lane_id == 0
 
         unsigned int s = 0, ecount = lo;
         while( s < max_events ) {   // all threads in a warp execute same number of steps
             // warps within a block will diverge
             real_type x = curand_uniform( &local_state );
             x = ((ecount++ < hi) ? x : 1.0);
-            l_rand_pool[ s++ ] = ((real_type)lane_id + x)/((real_type)32);
+            l_rand_pool[ s++ ] = ((real_type)threadIdx.x + x)/((real_type)32);
         }
         __syncthreads();
 
         unsigned int idx = seq_id * width;
-        unsigned int a_id = lane_id;
+        unsigned int a_id = threadIdx.x;
         while( a_id < allele_count ) {  // all warps execute the same loop
             real_type x = allele_loc[ a_id ];
 
@@ -256,15 +252,15 @@ __global__ void crossover_kernel( StateType * states
             }
             __syncthreads();
 
-            unsigned int mask = ((ecount & 1) << lane_id);
+            ecount = ((ecount & 1) << threadIdx.x);
 
             for(unsigned int i = 1; i < 32; i <<= 1 ) {
-                unsigned int tmp = __shfl_up( mask, i );
-                mask |= ((lane_id >= i) * tmp);
+                unsigned int tmp = __shfl_up( ecount, i );
+                ecount |= ((threadIdx.x >= i) * tmp);
             }
 
-            if( lane_id == 31 && seq_id < seq_count ) {
-                seqs[ idx ] = mask;
+            if( threadIdx.x == 31 && seq_id < seq_count ) {
+                seqs[ idx ] = ecount;
             }
             __syncthreads();
             a_id += 32;
@@ -272,7 +268,7 @@ __global__ void crossover_kernel( StateType * states
         }
         seq_id += spg;
     }
-    states[ (blockIdx.y * gridDim.x + blockIdx.x) * tpb + tid ] = local_state;
+    states[ state_idx ] = local_state;
 }
 
 #endif  // CROSSOVER_KERNEL_UNIT_ORDERED_IMPL_HPP_

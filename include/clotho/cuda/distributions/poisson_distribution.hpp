@@ -59,11 +59,10 @@ __global__ void  make_poisson_cdf_maxk32( poisson_cdf< RealType, 32 > * c, RealT
 
 template < class RealType >
 __host__ __device__ unsigned int _find_poisson_maxk32( volatile RealType * cdf, RealType x, unsigned int N = 32 ) {
-    unsigned int k = 0;
-    while( N-- ) {
-        RealType _c = cdf[k];
-        //k += (_c < x);
-        k += (( _c < x) ? 1 : 0);
+    unsigned int k = 0, i = 0;
+    while( i < N ) {
+        RealType _c = cdf[i++];
+        k += (_c < x);
     }
     return k;
 }

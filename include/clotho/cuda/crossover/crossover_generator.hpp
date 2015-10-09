@@ -27,6 +27,21 @@
 #define CROSSOVER_VERSION 1
 #endif  // CROSSOVER_VERSION
 
+template < class OrderTag, unsigned char V >
+struct kernel_exe_updater {
+    void operator()( dim3 & bcount, dim3 & tcount ) { }
+};
+
+template < class IntType >
+struct kernel_exe_updater< unit_ordered_tag< IntType >, 2 > {
+    void operator()( dim3 & bcount, dim3 & tcount ) {
+        assert( 2560 <= bcount.x * tcount.x * tcount.y);
+        bcount.x = 10;
+        tcount.x = 32;
+        tcount.y = 8;
+    }
+};
+
 template < class PopulationType >
 class CrossoverGenerator {
 public:
@@ -56,8 +71,13 @@ public:
     }
 
     void operator()( population_type * pop ) {
-        unsigned int bcount = state_pool_type::getInstance()->get_max_blocks();
-        unsigned int tcount = state_pool_type::getInstance()->get_max_threads();
+        dim3 bcount(1,1,1), tcount(1,1,1);
+        bcount.x = state_pool_type::getInstance()->get_max_blocks();
+        tcount.x = state_pool_type::getInstance()->get_max_threads();
+
+        kernel_exe_updater< order_tag_type, CROSSOVER_VERSION > upd;
+        upd( bcount, tcount );
+
         crossover_kernel<<< bcount, tcount >>>( state_pool_type::getInstance()->get_device_states()
                                                 , pop->alleles.get_device_space()
                                                 , pop->free_space
