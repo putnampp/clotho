@@ -69,7 +69,7 @@ TARGET_LINK_LIBRARIES(qtl_cuda_unordered_double ${LOCAL_LIBS})
 
 ADD_CUSTOM_TARGET( qtl_cuda DEPENDS qtl_cuda_unordered qtl_cuda_unordered_verbose qtl_cuda_unordered_double )
 
-CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_offcross ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DUSE_OFFSPRING_CROSSOVER)
+CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_offcross ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DUSE_OFFSPRING_CROSSOVER )
 SET_TARGET_PROPERTIES( qtl_cuda_unordered_offcross PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
 #SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
 TARGET_LINK_LIBRARIES(qtl_cuda_unordered_offcross ${LOCAL_LIBS})
@@ -91,3 +91,7 @@ TARGET_LINK_LIBRARIES(qtl_cuda_unordered_ham4 ${LOCAL_LIBS})
 CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_xover2 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DCROSSOVER_VERSION=2 )
 SET_TARGET_PROPERTIES( qtl_cuda_unordered_xover2 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
 TARGET_LINK_LIBRARIES(qtl_cuda_unordered_xover2 ${LOCAL_LIBS})
+
+CUDA_ADD_EXECUTABLE(qtl_cuda_unit_ordered_xover2 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DUSE_UNIT_ORDERING;-DCROSSOVER_VERSION=2)
+SET_TARGET_PROPERTIES( qtl_cuda_unit_ordered_xover2 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
+TARGET_LINK_LIBRARIES(qtl_cuda_unit_ordered_xover2 ${LOCAL_LIBS})
