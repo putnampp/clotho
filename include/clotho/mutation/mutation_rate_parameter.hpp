@@ -29,10 +29,10 @@ struct mutation_rate_parameter {
             lconfig = config.get_child( "mutation" );
         }
 
-        if( lconfig.get_child_optional( "mutation_per_sequence" ) == boost::none ) {
-            lconfig.put("mutation_per_sequence", m_mu );
+        if( lconfig.get_child_optional( "mu" ) == boost::none ) {
+            lconfig.put("mu", m_mu );
         } else {
-            m_mu = lconfig.get< RealType >( "mutation_per_sequence", m_mu );
+            m_mu = lconfig.get< RealType >( "mu", m_mu );
         }
 
         config.put_child( "mutation", lconfig );
