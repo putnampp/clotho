@@ -146,13 +146,14 @@ __global__ void crossover_kernel( StateType * states
             // BEGIN divergent code
             while( e_min < _sum ) {
                 accum = rand_pool[ e_min++ ];
-                cmask += ( x > accum);
+//                cmask += ( x > accum);
+                cmask += (accum < x);
             }
             __syncthreads();
             // END divergent code
 
-            cmask = ((cmask & 1) * (1 << lane_id));
-
+            cmask = ((cmask & 1) << lane_id);
+            
             for( unsigned int j = 1; j < 32; j <<= 1 ) {
                 int_type _c = __shfl_up( cmask, j);
                 cmask |= ((lane_id >= j) * _c);
@@ -306,7 +307,7 @@ __global__ void crossover_kernel( StateType * states
             __syncthreads();
             // END divergent code
 
-            cmask = ((cmask & 1) * (1 << lane_id));
+            cmask = ((cmask & 1) << lane_id);
 
             // reduce cmask within each warp
             for( unsigned int i = 1; i < 32; i <<= 1 ) {
@@ -330,4 +331,107 @@ __global__ void crossover_kernel( StateType * states
     states[ bid * tpb + tid ] = local_state;
 }
 
+/**
+ *
+ * Hash-less
+ */
+template < class StateType, class AlleleSpaceType, class RealType, class IntType >
+__global__ void crossover_kernel( StateType * states
+                                , AlleleSpaceType * alleles
+                                , device_free_space< IntType, unordered_tag > * free_space
+                                , poisson_cdf< RealType, 32 > * pois
+                                , device_sequence_space< IntType > * sequences
+                                , clotho::utility::algo_version< 3 > * v ) {
+
+    typedef StateType  state_type;
+    typedef AlleleSpaceType allele_space_type;
+    typedef typename allele_space_type::real_type   real_type;
+
+    typedef device_sequence_space< IntType >            sequence_space_type;
+    typedef typename sequence_space_type::int_type      int_type;
+
+    typedef poisson_cdf< RealType, 32 > poisson_type;
+
+    assert( blockDim.y <= 8 && blockDim.x == 32);   // 8 or fewer full warps
+
+    unsigned int  nAlleles = alleles->capacity;
+    if( nAlleles == 0 ) { return; }
+
+    assert( (nAlleles & 31) == 0 ); // nAlleles == 32 * m
+
+    const unsigned int MAX_EVENTS_PER_WARP = 64;    // maximum number of recombination events per sequence
+    __shared__ real_type rand_pool[ MAX_EVENTS_PER_WARP * 8 ];  // 8 warps/block (arbitrary number); 512 random numbers
+
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    unsigned int tpb = (blockDim.x * blockDim.y);
+    unsigned int bpg = (gridDim.x * gridDim.y);
+
+    unsigned int spg = bpg * blockDim.y;
+    
+    int_type sequence_width = sequences->seq_width;
+    int_type nSequences = sequences->seq_count;    
+
+    int_type    * seqs = sequences->sequences;
+    real_type   * allele_list = alleles->locations;
+
+    unsigned int seq_idx = bid * blockDim.y + threadIdx.y;
+    state_type local_state = states[ seq_idx * 32 + threadIdx.x ]; // every thread/warp uses the SAME random state
+
+    unsigned int max_seqs = nSequences / blockDim.y;
+    max_seqs += (( nSequences % blockDim.y) ? 1 : 0);
+    max_seqs *= blockDim.y;
+
+    while( seq_idx < max_seqs ) {
+        real_type x = curand_uniform( &local_state );
+        unsigned int rand = _find_poisson_maxk32( s_pois_cdf, x, max_k );
+        __syncthreads();
+
+        for(unsigned int i = 1; i < 32; i <<= 1 ) {
+            unsigned int t = __shfl_up( rand, i );
+            rand += ((threadIdx.x >= i) * t);
+        }
+
+        unsigned int max_events = __shfl( rand, 31 );
+        // fill random pool
+        //
+        assert( max_events < MAX_EVENTS_PER_WARP );
+
+        rand_pool[ tid ] = curand_uniform( &local_state );
+        rand_pool[ tid + tpb ] = curand_uniform( &local_state );
+        __syncthreads();
+
+        unsigned int seq_offset = seq_idx * seq_width;
+        unsigned int a_idx = threadIdx.x;
+        while( a_idx < nAlleles ) {
+            real_type loc = allele_list[ a_idx ];
+
+            unsigned int s = 0, mask = 0;
+            while( s < max_events ) {   // warps within a block diverge. threads within a warp do not
+                real_type y = rand_pool[ s++ ]; // every thread within a warp read/loads the same value (sequence offset)
+                mask += ( y < loc );
+            }
+            __syncthreads();
+
+            mask = ((mask & 1) << threadIdx.x);
+
+            for( unsigned int i = 1; i < 32; i <<= 1 ) {
+                unsigned int e = __shfl_up( mask, i );
+                mask |= ((threadIdx.x >= i) * e);
+            }
+
+            if( threadIdx.x == 31 && seq_idx < nSequences ) {
+                seqs[ seq_offset ] = mask;
+            }
+            __syncthreads();
+            a_idx += 32;
+            ++seq_offset;
+        }
+        seq_idx += spg;
+    }
+
+    seq_idx = bid * blockDim.y + threadIdx.y;  // reset seq_idx
+    states[ seq_idx * 32 + threadIdx.x ] = local_state;
+}
 #endif  // CROSSOVER_KERNEL_UNORDERED_IMPL_HPP_
