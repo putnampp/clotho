@@ -185,8 +185,13 @@ __global__ void crossover_kernel( StateType * states
 
 //    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
 
-    const unsigned int MAX_EVENTS_PER_LANE = poisson_type::MAX_K;   // 32
-    real_type l_rand_pool[ MAX_EVENTS_PER_LANE ];
+//    const unsigned int MAX_EVENTS_PER_LANE = poisson_type::MAX_K;   // 32
+#ifndef USE_SHARED_RANDOM_POOL
+    real_type l_rand_pool[ poisson_type::MAX_K ];   // 32 events/lane
+#else
+    // NOTE: In this case, shared memory seems to be less efficient than the thread local memory
+    __shared__ real_type l_rand_pool[ 8 * 1024 ]; // 8 warps, 32 lanes/warp, 32 events/lane
+#endif  // USE_SHARED_RANDOM_POOL
     __shared__ real_type s_pois_cdf[ poisson_type::MAX_K ];
 
     unsigned int max_k = pois->max_k;
@@ -231,11 +236,20 @@ __global__ void crossover_kernel( StateType * states
         lo *= (threadIdx.x != 0);   // make sure lo = 0 when lane_id == 0
 
         unsigned int s = 0, ecount = lo;
+#ifdef USE_SHARED_RANDOM_POOL
+        unsigned int ridx = threadIdx.y * 32 + threadIdx.x;
+#endif
         while( s < max_events ) {   // all threads in a warp execute same number of steps
             // warps within a block will diverge
             real_type x = curand_uniform( &local_state );
             x = ((ecount++ < hi) ? x : 1.0);
+#ifndef USE_SHARED_RANDOM_POOL
             l_rand_pool[ s++ ] = ((real_type)threadIdx.x + x)/((real_type)32);
+#else
+            l_rand_pool[ ridx ] = ((real_type)threadIdx.x + x)/((real_type)32);
+            ridx += 256; // 8 warp/block * 32 threads/warp = 256
+            ++s;
+#endif  // USE_SHARED_RANDOM_POOL
         }
         __syncthreads();
 
@@ -246,8 +260,20 @@ __global__ void crossover_kernel( StateType * states
 
             ecount = lo;
             s = 0;
+#ifdef USE_SHARED_RANDOM_POOL
+            ridx = threadIdx.y * 32 + threadIdx.x;
+#endif  // USE_SHARED_RANDOM_POOL
+
             while( s < max_events ) {   // threads within a warp will not diverge
-                real_type y = l_rand_pool[ s++ ];   // rand_pool is in each threads local memory
+#ifndef USE_SHARED_RANDOM_POOL
+                real_type y = l_rand_pool[ s++ ];
+#else
+                real_type y = l_rand_pool[ ridx ];   // rand_pool is in each threads local memory
+                ecount += ( y < x );
+                ++s;
+                ridx += 256;
+#endif  // USE_SHARED_RANDOM_POOL
+
                 ecount += ( y < x );
             }
             __syncthreads();
