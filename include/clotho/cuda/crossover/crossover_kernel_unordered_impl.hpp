@@ -14,6 +14,8 @@
 #ifndef CROSSOVER_KERNEL_UNORDERED_IMPL_HPP_
 #define CROSSOVER_KERNEL_UNORDERED_IMPL_HPP_
 
+#include "clotho/cuda/crossover/crossover_config_def.hpp"
+
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space.hpp"
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space.hpp"
 #include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
@@ -22,6 +24,7 @@
 #include "clotho/cuda/data_spaces/tags/unordered_tag.hpp"
 #include "clotho/cuda/crossover/persist_sequence.hpp"
 #include "clotho/utility/algorithm_version.hpp"
+
 
 // this version assumes 1 sequence/block
 template < class StateType, class AlleleSpaceType, class RealType, class IntType >
@@ -98,7 +101,10 @@ __global__ void crossover_kernel( StateType * states
         __syncthreads();
 
         unsigned int _sum = event_hash[ 32 + lane_id ];
-        for( i = 1; i < (allele_space_type::ALIGNMENT_SIZE >> 5); i <<= 1 ) {
+        _sum *= (lane_id < wpb);
+        __syncthreads();
+
+        for( i = 1; i < 32; i <<= 1 ) {
             unsigned int s = __shfl_up( _sum, i );
             _sum += (( lane_id >= i ) * s);
         }
@@ -352,15 +358,23 @@ __global__ void crossover_kernel( StateType * states
 
     typedef poisson_cdf< RealType, 32 > poisson_type;
 
-    assert( blockDim.y <= 8 && blockDim.x == 32);   // 8 or fewer full warps
+    assert( blockDim.y <= 16 && blockDim.x == 32);   // 8 or fewer full warps
 
     unsigned int  nAlleles = alleles->capacity;
     if( nAlleles == 0 ) { return; }
 
     assert( (nAlleles & 31) == 0 ); // nAlleles == 32 * m
 
-    const unsigned int MAX_EVENTS_PER_WARP = 64;    // maximum number of recombination events per sequence
-    __shared__ real_type rand_pool[ MAX_EVENTS_PER_WARP * 8 ];  // 8 warps/block (arbitrary number); 512 random numbers
+    const unsigned int MAX_EVENTS_PER_WARP = 128;    // maximum number of recombination events per sequence
+    __shared__ real_type rand_pool[ MAX_EVENTS_PER_WARP * 16 ];  // 16 warps/block (arbitrary number); 512 random numbers
+    __shared__ real_type        s_pois_cdf[ poisson_type::MAX_K ];                      // 4 * 32 == 128
+
+    unsigned int max_k = pois->max_k;
+
+    if( threadIdx.y == 0 ) {    // use first warp to read poisson CDF
+        s_pois_cdf[ threadIdx.x ] = pois->_cdf[threadIdx.x];
+    }
+    __syncthreads();
 
     unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
@@ -370,7 +384,7 @@ __global__ void crossover_kernel( StateType * states
 
     unsigned int spg = bpg * blockDim.y;
     
-    int_type sequence_width = sequences->seq_width;
+    int_type seq_width = sequences->seq_width;
     int_type nSequences = sequences->seq_count;    
 
     int_type    * seqs = sequences->sequences;
@@ -396,10 +410,18 @@ __global__ void crossover_kernel( StateType * states
         unsigned int max_events = __shfl( rand, 31 );
         // fill random pool
         //
-        assert( max_events < MAX_EVENTS_PER_WARP );
+        if( max_events >= MAX_EVENTS_PER_WARP ) {
+            if( threadIdx.x == 0 ) {
+                printf( "Too many events to generate: %d\n", max_events );
+            }
+            assert( max_events < MAX_EVENTS_PER_WARP );
+        }
+        __syncthreads();
 
         rand_pool[ tid ] = curand_uniform( &local_state );
         rand_pool[ tid + tpb ] = curand_uniform( &local_state );
+        rand_pool[ tid + 2 * tpb ] = curand_uniform( &local_state );
+        rand_pool[ tid + 3 * tpb ] = curand_uniform( &local_state );
         __syncthreads();
 
         unsigned int seq_offset = seq_idx * seq_width;

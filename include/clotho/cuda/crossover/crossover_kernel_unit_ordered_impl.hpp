@@ -14,6 +14,8 @@
 #ifndef CROSSOVER_KERNEL_UNIT_ORDERED_IMPL_HPP_
 #define CROSSOVER_KERNEL_UNIT_ORDERED_IMPL_HPP_
 
+#include "clotho/cuda/crossover/crossover_config_def.hpp"
+
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space.hpp"
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space.hpp"
 #include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"

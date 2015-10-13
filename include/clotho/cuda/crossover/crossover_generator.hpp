@@ -27,21 +27,6 @@
 #define CROSSOVER_VERSION 1
 #endif  // CROSSOVER_VERSION
 
-template < class OrderTag, unsigned char V >
-struct kernel_exe_updater {
-    void operator()( dim3 & bcount, dim3 & tcount ) { }
-};
-
-template < class IntType >
-struct kernel_exe_updater< unit_ordered_tag< IntType >, 2 > {
-    void operator()( dim3 & bcount, dim3 & tcount ) {
-        assert( 2560 <= bcount.x * tcount.x * tcount.y);
-        bcount.x = 10;
-        tcount.x = 32;
-        tcount.y = 8;
-    }
-};
-
 template < class PopulationType >
 class CrossoverGenerator {
 public:
@@ -60,10 +45,14 @@ public:
     typedef scaled_mean_helper< real_type, order_tag_type > scaled_mean_type;
 
     typedef clotho::utility::algo_version< CROSSOVER_VERSION > algorithm_version_type;
+    typedef kernel_exec< xover_config< order_tag_type, CROSSOVER_VERSION > > exec_type;
 
     CrossoverGenerator( boost::property_tree::ptree & config ) :
         m_recombination_rate( config )
         , ver( NULL )
+        , m_exec( config )
+        , m_blocks( 1, 1, 1)
+        , m_threads( 1, 1, 1 )
     {
         parse_configuration( config );
 
@@ -71,14 +60,7 @@ public:
     }
 
     void operator()( population_type * pop ) {
-        dim3 bcount(1,1,1), tcount(1,1,1);
-        bcount.x = state_pool_type::getInstance()->get_max_blocks();
-        tcount.x = state_pool_type::getInstance()->get_max_threads();
-
-        kernel_exe_updater< order_tag_type, CROSSOVER_VERSION > upd;
-        upd( bcount, tcount );
-
-        crossover_kernel<<< bcount, tcount >>>( state_pool_type::getInstance()->get_device_states()
+        crossover_kernel<<< m_blocks, m_threads >>>( state_pool_type::getInstance()->get_device_states()
                                                 , pop->alleles.get_device_space()
                                                 , pop->free_space
                                                 , dPoisCDF
@@ -94,6 +76,11 @@ protected:
 
     void parse_configuration( boost::property_tree::ptree & config ) {
         state_pool_type::getInstance()->initialize( config );
+
+        m_blocks.x = state_pool_type::getInstance()->get_max_blocks();
+        m_threads.x = state_pool_type::getInstance()->get_max_threads();
+
+        m_exec( m_blocks, m_threads );
     }
 
     void initialize() {
@@ -104,10 +91,10 @@ protected:
     }
 
     void initialize_poisson( real_type mean, unordered_tag * p ) {
-#if CROSSOVER_VERSION == 2
-        real_type lambda = (mean / 32.0 );
-#else
+#if CROSSOVER_VERSION == 1
         real_type lambda = (mean / (real_type) allele_space_type::ALIGNMENT_SIZE);
+#else
+        real_type lambda = (mean / 32.0);
 #endif  // CROSSOVER_VERSION
 
         make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, lambda );
@@ -122,6 +109,8 @@ protected:
     poisson_type * dPoisCDF;
     recombination_rate_type  m_recombination_rate;
     algorithm_version_type      * ver;
+    exec_type                   m_exec;
+    dim3                        m_blocks, m_threads;
 };
 
 #endif  // CROSSOVER_GENERATOR_HPP_

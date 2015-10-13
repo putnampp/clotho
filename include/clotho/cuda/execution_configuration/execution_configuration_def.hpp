@@ -14,7 +14,14 @@
 #ifndef EXECUTION_CONFIGURATION_DEF_HPP_
 #define EXECUTION_CONFIGURATION_DEF_HPP_
 
-template < class CC, class 
+#include <boost/property_tree/ptree.hpp>
+#include <cuda.h>
+
+template < class CC >
+struct kernel_exec {
+    kernel_exec( boost::property_tree::ptree & config ) {}
+    void operator()( dim3 & blocks, dim3 & threads ) {}
+};
 
 #endif  // EXECUTION_CONFIGURATION_DEF_HPP_
 
