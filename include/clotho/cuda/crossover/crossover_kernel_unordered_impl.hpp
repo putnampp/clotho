@@ -27,32 +27,32 @@
 
 
 // this version assumes 1 sequence/block
-template < class StateType, class AlleleSpaceType, class RealType, class IntType >
+template < class StateType, class AlleleSpaceType, class RealType, class IntType, unsigned char V >
 __global__ void crossover_kernel( StateType * states
                                 , AlleleSpaceType * alleles
                                 , device_free_space< IntType, unordered_tag > * free_space
                                 , poisson_cdf< RealType, 32 > * pois
                                 , device_sequence_space< IntType > * sequences
-                                , clotho::utility::algo_version< 1 > * v ) {
+                                , clotho::utility::algo_version< V > * v ) {
 
-    typedef StateType  state_type;
-    typedef AlleleSpaceType allele_space_type;
-    typedef typename allele_space_type::real_type   real_type;
+    typedef StateType                                   state_type;
+    typedef AlleleSpaceType                             allele_space_type;
+    typedef typename allele_space_type::real_type       real_type;
 
     typedef device_sequence_space< IntType >            sequence_space_type;
     typedef typename sequence_space_type::int_type      int_type;
 
-    typedef poisson_cdf< RealType, 32 > poisson_type;
+    typedef poisson_cdf< RealType, 32 >                 poisson_type;
+    typedef xover_config< unordered_tag, V >            xover_type;
+
+    assert( blockDim.x == 32 && blockDim.y <= xover_type::MAX_WARPS );
 
     int_type bid = blockIdx.y * gridDim.x + blockIdx.x;
     int_type tid = threadIdx.y * blockDim.x + threadIdx.x;
-    int_type lane_id = (tid & 31);
-    int_type warp_id = (tid >> 5);
 
     unsigned int tpb = (blockDim.x * blockDim.y);
-    assert( ( tpb & 31 ) == 0 );    // assert all warps are full
+    assert( (tpb % allele_space_type::ALIGNMENT_SIZE) == 0 );
 
-    unsigned int wpb = (tpb >> 5);
     unsigned int bpg = (gridDim.x * gridDim.y);
 
     int_type i;
@@ -64,13 +64,13 @@ __global__ void crossover_kernel( StateType * states
     real_type   * allele_list = alleles->locations;
     int_type    nAlleles = alleles->capacity;
 
+    assert( (nAlleles % allele_space_type::ALIGNMENT_SIZE) == 0 );
+
     if( nAlleles == 0 ) { return; }
 
     __shared__ real_type        s_pois_cdf[ poisson_type::MAX_K ];
     __shared__ real_type        rand_pool[ allele_space_type::ALIGNMENT_SIZE ];
-    __shared__ unsigned int     event_hash[ allele_space_type::ALIGNMENT_SIZE + 1];
-
-    event_hash[ tid ] = 0;
+    __shared__ unsigned int     event_hash[ allele_space_type::ALIGNMENT_SIZE];
 
     unsigned int max_k = pois->max_k;
     if( tid < poisson_type::MAX_K ) {
@@ -92,37 +92,35 @@ __global__ void crossover_kernel( StateType * states
 
         for( i = 1; i < 32; i <<= 1 ) {
             unsigned int r = __shfl_up( rand, i );
-            rand += ( (lane_id >= i ) * r );
+            rand += ( (threadIdx.x >= i ) * r );
         }
 
-        if( lane_id == 31 ) {
-            event_hash[ 32 + warp_id ] = rand;
+        if( threadIdx.x == 31 ) {
+            event_hash[ threadIdx.y ] = rand;
         }
         __syncthreads();
 
-        unsigned int _sum = event_hash[ 32 + lane_id ];
-        _sum *= (lane_id < wpb);
+        unsigned int _sum = event_hash[ threadIdx.x ];
+        _sum *= (threadIdx.x < blockDim.y);
         __syncthreads();
 
         for( i = 1; i < 32; i <<= 1 ) {
             unsigned int s = __shfl_up( _sum, i );
-            _sum += (( lane_id >= i ) * s);
+            _sum += (( threadIdx.x >= i ) * s);
         }
 
-//        unsigned int s = __shfl( _sum, warp_id - 1);
-//        rand += (( warp_id != 0 ) * s);
-//        __syncthreads();
         unsigned int s = 0;
-        if( warp_id > 0 ) {
-            s = __shfl( _sum, warp_id - 1);
+        if( threadIdx.y != 0 ) {
+            s = __shfl( _sum, threadIdx.y - 1);
         }
         __syncthreads();
 
         rand += s;
-        event_hash[ tid + 1 ] = rand;
+        event_hash[tid] = rand;
         __syncthreads();
 
-        i = event_hash[tid];    // minimum event index
+        i = event_hash[ ((tid != 0) * (tid - 1)) ];    // minimum event index
+        i *= (tid != 0);
         __syncthreads();
 
         // BEGIN divergent code
@@ -144,33 +142,42 @@ __global__ void crossover_kernel( StateType * states
 
             rand = (unsigned int) ( x * ((real_type)allele_space_type::ALIGNMENT_SIZE));
 
-            unsigned int e_min = event_hash[ rand++ ];
-            _sum = event_hash[ rand ];
+            unsigned int _keep = (rand != 0);  // _keep == 0 -> rand == 0 -> e_min == 0; _keep == 1 -> rand != 0 -> e_min == event_hash[ rand - 1]
+
+            // each thread reads hash (and random pool) relative to their 
+            // local allele (x)
+            // this code will result in bank conflicts
+            //
+            // initial performance results suggest that this is
+            // an acceptable overhead as overall runtime of simulation
+            // loop is minimized when this algorithm is used
+            unsigned int e_max = event_hash[ rand ];
+            unsigned int e_min = event_hash[ rand - _clear ];
+            e_min *= (_keep);
 
             int_type cmask = e_min;
 
             // BEGIN divergent code
-            while( e_min < _sum ) {
+            while( e_min < e_max ) {
                 accum = rand_pool[ e_min++ ];
-//                cmask += ( x > accum);
                 cmask += (accum < x);
             }
             __syncthreads();
             // END divergent code
 
-            cmask = ((cmask & 1) << lane_id);
+            cmask = ((cmask & 1) << threadIdx.x);
             
             for( unsigned int j = 1; j < 32; j <<= 1 ) {
                 int_type _c = __shfl_up( cmask, j);
-                cmask |= ((lane_id >= j) * _c);
+                cmask |= ((threadIdx.x >= j) * _c);
             }
-            if( lane_id == 31 ) {
+            if( threadIdx.x == 31 ) {
                 seqs[ seq_offset ] = cmask;
             }
             __syncthreads();
 
             i += tpb;
-            seq_offset += wpb;
+            seq_offset += blockDim.y;
         }
         __syncthreads();
 
@@ -349,16 +356,17 @@ __global__ void crossover_kernel( StateType * states
                                 , device_sequence_space< IntType > * sequences
                                 , clotho::utility::algo_version< 3 > * v ) {
 
-    typedef StateType  state_type;
-    typedef AlleleSpaceType allele_space_type;
-    typedef typename allele_space_type::real_type   real_type;
+    typedef StateType                                   state_type;
+    typedef AlleleSpaceType                             allele_space_type;
+    typedef typename allele_space_type::real_type       real_type;
 
     typedef device_sequence_space< IntType >            sequence_space_type;
     typedef typename sequence_space_type::int_type      int_type;
+    typedef xover_config< unordered_tag, 3 >            xover_type;
 
     typedef poisson_cdf< RealType, 32 > poisson_type;
 
-    assert( blockDim.y <= 16 && blockDim.x == 32);   // 8 or fewer full warps
+    assert( blockDim.y <= xover_type::MAX_WARPS && blockDim.x == 32);   // 8 or fewer full warps
 
     unsigned int  nAlleles = alleles->capacity;
     if( nAlleles == 0 ) { return; }
@@ -366,7 +374,7 @@ __global__ void crossover_kernel( StateType * states
     assert( (nAlleles & 31) == 0 ); // nAlleles == 32 * m
 
     const unsigned int MAX_EVENTS_PER_WARP = 128;    // maximum number of recombination events per sequence
-    __shared__ real_type rand_pool[ MAX_EVENTS_PER_WARP * 16 ];  // 16 warps/block (arbitrary number); 512 random numbers
+    __shared__ real_type rand_pool[ MAX_EVENTS_PER_WARP * xover_type::MAX_WARPS ];  // 16 warps/block (arbitrary number); 512 random numbers
     __shared__ real_type        s_pois_cdf[ poisson_type::MAX_K ];                      // 4 * 32 == 128
 
     unsigned int max_k = pois->max_k;
@@ -456,4 +464,5 @@ __global__ void crossover_kernel( StateType * states
     seq_idx = bid * blockDim.y + threadIdx.y;  // reset seq_idx
     states[ seq_idx * 32 + threadIdx.x ] = local_state;
 }
+
 #endif  // CROSSOVER_KERNEL_UNORDERED_IMPL_HPP_
