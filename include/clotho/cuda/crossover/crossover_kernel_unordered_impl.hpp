@@ -26,7 +26,12 @@
 #include "clotho/utility/algorithm_version.hpp"
 
 
-// this version assumes 1 sequence/block
+/**
+ * Assumptions:
+ *  - 1 sequence/tile
+ *  - 1 tile/block
+ *  - 4 warp/tile (1 thread/allele * 128 allele/ALIGNMENT_SIZE) * 1/32 warp/thread * 1 ALIGNMENT_SIZE/tile
+ */
 template < class StateType, class AlleleSpaceType, class RealType, class IntType, unsigned char V >
 __global__ void crossover_kernel( StateType * states
                                 , AlleleSpaceType * alleles
@@ -55,14 +60,14 @@ __global__ void crossover_kernel( StateType * states
 
     unsigned int bpg = (gridDim.x * gridDim.y);
 
-    int_type i;
+    unsigned int i;
     int_type sequence_width = sequences->seq_width;
     int_type nSequences = sequences->seq_count;    
 
     int_type    * seqs = sequences->sequences;
 
-    real_type   * allele_list = alleles->locations;
-    int_type    nAlleles = alleles->capacity;
+    real_type       * allele_list = alleles->locations;
+    unsigned int    nAlleles = alleles->capacity;
 
     assert( (nAlleles % allele_space_type::ALIGNMENT_SIZE) == 0 );
 
@@ -80,10 +85,10 @@ __global__ void crossover_kernel( StateType * states
 
     state_type local_state = states[ bid * tpb + tid ];
 
+    unsigned int nonzero_warp = (threadIdx.y != 0);
+    unsigned int nonzero_thread = (tid != 0);
     int_type seq_idx = bid;
     while( seq_idx < nSequences ) {
-        unsigned int seq_offset = seq_idx * sequence_width;
-
         real_type x = curand_uniform( &local_state );
         rand_pool[ tid ] = curand_uniform( &local_state );
 
@@ -109,18 +114,19 @@ __global__ void crossover_kernel( StateType * states
             _sum += (( threadIdx.x >= i ) * s);
         }
 
-        unsigned int s = 0;
-        if( threadIdx.y != 0 ) {
-            s = __shfl( _sum, threadIdx.y - 1);
-        }
+        unsigned int s = __shfl( _sum, 31 );
+        assert( max_events < allele_space_type::ALIGNMENT_SIZE );
+
+        s = __shfl( _sum, threadIdx.y - nonzero_warp);
+        s *= nonzero_warp;
         __syncthreads();
 
         rand += s;
         event_hash[tid] = rand;
         __syncthreads();
 
-        i = event_hash[ ((tid != 0) * (tid - 1)) ];    // minimum event index
-        i *= (tid != 0);
+        i = event_hash[ tid - nonzero_thread];    // minimum event index
+        i *= nonzero_thread;
         __syncthreads();
 
         // BEGIN divergent code
@@ -135,14 +141,14 @@ __global__ void crossover_kernel( StateType * states
         __syncthreads();
         // END divergent code
 
-
+        unsigned int seq_offset = seq_idx * sequence_width + threadIdx.y;   // every thread in a warp has the same block offset
         i = tid;
         while( i < nAlleles ) {
             x = allele_list[ i ];
 
             rand = (unsigned int) ( x * ((real_type)allele_space_type::ALIGNMENT_SIZE));
 
-            unsigned int _keep = (rand != 0);  // _keep == 0 -> rand == 0 -> e_min == 0; _keep == 1 -> rand != 0 -> e_min == event_hash[ rand - 1]
+            unsigned int nonzero_bin = (rand != 0);  // _keep == 0 -> rand == 0 -> e_min == 0; _keep == 1 -> rand != 0 -> e_min == event_hash[ rand - 1]
 
             // each thread reads hash (and random pool) relative to their 
             // local allele (x)
@@ -152,8 +158,8 @@ __global__ void crossover_kernel( StateType * states
             // an acceptable overhead as overall runtime of simulation
             // loop is minimized when this algorithm is used
             unsigned int e_max = event_hash[ rand ];
-            unsigned int e_min = event_hash[ rand - _clear ];
-            e_min *= (_keep);
+            unsigned int e_min = event_hash[ rand - nonzero_bin ];
+            e_min *= nonzero_bin;
 
             int_type cmask = e_min;
 
@@ -177,7 +183,7 @@ __global__ void crossover_kernel( StateType * states
             __syncthreads();
 
             i += tpb;
-            seq_offset += blockDim.y;
+            seq_offset += blockDim.y;   // wpb
         }
         __syncthreads();
 
