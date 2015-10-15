@@ -202,11 +202,11 @@ void write_engine_config( const std::string & out_path ) {
     boost::property_tree::ptree sset, recomb, pset;
     recomb.put( "tag0", STR( RECOMBINE_INSPECT_METHOD ) );
     recomb.put( "tag1", STR( BIT_WALK_METHOD ) );
-    sset.put_child( REC_BLOCK_K, recomb );
+    sset.put_child( "recombine", recomb );
     sset.put( TYPE_K, STR( SUBSETTYPE ) );
 
     pset.put_child( SUBSET_BLOCK_K, sset );
-    pset.put( SIZE_K, BLOCK_UNIT_SIZE );
+    pset.put( "block_size", BLOCK_UNIT_SIZE );
 //    compile_log.put(ENGINE_BLOCK_K + "." + REC_BLOCK_K + "." + TYPE_K, STR( (RECOMBTYPE) ) );
 //    compile_log.put(ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K +"." + SIZE_K, BLOCK_UNIT_SIZE );
 
