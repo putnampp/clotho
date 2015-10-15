@@ -75,14 +75,18 @@ struct qtl_logging_parameter : public logging_parameter {
         logging_parameter( config )
     {
         boost::property_tree::ptree lconfig;
-        lconfig = config.get_child( LOG_BLOCK_K + "." + SAMPLING_K, lconfig );
+        lconfig = config.get_child( LOG_BLOCK_K, lconfig );
 
-        if( lconfig.empty() ) return;
+        boost::property_tree::ptree samps;
+        samps = lconfig.get_child( SAMPLING_K, samps );
 
-        BOOST_FOREACH( auto& v, lconfig ) {
+        BOOST_FOREACH( auto& v, samps ) {
             sample_log_params tmp( v.second );
             m_sampling.push_back( tmp );
         }
+
+        lconfig.put_child( SAMPLING_K, samps );
+        config.put_child( LOG_BLOCK_K, lconfig );
     }
 
     virtual ~qtl_logging_parameter() {}
