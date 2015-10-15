@@ -38,6 +38,10 @@
 
 #include "clotho/fitness/fitness_toolkit.hpp"
 
+#include "../generation_parameter.hpp"
+#include "../seed_parameter.hpp"
+#include "qtl_logging_parameter.hpp"
+
 #define XSTR( x ) #x
 #define STR( x )  XSTR( x )
 
@@ -65,16 +69,16 @@ typedef typename ref_map_type::iterator             ref_map_iterator;
 typedef std::vector< unsigned int >                 allele_dist_type;
 
 const string BASE_SEQUENCE_BIAS_K = "base_bias";
-const string TRAIT_BLOCK_K = "traits";
+//const string TRAIT_BLOCK_K = "traits";
 const string ALLELE_BLOCK_K = "allele";
 const string NEUTRAL_P_K = "neutral.p";
 
-const string SAMPLING_K = "sampling_size";
+//const string SAMPLING_K = "sampling_size";
 
 const string CONSTANT_K = "constant";
 
-const string SIZE_K = "size";
-const string PAIRWISE_K = "pairwise";
+//const string SIZE_K = "size";
+//const string PAIRWISE_K = "pairwise";
 
 const string ENGINE_BLOCK_K = "engine";
 const string POWERSET_BLOCK_K = "powerset";
@@ -82,7 +86,7 @@ const string SUBSET_BLOCK_K = "subset";
 const string CLASSIFIER_BLOCK_K = "classifier";
 const string TYPE_K = "type";
 
-void get_engine_config( const std::string & out_path );
+void write_engine_config( const std::string & out_path );
 
 int main( int argc, char ** argv ) {
 
@@ -92,22 +96,20 @@ int main( int argc, char ** argv ) {
         return res;
     }
 
-    log_type conf_child = ( (config.get_child_optional( CONFIG_BLOCK_K) == boost::none) ? config : config.get_child( CONFIG_BLOCK_K ));
+    log_type conf_child;
+    conf_child = config.get_child( CONFIG_BLOCK_K, conf_child );
 
-    const unsigned int nRep = conf_child.get< unsigned int >( REPEAT_K, 1 );
-    const unsigned int nGen = conf_child.get< unsigned int >( GEN_BLOCK_K + "." + SIZE_K, 1);
-    const unsigned int nLog = conf_child.get< unsigned int >( LOG_BLOCK_K + "." + PERIOD_K, -1);
-    unsigned int seed = conf_child.get< unsigned int >( RNG_BLOCK_K + "." + SEED_K, 0 );
-    string out_path = conf_child.get<string>( OUTPUT_K, "");
+    const unsigned int nRep = conf_child.get< unsigned int >( REPETITION_K, 1 );
 
-    get_engine_config( out_path );
+    generation_parameter gen_param( conf_child );
+    qtl_logging_parameter log_param( conf_child );
+    seed_parameter seed_param( conf_child );
 
-    if( seed == 0 ) {
-        seed = clotho::utility::clock_type::now().time_since_epoch().count();
-        conf_child.put( RNG_BLOCK_K + "." + SEED_K, seed );
-    }
+    string out_path = conf_child.get<string>( OUTPUT_K, "" );
 
-    rng_type rng(seed);
+    write_engine_config( out_path );
+
+    rng_type rng(seed_param.m_seed);
 
     for( unsigned int i = 0; i < nRep; ++i ) {
         // change the seed value of the random number generator
@@ -119,7 +121,7 @@ int main( int argc, char ** argv ) {
 
         simulate_type sim( rep_child_conf );
 
-        if( nGen < 1 ) {
+        if( gen_param.m_size < 1 ) {
             fitness_toolkit::getInstance()->tool_configurations( rep_child_conf );
             population_growth_toolkit::getInstance()->tool_configurations( rep_child_conf );
 
@@ -130,11 +132,11 @@ int main( int argc, char ** argv ) {
             continue;
         }
 
-        unsigned int log_period = ((nGen < nLog) ? nGen : nLog);
+        unsigned int log_period = ((gen_param.m_size < log_param.m_period) ? gen_param.m_size : log_param.m_period);
         log_type sim_times, stat_times;
 
         timer_type rep_time;
-        for( unsigned int j = 0; j < nGen; ++j ) {
+        for( unsigned int j = 0; j < gen_param.m_size; ++j ) {
             timer_type sim_time;
             sim.simulate(j);
             sim_time.stop();
@@ -159,7 +161,7 @@ int main( int argc, char ** argv ) {
 //                }
                 stat_log.put_child( CONFIG_BLOCK_K, rep_child_conf);
 
-                log_period = ((j + nLog < nGen) ? nLog : (nGen - j - 1) );
+                log_period = ((j + log_param.m_period < gen_param.m_size) ? log_param.m_period : (gen_param.m_size - j - 1) );
 
                 if( !stat_log.empty() ) {
                     if( out_path.empty() ) {
@@ -195,21 +197,36 @@ int main( int argc, char ** argv ) {
     return 0;
 }
 
-void get_engine_config( const std::string & out_path ) {
+void write_engine_config( const std::string & out_path ) {
+
+    boost::property_tree::ptree sset, recomb, pset;
+    recomb.put( "tag0", STR( RECOMBINE_INSPECT_METHOD ) );
+    recomb.put( "tag1", STR( BIT_WALK_METHOD ) );
+    sset.put_child( REC_BLOCK_K, recomb );
+    sset.put( TYPE_K, STR( SUBSETTYPE ) );
+
+    pset.put_child( SUBSET_BLOCK_K, sset );
+    pset.put( SIZE_K, BLOCK_UNIT_SIZE );
+//    compile_log.put(ENGINE_BLOCK_K + "." + REC_BLOCK_K + "." + TYPE_K, STR( (RECOMBTYPE) ) );
+//    compile_log.put(ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K +"." + SIZE_K, BLOCK_UNIT_SIZE );
+
+//    compile_log.put(ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K  +"." + TYPE_K, STR( SUBSETTYPE ) );
+//    compile_log.put( ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K + "." + REC_BLOCK_K + ".tag0", STR( RECOMBINE_INSPECT_METHOD ) );
+//    compile_log.put( ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K + "." + REC_BLOCK_K + ".tag1", STR( BIT_WALK_METHOD ) );
+
+//    compile_log.put( ENGINE_BLOCK_K + ".reproduction_method.type", STR(REPRODUCTION_METHOD_TAG));
+//
+//    compile_log.put( ENGINE_BLOCK_K + ".individual_selector.type", STR(IND_SELECT) );
+
+    boost::property_tree::ptree eng;
+    eng.put_child( POWERSET_BLOCK_K, pset );
+    eng.put( REC_BLOCK_K + ".type", STR( (RECOMBTYPE) ) );
+    eng.put( "reproduction_method.type", STR(REPRODUCTION_METHOD_TAG));
+    eng.put( "individual_selector.type", STR(IND_SELECT) );
+    eng.put( "description", "Simulator compiled objects; READ ONLY");
+
     boost::property_tree::ptree compile_log;
-
-    compile_log.put( ENGINE_BLOCK_K + ".description", "Simulator compiled objects; READ ONLY");
-
-    compile_log.put(ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K  +"." + TYPE_K, STR( SUBSETTYPE ) );
-    compile_log.put(ENGINE_BLOCK_K + "." + REC_BLOCK_K + "." + TYPE_K, STR( (RECOMBTYPE) ) );
-    compile_log.put(ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K +"." + SIZE_K, BLOCK_UNIT_SIZE );
-
-    compile_log.put( ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K + "." + REC_BLOCK_K + ".tag0", STR( RECOMBINE_INSPECT_METHOD ) );
-    compile_log.put( ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K + "." + REC_BLOCK_K + ".tag1", STR( BIT_WALK_METHOD ) );
-
-    compile_log.put( ENGINE_BLOCK_K + ".reproduction_method.type", STR(REPRODUCTION_METHOD_TAG));
-
-    compile_log.put( ENGINE_BLOCK_K + ".individual_selector.type", STR(IND_SELECT) );
+    compile_log.put_child( ENGINE_BLOCK_K, eng );
 
     if( out_path.empty() ) {
         boost::property_tree::write_json( std::cout, compile_log );

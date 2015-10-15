@@ -17,18 +17,20 @@
 #include "trait_weight.hpp"
 
 #include <boost/random/normal_distribution.hpp>
+#include "clotho/random/normal_distribution_parameter.hpp"
 
 namespace clotho {
 namespace utility {
 
-template < class URNG >
-class random_generator< URNG, trait_weight< double > > {
+template < class URNG, class RealType >
+class random_generator< URNG, trait_weight< RealType > > {
 public:
-    typedef double real_type;
+    typedef RealType    real_type;
     typedef real_type   result_type;
     typedef random_generator< URNG, trait_weight< real_type > > self_type;
 
-    typedef boost::random::normal_distribution< real_type >    dist_type;
+    typedef boost::random::normal_distribution< real_type >     dist_type;
+    typedef normal_distribution_parameter< real_type >          norm_param_type;
 
     class param_type {
     public:
@@ -38,10 +40,11 @@ public:
             _mean(m), _sigma(s) {
         }
 
-        double mean()   const {
+        real_type mean()   const {
             return _mean;
         }
-        double sigma()  const {
+
+        real_type sigma()  const {
             return _sigma;
         }
     };
@@ -69,28 +72,14 @@ public:
 protected:
 
     void parseConfig( boost::property_tree::ptree & config ) {
-        std::ostringstream oss;
-        oss /*<< CONFIG_BLOCK_K << "."*/ << TRAIT_BLOCK_K << "." << MEAN_K;
+        boost::property_tree::ptree lconfig;
+        lconfig = config.get_child( TRAIT_BLOCK_K, lconfig );
 
-        real_type m = m_dist.mean(), s = m_dist.sigma();
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put( oss.str(), m_dist.mean() );
-        } else {
-            m = config.get< real_type >( oss.str(), 0. );
-        }
+        norm_param_type norm_param( lconfig );
 
-        oss.str("");
-        oss.clear();
+        config.put_child( TRAIT_BLOCK_K, lconfig );
 
-        oss /*<< CONFIG_BLOCK_K << "."*/ << TRAIT_BLOCK_K << "." << SIGMA_K;
-
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put( oss.str(), s );
-        } else {
-            s = config.get< real_type >( oss.str(), 1. );
-        }
-
-        typename dist_type::param_type p( m, s );
+        typename dist_type::param_type p( norm_param.m_mean, norm_param.m_sigma );
         m_dist.param( p );
     }
 

@@ -22,19 +22,15 @@
 #include <set>
 #include <cmath>
 
-//#include "clotho/utility/log_helper.hpp"
-//#include <boost/property_tree/json_parser.hpp>
-//#include <iostream>
-//
 #include "clotho/recombination/recombination_rate_parameter.hpp"
 
 namespace clotho {
 namespace utility {
 
-template < class URNG/*, class Result, class Tag*/ >
-class random_generator< URNG, clotho::classifiers::region_classifier< qtl_allele/*, Result, Tag*/ > > {
+template < class URNG >
+class random_generator< URNG, clotho::classifiers::region_classifier< qtl_allele > > {
 public:
-    typedef clotho::classifiers::region_classifier< qtl_allele/*, Result, Tag*/ >   result_type;
+    typedef clotho::classifiers::region_classifier< qtl_allele >   result_type;
     typedef random_generator< URNG, result_type > self_type;
 
     typedef double                                                              real_type;
@@ -45,13 +41,13 @@ public:
 
     random_generator( URNG & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
-        , m_dist( DEFAULT_RECOMB_RATE )
+        , m_dist( rate_type::DEFAULT_RECOMB_RATE )
         , m_bSkip(false)
     {
         parseConfig( config );
     }
 
-    random_generator( URNG & rng, double mu = DEFAULT_RECOMB_RATE ) :
+    random_generator( URNG & rng, double mu = rate_type::DEFAULT_RECOMB_RATE ) :
         m_rng( &rng ), m_dist( mu ) {
     }
 

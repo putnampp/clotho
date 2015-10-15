@@ -31,9 +31,9 @@ public:
     typedef random_generator< URNG, basic_allele >  self_type;
     typedef basic_allele                            result_type;
 
-    typedef double real_type;
+    typedef typename result_type::real_type real_type;
+    typedef typename result_type::key_type  key_type;
 
-    typedef real_type key_type;
     typedef real_type selection_type;
     typedef real_type dominance_type;
 
@@ -79,15 +79,25 @@ protected:
     }
 
     void parseConfig( boost::property_tree::ptree & config ) {
-        std::ostringstream oss;
-        oss /*<< CONFIG_BLOCK_K << "."*/ << ALLELE_BLOCK_K << "." << NEUTRAL_P_K;
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put( oss.str(), m_neutral.p() );
-        } else {
-            double p = config.get< double >( oss.str(), m_neutral.p() );
-            typename neutral_dist_type::param_type tmp( p );
-            m_neutral.param(tmp);
-        }
+//        std::ostringstream oss;
+//        oss /*<< CONFIG_BLOCK_K << "."*/ << ALLELE_BLOCK_K << "." << NEUTRAL_P_K;
+//        if( config.get_child_optional( oss.str() ) == boost::none ) {
+//            config.put( oss.str(), m_neutral.p() );
+//        } else {
+//            double p = config.get< double >( oss.str(), m_neutral.p() );
+//            typename neutral_dist_type::param_type tmp( p );
+//            m_neutral.param(tmp);
+//        }
+        boost::property_tree::ptree lconfig;
+        lconfig = config.get_child( ALLELE_BLOCK_K, lconfig );
+
+        real_type p = config.get< real_type >( NEUTRAL_P_K, m_neutral.p() );
+
+        typename neutral_dist_type::param_type tmp( p );
+        m_neutral.param( tmp );
+
+        lconfig.put( NEUTRAL_P_K, p );
+        config.put_child( ALLELE_BLOCK_K, lconfig );
     }
 
     URNG *  m_rng;

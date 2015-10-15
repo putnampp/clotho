@@ -20,25 +20,30 @@ LIST(APPEND LOCAL_LIBS ${PROJECT_NAME}_utility)
 LIST(APPEND LOCAL_LIBS ${PROJECT_NAME}_commandline)
 LIST(APPEND LOCAL_LIBS ${PROJECT_NAME}_fitness)
 LIST(APPEND LOCAL_LIBS ${PROJECT_NAME}_popgrowth)
+#LIST(APPEND LOCAL_LIBS ${PROJECT_NAME}_mutation)
+#LIST(APPEND LOCAL_LIBS ${PROJECT_NAME}_recombination)
 LIST(APPEND LOCAL_LIBS ${Boost_PROGRAM_OPTIONS_LIBRARY})
 LIST(APPEND LOCAL_LIBS ${Boost_FILESYSTEM_LIBRARY})
 LIST(APPEND LOCAL_LIBS ${Boost_SYSTEM_LIBRARY})
 LIST(APPEND LOCAL_LIBS ${Boost_CHRONO_LIBRARY})
 LIST(APPEND LOCAL_LIBS ${COMMON_LIBRARIES} )
 
-ADD_EXECUTABLE( qtl_estimator qtl_estimator.cpp )
+LIST(APPEND QTL_SRCS qtl_estimator.cpp )
+LIST(APPEND QTL_SRCS qtl_logging_parameter.cpp )
+
+ADD_EXECUTABLE( qtl_estimator ${QTL_SRCS} )
 SET_TARGET_PROPERTIES( qtl_estimator PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_INLINE_DYNAMIC_AND_CLASSIFY;USE_FAST_GENERATOR" LINK_FLAGS "-Wl,--no-as-needed" )   # binary sequence combination determined by experimentation
 TARGET_LINK_LIBRARIES( qtl_estimator ${LOCAL_LIBS} )
 
-ADD_EXECUTABLE( qtl_estimator_vector qtl_estimator.cpp )
+ADD_EXECUTABLE( qtl_estimator_vector ${QTL_SRCS} )
 SET_TARGET_PROPERTIES( qtl_estimator_vector PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_VECTOR_SUBSET;USE_FAST_GENERATOR" LINK_FLAGS "-Wl,--no-as-needed" )
 TARGET_LINK_LIBRARIES( qtl_estimator_vector ${LOCAL_LIBS})
 
-ADD_EXECUTABLE( qtl_estimator_slow qtl_estimator.cpp )
+ADD_EXECUTABLE( qtl_estimator_slow ${QTL_SRCS} )
 SET_TARGET_PROPERTIES( qtl_estimator_slow PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_INLINE_DYNAMIC_AND_CLASSIFY" LINK_FLAGS "-Wl,--no-as-needed" )   # binary sequence combination determined by experimentation
 TARGET_LINK_LIBRARIES( qtl_estimator_slow ${LOCAL_LIBS} )
 
-ADD_EXECUTABLE( qtl_estimator_vector_slow qtl_estimator.cpp )
+ADD_EXECUTABLE( qtl_estimator_vector_slow ${QTL_SRCS} )
 SET_TARGET_PROPERTIES( qtl_estimator_vector_slow PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_VECTOR_SUBSET" LINK_FLAGS "-Wl,--no-as-needed" )
 TARGET_LINK_LIBRARIES( qtl_estimator_vector_slow ${LOCAL_LIBS})
 
@@ -81,10 +86,10 @@ TARGET_LINK_LIBRARIES( qtl_estimator_vector_slow ${LOCAL_LIBS})
 #
 #ADD_CUSTOM_TARGET(test_targets DEPENDS ${TEST_TARGETS})
 
-ADD_EXECUTABLE( qtl_estimator_mutrec qtl_estimator.cpp )
+ADD_EXECUTABLE( qtl_estimator_mutrec ${QTL_SRCS} )
 SET_TARGET_PROPERTIES( qtl_estimator_mutrec PROPERTIES COMPILE_DEFINITIONS "USE_MUTATE_AND_RECOMBINE" LINK_FLAGS "-Wl,--no-as-needed")
 TARGET_LINK_LIBRARIES( qtl_estimator_mutrec ${LOCAL_LIBS})
 
-ADD_EXECUTABLE( qtl_estimator_assort qtl_estimator.cpp )
+ADD_EXECUTABLE( qtl_estimator_assort ${QTL_SRCS} )
 SET_TARGET_PROPERTIES( qtl_estimator_assort PROPERTIES COMPILE_DEFINITIONS "USE_BLOCK_SIZE_64;USE_VECTOR_SUBSET;USE_ASSORTATIVE_SELECTOR" LINK_FLAGS "-Wl,--no-as-needed")
 TARGET_LINK_LIBRARIES( qtl_estimator_assort ${LOCAL_LIBS})

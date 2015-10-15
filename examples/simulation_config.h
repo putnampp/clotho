@@ -19,7 +19,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include "simulation_config_json.h"
+//#include "simulation_config_json.h"
 
 struct simulation_config {
     unsigned int    nGen, nPop, nRep;

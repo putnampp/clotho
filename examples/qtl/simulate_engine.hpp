@@ -63,53 +63,57 @@
 #include "clotho/genetics/pairwise_statistic.hpp"
 #include "clotho/genetics/population_growth_toolkit.hpp"
 
+#include "qtl_logging_parameter.hpp"
+#include "../population_parameter.hpp"
+#include "../seed_parameter.hpp"
+
 namespace accum=boost::accumulators;
 
-extern const string SAMPLING_K;
-extern const string SIZE_K;
-extern const string PAIRWISE_K;
-
-struct sample_log_params {
-    unsigned int    sample_size;
-    bool            pairwise;
-
-    sample_log_params( unsigned int ss = 100, bool p = false ) : sample_size(ss), pairwise(p) {}
-
-    sample_log_params( boost::property_tree::ptree & params ) : sample_size(100), pairwise(false) {
-        if( params.empty() ) {
-            // done for backwards compatiability
-            std::ostringstream tmp;
-            tmp << params.data();
-
-            if(! tmp.str().empty() ) {
-                sample_size = boost::lexical_cast< unsigned int >( tmp.str() );
-            }
-            return;
-        }
-
-        if( params.get_child_optional( SIZE_K ) != boost::none ) {
-            sample_size = params.get< unsigned int >( SIZE_K, sample_size );
-        } else {
-            params.put( SIZE_K, sample_size );
-        }
-
-        if( params.get_child_optional( PAIRWISE_K ) != boost::none ) {
-            pairwise = params.get< bool >( PAIRWISE_K, pairwise );
-        } else {
-            params.put( PAIRWISE_K, pairwise );
-        }
-    }
-
-    sample_log_params( const sample_log_params & slp ) :
-        sample_size( slp.sample_size )
-        , pairwise( slp.pairwise ) {
-    }
-};
+//extern const string SAMPLING_K;
+//extern const string SIZE_K;
+//extern const string PAIRWISE_K;
+//
+//struct sample_log_params {
+//    unsigned int    sample_size;
+//    bool            pairwise;
+//
+//    sample_log_params( unsigned int ss = 100, bool p = false ) : sample_size(ss), pairwise(p) {}
+//
+//    sample_log_params( boost::property_tree::ptree & params ) : sample_size(100), pairwise(false) {
+//        if( params.empty() ) {
+//            // done for backwards compatiability
+//            std::ostringstream tmp;
+//            tmp << params.data();
+//
+//            if(! tmp.str().empty() ) {
+//                sample_size = boost::lexical_cast< unsigned int >( tmp.str() );
+//            }
+//            return;
+//        }
+//
+//        if( params.get_child_optional( SIZE_K ) != boost::none ) {
+//            sample_size = params.get< unsigned int >( SIZE_K, sample_size );
+//        } else {
+//            params.put( SIZE_K, sample_size );
+//        }
+//
+//        if( params.get_child_optional( PAIRWISE_K ) != boost::none ) {
+//            pairwise = params.get< bool >( PAIRWISE_K, pairwise );
+//        } else {
+//            params.put( PAIRWISE_K, pairwise );
+//        }
+//    }
+//
+//    sample_log_params( const sample_log_params & slp ) :
+//        sample_size( slp.sample_size )
+//        , pairwise( slp.pairwise ) {
+//    }
+//};
 
 #include "clotho/utility/popcount.hpp"
 
 template < class URNG, class AlleleType, class LogType, class TimerType >
-class simulate_engine {
+class simulate_engine : public qtl_logging_parameter {
 public:
     typedef simulate_engine_base< URNG, AlleleType, LogType, TimerType > base_type;
 
@@ -178,8 +182,9 @@ public:
     typedef std::vector< unsigned int >                 allele_dist_type;
 
     simulate_engine( boost::property_tree::ptree & config ) :
-        m_rng()
-        , m_founder_size( DEFAULT_POPULATION_SIZE )
+        qtl_logging_parameter( config )
+        , m_rng()
+        , m_founder_size( population_parameter::DEFAULT_POPULATION_SIZE )
         , m_seq_mut_gen( m_rng, config )
         , m_rec_met_gen( m_rng, config )
         , m_repro( m_seq_mut_gen, m_rec_met_gen )
@@ -334,54 +339,11 @@ protected:
     }
 
     void parseConfig( boost::property_tree::ptree & config ) {
-        std::ostringstream oss;
-        oss /*<< CONFIG_BLOCK_K << "."*/ << RNG_BLOCK_K << "." << SEED_K;
+        seed_parameter seed_param( config );
+        m_rng.seed( seed_param.m_seed );
 
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put( oss.str(), 0 );
-        } else {
-            unsigned int seed = config.get< unsigned int >( oss.str(), 0 );
-            m_rng.seed( seed );
-        }
-
-        oss.str("");
-        oss.clear();
-
-        oss /*<< CONFIG_BLOCK_K << "." */<< POP_BLOCK_K << "." << SIZE_K;
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put( oss.str(), m_founder_size );
-        } else {
-            m_founder_size = config.get< unsigned int >(oss.str(), m_founder_size );
-        }
-
-        oss.str("");
-        oss.clear();
-
-        oss /*<< CONFIG_BLOCK_K << "."*/ << LOG_BLOCK_K << "." << SAMPLING_K;
-
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put( oss.str(), "" );
-        } else {
-            BOOST_FOREACH( auto& v, config.get_child( oss.str() ) ) {
-//                std::ostringstream tmp;
-//                tmp << v.second.data();
-//
-//                unsigned int s = boost::lexical_cast< unsigned int >( tmp.str() );
-//                m_sampling_sizes.push_back(s);
-                sample_log_params sl(v.second);
-                m_sampling.push_back( sl );
-            }
-        }
-
-        oss.str("");
-        oss.clear();
-        oss << LOG_BLOCK_K << ".population_pairwise";
-
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put(oss.str(), m_pairwise_pop );
-        } else {
-            m_pairwise_pop = config.get< bool >( oss.str(), m_pairwise_pop);
-        }
+        population_parameter pop_param( config );
+        m_founder_size = pop_param.m_size;
 
         m_fit_gen = fitness_toolkit::getInstance()->get_tool( config );
         if( m_fit_gen ) m_fit_gen->log( std::cerr );
@@ -395,6 +357,69 @@ protected:
             }
         }
     }
+
+//    void parseConfig( boost::property_tree::ptree & config ) {
+//        std::ostringstream oss;
+//        oss /*<< CONFIG_BLOCK_K << "."*/ << RNG_BLOCK_K << "." << SEED_K;
+//
+//        if( config.get_child_optional( oss.str() ) == boost::none ) {
+//            config.put( oss.str(), 0 );
+//        } else {
+//            unsigned int seed = config.get< unsigned int >( oss.str(), 0 );
+//            m_rng.seed( seed );
+//        }
+//
+//        oss.str("");
+//        oss.clear();
+//
+//        oss /*<< CONFIG_BLOCK_K << "." */<< POP_BLOCK_K << "." << SIZE_K;
+//        if( config.get_child_optional( oss.str() ) == boost::none ) {
+//            config.put( oss.str(), m_founder_size );
+//        } else {
+//            m_founder_size = config.get< unsigned int >(oss.str(), m_founder_size );
+//        }
+//
+//        oss.str("");
+//        oss.clear();
+//
+//        oss /*<< CONFIG_BLOCK_K << "."*/ << LOG_BLOCK_K << "." << SAMPLING_K;
+//
+//        if( config.get_child_optional( oss.str() ) == boost::none ) {
+//            config.put( oss.str(), "" );
+//        } else {
+//            BOOST_FOREACH( auto& v, config.get_child( oss.str() ) ) {
+////                std::ostringstream tmp;
+////                tmp << v.second.data();
+////
+////                unsigned int s = boost::lexical_cast< unsigned int >( tmp.str() );
+////                m_sampling_sizes.push_back(s);
+//                sample_log_params sl(v.second);
+//                m_sampling.push_back( sl );
+//            }
+//        }
+//
+//        oss.str("");
+//        oss.clear();
+//        oss << LOG_BLOCK_K << ".population_pairwise";
+//
+//        if( config.get_child_optional( oss.str() ) == boost::none ) {
+//            config.put(oss.str(), m_pairwise_pop );
+//        } else {
+//            m_pairwise_pop = config.get< bool >( oss.str(), m_pairwise_pop);
+//        }
+//
+//        m_fit_gen = fitness_toolkit::getInstance()->get_tool( config );
+//        if( m_fit_gen ) m_fit_gen->log( std::cerr );
+//
+//        population_growth_generator_type tmp  = population_growth_toolkit::getInstance()->get_tool( config );
+//        if( tmp ) {
+//            m_pop_grow = tmp->generate();
+//            if( m_pop_grow ) {
+//                m_pop_grow->log( std::cerr );
+//                std::cerr << std::endl;
+//            }
+//        }
+//    }
 
     void initialize( ) {
         m_pop.clear();
@@ -707,7 +732,7 @@ protected:
     allele_set_type m_alleles;
 
 //    std::vector< unsigned int > m_sampling_sizes;
-    std::vector< sample_log_params > m_sampling;
+//    std::vector< sample_log_params > m_sampling;
 
     bool m_pairwise_pop;
 

@@ -28,13 +28,16 @@ static const bool   DEFAULT_NEUTRAL = false;
 extern const string ALLELE_BLOCK_K;
 
 struct basic_allele {
-    double  m_key;
-    double  m_select, m_dom;
+    typedef double real_type;
+    typedef double key_type;
+
+    key_type    m_key;
+    real_type   m_select, m_dom;
 
     bool    m_neutral;
     unsigned int m_age;
 
-    basic_allele( double k= 0.0, double sel = 0.0, double dom = 1.0, bool neut = true, unsigned int age = 0 ) :
+    basic_allele( key_type k= 0.0, real_type sel = 0.0, real_type dom = 1.0, bool neut = true, unsigned int age = 0 ) :
         m_key(k), m_select(sel), m_dom(dom), m_neutral( neut ), m_age(age) {
     }
 
@@ -70,7 +73,7 @@ namespace powersets {
 
 template <>
 struct element_key_of< basic_allele > {
-    typedef double key_type;
+    typedef typename basic_allele::key_type key_type;
 
     static key_type get_key( const basic_allele & e ) {
         return e.m_key;
@@ -79,7 +82,7 @@ struct element_key_of< basic_allele > {
 
 template <>
 struct normalized_key< basic_allele > : public key_range < > {
-    typedef double key_type;
+    typedef typename basic_allele::key_type key_type;
 
     static key_type get_key( const basic_allele & a ) {
         return a.m_key;
@@ -95,22 +98,22 @@ namespace clotho {
 namespace fitness {
 
 template < > template < >
-void fitness_method< double, multiplicative_heterozygous_tag >::operator()< basic_allele >( double & res, const basic_allele & elem, double scale ) {
+void fitness_method< typename basic_allele::real_type, multiplicative_heterozygous_tag >::operator()< basic_allele >( typename basic_allele::real_type & res, const basic_allele & elem, typename basic_allele::real_type scale ) {
     res *= (1. + elem.m_select * elem.m_dom);
 }
 
 template < > template < >
-void fitness_method< double, multiplicative_homozygous_tag >::operator()< basic_allele >( double & res, const basic_allele & elem, double scale ) {
+void fitness_method< typename basic_allele::real_type, multiplicative_homozygous_tag >::operator()< basic_allele >( typename basic_allele::real_type & res, const basic_allele & elem, typename basic_allele::real_type scale ) {
     res *= (1. + elem.m_select * scale);
 }
 
 template < > template < >
-void fitness_method< double, additive_heterozygous_tag >::operator()< basic_allele >( double & res, const basic_allele & elem, double scale ) {
+void fitness_method< typename basic_allele::real_type, additive_heterozygous_tag >::operator()< basic_allele >( typename basic_allele::real_type & res, const basic_allele & elem, typename basic_allele::real_type scale ) {
     res += (elem.m_select * elem.m_dom);
 }
 
 template < > template < >
-void fitness_method< double, additive_homozygous_tag >::operator()< basic_allele >( double & res, const basic_allele & elem, double scale ) {
+void fitness_method< typename basic_allele::real_type, additive_homozygous_tag >::operator()< basic_allele >( typename basic_allele::real_type & res, const basic_allele & elem, typename basic_allele::real_type scale ) {
     res += (elem.m_select * scale);
 }
 

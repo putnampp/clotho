@@ -21,11 +21,11 @@
 #include <string>
 using std::string;
 
-static const unsigned int DEFAULT_GENERATIONS = 10000;
-static const unsigned int DEFAULT_POPULATION_SIZE = 10000;
+//static const unsigned int DEFAULT_GENERATIONS = 10000;
+//static const unsigned int DEFAULT_POPULATION_SIZE = 10000;
 
-static const double DEFAULT_MUTATION_RATE = 0.0001;
-static const double DEFAULT_RECOMB_RATE = 0.0001;
+//static const double DEFAULT_MUTATION_RATE = 0.0001;
+//static const double DEFAULT_RECOMB_RATE = 0.0001;
 
 static const unsigned int DEFAULT_SEED = 0;
 

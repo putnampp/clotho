@@ -15,30 +15,40 @@
 #define RECOMBINATION_RATE_PARAMETER_HPP_
 
 #include <boost/property_tree/ptree.hpp>
+#include "clotho/utility/clotho_strings.hpp"
 
 template < class RealType >
 struct recombination_rate_parameter {
     RealType    m_rho;
 
+    static constexpr RealType DEFAULT_RECOMB_RATE = 0.0001;
+
+    recombination_rate_parameter( RealType r = DEFAULT_RECOMB_RATE ) :
+        m_rho( r )
+    {}
+
     recombination_rate_parameter( boost::property_tree::ptree & config ) :
         m_rho( 0.001 )
     {
         boost::property_tree::ptree lconfig;
+        lconfig = config.get_child( REC_BLOCK_K, lconfig );
 
-        if( config.get_child_optional( "recombination" ) != boost::none ) {
-            lconfig = config.get_child( "recombination" );
-        }
+        m_rho = lconfig.get< RealType >( RHO_K, m_rho );
 
-        if( lconfig.get_child_optional( "rho" ) == boost::none ) {
-            lconfig.put("rho", m_rho );
-        } else {
-            m_rho = lconfig.get< RealType >( "rho", m_rho );
-        }
+        lconfig.put( RHO_K, m_rho );
+        config.put_child( REC_BLOCK_K, lconfig );
+    }
 
-        config.put_child( "recombination", lconfig );
+    void write_parameter( boost::property_tree::ptree & l ) {
+        boost::property_tree::ptree c;
+        c.put( RHO_K, m_rho );
+        l.put_child( REC_BLOCK_K, c );
     }
 
     virtual ~recombination_rate_parameter() {}
 };
+
+template < class RealType >
+constexpr RealType  recombination_rate_parameter< RealType >::DEFAULT_RECOMB_RATE;
 
 #endif  // RECOMBINATION_RATE_PARAMETER_HPP_

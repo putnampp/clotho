@@ -23,4 +23,8 @@ extern const string MALE_K;
 extern const string FEMALE_K;
 extern const string UNASSIGNED_K;
 
+extern const string SIZE_K;
+
+extern const string   CONFIG_BLOCK_K;
+extern const string   REPETITION_K;
 #endif  // COMMON_STRINGS_H_

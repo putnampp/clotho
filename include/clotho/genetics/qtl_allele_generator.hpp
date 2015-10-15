@@ -15,6 +15,7 @@
 #define QTL_ALLELE_GENERATOR_HPP_
 
 #include "qtl_allele.h"
+#include "clotho/utility/clotho_strings.hpp"
 #include "clotho/utility/random_generator.hpp"
 
 #include <boost/random/uniform_real_distribution.hpp>
@@ -29,9 +30,9 @@ public:
     typedef random_generator< URNG, qtl_allele >    self_type;
     typedef qtl_allele                              result_type;
 
-    typedef double real_type;
+    typedef typename qtl_allele::real_type real_type;
+    typedef typename qtl_allele::key_type  key_type;
 
-    typedef real_type key_type;
     typedef real_type selection_type;
     typedef real_type dominance_type;
 
@@ -42,28 +43,19 @@ public:
     typedef typename random_traits::param_type  param_type;
 
     random_generator( URNG & rng, boost::property_tree::ptree & config ) :
-//        m_rng( &rng )
-//        , m_alleles(rng, config )
         random_allele(rng, config )
         , m_traits( rng, config )
         , m_nTraits( 1 ) {
         parseConfig( config );
     }
 
-    random_generator( URNG & rng, unsigned int n = 1, double trait_mean = 0.0, double trait_sigma = 1.0 ) :
-//        m_rng( &rng )
-//        , m_alleles( rng )
+    random_generator( URNG & rng, unsigned int n = 1, real_type trait_mean = 0.0, real_type trait_sigma = 1.0 ) :
         random_allele( rng )
         , m_traits(rng, trait_mean, trait_sigma)
         , m_nTraits(n) {
     }
 
     result_type operator()( unsigned int age = 0 ) {
-//        basic_allele all = m_alleles( age );
-//        typename qtl_allele::trait_weights W;
-//
-//        qtl_allele q(all, W );
-//
         qtl_allele q;
 
         random_allele::generate(q, age);
@@ -82,18 +74,14 @@ public:
 protected:
 
     void parseConfig( boost::property_tree::ptree & config ) {
-        std::ostringstream oss;
-        oss /*<< CONFIG_BLOCK_K << "."*/ << TRAIT_BLOCK_K << "." << MAX_K;
+        boost::property_tree::ptree lconfig;
+        lconfig = config.get_child( TRAIT_BLOCK_K, lconfig );
 
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put( oss.str(), m_nTraits );
-        } else {
-            m_nTraits = config.get< unsigned int >( oss.str(), 1 );
-        }
+        m_nTraits = lconfig.get< unsigned int >( MAX_K, m_nTraits);
+        lconfig.put( MAX_K, m_nTraits );
+        config.put_child( TRAIT_BLOCK_K, lconfig );
     }
 
-//    URNG            * m_rng;
-//    random_allele   m_alleles;
     random_traits   m_traits;
 
     unsigned int    m_nTraits;

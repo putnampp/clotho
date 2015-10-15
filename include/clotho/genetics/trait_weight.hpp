@@ -14,9 +14,8 @@
 #ifndef TRAIT_WEIGHT_HPP_
 #define TRAIT_WEIGHT_HPP_
 
+#include "clotho/utility/clotho_strings.hpp"
 #include <vector>
-
-extern const string TRAIT_BLOCK_K;
 
 template < class ValueType = double >
 struct trait_weight {

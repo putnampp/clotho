@@ -13,6 +13,7 @@
 #   limitations under the License.
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
 
+LIST( APPEND UTILITY_SRCS clotho_strings.cpp )
 LIST( APPEND UTILITY_SRCS set_bit_node.cpp )
 LIST( APPEND UTILITY_SRCS bit_masks.cpp )
 LIST( APPEND UTILITY_SRCS popcount_constants.cpp )

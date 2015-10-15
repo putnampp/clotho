@@ -17,3 +17,8 @@ const string UNKNOWN_K = "unknown";
 const string MALE_K = "male";
 const string FEMALE_K = "female";
 const string UNASSIGNED_K = "unassigned";
+
+const string SIZE_K = "size";
+
+const string   CONFIG_BLOCK_K = "configuration";
+const string   REPETITION_K = "repeat";

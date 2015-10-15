@@ -16,6 +16,7 @@
 
 #include "clotho/utility/random_generator.hpp"
 #include <boost/random/poisson_distribution.hpp>
+#include "clotho/mutation/mutation_rate_parameter.hpp"
 
 namespace clotho {
 namespace utility {
@@ -26,16 +27,22 @@ public:
     typedef URNG                                        rng_type;
     typedef sequence_mutator< Sequence, Generator >     result_type;
 
+    typedef typename result_type::generator_result_type           allele_type;
+    typedef typename allele_type::real_type             real_type;
+
+    typedef mutation_rate_parameter< real_type >        mutation_type;
     typedef Generator                                   mutation_generator_type;
 
-    typedef boost::random::poisson_distribution< unsigned int, double > dist_type;
+    typedef boost::random::poisson_distribution< unsigned int, real_type > dist_type;
 
 //    random_generator( rng_type & rng,  mutation_generator_type & mgen, double rate ) : m_rng(&rng), m_mgen( mgen ), m_dist(rate) {}
     random_generator( rng_type & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
+        , m_mut( config )
         , m_mgen( rng, config )
-        , m_dist( DEFAULT_MUTATION_RATE ) {
-        parseConfig( config );
+        , m_dist( mutation_type::DEFAULT_MUTATION_RATE ) {
+        typename dist_type::param_type p( m_mut.m_mu );
+        m_dist.param( p );
     }
 
     result_type operator()( unsigned int age = 0) {
@@ -44,21 +51,8 @@ public:
     }
 
 protected:
-
-    void parseConfig( boost::property_tree::ptree & config ) {
-        std::ostringstream oss;
-        oss /*<< CONFIG_BLOCK_K << "."*/ << MUT_BLOCK_K << "." << RATE_PER_REGION_K;
-
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put( oss.str(), m_dist.mean() );
-        } else {
-            double mean = config.get< double >( oss.str(), DEFAULT_MUTATION_RATE );
-            typename dist_type::param_type p( mean );
-            m_dist.param( p );
-        }
-    }
-
     rng_type    * m_rng;
+    mutation_type   m_mut;
     mutation_generator_type m_mgen;
     dist_type   m_dist;
 };

@@ -19,14 +19,14 @@
 
 struct qtl_allele : public basic_allele {
 
-    typedef trait_weight< double >              weight_type;
+    typedef trait_weight< real_type >           weight_type;
     typedef typename weight_type::vector_type   trait_weights;
     typedef typename trait_weights::iterator    weight_iterator;
     typedef typename trait_weights::const_iterator weight_citerator;
 
     qtl_allele() : basic_allele(), m_weights() {}
 
-    qtl_allele( double k, double sel, double dom, bool neut, unsigned int age, const trait_weights & coeff ) :
+    qtl_allele( key_type k, real_type sel, real_type dom, bool neut, unsigned int age, const trait_weights & coeff ) :
         basic_allele( k, sel, dom, neut, age ), m_weights( coeff ) {
     }
 
@@ -90,7 +90,7 @@ namespace powersets {
 
 template <>
 struct element_key_of< qtl_allele > {
-    typedef double key_type;
+    typedef typename qtl_allele::key_type key_type;
 
     static key_type get_key( const qtl_allele & e ) {
         return e.m_key;
@@ -99,7 +99,7 @@ struct element_key_of< qtl_allele > {
 
 template <>
 struct normalized_key< qtl_allele > : public key_range < > {
-    typedef double key_type;
+    typedef typename qtl_allele::key_type key_type;
 
     static key_type get_key( const qtl_allele & a ) {
         return a.m_key;
@@ -115,22 +115,22 @@ namespace clotho {
 namespace fitness {
 
 template < > template < >
-void fitness_method< double, multiplicative_heterozygous_tag >::operator()< qtl_allele >( double & res, const qtl_allele & elem, double scale ) {
+void fitness_method< typename qtl_allele::real_type, multiplicative_heterozygous_tag >::operator()< qtl_allele >( typename qtl_allele::real_type & res, const qtl_allele & elem, typename qtl_allele::real_type scale ) {
     res *= (1. + elem.m_select * elem.m_dom);
 }
 
 template < > template < >
-void fitness_method< double, multiplicative_homozygous_tag >::operator()< qtl_allele >( double & res, const qtl_allele & elem, double scale ) {
+void fitness_method< typename qtl_allele::real_type, multiplicative_homozygous_tag >::operator()< qtl_allele >( typename qtl_allele::real_type & res, const qtl_allele & elem, typename qtl_allele::real_type scale ) {
     res *= (1. + elem.m_select * scale);
 }
 
 template < > template < >
-void fitness_method< double, additive_heterozygous_tag >::operator()< qtl_allele >( double & res, const qtl_allele & elem, double scale ) {
+void fitness_method< typename qtl_allele::real_type, additive_heterozygous_tag >::operator()< qtl_allele >( typename qtl_allele::real_type & res, const qtl_allele & elem, typename qtl_allele::real_type scale ) {
     res += (elem.m_select * elem.m_dom);
 }
 
 template < > template < >
-void fitness_method< double, additive_homozygous_tag >::operator()< qtl_allele >( double & res, const qtl_allele & elem, double scale ) {
+void fitness_method< typename qtl_allele::real_type, additive_homozygous_tag >::operator()< qtl_allele >( typename qtl_allele::real_type & res, const qtl_allele & elem, typename qtl_allele::real_type scale ) {
     res += (elem.m_select * scale);
 }
 
