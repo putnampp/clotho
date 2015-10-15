@@ -21,7 +21,7 @@
 
 #include "clotho/mutation/mutation_rate_parameter.hpp"
 #include "clotho/recombination/recombination_rate_parameter.hpp"
-#include "seed_parameter.hpp"
+#include "clotho/random/seed_parameter.hpp"
 #include "logging_parameter.hpp"
 #include "population_parameter.hpp"
 #include "generation_parameter.hpp"
@@ -62,7 +62,7 @@ int parse_commandline( int argc, char ** argv, po::variables_map & vm ) {
     ( (MU_K + ",m").c_str(), po::value< real_type >()->default_value( mutation_type::DEFAULT_MUTATION_RATE ), "Mutation rate" )
     ( (RHO_K + ",r").c_str(), po::value< real_type >()->default_value( recombination_type::DEFAULT_RECOMB_RATE ), "Recombination rate" )
     ( (REPETITION_K + ",R").c_str(), po::value< unsigned int >()->default_value( 1 ), "Repetitions" )
-    ( (SEED_K + ",s").c_str(), po::value< unsigned int >()->default_value( seed_parameter::DEFAULT_SEED ), "Random number generator initial seed value" )
+    ( (SEED_K + ",s").c_str(), po::value< seed_parameter::seed_type >()->default_value( seed_parameter::DEFAULT_SEED ), "Random number generator initial seed value" )
     ( (PERIOD_K + ",l").c_str(), po::value< unsigned int >()->default_value( -1 ), "Number of generations between population stats calculations. (-1 => only final population)" )
     ;
 
