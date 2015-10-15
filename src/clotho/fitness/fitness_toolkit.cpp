@@ -12,8 +12,9 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 #include "clotho/fitness/fitness_toolkit.hpp"
+#include "clotho/utility/clotho_strings.hpp"
 
-const std::string FITNESS_BLOCK_K = "fitness";
+#include <boost/foreach.hpp>
 
 fitness_toolkit::fitness_toolkit() {}
 
@@ -24,37 +25,46 @@ void fitness_toolkit::tool_configurations( boost::property_tree::ptree & config 
         boost::property_tree::ptree c;
         std::shared_ptr< ifitness_generator > tmp( it->second->create(c) );
 
-        boost::property_tree::ptree d;
-        d.put( "name", it->first );
-        d.put_child( "params", c );
+        boost::property_tree::ptree d, p, dep;
+        p = c.get_child( FITNESS_BLOCK_K + "." + PARAM_K, p );
+
+        BOOST_FOREACH( auto& v, c ) {
+            if( v.first != FITNESS_BLOCK_K ) {
+                dep.put_child( v.first, v.second );
+            }
+        }
+
+        d.put( NAME_K, it->first );
+
+        if( !dep.empty() )
+            d.put_child( DEPENDS_K, dep );
+
+        if( !p.empty() )
+            d.put_child( PARAM_K, p );
+
         t.put_child( it->first, d );
     }
     config.put_child( FITNESS_BLOCK_K + ".toolkit", t );
 }
 
 std::shared_ptr< ifitness_generator > fitness_toolkit::get_tool( boost::property_tree::ptree & config ) {
-    if( config.get_child_optional( FITNESS_BLOCK_K ) == boost::none ) {
-        config.put( FITNESS_BLOCK_K + ".name", "" );
-        config.put( FITNESS_BLOCK_K + ".params", "" );
-        return std::shared_ptr< ifitness_generator >();
-    }
+    boost::property_tree::ptree fblock;
+    fblock = config.get_child( FITNESS_BLOCK_K, fblock );
 
-    std::string tname = config.get< std::string >( FITNESS_BLOCK_K + ".name", "" );
-
+    std::string tname = fblock.get< std::string >(NAME_K, "");
     std::shared_ptr< ifitness_generator > ret;
-    if( !tname.empty() ) {
+
+    if( fblock.empty() ) {
+        fblock.put( NAME_K, "" );
+        fblock.put( PARAM_K, "" );
+    } else if( !tname.empty() ) {
         generator_iterator it = m_tools.find(tname);
         if( it != m_tools.end() ) {
-            if( config.get_child_optional( FITNESS_BLOCK_K + ".params" ) == boost::none ) {
-                boost::property_tree::ptree t;
-                ret = it->second->create( t );
-                config.put_child( FITNESS_BLOCK_K + ".params", t );
-            } else {
-                ret = it->second->create( config.get_child( FITNESS_BLOCK_K + ".params") );
-            }
+            ret = it->second->create( config );
         }
     }
 
+    config.put_child( FITNESS_BLOCK_K, fblock );
     return ret;
 }
 

@@ -23,7 +23,7 @@ normal_fitness_metric::normal_fitness_metric( real_type mu, real_type sigma ) :
 }
 
 normal_fitness_metric::result_type normal_fitness_metric::operator()( real_type x ) {
-    double ex = (x - m_mean);
+    real_type ex = (x - m_mean);
     ex *= ex;
     ex /= (_denom);
 
@@ -31,11 +31,11 @@ normal_fitness_metric::result_type normal_fitness_metric::operator()( real_type 
 }
 
 normal_fitness_metric::result_type normal_fitness_metric::operator()( real_type x, real_type mu, real_type sigma ) {
-    double ex = (x - mu);
+    real_type ex = (x - mu);
     ex *= ex;
     ex /= (2.0 * sigma * sigma );
 
-    double coeff = (1.0/sigma) * boost::math::double_constants::one_div_root_two_pi;
+    real_type coeff = (1.0/sigma) * boost::math::double_constants::one_div_root_two_pi;
 
     return coeff * exp(-ex);
 }

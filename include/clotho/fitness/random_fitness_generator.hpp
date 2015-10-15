@@ -16,6 +16,7 @@
 
 #include "clotho/fitness/ifitness_generator.hpp"
 #include "clotho/fitness/random_fitness_metric.hpp"
+#include "clotho/mutation/mutation_rate_parameter.hpp"
 
 /**
  * Computes the phenotype scaling factor based upon:
@@ -28,8 +29,9 @@
  *
  * Generates a random fitness metric.
  */
-class random_fitness_generator : public ifitness_generator {
+class random_fitness_generator : public ifitness_generator, mutation_rate_parameter< double > {
 public:
+    typedef double                  real_type;
     typedef random_fitness_metric result_type;
 
     random_fitness_generator();
@@ -37,7 +39,7 @@ public:
 
     std::shared_ptr< ifitness_generator > create( boost::property_tree::ptree & config ) const;
 
-    std::shared_ptr< ifitness > generate( const std::vector< std::vector< double > > & pop_traits );
+    std::shared_ptr< ifitness > generate( const std::vector< std::vector< real_type > > & pop_traits );
 
     const std::string name() const;
 
@@ -49,7 +51,7 @@ protected:
 
     void parseConfig( boost::property_tree::ptree & config );
 
-    double m_scale, m_mu;
+    double m_scale;
 };
 
 #endif  // RANDOM_FITNESS_GENERATOR_HPP_

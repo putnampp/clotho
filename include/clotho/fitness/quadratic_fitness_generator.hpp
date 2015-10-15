@@ -17,6 +17,8 @@
 #include "clotho/fitness/ifitness_generator.hpp"
 #include "clotho/fitness/quadratic_fitness_metric.hpp"
 
+#include "clotho/mutation/mutation_rate_parameter.hpp"
+
 /**
  * Computes the phenotype scaling factor based upon:
  * -  the current population's size (N)
@@ -28,16 +30,18 @@
  *
  * Generates a quadratic fitness metric.
  */
-class quadratic_fitness_generator : public ifitness_generator {
+class quadratic_fitness_generator : public ifitness_generator, mutation_rate_parameter< double > {
 public:
-    typedef quadratic_fitness_metric result_type;
+    typedef double                                  real_type;
+
+    typedef quadratic_fitness_metric                result_type;
 
     quadratic_fitness_generator();
     quadratic_fitness_generator( boost::property_tree::ptree & config );
 
     std::shared_ptr< ifitness_generator > create( boost::property_tree::ptree & config ) const;
 
-    std::shared_ptr< ifitness > generate( const std::vector< std::vector< double > > & pop_traits );
+    std::shared_ptr< ifitness > generate( const std::vector< std::vector< real_type > > & pop_traits );
 
     const std::string name() const;
 
@@ -49,7 +53,7 @@ protected:
 
     void parseConfig( boost::property_tree::ptree & config );
 
-    double m_scale, m_mu;
+    real_type m_scale;
 };
 
 #endif  // QUADRATIC_FITNESS_GENERATOR_HPP_

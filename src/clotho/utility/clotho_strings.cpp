@@ -14,6 +14,7 @@
 #include "clotho/utility/clotho_strings.hpp"
 
 const std::string TRAIT_BLOCK_K = "traits";
+const std::string FITNESS_BLOCK_K = "fitness";
 
 const std::string MUT_BLOCK_K   = "mutation";
 const std::string MU_K          = "mu";
@@ -24,3 +25,9 @@ const std::string RHO_K         = "rho";
 const std::string MAX_K = "max";
 const std::string MEAN_K = "mean";
 const std::string SIGMA_K = "sigma";
+
+const std::string NAME_K = "name";
+const std::string PARAM_K = "params";
+
+const std::string SCALE_K = "scale";
+const std::string DEPENDS_K = "dependency";

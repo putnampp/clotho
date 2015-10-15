@@ -21,11 +21,13 @@ extern const std::string   RNG_BLOCK_K;
 extern const std::string   SEED_K;
 
 struct seed_parameter {
-    static const unsigned int DEFAULT_SEED = 0;
+    typedef unsigned long long seed_type;
 
-    unsigned int m_seed;
+    static const seed_type DEFAULT_SEED = 0;
 
-    seed_parameter( unsigned int s = DEFAULT_SEED );
+    seed_type m_seed;
+
+    seed_parameter( seed_type s = DEFAULT_SEED );
     seed_parameter( boost::property_tree::ptree & config );
  
     void write_parameter( boost::property_tree::ptree & l );

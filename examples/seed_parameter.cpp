@@ -17,9 +17,9 @@
 const std::string   RNG_BLOCK_K = "random_number";
 const std::string   SEED_K = "seed";
 
-const unsigned int seed_parameter::DEFAULT_SEED;
+const typename seed_parameter::seed_type seed_parameter::DEFAULT_SEED;
 
-seed_parameter::seed_parameter( unsigned int s ) :
+seed_parameter::seed_parameter( seed_type s ) :
     m_seed( s )
 {}
 
@@ -29,7 +29,7 @@ seed_parameter::seed_parameter( boost::property_tree::ptree & config ) :
     boost::property_tree::ptree lconfig;
     lconfig = config.get_child( RNG_BLOCK_K, lconfig );
 
-    m_seed = lconfig.get< unsigned int >( SEED_K, m_seed );
+    m_seed = lconfig.get< seed_type >( SEED_K, m_seed );
 
     if( m_seed == DEFAULT_SEED ) {
         m_seed = clotho::utility::clock_type::now().time_since_epoch().count();

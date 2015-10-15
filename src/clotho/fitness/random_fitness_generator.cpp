@@ -13,9 +13,10 @@
 //   limitations under the License.
 #include "clotho/fitness/random_fitness_generator.hpp"
 #include "clotho/fitness/fitness_toolkit.hpp"
+#include "clotho/utility/clotho_strings.hpp"
 
-const std::string SCALE_K = "scale";
-const std::string MU_K = "mu";
+//const std::string SCALE_K = "scale";
+//const std::string MU_K = "mu";
 
 random_fitness_generator::random_fitness_generator() :
     m_scale( 1. )

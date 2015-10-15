@@ -14,16 +14,15 @@
 #include "clotho/fitness/normal_fitness_generator.hpp"
 #include "clotho/fitness/fitness_toolkit.hpp"
 
-const std::string MU_K = "mu";
-
-normal_fitness_generator::normal_fitness_generator() : m_mu(1.) {
+normal_fitness_generator::normal_fitness_generator() :
+    mutation_rate_parameter< double >()
+{
     fitness_toolkit::getInstance()->register_tool( this );
 }
 
 normal_fitness_generator::normal_fitness_generator( boost::property_tree::ptree & config ) :
-    m_mu(1.) {
-    parseConfig( config );
-}
+    mutation_rate_parameter( config )
+{ }
 
 std::shared_ptr< ifitness_generator > normal_fitness_generator::create( boost::property_tree::ptree & config ) const {
     std::shared_ptr< ifitness_generator > t( new normal_fitness_generator( config ) );
@@ -46,14 +45,6 @@ std::shared_ptr< ifitness > normal_fitness_generator::generate( const std::vecto
 
     std::shared_ptr< ifitness > r( new result_type( 0., n ) );
     return r;
-}
-
-void normal_fitness_generator::parseConfig( boost::property_tree::ptree & config ) {
-    if( config.get_child_optional( MU_K ) == boost::none ) {
-        config.put( MU_K, m_mu );
-    } else {
-        m_mu = config.get< double >( MU_K, 1. );
-    }
 }
 
 const std::string normal_fitness_generator::name() const {

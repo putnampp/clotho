@@ -39,7 +39,7 @@
 #include "clotho/fitness/fitness_toolkit.hpp"
 
 #include "../generation_parameter.hpp"
-#include "../seed_parameter.hpp"
+#include "clotho/random/seed_parameter.hpp"
 #include "qtl_logging_parameter.hpp"
 
 #define XSTR( x ) #x

@@ -17,6 +17,7 @@
 #include <string>
 
 extern const std::string TRAIT_BLOCK_K;
+extern const std::string FITNESS_BLOCK_K;
 
 extern const std::string MUT_BLOCK_K;
 extern const std::string MU_K;
@@ -27,5 +28,11 @@ extern const std::string RHO_K;
 extern const std::string MAX_K;
 extern const std::string MEAN_K;
 extern const std::string SIGMA_K;
+
+extern const std::string NAME_K;
+extern const std::string PARAM_K;
+
+extern const std::string SCALE_K;
+extern const std::string DEPENDS_K;
 
 #endif  // CLOTHO_STRINGS_HPP_

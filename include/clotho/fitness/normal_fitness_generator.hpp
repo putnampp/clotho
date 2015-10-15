@@ -16,9 +16,14 @@
 
 #include "clotho/fitness/ifitness_generator.hpp"
 #include "clotho/fitness/normal_fitness_metric.hpp"
+#include "clotho/mutation/mutation_rate_parameter.hpp"
 
-class normal_fitness_generator : public ifitness_generator {
+class normal_fitness_generator : 
+    public ifitness_generator
+    , public mutation_rate_parameter< double >
+{
 public:
+    typedef double                  real_type;
     typedef normal_fitness_metric   result_type;
 
     normal_fitness_generator();
@@ -26,7 +31,7 @@ public:
 
     std::shared_ptr< ifitness_generator > create( boost::property_tree::ptree & config ) const;
 
-    std::shared_ptr< ifitness > generate( const std::vector< std::vector< double > > & pop_traits );
+    std::shared_ptr< ifitness > generate( const std::vector< std::vector< real_type > > & pop_traits );
 
     const std::string name() const;
 
@@ -35,10 +40,6 @@ public:
     virtual ~normal_fitness_generator();
 
 protected:
-
-    void parseConfig( boost::property_tree::ptree & config );
-
-    double m_mu;
 };
 
 #endif  // NORMAL_FITNESS_GENERATOR_HPP_

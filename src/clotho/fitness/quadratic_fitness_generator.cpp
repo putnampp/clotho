@@ -14,18 +14,20 @@
 #include "clotho/fitness/quadratic_fitness_generator.hpp"
 #include "clotho/fitness/fitness_toolkit.hpp"
 
-const std::string SCALE_K = "scale";
-const std::string MU_K = "mu";
+//const std::string SCALE_K = "scale";
+//const std::string MU_K = "mu";
 
 quadratic_fitness_generator::quadratic_fitness_generator() :
-    m_scale( 1. )
-    , m_mu( 1. ) {
+    mutation_rate_parameter< double >()
+    , m_scale( 1. )
+{
     fitness_toolkit::getInstance()->register_tool( this );
 }
 
 quadratic_fitness_generator::quadratic_fitness_generator( boost::property_tree::ptree & config ) :
-    m_scale(1.)
-    , m_mu( 1. ) {
+    mutation_rate_parameter< double >( config )
+    , m_scale(1.)
+{
     parseConfig( config );
 }
 
@@ -34,7 +36,7 @@ std::shared_ptr< ifitness_generator > quadratic_fitness_generator::create( boost
     return t;
 }
 
-std::shared_ptr< ifitness > quadratic_fitness_generator::generate( const std::vector< std::vector< double > > & pop_traits ) {
+std::shared_ptr< ifitness > quadratic_fitness_generator::generate( const std::vector< std::vector< real_type > > & pop_traits ) {
     // theoretical standard deviation:
     // sqrt( 2 * N * mu), where
     //  N - is the haploid sequence count
@@ -53,19 +55,18 @@ const std::string quadratic_fitness_generator::name() const {
 }
 
 void quadratic_fitness_generator::parseConfig( boost::property_tree::ptree & config ) {
-    if( config.get_child_optional( SCALE_K ) == boost::none ) {
-        config.put( SCALE_K, m_scale );
-    } else {
-        m_scale = config.get< double >( SCALE_K, m_scale );
+    boost::property_tree::ptree fblock;
+    fblock = config.get_child( FITNESS_BLOCK_K, fblock );
+    
+    boost::property_tree::ptree pblock;
+    pblock = fblock.get_child( PARAM_K, pblock );
 
-        assert( m_scale > 0.0 );
-    }
+    m_scale = pblock.get< real_type >( SCALE_K, m_scale );
+    
+    pblock.put( SCALE_K, m_scale );
 
-    if( config.get_child_optional( MU_K ) == boost::none ) {
-        config.put( MU_K, m_mu );
-    } else {
-        m_mu = config.get< double >( MU_K, m_mu );
-    }
+    fblock.put_child( PARAM_K, pblock );
+    config.put_child( FITNESS_BLOCK_K, fblock );
 }
 
 void quadratic_fitness_generator::log( std::ostream & out ) const {
