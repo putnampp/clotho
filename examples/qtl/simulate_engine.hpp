@@ -65,7 +65,7 @@
 
 #include "qtl_logging_parameter.hpp"
 #include "../population_parameter.hpp"
-#include "../seed_parameter.hpp"
+#include "clotho/random/seed_parameter.hpp"
 
 namespace accum=boost::accumulators;
 
@@ -339,7 +339,7 @@ protected:
     }
 
     void parseConfig( boost::property_tree::ptree & config ) {
-        seed_parameter seed_param( config );
+        seed_parameter<  > seed_param( config );
         m_rng.seed( seed_param.m_seed );
 
         population_parameter pop_param( config );

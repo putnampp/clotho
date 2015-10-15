@@ -20,7 +20,7 @@
 #include "generation_parameter.hpp"
 #include "population_parameter.hpp"
 #include "logging_parameter.hpp"
-#include "seed_parameter.hpp"
+#include "clotho/random/seed_parameter.hpp"
 #include "clotho/mutation/mutation_rate_parameter.hpp"
 #include "clotho/recombination/recombination_rate_parameter.hpp"
 
@@ -98,7 +98,7 @@ void parse_config( simulation_config & cfg ) {
     logging_parameter log_param( config );
     cfg.log_period = log_param.m_period;
 
-    seed_parameter seed_param( config );
+    seed_parameter<typename simulation_config::seed_type > seed_param( config );
     cfg.seed = seed_param.m_seed;
 }
 
@@ -132,7 +132,7 @@ void add_config( boost::property_tree::ptree & log, const simulation_config & si
 //    RESET_SS( oss )
 //    oss << RNG_BLOCK_K << "." << SEED_K;
 //    log.put( oss.str(), sim.seed );
-    seed_parameter seed_param( sim.seed );
+    seed_parameter< typename simulation_config::seed_type > seed_param( sim.seed );
     seed_param.write_parameter( log );
 
 //    RESET_SS( oss )

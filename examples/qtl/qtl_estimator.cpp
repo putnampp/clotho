@@ -103,7 +103,7 @@ int main( int argc, char ** argv ) {
 
     generation_parameter gen_param( conf_child );
     qtl_logging_parameter log_param( conf_child );
-    seed_parameter seed_param( conf_child );
+    seed_parameter<  > seed_param( conf_child );
 
     string out_path = conf_child.get<string>( OUTPUT_K, "" );
 

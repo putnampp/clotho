@@ -22,10 +22,12 @@
 //#include "simulation_config_json.h"
 
 struct simulation_config {
+    typedef unsigned int seed_type;
+
     unsigned int    nGen, nPop, nRep;
     double          mu, rho;
 
-    unsigned int    seed;
+    seed_type    seed;
 
     string          cfg_path, out_path;
     unsigned int    log_period;

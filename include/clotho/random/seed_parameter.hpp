@@ -15,24 +15,46 @@
 #define SEED_PARAMETER_HPP_
 
 #include <boost/property_tree/ptree.hpp>
-#include <string>
+#include "clotho/utility/clotho_strings.hpp"
+#include "clotho/utility/timer.hpp"
 
-extern const std::string   RNG_BLOCK_K;
-extern const std::string   SEED_K;
-
+template < class SeedType = unsigned long long >
 struct seed_parameter {
-    typedef unsigned long long seed_type;
+    typedef SeedType seed_type;
 
     static const seed_type DEFAULT_SEED = 0;
 
     seed_type m_seed;
+    seed_parameter( seed_type s ) :
+        m_seed( s )
+    {}
 
-    seed_parameter( seed_type s = DEFAULT_SEED );
-    seed_parameter( boost::property_tree::ptree & config );
- 
-    void write_parameter( boost::property_tree::ptree & l );
+    seed_parameter( boost::property_tree::ptree & config ) :
+        m_seed( DEFAULT_SEED )
+    {
+        boost::property_tree::ptree lconfig;
+        lconfig = config.get_child( RNG_BLOCK_K, lconfig );
 
-    virtual ~seed_parameter();
+        m_seed = lconfig.get< seed_type >( SEED_K, m_seed );
+
+        if( m_seed == DEFAULT_SEED ) {
+            m_seed = clotho::utility::clock_type::now().time_since_epoch().count();
+        }
+
+        lconfig.put( SEED_K, m_seed );
+        config.put_child( RNG_BLOCK_K, lconfig );
+    }
+
+    void write_parameter( boost::property_tree::ptree & l ) {
+        boost::property_tree::ptree c;
+        c.put( SEED_K, m_seed );
+        l.put_child( RNG_BLOCK_K, c );
+    }
+
+    virtual ~seed_parameter() {}
 };
+
+template < class SeedType >
+const SeedType seed_parameter< SeedType >::DEFAULT_SEED;
 
 #endif  // SEED_PARAMETER_HPP_

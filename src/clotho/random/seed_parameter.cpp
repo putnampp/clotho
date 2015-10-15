@@ -11,11 +11,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#include "seed_parameter.hpp"
+#include "clotho/random/seed_parameter.hpp"
 #include "clotho/utility/timer.hpp"
 
-const std::string   RNG_BLOCK_K = "random_number";
-const std::string   SEED_K = "seed";
+//const std::string   RNG_BLOCK_K = "random_number";
+//const std::string   SEED_K = "seed";
 
 const typename seed_parameter::seed_type seed_parameter::DEFAULT_SEED;
 
