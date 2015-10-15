@@ -37,4 +37,7 @@ extern const std::string SCALE_K;
 extern const std::string DEPENDS_K;
 extern const std::string SEED_K;
 
+extern const std::string P_K;
+extern const std::string Q_K;
+
 #endif  // CLOTHO_STRINGS_HPP_

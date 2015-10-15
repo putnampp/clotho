@@ -33,3 +33,6 @@ const std::string PARAM_K = "params";
 const std::string SCALE_K = "scale";
 const std::string DEPENDS_K = "dependency";
 const std::string SEED_K = "seed";
+
+const std::string P_K = "p";
+const std::string Q_K = "q";

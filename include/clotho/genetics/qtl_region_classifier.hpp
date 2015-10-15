@@ -28,27 +28,34 @@ namespace clotho {
 namespace utility {
 
 template < class URNG >
-class random_generator< URNG, clotho::classifiers::region_classifier< qtl_allele > > {
+class random_generator< URNG, clotho::classifiers::region_classifier< qtl_allele > > :
+    public recombination_rate_parameter< typename qtl_allele::real_type >
+{
 public:
+    typedef typename qtl_allele::real_type                         real_type;
+    typedef recombination_rate_parameter< real_type >              base_type;
     typedef clotho::classifiers::region_classifier< qtl_allele >   result_type;
     typedef random_generator< URNG, result_type > self_type;
 
-    typedef double                                                              real_type;
     typedef boost::random::uniform_01< real_type >                              uniform_type;   // key distribution
     typedef boost::random::poisson_distribution< unsigned int, real_type >      dist_type;      // region distribution
 
-    typedef recombination_rate_parameter< real_type >                           rate_type;
-
     random_generator( URNG & rng, boost::property_tree::ptree & config ) :
-        m_rng( &rng )
-        , m_dist( rate_type::DEFAULT_RECOMB_RATE )
+        base_type( config )
+        , m_rng( &rng )
+        , m_dist( base_type::DEFAULT_RECOMB_RATE )
         , m_bSkip(false)
     {
-        parseConfig( config );
+        initialize();
     }
 
-    random_generator( URNG & rng, double mu = rate_type::DEFAULT_RECOMB_RATE ) :
-        m_rng( &rng ), m_dist( mu ) {
+    random_generator( URNG & rng, real_type  r = base_type::DEFAULT_RECOMB_RATE ) :
+        base_type( r )
+        , m_rng( &rng )
+        , m_dist( base_type::DEFAULT_RECOMB_RATE )
+        , m_bSkip( false )
+    { 
+        initialize();
     }
 
     result_type operator()() {
@@ -69,13 +76,13 @@ protected:
     void method1(typename result_type::param_type & p, unsigned int n) {
         if( n == 0 ) return;
 
-        std::set< double > positions;
+        std::set< real_type > positions;
         while( positions.size() < n ) {
             positions.insert( m_uniform( *m_rng ) );
         }
 
         qtl_allele::trait_weights coeff;
-        for( std::set< double >::iterator it = positions.begin(); it != positions.end(); ++it ) {
+        for( std::set< real_type >::iterator it = positions.begin(); it != positions.end(); ++it ) {
             p.push_back( qtl_allele( *it, DEFAULT_SELECTION, DEFAULT_DOMINANCE, DEFAULT_NEUTRAL, 0, coeff) );
         }
     }
@@ -100,45 +107,22 @@ protected:
     //  address = {New York, NY, USA},
     //  }
     void generate_ordered_list( typename result_type::param_type & p, unsigned int N ) {
-        double curmax = 0.0;
+        real_type curmax = 0.0;
         qtl_allele::trait_weights coeff;
         while( N ) {
             // generates list in reverse order
             // hence taking the complement
-            curmax += (log( m_uniform( *m_rng ) ) / (double)(N));
+            curmax += (log( m_uniform( *m_rng ) ) / (real_type)(N));
             p.push_back( qtl_allele( (1.0 - exp(curmax)), DEFAULT_SELECTION, DEFAULT_DOMINANCE, DEFAULT_NEUTRAL, 0, coeff) );
             --N;
         }
     }
 
-    void parseConfig( boost::property_tree::ptree & config ) {
-//        std::ostringstream oss;
-//        oss /*<< CONFIG_BLOCK_K << "."*/ << REC_BLOCK_K << "." << RATE_PER_REGION_K;
-//
-//        if( config.get_child_optional( oss.str() ) == boost::none ) {
-//            config.put( oss.str(), m_dist.mean() );
-//        } else {
-//            double m = config.get< double >( oss.str() );
-//
-//            m_bSkip = (m == 0.0);
-//
-//            if( m_bSkip ) {
-//                m = 0.00000000001;
-//            } else if( m < 0.0 ) {
-//                m = std::abs( m );
-//            }
-//
-//            typename dist_type::param_type p( m );
-//
-//            m_dist.param( p );
-//        }
-//
-        rate_type _rate( config );
-
-        m_bSkip = (_rate.m_rho <= 0.0);
+    void initialize(  ) {
+        m_bSkip = (m_rho <= 0.0);
 
         if( !m_bSkip ) {
-            typename dist_type::param_type p( _rate.m_rho );
+            typename dist_type::param_type p( m_rho );
             m_dist.param( p );
         }
     }

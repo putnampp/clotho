@@ -33,7 +33,7 @@ namespace utility {
 template < class URNG, class Sequence, class Classifier, class T0, class T1 >
 class random_generator< URNG, clotho::recombine::recombination< Sequence, Classifier, T0, T1 > > {
 public:
-    typedef URNG                                                        rng_type;
+    typedef URNG                                                                rng_type;
     typedef clotho::recombine::recombination< Sequence, Classifier, T0, T1 >    result_type;
 
     typedef clotho::utility::random_generator< URNG, Classifier >       classifier_generator_type;
@@ -45,15 +45,16 @@ public:
     random_generator( rng_type & rng, boost::property_tree::ptree & config ) :
         m_rng( &rng )
         , m_cgen( rng, config )
-        , m_dist( 0.5 ) {
+        , m_dist( 0.5 )
+    {
         parseConfig( config );
     }
 
     random_generator( rng_type & rng, classifier_generator_type & cgen, real_type p = 0.5 ) :
         m_rng( &rng )
         , m_cgen( cgen )
-        , m_dist( p ) {
-    }
+        , m_dist( p ) 
+    {    }
 
     result_type operator()() {
         classifier_type cfier = m_cgen();
@@ -63,16 +64,15 @@ public:
 protected:
 
     void parseConfig( boost::property_tree::ptree & config ) {
-        std::ostringstream oss;
-        oss /*<< CONFIG_BLOCK_K << "."*/ << REC_BLOCK_K << "." << BASE_SEQUENCE_BIAS_K;
+        boost::property_tree::ptree lconfig;
+        lconfig = config.get_child( REC_BLOCK_K, lconfig );
 
-        if( config.get_child_optional( oss.str() ) == boost::none ) {
-            config.put( oss.str(), m_dist.p() );
-        } else {
-            double p = config.get< double >( oss.str(), 0.5 );
-            typename dist_type::param_type tmp(p);
-            m_dist.param( tmp );
-        }
+        real_type p = lconfig.get< real_type >( BASE_SEQUENCE_BIAS_K, 0.5 );
+        typename dist_type::param_type tmp(p);
+        m_dist.param( tmp );
+
+        lconfig.put( BASE_SEQUENCE_BIAS_K, p );
+        config.put_child( REC_BLOCK_K, lconfig );
     }
 
     rng_type    * m_rng;
