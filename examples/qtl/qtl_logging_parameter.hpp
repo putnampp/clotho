@@ -48,7 +48,13 @@ struct sample_log_params {
             if(! tmp.str().empty() ) {
                 // assume that any data was intended to be a sample size
                 sample_size = boost::lexical_cast< unsigned int >( tmp.str() );
+            } else {
+                sample_size = 0;
             }
+
+            params.put( SIZE_K, sample_size);
+            params.put( PAIRWISE_K, pairwise );
+            
             return;
         }
 
@@ -80,9 +86,16 @@ struct qtl_logging_parameter : public logging_parameter {
         boost::property_tree::ptree samps;
         samps = lconfig.get_child( SAMPLING_K, samps );
 
-        BOOST_FOREACH( auto& v, samps ) {
-            sample_log_params tmp( v.second );
-            m_sampling.push_back( tmp );
+        if( !samps.empty() ) {
+            BOOST_FOREACH( auto& v, samps ) {
+                sample_log_params tmp( v.second );
+                m_sampling.push_back( tmp );
+            }
+        } else {
+            boost::property_tree::ptree s;
+            sample_log_params tmp( s );
+
+            samps.push_back( std::make_pair("", s) );
         }
 
         lconfig.put_child( SAMPLING_K, samps );
