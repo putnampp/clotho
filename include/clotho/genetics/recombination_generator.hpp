@@ -25,7 +25,6 @@
 // For example, the maternally inheritted sequence
 // is more likely to be passed along than the
 // paternal.
-extern const string BASE_SEQUENCE_BIAS_K;
 
 namespace clotho {
 namespace utility {
@@ -64,15 +63,17 @@ public:
 protected:
 
     void parseConfig( boost::property_tree::ptree & config ) {
-        boost::property_tree::ptree lconfig;
+        boost::property_tree::ptree lconfig,bblock;
         lconfig = config.get_child( REC_BLOCK_K, lconfig );
+        bblock = lconfig.get_child( SEQUENCE_BIAS_BLOCK_K, bblock );
 
-        real_type p = lconfig.get< real_type >( BASE_SEQUENCE_BIAS_K, 0.5 );
+        real_type p = bblock.get< real_type >( P_K, m_dist.p());
+        bblock.put( P_K, p );
+        lconfig.put_child( SEQUENCE_BIAS_BLOCK_K, bblock);
+        config.put_child( REC_BLOCK_K, lconfig );
+
         typename dist_type::param_type tmp(p);
         m_dist.param( tmp );
-
-        lconfig.put( BASE_SEQUENCE_BIAS_K, p );
-        config.put_child( REC_BLOCK_K, lconfig );
     }
 
     rng_type    * m_rng;

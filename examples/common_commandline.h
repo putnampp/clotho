@@ -39,6 +39,7 @@ extern const string VERSION_K;
 
 /// I/O OPTION KEYS
 extern const string OUTPUT_K;
+extern const string PREFIX_K;
 extern const string CONFIG_K;
 
 int parse_commandline( int argc, char ** argv, po::variables_map & vm );

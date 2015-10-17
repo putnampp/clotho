@@ -19,6 +19,9 @@
 extern const std::string TRAIT_BLOCK_K;
 extern const std::string FITNESS_BLOCK_K;
 extern const std::string RNG_BLOCK_K;
+extern const std::string ALLELE_BLOCK_K;
+extern const std::string NEUTRAL_BLOCK_K;
+extern const std::string SEQUENCE_BIAS_BLOCK_K;
 
 extern const std::string MUT_BLOCK_K;
 extern const std::string MU_K;
@@ -32,6 +35,8 @@ extern const std::string SIGMA_K;
 
 extern const std::string NAME_K;
 extern const std::string PARAM_K;
+extern const std::string CONSTANT_K;
+extern const std::string TYPE_K;
 
 extern const std::string SCALE_K;
 extern const std::string DEPENDS_K;

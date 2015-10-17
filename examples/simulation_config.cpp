@@ -116,7 +116,7 @@ void add_config( boost::property_tree::ptree & log, const simulation_config & si
 //    RESET_SS( oss )
 //    oss << OUTPUT_K;
 //    log.put( oss.str(), sim.out_path );
-    log.put( OUTPUT_K, sim.out_path );
+    log.put( PREFIX_K, sim.out_path );
 
 //    RESET_SS(oss)
 //    oss << REPETITION_K;

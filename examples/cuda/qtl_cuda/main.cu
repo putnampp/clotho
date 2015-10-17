@@ -83,24 +83,16 @@ int main( int argc, char ** argv ) {
 
     boost::property_tree::ptree config = infile.get_child( "configuration", infile );
 
-    unsigned int nGens = 100;
+    unsigned int nGens = config.get< unsigned int >(GEN_K, 0);
+    config.put( GEN_K, nGens );
 
-    if( config.get_child_optional( GEN_K ) == boost::none ) {
-        config.put(GEN_K, nGens);
-    } else {
-        nGens = config.get< unsigned int >( GEN_K, nGens);
-    }
+    size_t hlimit = 0;
+    cudaDeviceGetLimit( &hlimit, cudaLimitMallocHeapSize );
+    hlimit = config.get< size_t >(HEAP_K, hlimit );
 
-    if( config.get_child_optional( HEAP_K ) == boost::none ) {
-        size_t hlimit = 0;
-        cudaDeviceGetLimit( &hlimit, cudaLimitMallocHeapSize );
+    assert( cudaDeviceSetLimit( cudaLimitMallocHeapSize, hlimit ) == cudaSuccess);
 
-        config.put( HEAP_K, hlimit );
-    } else {
-        size_t hlimit = config.get< size_t >( HEAP_K );
-
-        cudaDeviceSetLimit( cudaLimitMallocHeapSize, hlimit );
-    }
+    config.put( HEAP_K, hlimit );
 
     population_growth_type pop_grow;
     if( print_config_only ) {
@@ -126,7 +118,7 @@ int main( int argc, char ** argv ) {
     std::string p = log.make_path( "config" );
     log.write( p );
 
-    if( print_config_only ) {
+    if( print_config_only || nGens == 0) {
         return 0;
     }
 

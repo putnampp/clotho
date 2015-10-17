@@ -16,6 +16,9 @@
 const std::string TRAIT_BLOCK_K = "traits";
 const std::string FITNESS_BLOCK_K = "fitness";
 const std::string RNG_BLOCK_K = "random_number";
+const std::string ALLELE_BLOCK_K = "allele";
+const std::string NEUTRAL_BLOCK_K = "neutral";
+const std::string SEQUENCE_BIAS_BLOCK_K = "sequence_bias";
 
 const std::string MUT_BLOCK_K   = "mutation";
 const std::string MU_K          = "mu";
@@ -29,6 +32,8 @@ const std::string SIGMA_K = "sigma";
 
 const std::string NAME_K = "name";
 const std::string PARAM_K = "params";
+const std::string CONSTANT_K = "constant";
+const std::string TYPE_K = "type";
 
 const std::string SCALE_K = "scale";
 const std::string DEPENDS_K = "dependency";

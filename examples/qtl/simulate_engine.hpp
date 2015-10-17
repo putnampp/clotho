@@ -692,14 +692,22 @@ protected:
         //_log.put( "population.total_sequences", nExpSeq );
         //
         _log.put( "population.sequences.unique", seq_ref_counts.size() );
-        _log.put( "population.sequences.num_empty", ((allele_counts.find(0) != allele_counts.end() )?allele_counts[0] : 0));
+        _log.put( "population.sequences.num_empty", ((allele_counts.find(0) != allele_counts.end() ) ? allele_counts[0] : 0));
         _log.put( "population.size", p->size() );
+
 
         _log.put( "sequences.allele_count_distribution.format", "[alleles per sequence, number of sequences in population]" );
         _log.add_child( "sequences.allele_count_distribution.value", all_dist );
         _log.put( "sequences.alleles_per.mean", ave_alleles_per_sequence);
         _log.put( "sequences.alleles_per.min", allele_counts.begin()->first );
-        _log.put( "sequences.alleles_per.max", allele_counts.rbegin()->first );
+
+        count_iterator bs = allele_counts.begin();
+        unsigned int i = 1;
+        while( i++ < allele_counts.size() ) { ++bs; }
+
+        //_log.put( "sequences.alleles_per.max", allele_counts.crbegin()->first );
+        //_log.put( "sequences.alleles_per.max", (allele_counts.begin() + allele_counts.size() )->first);
+        _log.put( "sequences.alleles_per.max", bs->first );
         _log.put( "sequences.alleles_per.median", med_allele );
         _log.put( "sequences.alleles_per.variance", var_allele );
 

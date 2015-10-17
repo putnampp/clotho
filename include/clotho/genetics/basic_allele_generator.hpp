@@ -16,11 +16,10 @@
 
 #include "basic_allele.h"
 #include "clotho/utility/random_generator.hpp"
+#include "clotho/utility/clotho_strings.hpp"
 
 #include <boost/random/uniform_01.hpp>
 #include <boost/random/bernoulli_distribution.hpp>
-
-extern const string NEUTRAL_P_K;
 
 namespace clotho {
 namespace utility {
@@ -79,25 +78,21 @@ protected:
     }
 
     void parseConfig( boost::property_tree::ptree & config ) {
-//        std::ostringstream oss;
-//        oss /*<< CONFIG_BLOCK_K << "."*/ << ALLELE_BLOCK_K << "." << NEUTRAL_P_K;
-//        if( config.get_child_optional( oss.str() ) == boost::none ) {
-//            config.put( oss.str(), m_neutral.p() );
-//        } else {
-//            double p = config.get< double >( oss.str(), m_neutral.p() );
-//            typename neutral_dist_type::param_type tmp( p );
-//            m_neutral.param(tmp);
-//        }
         boost::property_tree::ptree lconfig;
         lconfig = config.get_child( ALLELE_BLOCK_K, lconfig );
 
-        real_type p = config.get< real_type >( NEUTRAL_P_K, m_neutral.p() );
+        boost::property_tree::ptree nblock;
+        nblock = lconfig.get_child( NEUTRAL_BLOCK_K, nblock );
+
+        real_type p = nblock.get< real_type >( P_K, m_neutral.p() );
+
+        nblock.put( P_K, p );
+
+        lconfig.put_child( NEUTRAL_BLOCK_K, nblock );
+        config.put_child( ALLELE_BLOCK_K, lconfig );
 
         typename neutral_dist_type::param_type tmp( p );
         m_neutral.param( tmp );
-
-        lconfig.put( NEUTRAL_P_K, p );
-        config.put_child( ALLELE_BLOCK_K, lconfig );
     }
 
     URNG *  m_rng;

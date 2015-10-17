@@ -43,6 +43,7 @@ const string LOG_PERIOD_K = "log-period";
 /// I/O OPTION KEYS
 const string OUTPUT_K = "output";
 const string CONFIG_K = "config";
+const string PREFIX_K = "prefix";
 
 int parse_commandline( int argc, char ** argv, po::variables_map & vm ) {
     po::options_description gen( "General" );
@@ -58,7 +59,7 @@ int parse_commandline( int argc, char ** argv, po::variables_map & vm ) {
     po::options_description clotho_app( "Simulation Parameters" );
     clotho_app.add_options()
     ( (GENERATIONS_K + ",g").c_str(), po::value<unsigned int>()->default_value(generation_parameter::DEFAULT_GENERATIONS), "A positive number of generations. A value 0 will return a default configuration file")
-    ( (FOUNDER_SIZE_K+ ",p").c_str(), po::value< unsigned int >()->default_value(population_parameter::DEFAULT_POPULATION_SIZE), "Founding population size" )
+    ( (FOUNDER_SIZE_K+ ",P").c_str(), po::value< unsigned int >()->default_value(population_parameter::DEFAULT_POPULATION_SIZE), "Founding population size" )
     ( (MU_K + ",m").c_str(), po::value< real_type >()->default_value( mutation_type::DEFAULT_MUTATION_RATE ), "Mutation rate" )
     ( (RHO_K + ",r").c_str(), po::value< real_type >()->default_value( recombination_type::DEFAULT_RECOMB_RATE ), "Recombination rate" )
     ( (REPETITION_K + ",R").c_str(), po::value< unsigned int >()->default_value( 1 ), "Repetitions" )
@@ -68,8 +69,8 @@ int parse_commandline( int argc, char ** argv, po::variables_map & vm ) {
 
     po::options_description io_param("I/O parameters");
     io_param.add_options()
-    ( (OUTPUT_K + ",o").c_str(), po::value< std::string >()->default_value(""), "Prefix for simulation output files")
-    ( (CONFIG_K + ",i").c_str(), po::value< std::string >()->default_value(""), "Simulation configuration file")
+    ( (PREFIX_K + ",p").c_str(), po::value< std::string >()->default_value(""), "Prefix for simulation output files")
+    ( (CONFIG_K + ",c").c_str(), po::value< std::string >()->default_value(""), "Simulation configuration file")
     ;
 
     po::options_description cmdline;
@@ -94,7 +95,7 @@ int parse_commandline( int argc, char ** argv, simulation_config & cfg ) {
         return res;
     }
 
-    cfg.out_path = vm[ OUTPUT_K ].as< string >();
+    cfg.out_path = vm[ PREFIX_K ].as< string >();
     cfg.cfg_path = vm[ CONFIG_K ].as<string>();
 
     if( !cfg.cfg_path.empty() ) {
@@ -115,14 +116,14 @@ int parse_commandline( int argc, char ** argv, boost::property_tree::ptree & cfg
     }
 
     string cfg_path = vm[ CONFIG_K ].as<string>();
-    string out_path = vm[ OUTPUT_K ].as<string>();
+    string out_path = vm[ PREFIX_K ].as<string>();
 
     if( !cfg_path.empty() ) {
         assert( boost::algorithm::iends_with( cfg_path, ".json") );
         boost::property_tree::read_json(cfg_path, cfg);
 
         cfg.put( CONFIG_BLOCK_K + "." + CONFIG_K, cfg_path );
-        cfg.put( CONFIG_BLOCK_K + "." + OUTPUT_K, out_path );
+        cfg.put( CONFIG_BLOCK_K + "." + PREFIX_K, out_path );
     } else {
         update_config( vm, cfg );
     }
@@ -144,7 +145,7 @@ void update_config( po::variables_map & vm, simulation_config & cfg ) {
     cfg.log_period = vm[ PERIOD_K ].as< unsigned int >();
 
     cfg.cfg_path = vm[ CONFIG_K ].as<string>();
-    cfg.out_path = vm[ OUTPUT_K ].as<string>();
+    cfg.out_path = vm[ PREFIX_K ].as<string>();
 }
 
 void update_config( po::variables_map & vm, boost::property_tree::ptree & cfg ) {

@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <map>
 
+#include "clotho/utility/clotho_strings.hpp"
 #include "clotho/utility/log_helper.hpp"
 #include "common_commandline.h"
 
@@ -68,14 +69,14 @@ typedef std::map< sequence_pointer, unsigned int >  ref_map_type;
 typedef typename ref_map_type::iterator             ref_map_iterator;
 typedef std::vector< unsigned int >                 allele_dist_type;
 
-const string BASE_SEQUENCE_BIAS_K = "base_bias";
+//const string BASE_SEQUENCE_BIAS_K = "base_bias";
 //const string TRAIT_BLOCK_K = "traits";
-const string ALLELE_BLOCK_K = "allele";
-const string NEUTRAL_P_K = "neutral.p";
+//const string ALLELE_BLOCK_K = "allele";
+//const string NEUTRAL_P_K = "neutral.p";
 
 //const string SAMPLING_K = "sampling_size";
 
-const string CONSTANT_K = "constant";
+//const string CONSTANT_K = "constant";
 
 //const string SIZE_K = "size";
 //const string PAIRWISE_K = "pairwise";
@@ -84,7 +85,7 @@ const string ENGINE_BLOCK_K = "engine";
 const string POWERSET_BLOCK_K = "powerset";
 const string SUBSET_BLOCK_K = "subset";
 const string CLASSIFIER_BLOCK_K = "classifier";
-const string TYPE_K = "type";
+//const string TYPE_K = "type";
 
 void write_engine_config( const std::string & out_path );
 
@@ -102,10 +103,11 @@ int main( int argc, char ** argv ) {
     const unsigned int nRep = conf_child.get< unsigned int >( REPETITION_K, 1 );
 
     generation_parameter gen_param( conf_child );
+
     qtl_logging_parameter log_param( conf_child );
     seed_parameter<  > seed_param( conf_child );
 
-    string out_path = conf_child.get<string>( OUTPUT_K, "" );
+    string out_path = conf_child.get<string>( PREFIX_K, "" );
 
     write_engine_config( out_path );
 
@@ -127,7 +129,13 @@ int main( int argc, char ** argv ) {
 
             log_type tmp;
             tmp.add_child( CONFIG_BLOCK_K, rep_child_conf );
-            boost::property_tree::write_json( std::cerr, tmp );
+            if( out_path.empty() ) {
+                boost::property_tree::write_json( std::cerr, tmp );
+            } else {
+                std::ostringstream oss;
+                oss << out_path << "_config.json";
+                boost::property_tree::write_json( oss.str(), tmp );
+            }
 
             continue;
         }

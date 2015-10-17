@@ -76,6 +76,8 @@ protected:
     void method1(typename result_type::param_type & p, unsigned int n) {
         if( n == 0 ) return;
 
+        p.reserve( n );
+
         std::set< real_type > positions;
         while( positions.size() < n ) {
             positions.insert( m_uniform( *m_rng ) );
@@ -107,6 +109,10 @@ protected:
     //  address = {New York, NY, USA},
     //  }
     void generate_ordered_list( typename result_type::param_type & p, unsigned int N ) {
+        if( N == 0 ) return;
+
+        p.reserve( N );
+
         real_type curmax = 0.0;
         qtl_allele::trait_weights coeff;
         while( N ) {

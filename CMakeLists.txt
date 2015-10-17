@@ -207,7 +207,7 @@ COMMENT "Generating API documentation with Doxygen" VERBATIM
 )
 ENDIF(DOXYGEN_FOUND)
 
-set(CMAKE_CXX_FLAGS "-g -fPIC -Wall -O3 -std=c++0x -march=native -pedantic" )
+set(CMAKE_CXX_FLAGS "-g -fPIC -Wall -O3 -std=c++11 -march=native -pedantic" )
 
 LINK_DIRECTORIES( ${PROJECT_BINARY_DIR}/bin )
 
