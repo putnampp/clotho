@@ -115,7 +115,7 @@ __global__ void crossover_kernel( StateType * states
         }
 
         unsigned int s = __shfl( _sum, 31 );
-        assert( max_events < allele_space_type::ALIGNMENT_SIZE );
+//        assert( max_events < allele_space_type::ALIGNMENT_SIZE );
 
         s = __shfl( _sum, threadIdx.y - nonzero_warp);
         s *= nonzero_warp;
