@@ -21,6 +21,7 @@
 
 #include "clotho/utility/timer.hpp"
 #include "clotho/utility/popcount.hpp"
+#include "clotho/utility/algorithm_version.hpp"
 
 #include <boost/random/mersenne_twister.hpp>
 
@@ -35,7 +36,7 @@ struct test_kernel {
     void operator()( device_sequence_space< int_type > * seqs, unsigned int N ) {
         resize_space( dWeights, N );
 
-        algo_version< V > * v = NULL;
+        clotho::utility::algo_version< V > * v = NULL;
         sequence_hamming_weight_kernel<<< 10, 1024 >>>( seqs, dWeights, v );
     }
 
