@@ -128,7 +128,7 @@ IF( WITH_CUDA_EXAMPLES )
     SET(CUDA_SEPARABLE_COMPILATION ON )
     SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
     #SET(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-gencode=arch=compute_30,code=sm_30")
-    LIST(APPEND CUDA_NVCC_FLAGS "-g;-O3;-gencode=arch=compute_30,code=sm_30;-std=c++11;-lineinfo;-src-in-ptx")
+    LIST(APPEND CUDA_NVCC_FLAGS "-g;-O3;-gencode=arch=compute_52,code=sm_52;-std=c++11;-lineinfo;-src-in-ptx")
 
     MESSAGE( STATUS "CUDA VERSION: " ${CUDA_VERSION} )
     MESSAGE( STATUS "CUDA LIBRARIES: " ${CUDA_LIBRARIES} )
