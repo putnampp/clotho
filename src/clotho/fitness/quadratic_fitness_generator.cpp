@@ -14,21 +14,18 @@
 #include "clotho/fitness/quadratic_fitness_generator.hpp"
 #include "clotho/fitness/fitness_toolkit.hpp"
 
-//const std::string SCALE_K = "scale";
-//const std::string MU_K = "mu";
-
 quadratic_fitness_generator::quadratic_fitness_generator() :
-    mutation_rate_parameter< double >()
-    , m_scale( 1. )
+    quadratic_fitness_parameter< double >()
+    , mutation_rate_parameter< double >()
 {
     fitness_toolkit::getInstance()->register_tool( this );
 }
 
 quadratic_fitness_generator::quadratic_fitness_generator( boost::property_tree::ptree & config ) :
-    mutation_rate_parameter< double >( config )
-    , m_scale(1.)
+    quadratic_fitness_parameter< double >( config )
+    , mutation_rate_parameter< double >( config )
 {
-    parseConfig( config );
+//    parseConfig( config );
 }
 
 std::shared_ptr< ifitness_generator > quadratic_fitness_generator::create( boost::property_tree::ptree & config ) const {
@@ -54,20 +51,20 @@ const std::string quadratic_fitness_generator::name() const {
     return QUAD_NAME;
 }
 
-void quadratic_fitness_generator::parseConfig( boost::property_tree::ptree & config ) {
-    boost::property_tree::ptree fblock;
-    fblock = config.get_child( FITNESS_BLOCK_K, fblock );
-    
-    boost::property_tree::ptree pblock;
-    pblock = fblock.get_child( PARAM_K, pblock );
-
-    m_scale = pblock.get< real_type >( SCALE_K, m_scale );
-    
-    pblock.put( SCALE_K, m_scale );
-
-    fblock.put_child( PARAM_K, pblock );
-    config.put_child( FITNESS_BLOCK_K, fblock );
-}
+//void quadratic_fitness_generator::parseConfig( boost::property_tree::ptree & config ) {
+//    boost::property_tree::ptree fblock;
+//    fblock = config.get_child( FITNESS_BLOCK_K, fblock );
+//    
+//    boost::property_tree::ptree pblock;
+//    pblock = fblock.get_child( PARAM_K, pblock );
+//
+//    m_scale = pblock.get< real_type >( SCALE_K, m_scale );
+//    
+//    pblock.put( SCALE_K, m_scale );
+//
+//    fblock.put_child( PARAM_K, pblock );
+//    config.put_child( FITNESS_BLOCK_K, fblock );
+//}
 
 void quadratic_fitness_generator::log( std::ostream & out ) const {
     out << "{" << QUAD_NAME << "_gen, " << m_scale << ", " << m_mu << "}\n";

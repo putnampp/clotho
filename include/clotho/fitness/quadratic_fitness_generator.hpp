@@ -15,6 +15,7 @@
 #define QUADRATIC_FITNESS_GENERATOR_HPP_
 
 #include "clotho/fitness/ifitness_generator.hpp"
+#include "clotho/fitness/quadratic_fitness_parameter.hpp"
 #include "clotho/fitness/quadratic_fitness_metric.hpp"
 
 #include "clotho/mutation/mutation_rate_parameter.hpp"
@@ -30,7 +31,9 @@
  *
  * Generates a quadratic fitness metric.
  */
-class quadratic_fitness_generator : public ifitness_generator, mutation_rate_parameter< double > {
+class quadratic_fitness_generator : public ifitness_generator,
+                                    public quadratic_fitness_parameter< double >,
+                                    public mutation_rate_parameter< double > {
 public:
     typedef double                                  real_type;
 
@@ -51,9 +54,9 @@ public:
 
 protected:
 
-    void parseConfig( boost::property_tree::ptree & config );
+//    void parseConfig( boost::property_tree::ptree & config );
 
-    real_type m_scale;
+//    real_type m_scale;
 };
 
 #endif  // QUADRATIC_FITNESS_GENERATOR_HPP_

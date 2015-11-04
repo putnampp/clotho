@@ -17,6 +17,7 @@
 #include "clotho/fitness/fitness_translator.hpp"
 
 #include "clotho/cuda/data_spaces/basic_data_space.hpp"
+#include "clotho/fitness/quadratic_fitness_parameter.hpp"
 #include "clotho/mutation/mutation_rate_parameter.hpp"
 
 #include "clotho/cuda/device_state_object.hpp"
@@ -63,10 +64,9 @@ public:
 
     QuadraticFitnessTranslator( boost::property_tree::ptree & config ) :
         dFitness( NULL )
+        , m_quad( config )
         , m_mutation_rate( config )
-        , m_scale( 1.0 )
     {
-        parse_configuration( config );
         create_space( dFitness );
     }
 
@@ -76,7 +76,7 @@ public:
         real_type stdev = 2.0 * ((real_type)N) * m_mutation_rate.m_mu;
         stdev = sqrt( stdev );
 
-        stdev *= m_scale;
+        stdev *= m_quad.m_scale;
 
         quadratic_fitness_kernel<<< 1, 1024 >>>( phenos, stdev, dFitness );
     }
@@ -94,29 +94,10 @@ public:
     }
 
 protected:
-
-    void parse_configuration( boost::property_tree::ptree & config ) {
-        boost::property_tree::ptree lconfig;
-
-        if( config.get_child_optional( "fitness" ) != boost::none ) {
-            lconfig = config.get_child( "fitness" );
-        }
-
-        if( lconfig.get_child_optional( "scale" ) == boost::none ) {
-            lconfig.put( "scale", m_scale );
-        } else {
-            m_scale = lconfig.get< real_type >( "scale", m_scale );
-
-            assert( m_scale > 0.0 );
-        }
-
-        config.put_child( "fitness", lconfig );
-    }
-
     fitness_space_type  * dFitness;
 
+    quadratic_fitness_parameter< real_type > m_quad;
     mutation_rate_parameter< real_type > m_mutation_rate;
-    real_type   m_scale;
 };
 
 #endif  // QUADRATIC_FITNESS_TRANSLATOR_HPP_

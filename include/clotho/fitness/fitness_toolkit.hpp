@@ -22,8 +22,6 @@
 
 #include <ostream>
 
-extern const std::string FITNESS_BLOCK_K;
-
 class fitness_toolkit {
 public:
 
