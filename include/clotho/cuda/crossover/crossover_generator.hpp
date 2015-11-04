@@ -87,23 +87,34 @@ protected:
 
         assert( cudaMalloc( (void **) &dPoisCDF, sizeof( poisson_type) ) == cudaSuccess );
 
-        initialize_poisson( m_recombination_rate.m_rho, (order_tag_type *) NULL );
-    }
 
-    void initialize_poisson( real_type mean, unordered_tag * p ) {
-#if CROSSOVER_VERSION == 1 || CROSSOVER_VERSION == 4
-        real_type lambda = (mean / (real_type) allele_space_type::ALIGNMENT_SIZE);
-#else
-        real_type lambda = (mean / 32.0);
-#endif  // CROSSOVER_VERSION
+        real_type lambda = compute_lambda( m_recombination_rate.m_rho, (order_tag_type *) NULL, (clotho::utility::algo_version< CROSSOVER_VERSION > *) NULL );
 
+        
         make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, lambda );
     }
 
-    void initialize_poisson( real_type mean, unit_ordered_tag< int_type > * p ) {
-        real_type lambda = (mean / 32.0);
+    template < class Tag0, class Tag1 >
+    real_type compute_lambda( real_type mean, Tag0 * t0, Tag1 * t1 ) {
+        return mean;
+    }
 
-        make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, lambda );
+    template < unsigned char V >
+    real_type compute_lambda( real_type mean, unordered_tag * p, clotho::utility::algo_version< V > * v ) {
+        return (mean / (real_type) allele_space_type::ALIGNMENT_SIZE);
+    }
+
+    real_type compute_lambda( real_type mean, unordered_tag * p, clotho::utility::algo_version< 2 > * v ) {
+        return (mean / 32.0);
+    }
+
+    real_type compute_lambda( real_type mean, unordered_tag * p, clotho::utility::algo_version< 3 > * v ) {
+        return (mean / 32.0);
+    }
+
+    template < unsigned char V >
+    real_type compute_lambda( real_type mean, unit_ordered_tag< int_type > * p, clotho::utility::algo_version< V > * ver ) {
+        return (mean / 32.0);
     }
 
     poisson_type * dPoisCDF;
