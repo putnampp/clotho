@@ -91,7 +91,7 @@ protected:
     }
 
     void initialize_poisson( real_type mean, unordered_tag * p ) {
-#if CROSSOVER_VERSION == 1
+#if CROSSOVER_VERSION == 1 || CROSSOVER_VERSION == 4
         real_type lambda = (mean / (real_type) allele_space_type::ALIGNMENT_SIZE);
 #else
         real_type lambda = (mean / 32.0);
