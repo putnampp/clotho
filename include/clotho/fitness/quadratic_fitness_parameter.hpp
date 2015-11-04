@@ -35,7 +35,9 @@ struct quadratic_fitness_parameter {
         
         pblock.put( SCALE_K, m_scale );
 
+        fblock.put( NAME_K, QUAD_NAME );
         fblock.put_child( PARAM_K, pblock );
+
         config.put_child( FITNESS_BLOCK_K, fblock );
     }
 };

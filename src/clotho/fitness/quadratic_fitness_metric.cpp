@@ -13,8 +13,9 @@
 //   limitations under the License.
 #include "clotho/fitness/quadratic_fitness_metric.hpp"
 #include <cassert>
+#include "clotho/utility/clotho_strings.hpp"
 
-const std::string QUAD_NAME = "quadratic";
+//const std::string QUAD_NAME = "quadratic";
 
 quadratic_fitness_metric::quadratic_fitness_metric( real_type s ) :
     m_std(s) {

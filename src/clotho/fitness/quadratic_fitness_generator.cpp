@@ -13,6 +13,7 @@
 //   limitations under the License.
 #include "clotho/fitness/quadratic_fitness_generator.hpp"
 #include "clotho/fitness/fitness_toolkit.hpp"
+#include "clotho/utility/clotho_strings.hpp"
 
 quadratic_fitness_generator::quadratic_fitness_generator() :
     quadratic_fitness_parameter< double >()

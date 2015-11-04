@@ -16,7 +16,7 @@
 
 #include "clotho/fitness/ifitness.hpp"
 
-extern const std::string QUAD_NAME;
+//extern const std::string QUAD_NAME;
 
 /**
  * Fitness is the scaled phenotype
