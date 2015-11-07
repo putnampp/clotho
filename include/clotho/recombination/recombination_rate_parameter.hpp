@@ -28,7 +28,7 @@ struct recombination_rate_parameter {
     {}
 
     recombination_rate_parameter( boost::property_tree::ptree & config ) :
-        m_rho( 0.001 )
+        m_rho( DEFAULT_RECOMB_RATE )
     {
         boost::property_tree::ptree lconfig;
         lconfig = config.get_child( REC_BLOCK_K, lconfig );

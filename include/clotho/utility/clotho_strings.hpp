@@ -45,6 +45,4 @@ extern const std::string SEED_K;
 extern const std::string P_K;
 extern const std::string Q_K;
 
-extern const std::string QUAD_NAME;
-
 #endif  // CLOTHO_STRINGS_HPP_

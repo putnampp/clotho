@@ -41,5 +41,3 @@ const std::string SEED_K = "seed";
 
 const std::string P_K = "p";
 const std::string Q_K = "q";
-
-const std::string QUAD_NAME = "quadratic";

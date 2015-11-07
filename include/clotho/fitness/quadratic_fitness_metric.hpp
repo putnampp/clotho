@@ -15,8 +15,7 @@
 #define QUADRATIC_FITNESS_METRIC_HPP_
 
 #include "clotho/fitness/ifitness.hpp"
-
-//extern const std::string QUAD_NAME;
+#include "clotho/utility/clotho_strings.hpp"
 
 /**
  * Fitness is the scaled phenotype

@@ -17,6 +17,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include "clotho/utility/clotho_strings.hpp"
 
+extern const std::string QUAD_NAME;
+
 template < class RealType >
 struct quadratic_fitness_parameter {
     RealType    m_scale;
