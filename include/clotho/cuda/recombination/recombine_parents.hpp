@@ -60,9 +60,11 @@ __global__ void recombine_parents_kernel( device_sequence_space< IntType > * par
         unsigned int p0_idx = pidx * parent_width + tid;
         unsigned int off_idx = bid * off_width + tid;
         unsigned int j = tid;
+
+        int _width = ((pidx & 1) ? -parent_width : parent_width);
         while( j < parent_width ) {
             sequence_int_type p0 = par_seqs[ p0_idx ];
-            sequence_int_type p1 = par_seqs[ p0_idx + parent_width ] ;
+            sequence_int_type p1 = par_seqs[ p0_idx + _width ] ;
 
             sequence_int_type cross = off_seqs[ off_idx ];
 
@@ -143,9 +145,10 @@ __global__ void recombine_parents_kernel( device_sequence_space< IntType > * par
         unsigned int start = end - ((off_id < off_count) ? off_width : 0);
         start += lane_id;
 
+        int _width = ((pidx & 1) ? -parent_width : parent_width);
         while( p_start < p_end ) {
             sequence_int_type p0 = par_seqs[ p_start ];
-            sequence_int_type p1 = par_seqs[ p_start + parent_width ] ;
+            sequence_int_type p1 = par_seqs[ p_start + _width ] ;
 
             sequence_int_type cross = off_seqs[ start ];
 

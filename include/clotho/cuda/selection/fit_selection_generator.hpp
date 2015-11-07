@@ -21,6 +21,9 @@
 #include "clotho/cuda/distributions/discrete_distribution.hpp"
 //#include "clotho/cuda/selection/random_select_parents.hpp"
 #include "clotho/cuda/recombination/recombine_parents.hpp"
+#include "clotho/recombination/sequence_bias_parameter.hpp"
+
+#include "clotho/cuda/distributions/bernoulli_distribution.hpp"
 
 #include "clotho/cuda/device_state_object.hpp"
 
@@ -32,8 +35,12 @@ public:
     typedef clotho::cuda::curand_state_pool             state_pool_type;
 
     typedef DiscreteDistribution< IntType, RealType >   discrete_dist_type;
+    typedef sequence_bias_parameter< RealType >         sequence_bias_type;
 
-    FitSelectionGenerator( boost::property_tree::ptree & config ) {
+    FitSelectionGenerator( boost::property_tree::ptree & config ) :
+        dParentIndices(NULL)
+        , m_seq_bias( config )
+    {
         state_pool_type::getInstance()->initialize( config );
         create_space( dParentIndices );
     }
@@ -49,6 +56,9 @@ public:
                                         , child_pop->sequences.get_device_space()
                                         , dParentIndices );
         CHECK_LAST_KERNEL_EXEC
+
+        int shift = 1;
+        inline_bernoulli_linear_shift_kernel<<< 1, 32 >>>( state_pool_type::getInstance()->get_device_states(), dParentIndices, m_seq_bias.m_bias, shift );
     }
 
     template < class PopulationSpaceType, class FitnessSpaceType >
@@ -58,7 +68,7 @@ public:
         clotho::utility::algo_version< 2 > * v = NULL;
         recombine_parents_kernel<<< 10, 1024 >>>( parent_pop->sequences.get_device_space()
                                                 , dParentIndices
-                                                , child_pop->sequences.get_device_space() 
+                                                , child_pop->sequences.get_device_space()
                                                 , v);
         CHECK_LAST_KERNEL_EXEC
     }
@@ -84,6 +94,8 @@ public:
 
 protected:
     event_space_type    * dParentIndices;
+
+    sequence_bias_type  m_seq_bias;
     discrete_dist_type  m_discrete;
 };
 
