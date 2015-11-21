@@ -29,7 +29,7 @@ struct device_allele_space {
 
     real_type       * locations;
 
-    unsigned int    capacity;
+    unsigned int    size, capacity;
 };
 
 template < class RealType >

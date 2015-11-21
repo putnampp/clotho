@@ -27,6 +27,8 @@
 #include "clotho/cuda/data_spaces/allele_space/merge_space_helper.hpp"
 #include "clotho/cuda/helper_macros.hpp"
 
+#include "clotho/cuda/popcount_kernel.h"
+
 template < class RealType >
 __device__ bool _resize_space_impl( device_allele_space< RealType > * aspace, unsigned int N, bool copy_content = false ) {
     typedef device_allele_space< RealType > space_type;
@@ -214,46 +216,70 @@ __global__ void resize_fixed_allele_kernel( AlleleSpaceType * alls, device_free_
     }
 }
 
-/// quick implementation
-/// should be re-written to make use of parallelism
-/// in addition to efficient bit walking (as done in sequential code)
 template < class AlleleSpaceType, class IntType, class OrderTag >
-__global__ void move_fixed_allele_kernel( AlleleSpaceType * dest, AlleleSpaceType * src, device_free_space< IntType, OrderTag > * free_space ) {
-    unsigned int _count = free_space->fixed_count;
-    //printf( "%d fixed allele encountered\n", _count );
+__global__ void move_fixed_allele_kernel( AlleleSpaceType * dest, AlleleSpaceType * src, device_free_space< IntType, OrderTag > * src_free_space ) {
+    unsigned int _count = src_free_space->fixed_count;
     if( _count == 0 ) {
         return;
     }
 
-    unsigned int M = dest->capacity;
+    if( blockIdx.y * gridDim.x + blockIdx.y > 0 ) return;   // algorithm assumes single block
 
-    _count += M;
-    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
-        _resize_space_impl( dest, _count, true );
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int lane_id = (tid & 31);
+
+    unsigned int N = dest->size;
+
+    if( lane_id == 0 ) {
+        _resize_space_impl( dest, N + _count, true );
     }
     __syncthreads();
 
     typedef device_free_space< IntType, OrderTag >  space_type;
     typedef typename space_type::int_type           int_type;
 
-    int_type * xlist = free_space->fixed_list;
-    unsigned int offset = 0;
-    while( M < _count ) {
-        int_type x = xlist[offset];
+    assert( sizeof(int_type) * 8 == space_type::OBJECTS_PER_INT );
 
-        unsigned int bit = 0;
-        while( x != 0 ) {
+    int_type * xlist = src_free_space->fixed_list;
+    unsigned int M = src_free_space->size;
 
-            if( x & 1 ) {
-                unsigned int idx = offset * space_type::OBJECTS_PER_INT + bit;
-                _move_allele( src, idx, dest, M);
-                ++M;
+    unsigned int offset = 0, a_idx = lane_id;
+    unsigned int lane_mask = (1 << lane_id);
+    unsigned int lane_lower_mask = (lane_mask - 1);
+
+    popcountGPU< int_type > pc;
+
+    _count += N;
+
+    while( N < _count && offset < M ) {
+        int_type x = xlist[offset++];
+
+        if( x != 0 ) {  // true for all threads in block
+            unsigned int offset = pc.evalGPU( (x & lane_lower_mask) );
+
+            if( (x & lane_mask) ) {
+                N += offset;
+                _move_allele(src, a_idx, dest, N );
+                ++N;
             }
-            x >>= 1;
-            ++bit;
+            __syncthreads();
+
+            for( unsigned int i = 1; i < 32; i <<= 1 ) {
+                unsigned int n = __shfl_up( N, i );
+                N = ((n > N) ? n : N);
+            }
+
+            N = __shfl( N, 31 );
         }
-        ++offset;
+
+        a_idx += space_type::OBJECTS_PER_INT;
     }
+
+    if( lane_id == 0 ) {
+        dest->size = N;
+    }
+
+//    assert( N >= _count);
 }
 
 template < class StateType, class RealType >

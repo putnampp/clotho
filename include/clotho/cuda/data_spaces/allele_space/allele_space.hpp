@@ -104,7 +104,7 @@ void _CLASS::expand_relative_to( self_type & alls, device_free_space< IntType, O
 _HEADER template < class IntType, class OrderTag >
 void _CLASS::move_fixed( self_type & alls, device_free_space< IntType, OrderTag > * free_space ) {
 
-    move_fixed_allele_kernel<<< 1, 1 >>>( alls.dAlleles, dAlleles, free_space );
+    move_fixed_allele_kernel<<< 1, 32 >>>( alls.dAlleles, dAlleles, free_space );
     CHECK_LAST_KERNEL_EXEC
 }
 
