@@ -265,9 +265,19 @@ __global__ void update_free_map_kernel( device_free_space< IntType, unordered_ta
     unsigned int *fmap = free_space->free_map;
 
     unsigned int count = 0, prev_sum = 0;
-    unsigned int i = 0;
+    unsigned int i = lane_id;
 
-    unsigned int N = (free_space->capacity / space_type::OBJECTS_PER_INT);  
+    unsigned int N = free_space->capacity;
+
+    // clear the current map   
+    while( i < N ) {
+        fmap[i] = N;    // N is the upper bound of the index range (ie. 0 <= idx < N)
+        i += (blockDim.x * blockDim.y);
+    }
+    __syncthreads();
+
+    i = 0;
+    N /= space_type::OBJECTS_PER_INT;
     while( i < N ) {
         int_type _c = flist[i];
         __syncthreads();
