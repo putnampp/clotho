@@ -55,27 +55,34 @@ def pd( s0, s1 ):
     return n
 
 def computePairwiseDiff( seq_map, count ):
-    if count == 0:
-        return {}
+    if count <= 0:
+        return {"mean": 0 }
 
     klist = []
     for x,y in seq_map.iteritems():
-        if x == 'unique':
+        if x == 'unique':   # this is a key within the dict
             continue
         klist.append(x)
-        print x
+#        print x
         if 'dup' in y:
             for i in range(y['dup']):
                 klist.append(x)
     np.random.shuffle(klist)
 
+    if count > len(klist):
+        print "Warning: Pairwise population size is GREATER than the input population size"
+
     keys = []
-    if count > 0:
+    
+    if count != len(klist):
         for i in np.random.randint( len(klist), size=count):
             keys.append(klist[i])
     else:
         keys=klist
 
+    return pairwise_diff( seq_map, keys )
+
+def pairwise_diff( seq_map, keys ):
     diffs = {}
 
     s=len(keys)
@@ -102,10 +109,10 @@ def computePairwiseDiff( seq_map, count ):
                 tot += d
                 diffs[x][y]=d
 
-    return { "mean": (tot / n) }
+    return { "mean": (tot / n), "size": n, "key_count": len(keys) }
 
 def updateLogs( distributions, params ):
-    (nReps, allele_dist, seq_dist, nSeqs, seq_map, seq_uniq, pairwise) = params
+    (nReps, allele_dist, seq_dist, nSeqs, seq_map, seq_uniq, pairwise, sample_pairwise) = params
 
     distributions[nReps] = {}
     distributions[nReps]['allele_num'] = { x:y for x,y in enumerate(allele_dist) if y != 0 }
@@ -124,11 +131,12 @@ def updateLogs( distributions, params ):
         distributions[nReps]['pairwise'] = {}
 
     m = 0
-    for i in range(20):
-        d = computePairwiseDiff( seq_map, pairwise )
-        distributions[nReps]['pairwise'][i] = d
-        m += d['mean']
-    distributions[nReps]['pairwise']['average'] = (m / 20)
+    if sample_pairwise > 0:
+        for i in range(sample_pairwise):
+            d = computePairwiseDiff( seq_map, pairwise )
+            distributions[nReps]['pairwise'][i] = d
+            m += d['mean']
+        distributions[nReps]['pairwise']['sampling_average'] = (m / sample_pairwise)
 
     return True
 
@@ -140,7 +148,8 @@ parser = OptionParser()
 parser.add_option("-i", "--input", dest="file_path", help="Input MS formatted file", type="string", default="" )
 parser.add_option("-g", "--gnu", dest="gnu_path", help="Path for CSV format (as GNU Plot tables)", type="string", default="")
 parser.add_option("-j", "--json", dest="json_path", help="Path JSON format", type="string", default="")
-parser.add_option("-p", "--pairwise", dest="pairwise", help="Random number of samples to compute pairwise difference", type="int", default=-1)
+parser.add_option("-p", "--pairwise", dest="pairwise", help="Pairwise population size; Random subset will be used if size is different from the population size", type="int", default=-1)
+parser.add_option("-s", "--sample_pairwise", dest="sample_pairwise", help="Number of samples to compute pairwise difference", type="int", default=-1)
 
 (options, args) = parser.parse_args()
 
@@ -178,7 +187,7 @@ for line in f:
         nReps+=1
         in_sample=True
     elif len(line) == 0:
-        updateLogs( distributions, (nReps, allele_dist, seq_dist, nSeqs, seq_map, seq_uniq, options.pairwise))
+        updateLogs( distributions, (nReps, allele_dist, seq_dist, nSeqs, seq_map, seq_uniq, options.pairwise, options.sample_pairwise))
 
         # reset objects for next log
         nSeqs=0
@@ -222,7 +231,7 @@ for line in f:
 f.close()
 
 if in_sample:
-    updateLogs( distributions, (nReps, allele_dist, seq_dist, nSeqs, seq_map, seq_uniq, options.pairwise))
+    updateLogs( distributions, (nReps, allele_dist, seq_dist, nSeqs, seq_map, seq_uniq, options.pairwise,options.sample_pairwise))
 
 print nReps
 
