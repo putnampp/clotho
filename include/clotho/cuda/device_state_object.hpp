@@ -22,7 +22,12 @@ void get_device_object_state( boost::property_tree::ptree & state, ObjectType * 
 
     ObjectType local_obj;
 
-    assert( cudaMemcpy( &local_obj, obj, sizeof( ObjectType ), cudaMemcpyDeviceToHost ) == cudaSuccess );
+    //assert( cudaMemcpy( &local_obj, obj, sizeof( ObjectType ), cudaMemcpyDeviceToHost ) == cudaSuccess );
+    cudaError_t err = cudaMemcpy( &local_obj, obj, sizeof( ObjectType ), cudaMemcpyDeviceToHost );
+    if( err != cudaSuccess ) {
+        std::cerr << "ERROR: " << cudaGetErrorString( err ) << std::endl;
+        assert(false);
+    }
 
     //clotho::utility::get_state( state, local_obj );
     clotho::utility::state_getter< ObjectType > s_get;

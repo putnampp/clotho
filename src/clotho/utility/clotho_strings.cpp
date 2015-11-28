@@ -13,6 +13,7 @@
 //   limitations under the License.
 #include "clotho/utility/clotho_strings.hpp"
 
+const std::string CONFIG_BLOCK_K = "configuration";
 const std::string TRAIT_BLOCK_K = "traits";
 const std::string FITNESS_BLOCK_K = "fitness";
 const std::string RNG_BLOCK_K = "random_number";
@@ -41,3 +42,6 @@ const std::string SEED_K = "seed";
 
 const std::string P_K = "p";
 const std::string Q_K = "q";
+
+const std::string SIZE_K = "size";
+const std::string REPETITION_K = "repeat";

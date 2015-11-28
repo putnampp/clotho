@@ -17,6 +17,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "clotho/cuda/crossover/crossover_kernels.hpp"
+#include "clotho/cuda/helpers/scaled_mean_helper.hpp"
 
 #include "clotho/cuda/curand_state_pool.hpp"
 
@@ -60,12 +61,18 @@ public:
     }
 
     void operator()( population_type * pop ) {
+        CHECK_LAST_KERNEL_EXEC
+
+//        std::cout << "Blocks: {" << m_blocks.x << ", " << m_blocks.y << ", " << m_blocks.z << "}" << std::endl;
+//        std::cout << "Threads: {" << m_threads.x << ", " << m_threads.y << ", " << m_threads.z << "}" << std::endl;
+
         crossover_kernel<<< m_blocks, m_threads >>>( state_pool_type::getInstance()->get_device_states()
                                                 , pop->alleles.get_device_space()
                                                 , pop->free_space
                                                 , dPoisCDF
                                                 , pop->sequences.get_device_space()
                                                 , ver );
+        CHECK_LAST_KERNEL_EXEC
     }
 
     virtual ~CrossoverGenerator() {
@@ -101,6 +108,7 @@ protected:
 
     template < unsigned char V >
     real_type compute_lambda( real_type mean, unordered_tag * p, clotho::utility::algo_version< V > * v ) {
+        std::cerr << "Scaling mean by 1/" << allele_space_type::ALIGNMENT_SIZE << std::endl;
         return (mean / (real_type) allele_space_type::ALIGNMENT_SIZE);
     }
 

@@ -30,7 +30,11 @@ __device__ void _resize_space_impl( discrete_table< IntType, RealType > * tbl, u
         }
 
         tbl->threshold = new real_type[ N ];
+        assert( tbl->threshold != NULL );
+
         tbl->alternative = new int_type[ N ];
+        assert( tbl->alternative != NULL );
+
         tbl->capacity = N;
     }
     tbl->size = N;
@@ -38,6 +42,8 @@ __device__ void _resize_space_impl( discrete_table< IntType, RealType > * tbl, u
 
 template < class IntType, class RealType >
 __global__ void _resize_space( discrete_table< IntType, RealType > * tbl, unsigned int N ) {
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
+
     if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         _resize_space_impl( tbl, N );
     }
@@ -45,10 +51,18 @@ __global__ void _resize_space( discrete_table< IntType, RealType > * tbl, unsign
 
 template < class IntType, class RealType >
 __device__ void _delete_space_impl( discrete_table< IntType, RealType > * tbl ) {
+    if( blockIdx.y * gridDim.x + blockIdx.x != 0 ) return;
+    if( threadIdx.y * blockDim.x + threadIdx.x != 0 ) return;
+
     if( tbl->threshold != NULL ) {
         delete tbl->threshold;
         delete tbl->alternative;
     }
+
+    tbl->threshold = NULL;
+    tbl->alternative = NULL;
+    tbl->capacity = 0;
+    tbl->size = 0;
 }
 
 #endif  // DISCRETE_TABLE_KERNELS_HPP_

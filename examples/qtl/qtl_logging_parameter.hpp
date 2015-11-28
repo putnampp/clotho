@@ -15,14 +15,15 @@
 #define QTL_LOGGING_PARAMETER_HPP_
 
 #include <boost/property_tree/ptree.hpp>
-#include "../common_strings.h"
+//#include "../common_strings.h"
+#include "clotho/utility/clotho_strings.hpp"
 #include "../logging_parameter.hpp"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/foreach.hpp>
 
-extern const string SAMPLING_K;
-extern const string PAIRWISE_K;
+extern const std::string SAMPLING_K;
+extern const std::string PAIRWISE_K;
 
 struct sample_log_params {
     static const unsigned int   DEFAULT_SAMPLE_SIZE = 100;

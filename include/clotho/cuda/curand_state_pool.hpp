@@ -17,6 +17,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include "clotho/cuda/curand_helper.hpp"
 
+#include "clotho/random/seed_parameter.hpp"
+
 namespace clotho {
 namespace cuda {
 
@@ -49,7 +51,8 @@ protected:
     curand_state_pool();
 
     state_type  * dStates;
-    seed_type   m_seed;
+//    seed_type   m_seed;
+    seed_parameter< seed_type > m_seed_param;
 
     unsigned int max_threads, max_blocks;
 };

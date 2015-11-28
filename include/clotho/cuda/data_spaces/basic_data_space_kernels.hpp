@@ -19,15 +19,23 @@
 
 template < class ValueType >
 __global__ void _delete_space( basic_data_space< ValueType > * space ) {
+    if( blockIdx.y * gridDim.x + blockIdx.x != 0 ) return;
+
+    if( threadIdx.y * blockDim.x + threadIdx.x != 0 ) return;
+
     typename basic_data_space< ValueType >::value_type * tmp = space->data;
 
     if( tmp ) {
         delete tmp;
     }
+    space->data = NULL;
 }
 
 template < class ValueType >
 __device__ void _resize_space_impl( basic_data_space< ValueType > * space, unsigned int N ) {
+    assert(blockIdx.y * gridDim.x + blockIdx.x == 0 );
+    assert( threadIdx.y * blockDim.x + threadIdx.x == 0 );
+
     typedef basic_data_space< ValueType > space_type;
 
     if( space->capacity < N ) {
@@ -36,6 +44,8 @@ __device__ void _resize_space_impl( basic_data_space< ValueType > * space, unsig
         }
 
         space->data = new typename space_type::value_type[ N ];
+        assert( space->data != NULL );
+
         memset( space->data, 0, N * sizeof( typename space_type::value_type) );
         space->capacity = N;
     }
@@ -45,15 +55,17 @@ __device__ void _resize_space_impl( basic_data_space< ValueType > * space, unsig
 
 template < class ValueType >
 __global__ void _resize_space( basic_data_space< ValueType > * space, unsigned int N ) {
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
 
-    if( tid == 0 ) {
+    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         _resize_space_impl( space, N );
     }
 }
 
 template < class ValueType, class SpaceType >
 __global__ void _resize_space_to( basic_data_space< ValueType > * target, SpaceType * base ) {
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
+
     if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         unsigned int N = base->capacity;
         _resize_space_impl( target, N );

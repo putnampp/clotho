@@ -15,7 +15,7 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR} )
 
 LIST( APPEND SRCS common_commandline.cpp)
-LIST( APPEND SRCS common_strings.cpp)
+#LIST( APPEND SRCS common_strings.cpp)
 LIST( APPEND SRCS generation_parameter.cpp)
 LIST( APPEND SRCS population_parameter.cpp)
 LIST( APPEND SRCS logging_parameter.cpp)

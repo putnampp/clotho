@@ -31,6 +31,9 @@
 
 template < class RealType >
 __device__ bool _resize_space_impl( device_allele_space< RealType > * aspace, unsigned int N, bool copy_content = false ) {
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
+    assert( threadIdx.y * blockDim.x + threadIdx.x == 0);
+
     typedef device_allele_space< RealType > space_type;
     typedef typename space_type::real_type  real_type;
 
@@ -95,25 +98,27 @@ __device__ bool  _resize_space_impl( device_weighted_allele_space< RealType > * 
 
 template < class RealType >
 __global__ void _resize_space( device_allele_space< RealType > * aspace, unsigned int N ) {
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
 
-    if( tid == 0 ) {
+    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         _resize_space_impl( aspace, N );
     }
 }
 
 template < class RealType >
 __global__ void _resize_space( device_weighted_allele_space< RealType > * aspace, unsigned int N ) {
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
 
-    if( tid == 0 ) {
+    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         _resize_space_impl( aspace, N );
     }
 }
 
 template < class RealType >
 __device__ void _delete_space_impl( device_allele_space< RealType > * aspace ) {
-    if( aspace->locations ) {
+    if( blockIdx.y * gridDim.x + blockIdx.x > 0 ) return;
+
+    if( aspace->locations  && threadIdx.y * blockDim.x + threadIdx.x == 0) {
         delete aspace->locations;
         aspace->locations = NULL;
     }
@@ -121,10 +126,11 @@ __device__ void _delete_space_impl( device_allele_space< RealType > * aspace ) {
 
 template < class RealType >
 __device__ void _delete_space_impl( device_weighted_allele_space< RealType > * aspace ) {
+    if( blockIdx.y * gridDim.x + blockIdx.x > 0 ) return;
 
     _delete_space_impl( (device_allele_space< RealType > * ) aspace);
 
-    if( aspace->weights ) {
+    if( aspace->weights && threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         delete aspace->weights;
         aspace->weights = NULL;
     }
@@ -132,6 +138,9 @@ __device__ void _delete_space_impl( device_weighted_allele_space< RealType > * a
 
 template < class AlleleSpaceType >
 __global__ void _delete_space( AlleleSpaceType * aspace ) {
+    
+    if( blockIdx.y * gridDim.x + blockIdx.x > 0 ) return;
+
     if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         _delete_space_impl( aspace );
     }
@@ -204,10 +213,14 @@ __device__ bool _move_allele( device_weighted_allele_space< RealType > * in_spac
 template < class AlleleSpaceType, class IntType, class OrderTag >
 __global__ void resize_fixed_allele_kernel( AlleleSpaceType * alls, device_free_space< IntType, OrderTag > * free_space ) {
 
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
+
     unsigned int _count = free_space->fixed_count;
     if( _count == 0 ) return;
 
     //printf( "%d fixed allele encountered\n", _count );
+    //
+
 
     if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         _count += alls->size;
@@ -223,14 +236,14 @@ __global__ void move_fixed_allele_kernel( AlleleSpaceType * dest, AlleleSpaceTyp
         return;
     }
 
-    if( blockIdx.y * gridDim.x + blockIdx.y > 0 ) return;   // algorithm assumes single block
+    assert( blockIdx.y * gridDim.x + blockIdx.y == 0 );   // algorithm assumes single block
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
     unsigned int lane_id = (tid & 31);
 
     unsigned int N = dest->size;
 
-    if( lane_id == 0 ) {
+    if( tid == 0 ) {
         _resize_space_impl( dest, N + _count, true );
     }
     __syncthreads();
@@ -288,8 +301,8 @@ __device__ void _generate_random_allele( StateType * state
                                         , unsigned int idx 
                                         , unordered_tag * tag ) {
 
-    RealType x = curand_uniform( state );
-    alleles->locations[ idx ] = x;
+    RealType x = curand_uniform( state );   // curand_uniform in (0,1]
+    alleles->locations[ idx ] = ((x >= 1.0 ) ? 0.0 : x);    // wrap around to [0,1)
 }
 
 template < class StateType, class RealType, class IntType >

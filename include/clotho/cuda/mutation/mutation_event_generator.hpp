@@ -25,11 +25,6 @@
 
 #include "clotho/cuda/curand_state_pool.hpp"
 
-#include "clotho/cuda/distributions/poisson_distribution.hpp"
-
-#include "clotho/cuda/helpers/event_space_helper.hpp"
-#include "clotho/cuda/helpers/scaled_mean_helper.hpp"
-
 #include "clotho/cuda/mutation/generate_mutation_kernel_api.hpp"
 #include "clotho/cuda/mutation/generate_mutation_kernel_impl.hpp"
 
@@ -46,42 +41,19 @@ public:
 
     typedef clotho::cuda::curand_state_pool             state_pool_type;
 
-    typedef poisson_cdf< real_type, 32 >                poisson_type;
-
-    typedef scaled_mean_helper< real_type, OrderTag >                     scaled_mean_type;
-    typedef event_space_helper< OrderTag >  space_helper_type;
-
     MutationEventGenerator( boost::property_tree::ptree & config ) :
         m_mutation_rate( config )
     {
         parse_configuration( config );
-
-        initialize();
     }
 
+/**
+ * N - the number of sequences in the population
+ */
     void generate( space_type * space, unsigned int N ) {
-//        unsigned int event_counts = space_helper_type::get( N );
-//        resize_space( space, event_counts );
-//        _simple_mutation_generator2<<< 1, 32 >>>( state_pool_type::getInstance()->get_device_states(), space, dPoisCDF, N );
         make_event_distribution_kernel<<< 1, 32 >>>( state_pool_type::getInstance()->get_device_states(), space, m_mutation_rate.m_mu, N );
     }
 
-//    template < class PopulationType >
-//    void scatter( PopulationType * pop, space_type * events, unsigned int N ) {
-//        const unsigned int MAX_BLOCKS = 40000;  // arbitrary limitation (think 65535 is max for any single grid dimension)
-//        unsigned int offset = 0;
-//
-//        while( offset < N ) {
-//            unsigned int bcount = N - offset;
-//            bcount = (( bcount > MAX_BLOCKS ) ? MAX_BLOCKS : bcount);
-//
-//            _scatter_mutation_single_thread<<< bcount, 1 >>>( pop->free_space, events, pop->sequences.get_device_space(), offset );
-//            offset += bcount;
-//        }
-//
-//        _generate_mutation_kernel<<< 1, 32 >>>( state_pool_type::getInstance()->get_device_states(), pop->free_space, events, pop->alleles.get_device_space() );
-//    }
-//
     template < class PopulationType >
     void scatter( PopulationType * pop, space_type * events, unsigned int N ) {
         // scatter combines scattering and generation of allele
@@ -95,30 +67,14 @@ public:
     void get_state( boost::property_tree::ptree & state ) {
     }
 
-    virtual ~MutationEventGenerator() {
-        cudaFree( dPoisCDF );
-    }
+    virtual ~MutationEventGenerator() { }
 
 protected:
-
-    void initialize() {
-
-        assert( cudaMalloc( (void **) &dPoisCDF, sizeof( poisson_type) ) == cudaSuccess );
-
-        initialize_poisson( m_mutation_rate.m_mu );
-    }
-
-    void initialize_poisson( real_type mean ) {
-        real_type smean = scaled_mean_type::get( mean );
-        make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, smean );
-    }
 
     void parse_configuration( boost::property_tree::ptree & config ) {
         state_pool_type::getInstance()->initialize(config);
     }
 
-    poisson_type        * dPoisCDF;
-    
     mutation_rate_parameter< real_type > m_mutation_rate;
 };
 

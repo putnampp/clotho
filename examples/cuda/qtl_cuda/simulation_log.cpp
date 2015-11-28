@@ -16,14 +16,16 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <sstream>
 
-simulation_log::simulation_log( boost::property_tree::ptree & config ) :
-    m_activated( false )
-    , m_prefix("")
+simulation_log::simulation_log( boost::property_tree::ptree & config, std::string prefix ) :
+    logging_parameter( config )
+    , m_activated( false )
+    , m_prefix(prefix)
     , m_count(0)
-    , m_frequency(0)
+//    , m_frequency(0)
     , m_log_idx(0)
 {
-    parse_configuration( config );
+//    parse_configuration( config );
+    m_count = m_period - 1;
 }
 
 void simulation_log::set_path_prefix( std::string & prefix ) {
@@ -37,7 +39,7 @@ std::string simulation_log::get_path_prefix() const {
 bool simulation_log::operator()( clotho::utility::iStateObject * obj ) {
     if( m_count-- == 0 ) {
         obj->get_state( m_log );
-        m_count = m_frequency - 1;
+        m_count = m_period - 1;
 
         return true;
     }
@@ -69,6 +71,7 @@ void simulation_log::purge() {
     m_log.clear();
 }
 
+/*
 void simulation_log::parse_configuration( boost::property_tree::ptree & config ) {
     boost::property_tree::ptree lconfig;
     if( config.get_child_optional( "logging" ) != boost::none ) {
@@ -90,6 +93,6 @@ void simulation_log::parse_configuration( boost::property_tree::ptree & config )
     }
 
     config.put_child( "logging", lconfig );
-}
+}*/
 
 simulation_log::~simulation_log() { }

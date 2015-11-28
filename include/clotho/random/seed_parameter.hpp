@@ -25,6 +25,7 @@ struct seed_parameter {
     static const seed_type DEFAULT_SEED = 0;
 
     seed_type m_seed;
+
     seed_parameter( seed_type s ) :
         m_seed( s )
     {}
@@ -45,10 +46,17 @@ struct seed_parameter {
         config.put_child( RNG_BLOCK_K, lconfig );
     }
 
+    seed_parameter( const seed_parameter< seed_type > & rhs ) : m_seed( rhs.m_seed ) {}
+
     void write_parameter( boost::property_tree::ptree & l ) {
         boost::property_tree::ptree c;
         c.put( SEED_K, m_seed );
         l.put_child( RNG_BLOCK_K, c );
+    }
+
+    seed_parameter< seed_type > & operator=( const seed_parameter< seed_type > & rhs ) {
+        m_seed = rhs.m_seed;
+        return *this;
     }
 
     virtual ~seed_parameter() {}

@@ -20,6 +20,8 @@
 template < class IntType, class OrderTag >
 __device__ void _resize_space_impl( device_free_space< IntType, OrderTag > * s, unsigned int N ) {
 //    printf("Resize free space: %d\n", N );
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
+    assert( threadIdx.y * blockDim.x + threadIdx.x == 0 );
 
     typedef device_free_space< IntType, OrderTag > space_type;
     typedef typename space_type::int_type   int_type;
@@ -63,14 +65,18 @@ __device__ void _resize_space_impl( device_free_space< IntType, OrderTag > * s, 
 
 template < class IntType, class OrderTag >
 __global__ void _resize_space( device_free_space< IntType, OrderTag > * s, unsigned int N ) {
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
-    if( tid == 0 ) {
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
+
+    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         _resize_space_impl( s, N );
     }
 }
 
 template < class IntType, class OrderTag >
 __global__ void _delete_space( device_free_space< IntType, OrderTag > * s ) {
+    assert ( blockIdx.y * gridDim.x + blockIdx.x == 0 );
+    assert ( threadIdx.y * blockDim.x + threadIdx.x == 0 );
+
     if( s == NULL ) return;
 
     if( s->free_list != NULL ) {

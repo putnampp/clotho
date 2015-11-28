@@ -16,6 +16,7 @@
 
 #include <string>
 
+extern const std::string CONFIG_BLOCK_K;
 extern const std::string TRAIT_BLOCK_K;
 extern const std::string FITNESS_BLOCK_K;
 extern const std::string RNG_BLOCK_K;
@@ -44,5 +45,8 @@ extern const std::string SEED_K;
 
 extern const std::string P_K;
 extern const std::string Q_K;
+
+extern const std::string SIZE_K;
+extern const std::string REPETITION_K;
 
 #endif  // CLOTHO_STRINGS_HPP_

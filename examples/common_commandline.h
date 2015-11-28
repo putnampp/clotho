@@ -17,7 +17,8 @@
 #include "config.h"
 
 #include <boost/program_options.hpp>
-#include "common_strings.h"
+//#include "common_strings.h"
+#include "clotho/utility/clotho_strings.hpp"
 #include "simulation_config.h"
 
 namespace po=boost::program_options;

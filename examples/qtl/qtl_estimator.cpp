@@ -107,6 +107,8 @@ int main( int argc, char ** argv ) {
     qtl_logging_parameter log_param( conf_child );
     seed_parameter<  > seed_param( conf_child );
 
+    std::cout << "Logging period: " << log_param.m_period << std::endl;
+
     string out_path = conf_child.get<string>( PREFIX_K, "" );
 
     write_engine_config( out_path );

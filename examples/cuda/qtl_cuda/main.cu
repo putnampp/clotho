@@ -23,6 +23,8 @@
 
 #include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
 
+#include "../../generation_parameter.hpp"
+#include "../../population_parameter.hpp"
 #include "options/configuration_option.hpp"
 #include "options/log_prefix_option.hpp"
 
@@ -55,7 +57,7 @@ typedef qtl_cuda_simulate_engine< population_space_type >   engine_type;
 
 typedef clotho::utility::timer                              timer_type;
 
-static const std::string GEN_K = "generations";
+//static const std::string GEN_K = "generations";
 static const std::string HEAP_K = "device.heap.malloc.size";
 
 typedef std::shared_ptr< ipopulation_growth_generator >                     population_growth_generator_type;
@@ -76,15 +78,20 @@ int main( int argc, char ** argv ) {
         print_config_only = false;
     }
 
-    std::string prefix;
+    std::string prefix = "";
     if( vm.count( log_prefix_option::PREFIX_K ) ) {
         prefix = vm[ log_prefix_option::PREFIX_K ].as< std::string >();
     }
 
-    boost::property_tree::ptree config = infile.get_child( "configuration", infile );
+    boost::property_tree::ptree config = infile.get_child( CONFIG_BLOCK_K, infile );
 
-    unsigned int nGens = config.get< unsigned int >(GEN_K, 0);
-    config.put( GEN_K, nGens );
+//    unsigned int nGens = config.get< unsigned int >(GEN_K, 0);
+//    config.put( GEN_K, nGens );
+
+    generation_parameter gen_param( config );
+    unsigned int nGens = gen_param.m_size;
+
+    std::cout << "Generations: " << nGens << std::endl;
 
     size_t hlimit = 0;
     cudaDeviceGetLimit( &hlimit, cudaLimitMallocHeapSize );
@@ -106,12 +113,12 @@ int main( int argc, char ** argv ) {
     timer_type r;
     timer_type i_time;
     engine_type sim_engine( config );
-    simulation_log log( config );
+    simulation_log log( config, prefix );
     i_time.stop();
 
-    if( !prefix.empty() ) {
-        log.set_path_prefix( prefix );
-    }
+//    if( !prefix.empty() ) {
+//        log.set_path_prefix( prefix );
+//    }
 
     log.add_record( "configuration", config );
 

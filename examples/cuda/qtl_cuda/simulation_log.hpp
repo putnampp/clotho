@@ -20,11 +20,13 @@
 
 #include "clotho/utility/state_object.hpp"
 
-class simulation_log {
+#include "../../logging_parameter.hpp"
+
+class simulation_log : public logging_parameter {
 public:
     typedef boost::property_tree::ptree record_type;
 
-    simulation_log( boost::property_tree::ptree & config );
+    simulation_log( boost::property_tree::ptree & config, std::string prefix );
 
     void set_path_prefix( std::string & prefix );
     std::string get_path_prefix() const;
@@ -50,14 +52,14 @@ public:
 
     virtual ~simulation_log();
 protected:
-    void parse_configuration( boost::property_tree::ptree & config );
+//    void parse_configuration( boost::property_tree::ptree & config );
 
     bool m_activated;
     std::string m_prefix;
 
     boost::property_tree::ptree m_log;
-    unsigned int m_count, m_frequency;
-    unsigned int m_log_idx;
+//    unsigned int m_count, m_frequency;
+    unsigned int m_count, m_log_idx;
 };
 
 #endif  // SIMULATION_LOG_HPP_

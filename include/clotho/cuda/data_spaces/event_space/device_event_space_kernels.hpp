@@ -20,7 +20,11 @@
 
 template < class IntType, class OrderTag >
 __global__ void _delete_space( device_event_space< IntType, OrderTag > * space ) {
+//    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
+//    assert( threadIdx.y * blockDim.x + threadIdx.x == 0 );
+//
 //    typename device_event_space< IntType, OrderTag >::int_type * evts = space->event_count;
+//    space->event_count = NULL;
 //
 //    if( evts ) {
 //        delete evts;
@@ -48,7 +52,10 @@ __device__ void _resize_space_impl( device_event_space< IntType, OrderTag > * sp
 
 template < class IntType, class OrderTag >
 __global__ void _resize_space( device_event_space< IntType, OrderTag > * space, unsigned int N ) {
+//    assert(blockIdx.y * gridDim.x + blockIdx.x == 0 );
+//
 //    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+//    assert( tid == 0);
 //
 //    if( tid == 0 ) {
 //        _resize_space_impl( space, N );

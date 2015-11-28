@@ -21,7 +21,7 @@ namespace cuda {
 
 curand_state_pool::curand_state_pool() :
     dStates( NULL )
-    , m_seed(0)
+    , m_seed_param(0)
     , max_threads(32)
     , max_blocks(1)
 {}
@@ -34,12 +34,17 @@ curand_state_pool * curand_state_pool::getInstance() {
 void curand_state_pool::initialize( boost::property_tree::ptree & config ) {
     if( dStates != NULL ) return;
 
+    seed_parameter< seed_type > tmp_seed(config);
+
+    m_seed_param = tmp_seed;
+
     boost::property_tree::ptree lconfig;
 
     if( config.get_child_optional( "state_pool" ) != boost::none ) {
         lconfig = config.get_child( "state_pool" );
     }
 
+/*
     if( lconfig.get_child_optional( "seed" ) != boost::none ) {
         m_seed = lconfig.get< seed_type >( "seed", m_seed );
     }
@@ -48,6 +53,7 @@ void curand_state_pool::initialize( boost::property_tree::ptree & config ) {
         m_seed = clotho::utility::clock_type::now().time_since_epoch().count();
         lconfig.put("seed", m_seed );
     }
+*/
 
     if( lconfig.get_child_optional( "max_blocks" ) == boost::none ) {
         lconfig.put("max_blocks", max_blocks );
@@ -64,8 +70,9 @@ void curand_state_pool::initialize( boost::property_tree::ptree & config ) {
     config.put_child( "state_pool", lconfig );
 
     if( max_threads * max_blocks != 0 ) {
+        std::cerr << "Seed Value: " << m_seed_param.m_seed << std::endl;
         std::cerr << "Initializing state pool: " << max_blocks << ", " << max_threads << std::endl;
-        helper_type::make_states( dStates, m_seed, max_blocks, max_threads );
+        helper_type::make_states( dStates, m_seed_param.m_seed, max_blocks, max_threads );
     }
 }
 

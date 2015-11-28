@@ -19,6 +19,9 @@
 
 template < class IntType >
 __device__ void _resize_space_impl( device_sequence_space< IntType > * sspace, unsigned int cols, unsigned int rows ) {
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0);
+    assert( threadIdx.y * blockDim.x + threadIdx.x == 0 );
+
     typedef typename device_sequence_space< IntType >::int_type int_type;
     unsigned int N = cols * rows;
 
@@ -43,7 +46,7 @@ __device__ void _resize_space_impl( device_sequence_space< IntType > * sspace, u
 
 template < class IntType >
 __global__ void _resize_space( device_sequence_space< IntType > * sspace, unsigned int cols, unsigned int rows = 1 ) {
-    if( blockIdx.y * gridDim.x + blockIdx.x != 0 ) return;
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
 
     if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         _resize_space_impl( sspace, cols, rows );
@@ -53,7 +56,7 @@ __global__ void _resize_space( device_sequence_space< IntType > * sspace, unsign
 template < class IntType, class ColumnSpaceType >
 __global__ void _resize_space( device_sequence_space< IntType > * sspace, ColumnSpaceType * aspace, unsigned int seq_count ) {
 
-    if( blockIdx.y * gridDim.x + blockIdx.x != 0 ) return;
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
 
     if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         typedef device_sequence_space< IntType > space_type;

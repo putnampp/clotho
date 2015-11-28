@@ -18,6 +18,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "clotho/utility/state_object.hpp"
+#include "clotho/utility/log_helper.hpp"
 
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/mutation/mutation_event_generator.hpp"
@@ -108,6 +109,17 @@ public:
         current_pop->update_metadata();
 
         cudaDeviceSynchronize();
+
+        size_t fsize, tsize;
+        cudaError_t err = cudaMemGetInfo( &fsize, &tsize );
+
+        if( err != cudaSuccess ) {
+            std::cerr << "Unable to determine device memory (simulate): " << cudaGetErrorString(err) << std::endl;
+
+            assert(false);
+            fsize = 0;
+        }
+        clotho::utility::add_value_array(dev_space.get_child("free"), fsize );
     }
 #else 
     void simulate( unsigned int N ) {
@@ -164,6 +176,8 @@ public:
         boost::property_tree::ptree fit;
         fit_trans.get_state( fit );
 
+        state.put_child("device.memory", dev_space );
+
         state.put_child( "population.current", cur );
         state.put_child( "population.current.fitness", fit );
 
@@ -189,6 +203,20 @@ protected:
 
     void initialize( ) {
         create_space( dMutations );
+
+        size_t fsize = 0;
+        size_t tsize = 0;
+
+        cudaError_t err = cudaMemGetInfo( &fsize, &tsize);
+
+        if( err != cudaSuccess ) {
+            std::cerr << "Unable to initialize memory space sizes" << std::endl;
+        }
+
+        boost::property_tree::ptree tmp;
+        clotho::utility::add_value_array(tmp, fsize );
+        dev_space.put_child( "free", tmp );
+        dev_space.put("total", tsize);
     }
 
     mutation_event_space_type     * dMutations;
@@ -206,6 +234,8 @@ protected:
 
     AlleleFrequency             all_freq;
     SequenceHammingWeight       seq_weight;
+
+    boost::property_tree::ptree dev_space;
 };
 
 #endif  // QTL_CUDA_SIMULATE_ENGINE_HPP_

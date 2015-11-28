@@ -34,6 +34,8 @@ LIST(APPEND LOCAL_LIBS ${Boost_CHRONO_LIBRARY})
 
 LIST(APPEND OPTIONS_SRC options/configuration_option.cpp )
 LIST(APPEND OPTIONS_SRC options/log_prefix_option.cpp)
+LIST(APPEND OPTIONS_SRC ../../generation_parameter.cpp)
+LIST(APPEND OPTIONS_SRC ../../logging_parameter.cpp)
 #LIST(APPEND OPTIONS_SRC options/random_number_options.cpp)
 #LIST(APPEND OPTIONS_SRC options/mutation_rate_option.cpp)
 #LIST(APPEND OPTIONS_SRC options/recombination_rate_option.cpp)
@@ -98,7 +100,7 @@ CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_xover3 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS 
 SET_TARGET_PROPERTIES( qtl_cuda_unordered_xover3 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
 TARGET_LINK_LIBRARIES(qtl_cuda_unordered_xover3 ${LOCAL_LIBS})
 
-CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_xover4 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DCROSSOVER_VERSION=4 )
+CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_xover4 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DCROSSOVER_VERSION=4;-DCUDA_CLOTHO_SAFE_KERNELS )
 SET_TARGET_PROPERTIES( qtl_cuda_unordered_xover4 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
 TARGET_LINK_LIBRARIES(qtl_cuda_unordered_xover4 ${LOCAL_LIBS})
 

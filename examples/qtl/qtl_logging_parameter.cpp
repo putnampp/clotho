@@ -13,6 +13,5 @@
 //   limitations under the License.
 #include "qtl_logging_parameter.hpp"
 
-
-const string SAMPLING_K = "sampling_size";
-const string PAIRWISE_K = "pairwise";
+const std::string SAMPLING_K = "sampling_size";
+const std::string PAIRWISE_K = "pairwise";

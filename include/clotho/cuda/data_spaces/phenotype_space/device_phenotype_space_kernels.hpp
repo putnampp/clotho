@@ -19,11 +19,16 @@
 
 template < class RealType >
 __global__ void _delete_space( device_phenotype_space< RealType > * space ) {
+    assert (blockIdx.y * gridDim.x + blockIdx.x == 0 );
+
+    assert ( threadIdx.y * blockDim.x + blockIdx.x == 0 );
+
     typename device_phenotype_space< RealType >::real_type * tmp = space->data;
 
     if( tmp ) {
         delete tmp;
     }
+    space->data = NULL;
 }
 
 /*template < class RealType >
@@ -46,9 +51,9 @@ __device__ void _resize_space_impl( device_phenotype_space< RealType > * space, 
 
 template < class RealType >
 __global__ void _resize_space( device_phenotype_space< RealType > * space, unsigned int N ) {
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
 
-    if( tid == 0 ) {
+    if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
         _resize_space_impl( (basic_data_space< RealType > *) space, N );
     }
 }

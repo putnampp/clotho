@@ -505,6 +505,8 @@ __global__ void crossover_kernel( StateType * states
 
     int_type    * seqs = sequences->sequences;
 
+    int_type  cap = sequences->capacity;
+
     real_type       * allele_list = alleles->locations;
     unsigned int    nAlleles = alleles->capacity;
 
@@ -581,7 +583,11 @@ __global__ void crossover_kernel( StateType * states
         while( i < nAlleles ) {
             x = allele_list[ i ];
 
+            assert( 0 <= x && x <= 1.0);
+
             rand = (unsigned int) ( x * ((real_type)allele_space_type::ALIGNMENT_SIZE));
+
+            assert( rand < allele_space_type::ALIGNMENT_SIZE );
 
             unsigned int nonzero_bin = (rand != 0);  // _keep == 0 -> rand == 0 -> e_min == 0; _keep == 1 -> rand != 0 -> e_min == event_hash[ rand - 1]
 
@@ -595,6 +601,9 @@ __global__ void crossover_kernel( StateType * states
             unsigned int e_max = event_hash[ rand ];
             unsigned int e_min = event_hash[ rand - nonzero_bin ];
             e_min *= nonzero_bin;
+
+            assert (e_min < allele_space_type::ALIGNMENT_SIZE);
+            assert (e_max < allele_space_type::ALIGNMENT_SIZE);
 
             int_type cmask = e_min;
 
@@ -613,6 +622,7 @@ __global__ void crossover_kernel( StateType * states
                 cmask |= ((threadIdx.x >= j) * _c);
             }
             if( threadIdx.x == 31 ) {
+                assert( seq_offset < cap );
                 seqs[ seq_offset ] = cmask;
             }
             __syncthreads();
