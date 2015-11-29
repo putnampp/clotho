@@ -100,7 +100,7 @@ CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_xover3 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS 
 SET_TARGET_PROPERTIES( qtl_cuda_unordered_xover3 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
 TARGET_LINK_LIBRARIES(qtl_cuda_unordered_xover3 ${LOCAL_LIBS})
 
-CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_xover4 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DCROSSOVER_VERSION=4;-DCUDA_CLOTHO_SAFE_KERNELS )
+CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_xover4 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DCROSSOVER_VERSION=4 )
 SET_TARGET_PROPERTIES( qtl_cuda_unordered_xover4 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
 TARGET_LINK_LIBRARIES(qtl_cuda_unordered_xover4 ${LOCAL_LIBS})
 
