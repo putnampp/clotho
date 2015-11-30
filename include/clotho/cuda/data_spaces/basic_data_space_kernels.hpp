@@ -33,8 +33,8 @@ __global__ void _delete_space( basic_data_space< ValueType > * space ) {
 
 template < class ValueType >
 __device__ void _resize_space_impl( basic_data_space< ValueType > * space, unsigned int N ) {
-    assert(blockIdx.y * gridDim.x + blockIdx.x == 0 );
-    assert( threadIdx.y * blockDim.x + threadIdx.x == 0 );
+//    assert(blockIdx.y * gridDim.x + blockIdx.x == 0 );
+//    assert( threadIdx.y * blockDim.x + threadIdx.x == 0 );
 
     typedef basic_data_space< ValueType > space_type;
 

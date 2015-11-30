@@ -31,8 +31,8 @@
 
 template < class RealType >
 __device__ bool _resize_space_impl( device_allele_space< RealType > * aspace, unsigned int N, bool copy_content = false ) {
-    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
-    assert( threadIdx.y * blockDim.x + threadIdx.x == 0);
+//    assert( blockIdx.y * gridDim.x + blockIdx.x == 0 );
+//    assert( threadIdx.y * blockDim.x + threadIdx.x == 0);
 
     typedef device_allele_space< RealType > space_type;
     typedef typename space_type::real_type  real_type;
