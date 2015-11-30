@@ -191,12 +191,11 @@ __global__ void _scatter_mutations( StateType * states
         unsigned int block_idx = converter.major_offset( fidx );
         unsigned int bit_idx = converter.minor_offset( fidx );
 
-        real_type r = 0.0;
-        do {
-            r = curand_uniform( &local_state );
-        } while( r >= 0.0);
+        real_type r =  curand_uniform( &local_state );
 
         unsigned int idx = r * R;
+
+        idx *= (idx != R );
 
         idx *= _width;
         idx += block_idx;
@@ -269,12 +268,11 @@ __global__ void _scatter_mutations( StateType * states
         }
 
         if( warp_id + 1 == k ) {
-            real_type r = 0.0;
-            do {
-                r = curand_uniform( &local_state );
-            } while( r >= 1.0 );
+            real_type r = curand_uniform( &local_state );
 
             unsigned int idx = r * R;
+
+            idx *= (idx != R);  // idx == R -> idx = idx * 0 == 0
 
             idx *= _width;
             idx += (lidx - 1);
