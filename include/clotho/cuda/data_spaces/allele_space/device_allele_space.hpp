@@ -301,8 +301,12 @@ __device__ void _generate_random_allele( StateType * state
                                         , unsigned int idx 
                                         , unordered_tag * tag ) {
 
-    RealType x = curand_uniform( state );   // curand_uniform in (0,1]
-    alleles->locations[ idx ] = ((x >= 1.0 ) ? 0.0 : x);    // wrap around to [0,1)
+    RealType x = 0.0;
+    do {
+        x = curand_uniform( state );   // curand_uniform in (0,1]
+    } while( x >= 1.0);
+
+    alleles->locations[ idx ] = x;  // x in (0,1) == mutation cannot occur at very beginning or end of a sequence
 }
 
 template < class StateType, class RealType, class IntType >
@@ -311,7 +315,10 @@ __device__ void _generate_random_allele( StateType * state
                                         , unsigned int idx 
                                         , unit_ordered_tag< IntType > * tag ) {
     
-    RealType x = curand_uniform( state );
+    RealType x = 0.0;
+    do {
+        x = curand_uniform( state );
+    } while( x >= 1.0 );
 
     RealType lane_id = (RealType )(idx & 31);
 

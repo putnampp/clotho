@@ -530,8 +530,10 @@ __global__ void crossover_kernel( StateType * states
     unsigned int nonzero_thread = (tid != 0);
     int_type seq_idx = bid;
     while( seq_idx < nSequences ) {
-        real_type x = curand_uniform( &local_state );
-        rand_pool[ tid ] = curand_uniform( &local_state );
+        real_type x = curand_uniform( &local_state );   // x in (0, 1]
+        rand_pool[ tid ] = ((x >= 1.0) ? 0.0 : x);  // wrap around x to be in [0, 1); this way all event hash bins follow [,) pattern
+
+        x = curand_uniform( &local_state );
 
         int_type rand = _find_poisson_maxk32( s_pois_cdf, x, max_k );
         __syncthreads();
@@ -583,11 +585,7 @@ __global__ void crossover_kernel( StateType * states
         while( i < nAlleles ) {
             x = allele_list[ i ];
 
-            assert( 0 <= x && x <= 1.0);
-
             rand = (unsigned int) ( x * ((real_type)allele_space_type::ALIGNMENT_SIZE));
-
-            assert( rand < allele_space_type::ALIGNMENT_SIZE );
 
             unsigned int nonzero_bin = (rand != 0);  // _keep == 0 -> rand == 0 -> e_min == 0; _keep == 1 -> rand != 0 -> e_min == event_hash[ rand - 1]
 
@@ -601,9 +599,6 @@ __global__ void crossover_kernel( StateType * states
             unsigned int e_max = event_hash[ rand ];
             unsigned int e_min = event_hash[ rand - nonzero_bin ];
             e_min *= nonzero_bin;
-
-            assert (e_min < allele_space_type::ALIGNMENT_SIZE);
-            assert (e_max < allele_space_type::ALIGNMENT_SIZE);
 
             int_type cmask = e_min;
 

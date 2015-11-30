@@ -52,7 +52,11 @@ __global__ void random_select_parents_kernel( StateType * states
     unsigned int offset = blockDim.x * blockDim.y;
 
     while( i < nChild ) {
-        float x = curand_uniform( &local_state );
+        float x = 0.0;
+        do {
+            x = curand_uniform( &local_state );
+        } while (x >= 1.0 );
+
         unsigned int pidx = (x * nParents);
 
         ids[ i ] = (pidx << 1);

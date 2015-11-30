@@ -176,7 +176,7 @@ __global__ void _scatter_mutations( StateType * states
     fixed_width_converter< sequence_type::OBJECTS_PER_INT > converter;
     unsigned int bpg = gridDim.x * gridDim.y;
 
-    unsigned int seq_count = sequences->seq_count;
+    unsigned int R = sequences->seq_count;
 
     unsigned int * fmap = fspace->free_map;
     state_type local_state = states[ bid ];
@@ -191,9 +191,12 @@ __global__ void _scatter_mutations( StateType * states
         unsigned int block_idx = converter.major_offset( fidx );
         unsigned int bit_idx = converter.minor_offset( fidx );
 
-        real_type r = curand_uniform( &local_state );
+        real_type r = 0.0;
+        do {
+            r = curand_uniform( &local_state );
+        } while( r >= 0.0);
 
-        unsigned int idx = r * seq_count;
+        unsigned int idx = r * R;
 
         idx *= _width;
         idx += block_idx;
@@ -242,7 +245,7 @@ __global__ void _scatter_mutations( StateType * states
 
     if( warp_id >= lane_max ) return;
 
-    unsigned int seq_count = sequences->seq_count;
+    unsigned int R = sequences->seq_count;
     unsigned int _width = sequences->seq_width;
 
     unsigned int * flist = fspace->free_list;
@@ -266,9 +269,12 @@ __global__ void _scatter_mutations( StateType * states
         }
 
         if( warp_id + 1 == k ) {
-            real_type r = curand_uniform( &local_state );
+            real_type r = 0.0;
+            do {
+                r = curand_uniform( &local_state );
+            } while( r >= 1.0 );
 
-            unsigned int idx = r * seq_count;
+            unsigned int idx = r * R;
 
             idx *= _width;
             idx += (lidx - 1);
