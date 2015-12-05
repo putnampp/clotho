@@ -18,14 +18,38 @@
 
 #include "clotho/cuda/popcount_kernel.h"
 
+/// NOTE need to figure out how to compute standard deviation
 struct pairwise_diff_stats {
     static const unsigned int BINS = 32;
     
     unsigned long long block_bin[ BINS ];
 
     unsigned long long count, total;
-    double mean, stdev;
+    double mean;
 };
+
+__global__ void finalize_pairwise_diff_stats( pairwise_diff_stats * stats ) {
+    assert( blockDim.x * blockDim.y == 32 );
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    unsigned long long tot = stats->block_bin[tid];
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        unsigned long long t = __shfl_up( tot, i );
+        tot += ((tid >= i ) ? t : 0);
+    }
+
+    if( tid == 31 ) {
+        stats->total = tot;
+
+        double d = (double)tot;
+        double c = (double) stats->count;
+
+        d /= c;
+
+        stats->mean = d;
+    }
+}
 
 template < class IntType >
 __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * sequences, basic_data_vector< unsigned int > * sub_pop, pairwise_diff_stats * stats ) {
@@ -58,7 +82,7 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
     unsigned int column_tail = (C & 31);    // == % 32
     unsigned int column_full_warps = (C & (~31));  // ==( / 32) * 32
 
-    __shared__ unsigned int block_buffer[ 32 ]; // 32 == max warps per block
+    __shared__ unsigned long long block_buffer[ 32 ]; // 32 == max warps per block
 
     if( warp_id == 0 ) {
         block_buffer[ lane_id ] = 0;
@@ -77,15 +101,10 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
 
     unsigned int M = N - 1; // max index
 
-    unsigned long long count = N;
-    count *= (count - 1);
-    count >>= 1;
-
     unsigned int s0 = 0;
     unsigned int s1 = bid * wpb + warp_id + 1;    // s1 = s0 + grid_warp_id + 1 =  warp_id + 1
 
-    unsigned int idx = 0;
-    while( idx < count ) {
+    while( s0 < M ) {
 
         while( s1 >= N  && s0 < M ) {
             ++s0;
@@ -142,9 +161,26 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
             block_buffer[warp_id] += tot;
         }
         __syncthreads();
+    }
 
-        idx += wpg;
+    unsigned long long tot = block_buffer[ lane_id ];
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        unsigned long long t = __shfl_up( tot, i );
+        tot += (( lane_id >= i ) ? t : 0);
+    }
+
+    if( warp_id == 0 && lane_id == 31 ) {
+        stats->block_bin[ bid ] = tot;
+
+        if(bid == 0) {
+            unsigned long long count = N;
+            count *= (count - 1);
+            count >>= 1;
+            stats->count = count;
+        }
     }
 }
+
+
 
 #endif  // CUDA_PAIRWISE_DIFFERENCE_KERNEL_HPP_
