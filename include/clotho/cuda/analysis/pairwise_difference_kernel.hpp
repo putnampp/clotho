@@ -28,7 +28,23 @@ struct pairwise_diff_stats {
 };
 
 template < class IntType >
-__global__ void pairwise_difference_kernel( device_sequence_space< IntType > * sequences, pairwise_diff_stats * stats ) {
+__global__ void pairwise_difference_kernel( device_sequence_space< IntType > * sequences, basic_data_vector< unsigned int > * sub_pop, pairwise_diff_stats * stats ) {
+
+    unsigned int tpb = (blockDim.x * blockDim.y);
+
+    assert( tpb % 32 == 0 );    // 32 == threads per warp; all warps are full
+
+    unsigned int wpb = (tpb >> 5);  // warp per block
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int lane_id = (tid & 31);
+    unsigned int warp_id = (tid >> 5);
+
+    unsigned int bpg = (gridDim.x * gridDim.y); // blocks per grid
+    unsigned int wpg = (wpb * bpg); // warps per grid
+
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+
     unsigned int R = sequences->seq_count;
     unsigned int C = sequences->seq_width;
 
@@ -36,78 +52,98 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
 
     popcountGPU< IntType > pc;
 
-    unsigned int bpg = (gridDim.x * gridDim.y); // blocks per grid
+    unsigned int N = sub_pop->size;
+    unsigned int * sp = sub_pop->data;
 
-    unsigned long long count = R;
-    count *= (count - 1);
-    count <<= 1;
+    unsigned int column_tail = (C & 31);    // == % 32
+    unsigned int column_full_warps = (C & (~31));  // ==( / 32) * 32
 
-    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    __shared__ unsigned int block_buffer[ 32 ]; // 32 == max warps per block
 
-    unsigned int s0 = bid * blockDim.y + threadIdx.y;
-
-    unsigned int column_tail = (C % blockDim.x);
-    unsigned int column_full_warps = (C / blockDim.x);
-    column_full_warps *= blockDim.x;
-
-    __shared__ unsigned int block_buffer[ 32 ]; // 32 == warps per block
-
-    if(threadIdx.y == 0 ) {
-        block_buffer[ threadIdx.x ] = 0;
+    if( warp_id == 0 ) {
+        block_buffer[ lane_id ] = 0;
     }
     __syncthreads();
 
+    // within each block verify that the sub-population is valid
+    // NOTE consider moving this to a pre-processing step
+    unsigned int s0 = tid;
     while( s0 < N ) {
-        unsigned int s1 = s0 + 1;
+        unsigned int idx = sp[s0];
+        assert( 0 <= idx && idx < R );   
+        s0 += tpb;
+    }
+    __syncthreads();
 
-        while( s1 < N ) {
-            unsigned int s0_end = s0 * C + column_full_warps;
-            unsigned int s0_start = s0 * C + threadIdx.x;
+    unsigned int M = N - 1; // max index
 
-            unsigned int s1_offset = s1 * C + threadIdx.x;
+    unsigned long long count = N;
+    count *= (count - 1);
+    count >>= 1;
 
-            unsigned int tot = 0;
-            while( s0_start < s0_end ) {    // all sequences same length so only need to iterate along first
+    unsigned int s0 = 0;
+    unsigned int s1 = bid * wpb + warp_id + 1;    // s1 = s0 + grid_warp_id + 1 =  warp_id + 1
 
-                IntType s0_data = data[ s0_start ];
-                IntType s1_data = data[ s1_start ];
+    unsigned int idx = 0;
+    while( idx < count ) {
 
-                tot += pc.evalGPU( s0_data ^ s1_data );
-
-                s0_start += blockDim.x;
-                s1_start += blockDim.x;
-            }
-            __syncthreads();
-
-            // handle tail
-            if( column_tail ) { // true for all threads
-                s0_end += column_tail;
-
-                IntType s0_data = 0;
-                IntType s1_data = 0;
-
-                if( s0_start < s0_end ) {
-                    s0_data = data[s0_start];
-                    s1_data = data[s1_start];
-                }
-                __syncthreads();
-
-                tot += pc.evalGPU( s0_data ^ s1_data );
-            }
-            __syncthreads();
-
-            for( unsigned int i = 1; i < 32; i <<= 1 ) {
-                unsigned int t = __shfl_up( tot, i );
-                tot += ((threadIdx.x >= i) * t);
-            }
-
-            if( threadIdx.x == 31 ) {
-                block_buffer[threadIdx.y] += tot;
-            }
-            __syncthreads();
+        while( s1 >= N  && s0 < M ) {
+            ++s0;
+            s1 -= (M - s0);
         }
-        s0 += bpg;
+
+        unsigned int s0_p = ((s0 >= M) ? M : s0);   // M is valid index in sub population list
+        unsigned int s1_p = ((s1 >= M) ? M : s1);
+
+        unsigned int s0_idx = sp[s0_p];
+        unsigned int s1_idx = sp[s1_p];
+        __syncthreads();
+
+        unsigned int s0_end = s0_idx * C + column_full_warps;
+        unsigned int s0_start = s0_idx * C + lane_id;
+
+        unsigned int s1_start = s1_idx * C + lane_id;
+
+        unsigned int tot = 0;
+        while( s0_start < s0_end ) {    // all sequences same length so only need to iterate along first
+            IntType s0_data = data[ s0_start ];
+            IntType s1_data = data[ s1_start ];
+
+            tot += pc.evalGPU( s0_data ^ s1_data );
+
+            s0_start += 32;
+            s1_start += 32;
+        }
+        __syncthreads();
+
+        // handle tail
+        if( column_tail ) { // true for all threads
+            s0_end += column_tail;
+
+            IntType s0_data = 0;
+            IntType s1_data = 0;
+
+            if( s0_start < s0_end ) {
+                s0_data = data[s0_start];
+                s1_data = data[s1_start];
+            }
+            __syncthreads();
+
+            tot += pc.evalGPU( s0_data ^ s1_data );
+        }
+        __syncthreads();
+
+        for( unsigned int i = 1; i < 32; i <<= 1 ) {
+            unsigned int t = __shfl_up( tot, i );
+            tot += ((lane_id >= i) * t);
+        }
+
+        if( lane_id == 31 ) {
+            block_buffer[warp_id] += tot;
+        }
+        __syncthreads();
+
+        idx += wpg;
     }
 }
 
