@@ -27,7 +27,7 @@ void dump_data( std::ostream & out, const device_sequence_space< IntType > & spa
     int_type * seqs = new int_type[ space.size ];
 
     assert( cudaMalloc( (void **) &dSeq, space.size * sizeof( int_type ) ) == cudaSuccess );
-    copy_heap<<< 1, 1 >>>( dSeq, space.sequences, space.size );
+    copy_heap<<< 1, 1024 >>>( dSeq, space.sequences, space.size );
     cudaDeviceSynchronize();
 
     assert( cudaMemcpy( seqs, dSeq, space.size * sizeof( int_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );

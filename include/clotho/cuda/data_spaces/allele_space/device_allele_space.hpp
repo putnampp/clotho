@@ -161,7 +161,13 @@ void merge_space( AlleleSpaceType * in_space
                 , AlleleSpaceType * out_space ) {
 
     typedef merge_execution_config< OrderTag > config_type;
-    _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, fspace, evts, ofspace, out_space );
+    expand_spaces_kernel<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, fspace, evts, ofspace, out_space );
+    CHECK_LAST_KERNEL_EXEC
+
+    update_space_kernel<<< 2, 1024 >>>( in_space, out_space );
+    CHECK_LAST_KERNEL_EXEC
+
+    update_space_kernel<<< 3, 1024 >>>( fspace, ofspace );
     CHECK_LAST_KERNEL_EXEC
 }
 

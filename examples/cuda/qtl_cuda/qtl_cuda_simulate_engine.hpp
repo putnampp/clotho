@@ -206,10 +206,10 @@ protected:
     void initialize( ) {
         create_space( dMutations );
 
+/*
         size_t fsize = 0;
         size_t tsize = 0;
 
-/*
         cudaError_t err = cudaMemGetInfo( &fsize, &tsize);
 
         if( err != cudaSuccess ) {

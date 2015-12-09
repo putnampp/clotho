@@ -26,5 +26,4 @@ struct merge_execution_config < unit_ordered_tag< IntType > > {
     static const unsigned int THREAD_COUNT = unit_ordered_tag< IntType >::OBJECTS_PER_UNIT;
 };
 
-
 #endif  // MERGE_SPACE_HELPER_HPP_

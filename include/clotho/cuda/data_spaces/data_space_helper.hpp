@@ -18,7 +18,13 @@ template < class DataType >
 __global__ void copy_heap( DataType * d_dest, DataType * d_src, unsigned int N ) {
     if( d_src == NULL || N == 0 ) return;
 
-    memcpy( d_dest, d_src, N * sizeof( DataType ) );
+//    memcpy( d_dest, d_src, N * sizeof( DataType ) );
+    unsigned int tpb = blockDim.x * blockDim.y;
+    unsigned int idx = threadIdx.y * blockDim.x + threadIdx.x;
+    while( idx < N ) {
+        d_dest[idx] = d_src[idx];
+        idx += tpb;
+    }
 }
 
 template < class DataType >
@@ -30,7 +36,7 @@ void copy_heap_data( DataType * hMem, DataType * dMem, unsigned int N ) {
     size_t sBytes = N * sizeof( DataType );
     assert( cudaMalloc( (void **) &tmp, sBytes ) == cudaSuccess );
 
-    copy_heap<<< 1, 1>>>( tmp, dMem, N );
+    copy_heap<<< 1, 1024 >>>( tmp, dMem, N );
     cudaDeviceSynchronize();
 
     assert( cudaMemcpy( hMem, tmp, sBytes, cudaMemcpyDeviceToHost ) == cudaSuccess );
