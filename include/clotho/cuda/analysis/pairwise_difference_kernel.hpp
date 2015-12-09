@@ -14,7 +14,7 @@
 #ifndef CUDA_PAIRWISE_DIFFERENCE_KERNEL_HPP_
 #define CUDA_PAIRWISE_DIFFERENCE_KERNEL_HPP_
 
-#include "clotho/cuda/data_space/sequence_space/device_sequence_space.hpp"
+#include "clotho/cuda/data_spaces/sequence_space/device_sequence_space.hpp"
 
 #include "clotho/cuda/popcount_kernel.h"
 
@@ -27,6 +27,16 @@ struct pairwise_diff_stats {
     unsigned long long count, total;
     double mean;
 };
+
+__global__ void initialize_pairwise_diff_stats( pairwise_diff_stats * stats ) {
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int tpb = blockDim.x * blockDim.y;
+
+    while( tid < pairwise_diff_stats::BINS ) {
+        stats->block_bin[tid] = 0;
+        tid += tpb;
+    }
+}
 
 __global__ void finalize_pairwise_diff_stats( pairwise_diff_stats * stats ) {
     assert( blockDim.x * blockDim.y == 32 );
@@ -52,7 +62,7 @@ __global__ void finalize_pairwise_diff_stats( pairwise_diff_stats * stats ) {
 }
 
 template < class IntType >
-__global__ void pairwise_difference_kernel( device_sequence_space< IntType > * sequences, basic_data_vector< unsigned int > * sub_pop, pairwise_diff_stats * stats ) {
+__global__ void pairwise_difference_kernel( device_sequence_space< IntType > * sequences, basic_data_space< unsigned int > * sub_pop, pairwise_diff_stats * stats ) {
 
     unsigned int tpb = (blockDim.x * blockDim.y);
 
@@ -95,18 +105,18 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
     unsigned int s0 = tid;
     while( s0 < N ) {
         unsigned int idx = sp[s0];
-        assert( 0 <= idx && idx < R );   
+        assert( idx < R );   
         s0 += tpb;
     }
     __syncthreads();
 
     unsigned int M = N - 1; // max index
 
-    unsigned int s0 = 0;
+    s0 = 0;
     unsigned int s1 = bid * wpb + warp_id + 1;    // s1 = s0 + grid_warp_id + 1 =  warp_id + 1
 
     bool is_done = false;
-    while( is_done ) {
+    while( !is_done ) {
 
         while( s1 >= N  && s0 < M ) {
             ++s0;
@@ -172,7 +182,10 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
             tmp = ((tmp < t) ? tmp : t);
         }
 
-        is_done = (tmp >= M);   // done when all warps have reach s0 >= M
+        unsigned int t = __shfl(tmp, 31);
+
+        is_done = (t >= M);   // done when all warps have reach s0 >= M
+        s1 += wpg;
     }
 
     unsigned long long tot = block_buffer[ lane_id ];
@@ -192,7 +205,5 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
         }
     }
 }
-
-
 
 #endif  // CUDA_PAIRWISE_DIFFERENCE_KERNEL_HPP_

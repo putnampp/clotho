@@ -22,3 +22,4 @@ TARGET_LINK_LIBRARIES(kvsort_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${
 add_subdirectory( crossover )
 add_subdirectory( allele_space )
 add_subdirectory( hamming_weight )
+add_subdirectory( pairwise_difference )

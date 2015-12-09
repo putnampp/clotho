@@ -14,8 +14,8 @@
 #ifndef RANDOM_SAMPLE_GUARD_HPP_
 #define RANDOM_SAMPLE_GUARD_HPP_
 
-#include "clotho/cuda/random_sample/random_sample_def.hpp"
+#include "clotho/cuda/sampling/random_sample_def.hpp"
 
-#include "clotho/cuda/random_sample/random_sample_sequence.hpp"
+#include "clotho/cuda/sampling/random_sample_sequence.hpp"
 
 #endif  // RANDOM_SAMPLE_GUARD_HPP_

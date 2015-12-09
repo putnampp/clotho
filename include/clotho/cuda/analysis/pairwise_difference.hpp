@@ -29,6 +29,9 @@ public:
 
     template < class PopulationSpaceType >
     void evaluate( PopulationSpaceType * pop, basic_data_space< unsigned int > * subpop ) {
+        initialize_pairwise_diff_stats<<< 1, 32 >>>( m_dStats );
+        CHECK_LAST_KERNEL_EXEC
+
         dim3 threads(32, 32, 1);
         pairwise_difference_kernel<<< pairwise_diff_stats::BINS, threads >>>( pop->sequences.get_device_space(), subpop, m_dStats );
         CHECK_LAST_KERNEL_EXEC
