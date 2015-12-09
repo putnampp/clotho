@@ -14,19 +14,10 @@
 #ifndef CUDA_PAIRWISE_DIFFERENCE_KERNEL_HPP_
 #define CUDA_PAIRWISE_DIFFERENCE_KERNEL_HPP_
 
+#include "clotho/cuda/analysis/pairwise_difference_stats.hpp"
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space.hpp"
 
 #include "clotho/cuda/popcount_kernel.h"
-
-/// TODO need to figure out how to compute standard deviation
-struct pairwise_diff_stats {
-    static const unsigned int BINS = 32;
-    
-    unsigned long long block_bin[ BINS ];
-
-    unsigned long long count, total;
-    double mean;
-};
 
 __global__ void initialize_pairwise_diff_stats( pairwise_diff_stats * stats ) {
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;

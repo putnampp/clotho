@@ -35,6 +35,7 @@
 
 #include "clotho/cuda/analysis/allele_frequency.hpp"
 #include "clotho/cuda/analysis/sequence_hamming_weight.hpp"
+#include "clotho/cuda/analysis/pairwise_difference.hpp"
 
 #include "clotho/utility/timer.hpp"
 #include "clotho/utility/log_helper.hpp"
@@ -79,6 +80,7 @@ public:
         , fit_trans( config )
         , all_freq( config )
         , seq_weight( config )
+        , pair_diff( config )
     {
         parse_config( config );
         initialize();
@@ -154,6 +156,8 @@ public:
         all_freq.evaluate( current_pop );
         seq_weight.evaluate( current_pop );
 
+        pair_diff.evaluate( current_pop );
+
         cudaDeviceSynchronize();
     }
 
@@ -173,7 +177,8 @@ public:
 
         boost::property_tree::ptree asis;
         all_freq.get_state( asis );
-        seq_weight.get_state( asis );        
+        seq_weight.get_state( asis );
+        pair_diff.get_state( asis );
 
         boost::property_tree::ptree fit;
         fit_trans.get_state( fit );
@@ -238,6 +243,7 @@ protected:
 
     AlleleFrequency             all_freq;
     SequenceHammingWeight       seq_weight;
+    PairwiseDifference          pair_diff;
 
 //    boost::property_tree::ptree dev_space;
 };

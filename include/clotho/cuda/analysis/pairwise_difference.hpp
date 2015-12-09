@@ -20,6 +20,26 @@
 
 #include "clotho/cuda/helper_macros.hpp"
 
+template < class SequenceSpaceType >
+__global__ void all_samples( SequenceSpaceType * pop, basic_data_space< unsigned int > * samps ) {
+    unsigned int N = pop->seq_count;
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int tpb = blockDim.x * blockDim.y;
+
+    if( tid == 0 ) {
+        _resize_space_impl( samps, N );
+    }
+    __syncthreads();
+
+    unsigned int * d = samps->data;
+    while( tid < N ) {
+        d[tid] = tid;
+        tid += tpb;
+    }
+}
+
+
 class PairwiseDifference : public clotho::utility::iStateObject {
 public:
 
@@ -38,6 +58,25 @@ public:
 
         finalize_pairwise_diff_stats<<< 1, 32 >>>( m_dStats );
         CHECK_LAST_KERNEL_EXEC
+    }
+
+    template < class PopulationSpaceType >
+    void evaluate( PopulationSpaceType * pop ) {
+        basic_data_space< unsigned int > * samps;
+        create_space( samps );
+
+        all_samples<<< 1, 1024 >>>( pop->sequences.get_device_space(), samps );
+
+        evaluate( pop, samps );   
+
+        delete_space( samps );
+    }
+
+    void get_state( boost::property_tree::ptree & state ) {
+        boost::property_tree::ptree f;
+        get_device_object_state( f, m_dStats );
+
+        state.add_child( "difference", f );
     }
 
     virtual ~PairwiseDifference() {

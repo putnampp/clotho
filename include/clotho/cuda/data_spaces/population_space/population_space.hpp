@@ -17,4 +17,6 @@
 #include "clotho/cuda/data_spaces/population_space/population_space_def.hpp"
 #include "clotho/cuda/data_spaces/population_space/population_space_helpers.hpp"
 
+#include "clotho/cuda/data_spaces/population_space/sample_population.hpp"
+
 #endif  // POPULATION_SPACE_HPP_

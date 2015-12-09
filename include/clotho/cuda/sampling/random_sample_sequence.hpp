@@ -48,7 +48,7 @@ __global__ void random_select_parents_kernel( StateType * states
 
         pidx = ((pidx >= M) ? 0 : pidx);    // wrap around indexes
 
-        ids[ i ] = idx;
+        ids[ i ] = pidx;
 
         i += tpb;
     }
