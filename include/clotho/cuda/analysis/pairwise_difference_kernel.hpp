@@ -18,7 +18,7 @@
 
 #include "clotho/cuda/popcount_kernel.h"
 
-/// NOTE need to figure out how to compute standard deviation
+/// TODO need to figure out how to compute standard deviation
 struct pairwise_diff_stats {
     static const unsigned int BINS = 32;
     
@@ -83,6 +83,7 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
     unsigned int column_full_warps = (C & (~31));  // ==( / 32) * 32
 
     __shared__ unsigned long long block_buffer[ 32 ]; // 32 == max warps per block
+    __shared__ unsigned int warp_index[32];
 
     if( warp_id == 0 ) {
         block_buffer[ lane_id ] = 0;
@@ -104,7 +105,8 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
     unsigned int s0 = 0;
     unsigned int s1 = bid * wpb + warp_id + 1;    // s1 = s0 + grid_warp_id + 1 =  warp_id + 1
 
-    while( s0 < M ) {
+    bool is_done = false;
+    while( is_done ) {
 
         while( s1 >= N  && s0 < M ) {
             ++s0;
@@ -159,8 +161,18 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
 
         if( lane_id == 31 ) {
             block_buffer[warp_id] += tot;
+            warp_index[warp_id] = s0;
         }
         __syncthreads();
+
+        // find the minimum s0 within the block
+        unsigned int tmp = warp_index[lane_id];
+        for( unsigned int i = 1; i < 32; i <<= 1 ) {
+            unsigned int t = __shfl_up(tmp, i);
+            tmp = ((tmp < t) ? tmp : t);
+        }
+
+        is_done = (tmp >= M);   // done when all warps have reach s0 >= M
     }
 
     unsigned long long tot = block_buffer[ lane_id ];
