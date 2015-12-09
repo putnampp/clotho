@@ -505,7 +505,7 @@ __global__ void crossover_kernel( StateType * states
 
     int_type    * seqs = sequences->sequences;
 
-    int_type  cap = sequences->capacity;
+    //int_type  cap = sequences->capacity;
 
     real_type       * allele_list = alleles->locations;
     unsigned int    nAlleles = alleles->capacity;
@@ -530,8 +530,10 @@ __global__ void crossover_kernel( StateType * states
     unsigned int nonzero_thread = (tid != 0);
     int_type seq_idx = bid;
     while( seq_idx < nSequences ) {
-        real_type x = curand_uniform( &local_state );
-        rand_pool[ tid ] = curand_uniform( &local_state );
+        real_type x = curand_uniform( &local_state );   // x in (0, 1]
+        rand_pool[ tid ] = ((x >= 1.0) ? 0.0 : x);  // wrap around x to be in [0, 1); this way all event hash bins follow [,) pattern
+
+        x = curand_uniform( &local_state );
 
         int_type rand = _find_poisson_maxk32( s_pois_cdf, x, max_k );
         __syncthreads();
@@ -557,82 +559,86 @@ __global__ void crossover_kernel( StateType * states
 
         unsigned int s = __shfl( _sum, 31 );
 //        assert( max_events < allele_space_type::ALIGNMENT_SIZE );
+//
+        if( s == 0 ) { // true for all threads in block assuming 1 block per sequence
+            // if there are no events for this sequence, then simply clear the memory
+            unsigned int seq_start = seq_idx * sequence_width + tid;
+            unsigned int seq_end = (seq_idx + 1) * sequence_width;
+            while( seq_start < seq_end ) {
+                seqs[ seq_start ] = 0;
+                seq_start += tpb;
+            }
+            __syncthreads();
+        } else {
 
-        s = __shfl( _sum, threadIdx.y - nonzero_warp);
-        s *= nonzero_warp;
-        __syncthreads();
+            s = __shfl( _sum, threadIdx.y - nonzero_warp);
+            s *= nonzero_warp;
+            __syncthreads();
 
-        rand += s;
-        event_hash[tid] = rand;
-        __syncthreads();
+            rand += s;
+            event_hash[tid] = rand;
+            __syncthreads();
 
-        i = event_hash[ tid - nonzero_thread];    // minimum event index
-        i *= nonzero_thread;
-        __syncthreads();
-
-        // BEGIN divergent code
-        while (i < rand) {
-            x = rand_pool[ i ];
-            rand_pool[ i++ ] = (((real_type) tid) + x) / ((real_type) allele_space_type::ALIGNMENT_SIZE);
-        }
-        __syncthreads();
-        // END divergent code
-
-        unsigned int seq_offset = seq_idx * sequence_width + threadIdx.y;   // every thread in a warp has the same block offset
-        i = tid;
-        while( i < nAlleles ) {
-            x = allele_list[ i ];
-
-            assert( 0 <= x && x <= 1.0);
-
-            rand = (unsigned int) ( x * ((real_type)allele_space_type::ALIGNMENT_SIZE));
-
-            assert( rand < allele_space_type::ALIGNMENT_SIZE );
-
-            unsigned int nonzero_bin = (rand != 0);  // _keep == 0 -> rand == 0 -> e_min == 0; _keep == 1 -> rand != 0 -> e_min == event_hash[ rand - 1]
-
-            // each thread reads hash (and random pool) relative to their 
-            // local allele (x)
-            // this code will result in bank conflicts
-            //
-            // initial performance results suggest that this is
-            // an acceptable overhead as overall runtime of simulation
-            // loop is minimized when this algorithm is used
-            unsigned int e_max = event_hash[ rand ];
-            unsigned int e_min = event_hash[ rand - nonzero_bin ];
-            e_min *= nonzero_bin;
-
-            assert (e_min < allele_space_type::ALIGNMENT_SIZE);
-            assert (e_max < allele_space_type::ALIGNMENT_SIZE);
-
-            int_type cmask = e_min;
+            i = event_hash[ tid - nonzero_thread];    // minimum event index
+            i *= nonzero_thread;
+            __syncthreads();
 
             // BEGIN divergent code
-            while( e_min < e_max ) {
-                real_type y = rand_pool[ e_min++ ];
-                cmask += (y < x);
+            while (i < rand) {
+                x = rand_pool[ i ];
+                rand_pool[ i++ ] = (((real_type) tid) + x) / ((real_type) allele_space_type::ALIGNMENT_SIZE);
             }
             __syncthreads();
             // END divergent code
 
-            cmask = ((cmask & 1) << threadIdx.x);
-            
-            for( unsigned int j = 1; j < 32; j <<= 1 ) {
-                int_type _c = __shfl_up( cmask, j);
-                cmask |= ((threadIdx.x >= j) * _c);
-            }
-            if( threadIdx.x == 31 ) {
-                assert( seq_offset < cap );
-                seqs[ seq_offset ] = cmask;
+            unsigned int seq_offset = seq_idx * sequence_width + threadIdx.y;   // every thread in a warp has the same block offset
+            i = tid;
+            while( i < nAlleles ) {
+                x = allele_list[ i ];
+
+                rand = (unsigned int) ( x * ((real_type)allele_space_type::ALIGNMENT_SIZE));
+
+                unsigned int nonzero_bin = (rand != 0);  // _keep == 0 -> rand == 0 -> e_min == 0; _keep == 1 -> rand != 0 -> e_min == event_hash[ rand - 1]
+
+                // each thread reads hash (and random pool) relative to their 
+                // local allele (x)
+                // this code will result in bank conflicts
+                //
+                // initial performance results suggest that this is
+                // an acceptable overhead as overall runtime of simulation
+                // loop is minimized when this algorithm is used
+                unsigned int e_max = event_hash[ rand ];
+                unsigned int e_min = event_hash[ rand - nonzero_bin ];
+                e_min *= nonzero_bin;
+
+                int_type cmask = e_min;
+
+                // BEGIN divergent code
+                while( e_min < e_max ) {
+                    real_type y = rand_pool[ e_min++ ];
+                    cmask += (y < x);
+                }
+                __syncthreads();
+                // END divergent code
+
+                cmask = ((cmask & 1) << threadIdx.x);
+                
+                for( unsigned int j = 1; j < 32; j <<= 1 ) {
+                    int_type _c = __shfl_up( cmask, j);
+                    cmask |= ((threadIdx.x >= j) * _c);
+                }
+                if( threadIdx.x == 31 ) {
+//                    assert( seq_offset < cap );
+                    seqs[ seq_offset ] = cmask;
+                }
+                __syncthreads();
+
+                i += tpb;
+                seq_offset += blockDim.y;   // wpb
             }
             __syncthreads();
 
-            i += tpb;
-            seq_offset += blockDim.y;   // wpb
         }
-        __syncthreads();
-
-
         seq_idx += bpg;
     }
 

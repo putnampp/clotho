@@ -53,7 +53,10 @@ __global__ void random_select_parents_kernel( StateType * states
 
     while( i < nChild ) {
         float x = curand_uniform( &local_state );
+
         unsigned int pidx = (x * nParents);
+
+        pidx *= (pidx != nParents); // wrap around parent index
 
         ids[ i ] = (pidx << 1);
 

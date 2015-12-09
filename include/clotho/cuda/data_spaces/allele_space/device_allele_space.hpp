@@ -161,7 +161,13 @@ void merge_space( AlleleSpaceType * in_space
                 , AlleleSpaceType * out_space ) {
 
     typedef merge_execution_config< OrderTag > config_type;
-    _merge_space<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, fspace, evts, ofspace, out_space );
+    expand_spaces_kernel<<< config_type::BLOCK_COUNT, config_type::THREAD_COUNT >>>( in_space, fspace, evts, ofspace, out_space );
+    CHECK_LAST_KERNEL_EXEC
+
+    update_space_kernel<<< 2, 1024 >>>( in_space, out_space );
+    CHECK_LAST_KERNEL_EXEC
+
+    update_space_kernel<<< 3, 1024 >>>( fspace, ofspace );
     CHECK_LAST_KERNEL_EXEC
 }
 
@@ -301,8 +307,12 @@ __device__ void _generate_random_allele( StateType * state
                                         , unsigned int idx 
                                         , unordered_tag * tag ) {
 
-    RealType x = curand_uniform( state );   // curand_uniform in (0,1]
-    alleles->locations[ idx ] = ((x >= 1.0 ) ? 0.0 : x);    // wrap around to [0,1)
+    RealType x = 0.0;
+    do {
+        x = curand_uniform( state );   // curand_uniform in (0,1]
+    } while( x >= 1.0);
+
+    alleles->locations[ idx ] = x;  // x in (0,1) == mutation cannot occur at very beginning or end of a sequence
 }
 
 template < class StateType, class RealType, class IntType >
@@ -311,7 +321,10 @@ __device__ void _generate_random_allele( StateType * state
                                         , unsigned int idx 
                                         , unit_ordered_tag< IntType > * tag ) {
     
-    RealType x = curand_uniform( state );
+    RealType x = 0.0;
+    do {
+        x = curand_uniform( state );
+    } while( x >= 1.0 );
 
     RealType lane_id = (RealType )(idx & 31);
 

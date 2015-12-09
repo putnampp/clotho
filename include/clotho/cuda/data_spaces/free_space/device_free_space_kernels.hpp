@@ -128,4 +128,58 @@ __device__ void _update_space( device_free_space< IntType, OrderTag > * in_space
     memcpy( out_space->lost_list, in_space->lost_list, N );
 }
 
+template < class IntType, class OrderTag >
+__global__ void update_space_kernel( device_free_space< IntType, OrderTag > * in_space
+                                        , device_free_space< IntType, OrderTag > * out_space ) {
+
+    typedef device_free_space< IntType, OrderTag > space_type;
+    typedef typename space_type::int_type int_type;
+
+    unsigned int N = in_space->capacity;
+    unsigned int M = out_space->capacity;
+
+    assert( N <= M );
+
+    assert( N % (sizeof(int_type) * 8) == 0 );
+    assert( M % (sizeof(int_type) * 8) == 0 );
+
+    N /= (sizeof(int_type) * 8);
+    M /= (sizeof(int_type) * 8);
+
+    if( N == 0 || M == 0 ) {
+        //printf( "Unexpected update of free space: M= %d; N=%d\n", M, N );
+        return;
+    }
+
+    int_type * in_data, *out_data;
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+    if( bid == 0 ) {    // true for all threads
+        in_data = in_space->free_list;
+        out_data = out_space->free_list;
+    } else if ( bid == 1 ) {    // true for all threads
+        in_data = in_space->fixed_list;
+        out_data = out_space->fixed_list;
+    } else if ( bid == 2 ) {    // true for all threads
+        in_data = in_space->lost_list;
+        out_data = out_space->lost_list;
+    } else {    // true for all threads
+        return;
+    }
+
+    unsigned int tpb = blockDim.x * blockDim.y;
+    unsigned int idx = threadIdx.y * blockDim.x + threadIdx.x;
+    while( idx < N ) {
+        out_data[idx] = in_data[idx];
+        idx += tpb;
+    }
+
+    int_type v = 0;
+    if( bid == 0 ) { v = (~v); }
+    __syncthreads();
+
+    while( idx < M ) {
+        out_data[idx] = v;
+        idx += tpb;
+    }
+}
 #endif  // DEVICE_FREE_SPACE_KERNELS_HPP_
