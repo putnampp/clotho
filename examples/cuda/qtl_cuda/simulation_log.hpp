@@ -20,9 +20,10 @@
 
 #include "clotho/utility/state_object.hpp"
 
-#include "../../logging_parameter.hpp"
+//#include "../../logging_parameter.hpp"
+#include "../../qtl/qtl_logging_parameter.hpp"
 
-class simulation_log : public logging_parameter {
+class simulation_log : public qtl_logging_parameter {
 public:
     typedef boost::property_tree::ptree record_type;
 
@@ -31,7 +32,9 @@ public:
     void set_path_prefix( std::string & prefix );
     std::string get_path_prefix() const;
 
-    bool operator()( clotho::utility::iStateObject * obj );
+    bool hasPeriodElapsed( );
+
+    void record_state( clotho::utility::iStateObject * obj );
 
     void add_record( std::string name, const record_type & rec );
 

@@ -17,7 +17,7 @@
 #include <sstream>
 
 simulation_log::simulation_log( boost::property_tree::ptree & config, std::string prefix ) :
-    logging_parameter( config )
+    qtl_logging_parameter( config )
     , m_activated( false )
     , m_prefix(prefix)
     , m_count(0)
@@ -36,14 +36,17 @@ std::string simulation_log::get_path_prefix() const {
     return m_prefix;
 }
 
-bool simulation_log::operator()( clotho::utility::iStateObject * obj ) {
-    if( m_count-- == 0 ) {
-        obj->get_state( m_log );
+bool simulation_log::hasPeriodElapsed() {
+    if( m_period != 0 && m_count-- == 0 ) {
         m_count = m_period - 1;
 
         return true;
     }
     return false;
+}
+
+void simulation_log::record_state( clotho::utility::iStateObject * obj ) {
+    obj->get_state( m_log );
 }
 
 void simulation_log::add_record( std::string name, const record_type & rec ) {

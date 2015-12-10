@@ -142,13 +142,14 @@ int main( int argc, char ** argv ) {
 
         clotho::utility::add_value_array( _sim, t );
 
-        t.start();
-        sim_engine.analyze_population();
-        t.stop();
+        if( log.hasPeriodElapsed() ) {
+            t.start();
+            sim_engine.analyze_population();
+            t.stop();
 
-        clotho::utility::add_value_array( _an, t );
+            clotho::utility::add_value_array( _an, t );
 
-        if( log( &sim_engine ) ) {
+            log.record_state( &sim_engine );
             std::cerr << gen << ": Writing log file" << std::endl;
             log.write();
         }
