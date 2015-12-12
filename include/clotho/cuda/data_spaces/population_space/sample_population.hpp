@@ -43,7 +43,8 @@ struct SamplePopulation< PopulationSpace< RealType, IntType, OrderTag > > {
 
         N = ((m_pop) ? N : 0 );
 
-        random_sample<<< 1, 1024 >>>( state_pool_type::getInstance()->get_device_states(), m_pop->sequences, N, m_dSubpop );
+        random_sample<<< 1, 1024 >>>( state_pool_type::getInstance()->get_device_states(), m_pop->sequences.get_device_space(), N, m_dSubpop );
+        CHECK_LAST_KERNEL_EXEC
     }
 
     virtual ~SamplePopulation() {
