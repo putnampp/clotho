@@ -143,13 +143,35 @@ int main( int argc, char ** argv ) {
         clotho::utility::add_value_array( _sim, t );
 
         if( log.hasPeriodElapsed() ) {
+
+            // population level analysis
             t.start();
             sim_engine.analyze_population();
             t.stop();
 
             clotho::utility::add_value_array( _an, t );
-
             log.record_state( &sim_engine );
+
+            typedef std::vector< sample_log_params > samples_type;
+            typedef typename samples_type::iterator  sample_iter;
+
+            boost::property_tree::ptree samps;
+            unsigned int i = 0;
+            for( sample_iter it = log.m_sampling.begin(); it != log.m_sampling.end(); it++ ) {
+                if( it->pairwise ) {
+                    boost::property_tree::ptree res;
+                    sim_engine.analyze_sample( it->sample_size, res );
+
+                    std::ostringstream oss;
+                    oss << i++;
+                    samps.add_child( oss.str(), res );
+                }
+            }
+
+            if(!samps.empty() ) {
+                log.add_record( "samples", samps );
+            }
+
             std::cerr << gen << ": Writing log file" << std::endl;
             log.write();
         }

@@ -41,6 +41,7 @@
 #include "clotho/utility/log_helper.hpp"
 
 #include "clotho/cuda/fitness/quadratic_fitness_translator.hpp"
+#include "clotho/cuda/data_spaces/population_space/sample_population.hpp"
 
 template < class PopulationSpaceType > 
 class qtl_cuda_simulate_engine : public clotho::utility::iStateObject {
@@ -159,6 +160,20 @@ public:
         pair_diff.evaluate( current_pop );
 
         cudaDeviceSynchronize();
+    }
+
+    void analyze_sample( unsigned int N, boost::property_tree::ptree & samp_res) {
+        clotho::utility::timer t;
+
+        SamplePopulation< population_space_type > samps( current_pop, N );
+
+        pair_diff.evaluate( current_pop, samps.m_dSubpop );
+
+        cudaDeviceSynchronize();
+        t.stop();
+
+        pair_diff.get_state( samp_res );
+        samp_res.put( "rt", t.elapsed_long());
     }
 
     void get_state( boost::property_tree::ptree & state ) {
