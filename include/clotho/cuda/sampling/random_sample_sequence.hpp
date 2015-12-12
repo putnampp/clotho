@@ -20,10 +20,10 @@
 #include "clotho/cuda/data_spaces/basic_data_space.hpp"
 
 template < class StateType, class IntType, class IntType2 = unsigned int >
-__global__ void random_select_parents_kernel( StateType * states
-                                                , device_sequence_space< IntType > * src
-                                                , unsigned int N
-                                                , basic_data_space< IntType2 > * index_space ) {
+__global__ void random_sample( StateType * states
+                                , device_sequence_space< IntType > * src
+                                , unsigned int N
+                                , basic_data_space< IntType2 > * index_space ) {
     typedef StateType   state_type;
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
