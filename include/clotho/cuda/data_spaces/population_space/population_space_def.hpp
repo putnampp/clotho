@@ -51,7 +51,7 @@ struct PopulationSpace : public clotho::utility::iStateObject {
         create_space( free_space );
         create_space( pheno_space );
 
-        resize_space( free_space, allele_space_type::device_space_type::ALIGNMENT_SIZE );
+//        resize_space( free_space, allele_space_type::device_space_type::ALIGNMENT_SIZE );
 
         update_metadata();
     }
