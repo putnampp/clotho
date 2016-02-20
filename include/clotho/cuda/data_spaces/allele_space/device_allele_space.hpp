@@ -322,10 +322,14 @@ __device__ RealType _generate_random_allele_location( StateType * state, RealTyp
 template < class StateType, class RealType >
 __device__ RealType _generate_neutrality( StateType * state, RealType p = 0.0 ) {
     if( p == 0.0) return 0.0;
+    if( p == 1.0) return 1.0;
 
     RealType x = curand_uniform( state );
 
-    x = ((x <= p) ? 1.0 : 0.0);
+    // if uniform random number x is less than p
+    // then allele is neutral represented by scaling
+    // factor of 0.0
+    x = ((x <= p) ? 0.0 : 1.0);
 
     return x;
 }
