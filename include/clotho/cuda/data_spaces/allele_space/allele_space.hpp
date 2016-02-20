@@ -14,6 +14,9 @@
 #ifndef ALLELE_SPACE_HPP_
 #define ALLELE_SPACE_HPP_
 
+#include <boost/property_tree/ptree.hpp>
+#include "clotho/utility/clotho_strings.hpp"
+
 #include "clotho/cuda/data_spaces/allele_space/device_allele_space.hpp"
 #include "clotho/cuda/data_spaces/free_space/device_free_space.hpp"
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
@@ -31,7 +34,9 @@ public:
 
     typedef AlleleSpace< RealType > self_type;
 
-    AlleleSpace( );
+    AlleleSpace( boost::property_tree::ptree & config );
+
+    void setNeutralityP( real_type p );
 
     unsigned int total_free_space();
 
@@ -66,13 +71,42 @@ protected:
 #define _CLASS  AlleleSpace< RealType >
 
 _HEADER
-_CLASS::AlleleSpace() : dAlleles( NULL ) {
+_CLASS::AlleleSpace( boost::property_tree::ptree & config ) : dAlleles( NULL ) {
+
+    boost::property_tree::ptree all, neu;
+
+    all = config.get_child( ALLELE_BLOCK_K, all );
+    neu = all.get_child(NEUTRAL_BLOCK_K, neu );
+
+    real_type p = neu.get< real_type >( P_K, 0.0 );
+
+    assert( 0.0 <= p && p <= 1.0 );
+
+    neu.put( P_K, p );
+    all.put_child( NEUTRAL_BLOCK_K, neu );
+    config.put_child( ALLELE_BLOCK_K, all );
+
     initialize();
+
+    setNeutralityP( p );
 }
 
 _HEADER
 void _CLASS::initialize() {
     create_space( dAlleles );
+}
+
+_HEADER
+void _CLASS::setNeutralityP( real_type p ) {
+    typedef typename _CLASS::device_space_type space_type;
+    space_type hCopy;
+
+    assert( cudaMemcpy( &hCopy, dAlleles, sizeof( space_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
+
+    hCopy.neutral_p = p;
+    assert( cudaMemcpy( rhs.dAlleles, &hCopy, sizeof( space_type ), cudaMemcpyHostToDevice ) == cudaSuccess );
+
+
 }
 
 _HEADER

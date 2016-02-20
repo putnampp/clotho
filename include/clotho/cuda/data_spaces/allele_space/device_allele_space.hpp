@@ -47,6 +47,7 @@ __device__ bool _resize_space_impl( device_allele_space< RealType > * aspace, un
     bool cap_increased = false;
     if( M < N ) {
         real_type * l = new real_type[ N ];
+        real_type * neu = new real_type[ N ];
 
         assert( l != NULL );
 
@@ -54,12 +55,15 @@ __device__ bool _resize_space_impl( device_allele_space< RealType > * aspace, un
         if( aspace->locations ) {
             if( copy_content ) {
                 memcpy(l, aspace->locations, M * sizeof(real_type));
+                memcpy(neu, aspace->neutral, M * sizeof(real_type));
             }
             delete aspace->locations;
+            delete aspace->neutral;
         }
 
 
         aspace->locations = l;
+        aspace->neutral = neu;
         aspace->capacity = N;
         cap_increased = true;
     }
@@ -121,6 +125,9 @@ __device__ void _delete_space_impl( device_allele_space< RealType > * aspace ) {
     if( aspace->locations  && threadIdx.y * blockDim.x + threadIdx.x == 0) {
         delete aspace->locations;
         aspace->locations = NULL;
+
+        delete aspace->neutral;
+        aspace->neutral = NULL;
     }
 }
 
@@ -197,6 +204,7 @@ __device__ bool _move_allele( device_allele_space< RealType > * in_space
 
     if( success ) {
         out_space->locations[out_idx] = in_space->locations[in_idx];
+        out_space->neutral[out_idx] = in_space->neutral[in_idx];
     }   
 
     return success;
@@ -302,17 +310,39 @@ __global__ void move_fixed_allele_kernel( AlleleSpaceType * dest, AlleleSpaceTyp
 }
 
 template < class StateType, class RealType >
-__device__ void _generate_random_allele( StateType * state
-                                        , device_allele_space< RealType > * alleles
-                                        , unsigned int idx 
-                                        , unordered_tag * tag ) {
-
+__device__ RealType _generate_random_allele_location( StateType * state) {
     RealType x = 0.0;
     do {
         x = curand_uniform( state );   // curand_uniform in (0,1]
     } while( x >= 1.0);
 
+    return x;
+}
+
+template < class StateType, class RealType >
+__device__ RealType _generate_neutrality( StateType * state, RealType p = 0.0 ) {
+    if( p == 0.0) return 0.0;
+
+    RealType x = curand_uniform( state );
+
+    x = ((x <= p) ? 1.0 : 0.0);
+
+    return x;
+}
+
+template < class StateType, class RealType >
+__device__ void _generate_random_allele( StateType * state
+                                        , device_allele_space< RealType > * alleles
+                                        , unsigned int idx 
+                                        , unordered_tag * tag ) {
+    RealType x = _generate_random_allele_location< RealType >( state );
+
+    RealType p = alleles->neutral_p;
+
+    RealType n = _generate_neutrality< RealType >( state, p );
+
     alleles->locations[ idx ] = x;  // x in (0,1) == mutation cannot occur at very beginning or end of a sequence
+    alleles->neutral[ idx ] = n;
 }
 
 template < class StateType, class RealType, class IntType >
@@ -321,15 +351,17 @@ __device__ void _generate_random_allele( StateType * state
                                         , unsigned int idx 
                                         , unit_ordered_tag< IntType > * tag ) {
     
-    RealType x = 0.0;
-    do {
-        x = curand_uniform( state );
-    } while( x >= 1.0 );
+    RealType x = _generate_random_allele_location< RealType >( state );
 
     RealType lane_id = (RealType )(idx & 31);
 
     x = (( lane_id + x ) / ((RealType) unit_ordered_tag< IntType >::OBJECTS_PER_UNIT));
+
+    RealType p = alleles->neutral_p;
+    RealType n = _generate_neutrality< RealType >( state, p );
+
     alleles->locations[ idx ] = x;
+    alleles->neutral[ idx ] = n;
 }
 
 template < class StateType, class RealType, class OrderTag >
@@ -339,7 +371,9 @@ __device__ void _generate_random_allele( StateType * state
                                         , OrderTag * tag ) {
     _generate_random_allele( state, (device_allele_space< RealType > * ) alleles, idx, tag );
 
-    RealType y = curand_normal( state );
+    RealType n = alleles->neutral[ idx ];
+
+    RealType y = n * curand_normal( state );
     alleles->weights[ idx ] = y;
 }
 

@@ -26,6 +26,7 @@ template < class RealType >
 __device__ void _update_space( device_allele_space< RealType > * in_space
                             , device_allele_space< RealType > * out_space ) {
     memcpy( out_space->locations, in_space->locations, in_space->capacity * sizeof( typename device_allele_space< RealType >::real_type ) );
+    memcpy( out_space->neutral, in_space->neutral, in_space->capacity * sizeof( typename device_allele_space< RealType >::real_type ) );
 }
 
 template < class RealType >
@@ -122,7 +123,7 @@ __global__ void update_space_kernel( device_weighted_allele_space< RealType > * 
 
     
     unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
-    if( bid > 1 ) return;
+    if( bid > 2 ) return;
 
     unsigned int N = in_alleles->capacity;
     unsigned int M = out_alleles->capacity;
@@ -137,6 +138,9 @@ __global__ void update_space_kernel( device_weighted_allele_space< RealType > * 
     if( bid == 0 ) {
         in_data = in_alleles->locations;
         out_data = out_alleles->locations;
+    } else if( bid == 1 ) {
+        in_data = in_alleles->neutral;
+        out_data = out_alleles->neutral;
     } else {
         in_data = in_alleles->weights;
         out_data = out_alleles->weights;

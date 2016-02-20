@@ -28,7 +28,9 @@ struct device_allele_space {
     static const unsigned int ALIGNMENT_SIZE = 128;
 
     real_type       * locations;
+    real_type       * neutral;
 
+    real_type       neutral_p;
     unsigned int    size, capacity;
 };
 

@@ -47,7 +47,10 @@ struct PopulationSpace : public clotho::utility::iStateObject {
     free_space_type         * free_space;
     phenotype_space_type    * pheno_space;
 
-    PopulationSpace() {
+    PopulationSpace( boost::property_tree::ptree & config ) :
+        sequences( config )
+        , alleles( config )
+        {
         create_space( free_space );
         create_space( pheno_space );
 

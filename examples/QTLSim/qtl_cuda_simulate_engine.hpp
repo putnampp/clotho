@@ -72,7 +72,9 @@ public:
     typedef clotho::utility::timer                                  timer_type;
 
     qtl_cuda_simulate_engine( boost::property_tree::ptree & config ) :
-        current_pop( &hPop0 )
+        hPop0( config )
+        , hPop1( config )
+        , current_pop( &hPop0 )
         , prev_pop( &hPop1 )
         , mut_gen( config )
         , xover_gen( config )

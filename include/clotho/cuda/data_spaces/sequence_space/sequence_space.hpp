@@ -14,6 +14,8 @@
 #ifndef SEQUENCE_SPACE_HPP_
 #define SEQUENCE_SPACE_HPP_
 
+#include <boost/property_tree/ptree.hpp>
+
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space.hpp"
 #include "clotho/cuda/data_spaces/sequence_space/device_sequence_space_helper.hpp"
 
@@ -27,7 +29,7 @@ public:
     typedef IntType int_type;
     typedef device_sequence_space< int_type > device_space_type;
 
-    SequenceSpace() {
+    SequenceSpace( boost::property_tree::ptree & config ) {
         initialize();
     }
 
