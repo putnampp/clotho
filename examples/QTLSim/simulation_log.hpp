@@ -20,8 +20,7 @@
 
 #include "clotho/utility/state_object.hpp"
 
-//#include "../../logging_parameter.hpp"
-#include "../../qtl/qtl_logging_parameter.hpp"
+#include "../qtl/qtl_logging_parameter.hpp"
 
 class simulation_log : public qtl_logging_parameter {
 public:

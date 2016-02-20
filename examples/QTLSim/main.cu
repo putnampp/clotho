@@ -11,39 +11,17 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-
+#include "qtlsim_config.hpp"
 #include <iostream>
-
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-
-#include "clotho/configuration_manager/config_manager.hpp"
 
 #include "clotho/cuda/data_spaces/data_space.hpp"
 
 #include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
 
-#include "../../generation_parameter.hpp"
-#include "../../population_parameter.hpp"
-#include "options/configuration_option.hpp"
-#include "options/log_prefix_option.hpp"
 
 #include "qtl_cuda_simulate_engine.hpp"
-#include "clotho/genetics/population_growth_toolkit.hpp"
 
 #include "simulation_log.hpp"
-
-#include "clotho/utility/timer.hpp"
-#include "clotho/utility/log_helper.hpp"
-
-typedef clotho::configuration_manager::config_manager       config_manager_type;
-
-#ifdef USE_DOUBLE_REAL
-typedef double          real_type;
-#else
-typedef float           real_type;
-#endif
-typedef unsigned int    int_type;
 
 #ifdef USE_UNIT_ORDERING
 typedef unit_ordered_tag< int_type > order_tag_type;
@@ -55,9 +33,6 @@ typedef PopulationSpace< real_type, int_type, order_tag_type > population_space_
 
 typedef qtl_cuda_simulate_engine< population_space_type >   engine_type;
 
-typedef clotho::utility::timer                              timer_type;
-
-//static const std::string GEN_K = "generations";
 static const std::string HEAP_K = "device.heap.malloc.size";
 
 typedef std::shared_ptr< ipopulation_growth_generator >                     population_growth_generator_type;
@@ -70,13 +45,9 @@ int main( int argc, char ** argv ) {
     if( ret ) return ret;
 
     boost::property_tree::ptree infile;
-    bool print_config_only = true;
-    if( vm.count( configuration_option::CONFIG_K ) ) {
-        std::string p = vm[ configuration_option::CONFIG_K ].as< configuration_option::path_type >();
+    getSimConfiguration( vm, infile );
 
-        boost::property_tree::read_json( p, infile );
-        print_config_only = false;
-    }
+    bool print_config_only = infile.empty();
 
     std::string prefix = "";
     if( vm.count( log_prefix_option::PREFIX_K ) ) {
@@ -84,9 +55,6 @@ int main( int argc, char ** argv ) {
     }
 
     boost::property_tree::ptree config = infile.get_child( CONFIG_BLOCK_K, infile );
-
-//    unsigned int nGens = config.get< unsigned int >(GEN_K, 0);
-//    config.put( GEN_K, nGens );
 
     generation_parameter gen_param( config );
     unsigned int nGens = gen_param.m_size;
@@ -115,10 +83,6 @@ int main( int argc, char ** argv ) {
     engine_type sim_engine( config );
     simulation_log log( config, prefix );
     i_time.stop();
-
-//    if( !prefix.empty() ) {
-//        log.set_path_prefix( prefix );
-//    }
 
     log.add_record( "configuration", config );
 

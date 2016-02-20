@@ -20,6 +20,6 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR} )
 
 #add_subdirectory(qtl )
 add_subdirectory(qtl_thrust)
-add_subdirectory(qtl_cuda)
+#add_subdirectory(qtl_cuda)
 add_subdirectory(sandbox)
 add_subdirectory(unittests)

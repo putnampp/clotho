@@ -33,9 +33,9 @@ void configuration_option::getOptions( po::options_description & desc ) {
 clotho::configuration_manager::COMMANDLINE_ACTION configuration_option::validate( const po::variables_map & vm ) {
     clotho::configuration_manager::COMMANDLINE_ACTION res = clotho::configuration_manager::COMMANDLINE_SUCCESS;
 
-    if( vm.count( CONFIG_K ) ) {
-        
-    }
+//    if( vm.count( CONFIG_K ) ) {
+//        
+//    }
 
     return res;
 }
