@@ -104,9 +104,7 @@ void _CLASS::setNeutralityP( real_type p ) {
     assert( cudaMemcpy( &hCopy, dAlleles, sizeof( space_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
 
     hCopy.neutral_p = p;
-    assert( cudaMemcpy( rhs.dAlleles, &hCopy, sizeof( space_type ), cudaMemcpyHostToDevice ) == cudaSuccess );
-
-
+    assert( cudaMemcpy( dAlleles, &hCopy, sizeof( space_type ), cudaMemcpyHostToDevice ) == cudaSuccess );
 }
 
 _HEADER

@@ -74,8 +74,9 @@ public:
     qtl_cuda_simulate_engine( boost::property_tree::ptree & config ) :
         hPop0( config )
         , hPop1( config )
-        , current_pop( &hPop0 )
         , prev_pop( &hPop1 )
+        , current_pop( &hPop0 )
+        , fixed_alleles( config )
         , mut_gen( config )
         , xover_gen( config )
         , sel_gen(config)

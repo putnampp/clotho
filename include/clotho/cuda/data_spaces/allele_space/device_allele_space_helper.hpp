@@ -163,12 +163,12 @@ struct state_getter< device_allele_space< RealType > > {
 
         copy_heap_data( loc, obj.neutral, N );
 
-        boost::property_tree::ptree l;
+        boost::property_tree::ptree nt;
         for( unsigned int i = 0; i < N; ++i ) {
-            clotho::utility::add_value_array( l, loc[i] );
+            clotho::utility::add_value_array( nt, loc[i] );
         }
 
-        state.add_child( "neutrals", l );
+        state.add_child( "neutrals", nt );
 
         state.put("neutral.p", obj.neutral_p );
 

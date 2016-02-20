@@ -142,7 +142,7 @@ __global__ void update_free_space_kernel( device_sequence_space< IntType > * seq
 
     unsigned int wpb = (tpb >> 5);
     unsigned int bpg = (gridDim.x * gridDim.y);
-    unsigned int spg = ( wpb * bpg );
+    //unsigned int spg = ( wpb * bpg );
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
     unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
@@ -160,7 +160,7 @@ __global__ void update_free_space_kernel( device_sequence_space< IntType > * seq
 
     unsigned int _count = seq_space->size;
 
-    unsigned int seq_id = (tid >> 5); // warp_id
+    //unsigned int seq_id = (tid >> 5); // warp_id
     while( column < seq_width ) {
         unsigned int ridx = tid * seq_width + column;
 

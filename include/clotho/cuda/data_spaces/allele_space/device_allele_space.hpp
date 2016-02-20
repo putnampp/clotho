@@ -310,7 +310,7 @@ __global__ void move_fixed_allele_kernel( AlleleSpaceType * dest, AlleleSpaceTyp
 }
 
 template < class StateType, class RealType >
-__device__ RealType _generate_random_allele_location( StateType * state) {
+__device__ RealType _generate_random_allele_location( StateType * state, RealType p = 0.0) {
     RealType x = 0.0;
     do {
         x = curand_uniform( state );   // curand_uniform in (0,1]
@@ -335,11 +335,11 @@ __device__ void _generate_random_allele( StateType * state
                                         , device_allele_space< RealType > * alleles
                                         , unsigned int idx 
                                         , unordered_tag * tag ) {
-    RealType x = _generate_random_allele_location< RealType >( state );
+    RealType x = _generate_random_allele_location( state, (RealType) 0.0 );
 
     RealType p = alleles->neutral_p;
 
-    RealType n = _generate_neutrality< RealType >( state, p );
+    RealType n = _generate_neutrality( state, p );
 
     alleles->locations[ idx ] = x;  // x in (0,1) == mutation cannot occur at very beginning or end of a sequence
     alleles->neutral[ idx ] = n;
@@ -351,7 +351,7 @@ __device__ void _generate_random_allele( StateType * state
                                         , unsigned int idx 
                                         , unit_ordered_tag< IntType > * tag ) {
     
-    RealType x = _generate_random_allele_location< RealType >( state );
+    RealType x = _generate_random_allele_location( state );
 
     RealType lane_id = (RealType )(idx & 31);
 
