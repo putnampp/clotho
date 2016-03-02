@@ -86,8 +86,11 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
     __shared__ unsigned long long block_buffer[ 32 ]; // 32 == max warps per block
     __shared__ unsigned int warp_index[32];
 
+    unsigned int M = N - 1; // max index
+
     if( warp_id == 0 ) {
         block_buffer[ lane_id ] = 0;
+        warp_index[ lane_id ] = M;
     }
     __syncthreads();
 
@@ -101,7 +104,6 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
     }
     __syncthreads();
 
-    unsigned int M = N - 1; // max index
 
     s0 = 0;
     unsigned int s1 = bid * wpb + warp_id + 1;    // s1 = s0 + grid_warp_id + 1 =  warp_id + 1
@@ -162,7 +164,7 @@ __global__ void pairwise_difference_kernel( device_sequence_space< IntType > * s
 
         if( lane_id == 31 ) {
             block_buffer[warp_id] += tot;
-            warp_index[warp_id] = s0;
+            warp_index[warp_id] =  s0;
         }
         __syncthreads();
 
