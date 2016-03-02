@@ -66,7 +66,7 @@ struct test_kernel {
 
         initialize_pairwise_diff_stats<<< 1, 32 >>>( dStats );
 
-        pairwise_difference_kernel<<< 10, 1024 >>>( seqs, dSubPop, dStats);
+        pairwise_difference_kernel<<< 10, 32 >>>( seqs, dSubPop, dStats);
 
         finalize_pairwise_diff_stats<<< 1, 32 >>>( dStats );
     }
