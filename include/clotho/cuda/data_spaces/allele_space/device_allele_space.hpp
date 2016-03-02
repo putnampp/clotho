@@ -340,12 +340,12 @@ __device__ void _generate_random_allele( StateType * state
                                         , unsigned int idx 
                                         , unordered_tag * tag ) {
     RealType x = _generate_random_allele_location( state, (RealType) 0.0 );
+    alleles->locations[ idx ] = x;  // x in (0,1) == mutation cannot occur at very beginning or end of a sequence
 
     RealType p = alleles->neutral_p;
 
     RealType n = _generate_neutrality( state, p );
 
-    alleles->locations[ idx ] = x;  // x in (0,1) == mutation cannot occur at very beginning or end of a sequence
     alleles->neutral[ idx ] = n;
 }
 
