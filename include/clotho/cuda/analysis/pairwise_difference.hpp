@@ -52,7 +52,8 @@ public:
         initialize_pairwise_diff_stats<<< 1, 32 >>>( m_dStats );
         CHECK_LAST_KERNEL_EXEC
 
-        dim3 threads(32, 32, 1);
+//        dim3 threads(32, 32, 1);
+        dim3 threads( 32, 1, 1);
         pairwise_difference_kernel<<< pairwise_diff_stats::BINS, threads >>>( pop->sequences.get_device_space(), subpop, m_dStats );
         CHECK_LAST_KERNEL_EXEC
 
