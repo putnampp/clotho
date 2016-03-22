@@ -32,7 +32,7 @@ TARGET_LINK_LIBRARIES( ${PROJECT_NAME}_commandline ${Boost_PROGRAM_OPTIONS_LIBRA
 #ADD_EXECUTABLE( benchmark_selected benchmark.cpp )
 #TARGET_LINK_LIBRARIES(benchmark_selected ${COMMON_LIBRARIES} ${PROJECT_NAME}_utility ${PROJECT_NAME}_commandline)
 
-ADD_SUBDIRECTORY(benchmark)
+#ADD_SUBDIRECTORY(benchmark)
 ADD_SUBDIRECTORY(qtl)
 ADD_SUBDIRECTORY(QTLSim)
 
