@@ -17,6 +17,8 @@
 #include "clotho/cuda/device_state_object.hpp"
 
 #include "clotho/cuda/analysis/pairwise_difference_kernel.hpp"
+#include "clotho/cuda/execution_configuration/thread_parameter.hpp"
+#include "clotho/cuda/execution_configuration/block_parameter.hpp"
 
 #include "clotho/cuda/helper_macros.hpp"
 
@@ -43,8 +45,14 @@ __global__ void all_samples( SequenceSpaceType * pop, basic_data_space< unsigned
 class PairwiseDifference : public clotho::utility::iStateObject {
 public:
 
-    PairwiseDifference( boost::property_tree::ptree & config ) {
+    PairwiseDifference( boost::property_tree::ptree & config ) :
+        m_dStats(NULL)
+        , m_threads( 32, 32, 1)
+        , m_kern_version( 0 )
+    {
         assert( cudaMalloc( (void **) &m_dStats, sizeof( pairwise_diff_stats ) ) == cudaSuccess);
+
+        parse_configuration( config );
     }
 
     template < class PopulationSpaceType >
@@ -52,9 +60,11 @@ public:
         initialize_pairwise_diff_stats<<< 1, 32 >>>( m_dStats );
         CHECK_LAST_KERNEL_EXEC
 
-//        dim3 threads(32, 32, 1);
-        dim3 threads( 32, 1, 1);
-        pairwise_difference_kernel<<< pairwise_diff_stats::BINS, threads >>>( pop->sequences.get_device_space(), subpop, m_dStats );
+        if( m_kern_version ) {
+            pairwise_difference_kernel2<<< pairwise_diff_stats::BINS, m_threads >>>( pop->sequences.get_device_space(), subpop, m_dStats );
+        } else {
+            pairwise_difference_kernel<<< pairwise_diff_stats::BINS, m_threads >>>( pop->sequences.get_device_space(), subpop, m_dStats );
+        }
         CHECK_LAST_KERNEL_EXEC
 
         finalize_pairwise_diff_stats<<< 1, 32 >>>( m_dStats );
@@ -85,7 +95,36 @@ public:
     }
 
 protected:
+    void parse_configuration( boost::property_tree::ptree & config ) {
+        boost::property_tree::ptree lc, kern, th;
+
+        lc = config.get_child( "pairwise_difference", lc);
+
+        kern = lc.get_child( "kernel", kern );
+
+        m_kern_version = kern.get< unsigned int >( "version", m_kern_version );
+        kern.put( "version", m_kern_version );
+
+        th = kern.get_child( "threads", th );
+
+        m_threads.x = th.get< unsigned int >( "x", m_threads.x );
+        m_threads.y = th.get< unsigned int >( "y", m_threads.y );
+        m_threads.z = th.get< unsigned int >( "z", m_threads.z );
+
+        th.put( "x", m_threads.x);
+        th.put( "y", m_threads.y);
+        th.put( "z", m_threads.z);
+
+        kern.put_child( "threads", th );
+
+        lc.put_child( "kernel", kern );   
+
+        config.put_child( "pairwise_difference", lc );
+    }
+
     pairwise_diff_stats     * m_dStats;
+    dim3 m_threads;
+    unsigned int m_kern_version;
 };
 
 #endif  // CUDA_PAIRWISE_DIFFERENCE_HPP_
