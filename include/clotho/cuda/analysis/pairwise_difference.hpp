@@ -17,8 +17,6 @@
 #include "clotho/cuda/device_state_object.hpp"
 
 #include "clotho/cuda/analysis/pairwise_difference_kernel.hpp"
-#include "clotho/cuda/execution_configuration/thread_parameter.hpp"
-#include "clotho/cuda/execution_configuration/block_parameter.hpp"
 
 #include "clotho/cuda/helper_macros.hpp"
 
