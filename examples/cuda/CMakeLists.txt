@@ -19,7 +19,7 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR} )
 #TARGET_LINK_LIBRARIES(square_list ${CUDA_LIBRARIES} ${CUDA_curand_LIBRARY} ${COMMON_LIBRARIES} )
 
 #add_subdirectory(qtl )
-add_subdirectory(qtl_thrust)
+#add_subdirectory(qtl_thrust)
 #add_subdirectory(qtl_cuda)
 add_subdirectory(sandbox)
 add_subdirectory(unittests)

@@ -13,9 +13,11 @@
 //   limitations under the License.
 #include <iostream>
 #include <cassert>
+#include <iomanip>
 
-#include "clotho/cuda/allele_space/allele_space.hpp"
+#include "clotho/cuda/data_spaces/allele_space/allele_space.hpp"
 #include "clotho/utility/timer.hpp"
+#include "boost/property_tree/ptree.hpp"
 
 typedef double          real_type;
 typedef unsigned int    int_type;
@@ -33,7 +35,8 @@ int main( int argc, char ** argv ) {
     unsigned int sizes[COUNT] = { 128, 64, 1024 };
 
     for( unsigned int i = 0; i < COUNT; ++i ) {
-        AlleleSpace< real_type, int_type, tag_type > as;
+        boost::property_tree::ptree conf;
+        AlleleSpace< real_type > as(conf);
         timer_type t;
         as.resize( sizes[i] );
         t.stop();

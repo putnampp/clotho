@@ -16,8 +16,8 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR} )
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR}/cuda )
 
 # FEATURE TEST PROGRAM
-CUDA_ADD_EXECUTABLE(kvsort_test kvsort_test.cu )
-TARGET_LINK_LIBRARIES(kvsort_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
+#CUDA_ADD_EXECUTABLE(kvsort_test kvsort_test.cu )
+#TARGET_LINK_LIBRARIES(kvsort_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
 
 add_subdirectory( crossover )
 add_subdirectory( allele_space )

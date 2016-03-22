@@ -16,10 +16,10 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR} )
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_EXAMPLE_DIR}/cuda )
 
 # FEATURE TEST PROGRAM
-CUDA_ADD_EXECUTABLE(allele_space_unordered_test allele_space_test.cu)
-TARGET_LINK_LIBRARIES(allele_space_unordered_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_CHRONO_LIBRARY})
+#CUDA_ADD_EXECUTABLE(allele_space_unordered_test allele_space_test.cu)
+#TARGET_LINK_LIBRARIES(allele_space_unordered_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_CHRONO_LIBRARY})
 
-CUDA_ADD_EXECUTABLE(allele_space_unit_ordered_test allele_space_test.cu OPTIONS -DUSE_UNIT_ORDERED)
-TARGET_LINK_LIBRARIES(allele_space_unit_ordered_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_CHRONO_LIBRARY})
+#CUDA_ADD_EXECUTABLE(allele_space_unit_ordered_test allele_space_test.cu OPTIONS -DUSE_UNIT_ORDERED)
+#TARGET_LINK_LIBRARIES(allele_space_unit_ordered_test ${CUDA_curand_LIBRARY} ${CUDA_cuda_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${Boost_CHRONO_LIBRARY})
 
-ADD_CUSTOM_TARGET( allele_space_tests DEPENDS allele_space_unit_ordered_test allele_space_unordered_test )
+#ADD_CUSTOM_TARGET( allele_space_tests DEPENDS allele_space_unit_ordered_test allele_space_unordered_test )

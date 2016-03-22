@@ -55,10 +55,10 @@ SET_TARGET_PROPERTIES( qtl_cuda_unordered PROPERTIES LINK_FLAGS "-Wl,--no-as-nee
 TARGET_LINK_LIBRARIES(qtl_cuda_unordered ${CUDA_LOCAL_LIBS})
 
 
-CUDA_ADD_EXECUTABLE(qtl_cuda_unit_ordered ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DUSE_UNIT_ORDERING)
-SET_TARGET_PROPERTIES( qtl_cuda_unit_ordered PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
-#SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
-TARGET_LINK_LIBRARIES(qtl_cuda_unit_ordered ${CUDA_LOCAL_LIBS})
+#CUDA_ADD_EXECUTABLE(qtl_cuda_unit_ordered ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DUSE_UNIT_ORDERING)
+#SET_TARGET_PROPERTIES( qtl_cuda_unit_ordered PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
+##SET_TARGET_PROPERTIES( qtl_thrust PROPERTIES CUDA_NVCC_FLAGS "-gencode=arch=compute_30,code=sm_30" )
+#TARGET_LINK_LIBRARIES(qtl_cuda_unit_ordered ${CUDA_LOCAL_LIBS})
 
 CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_verbose ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DDUMP_HEAP_VARIABLES)
 SET_TARGET_PROPERTIES( qtl_cuda_unordered_verbose PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
@@ -103,9 +103,9 @@ CUDA_ADD_EXECUTABLE(qtl_cuda_unordered_xover4 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS 
 SET_TARGET_PROPERTIES( qtl_cuda_unordered_xover4 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
 TARGET_LINK_LIBRARIES(qtl_cuda_unordered_xover4 ${CUDA_LOCAL_LIBS})
 
-CUDA_ADD_EXECUTABLE(qtl_cuda_unit_ordered_xover2 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DUSE_UNIT_ORDERING;-DCROSSOVER_VERSION=2)
-SET_TARGET_PROPERTIES( qtl_cuda_unit_ordered_xover2 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
-TARGET_LINK_LIBRARIES(qtl_cuda_unit_ordered_xover2 ${CUDA_LOCAL_LIBS})
+#CUDA_ADD_EXECUTABLE(qtl_cuda_unit_ordered_xover2 ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DUSE_UNIT_ORDERING;-DCROSSOVER_VERSION=2)
+#SET_TARGET_PROPERTIES( qtl_cuda_unit_ordered_xover2 PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
+#TARGET_LINK_LIBRARIES(qtl_cuda_unit_ordered_xover2 ${CUDA_LOCAL_LIBS})
 
 CUDA_ADD_EXECUTABLE(QTLSimCuda ${SIM_SRC} ${OPTIONS_SRC} OPTIONS -DCROSSOVER_VERSION=4)
 SET_TARGET_PROPERTIES(QTLSimCuda PROPERTIES LINK_FLAGS "-Wl,--no-as-needed" )
