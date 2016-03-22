@@ -56,7 +56,10 @@ __global__ void create_subpopulation( basic_data_space< IntType > * data, unsign
 }
 
 struct test_kernel {
-    test_kernel() {
+    test_kernel( unsigned int tx = 32, unsigned int ty = 32) :
+        m_threads(tx,ty,1)
+        , m_blocks( 10, 1, 1)
+    {
         create_space( dSubPop );
         assert( cudaMalloc( (void **)&dStats, sizeof(pairwise_diff_stats) ) == cudaSuccess);
     }
@@ -66,7 +69,17 @@ struct test_kernel {
 
         initialize_pairwise_diff_stats<<< 1, 32 >>>( dStats );
 
-        pairwise_difference_kernel<<< 10, 32 >>>( seqs, dSubPop, dStats);
+        pairwise_difference_kernel<<< m_blocks, m_threads >>>( seqs, dSubPop, dStats);
+
+        finalize_pairwise_diff_stats<<< 1, 32 >>>( dStats );
+    }
+
+    void eval2( device_sequence_space< int_type > * seqs, unsigned int N ) {
+        create_subpopulation<<< 1, 1024 >>>( dSubPop, N );
+
+        initialize_pairwise_diff_stats<<< 1, 32 >>>( dStats );
+
+        pairwise_difference_kernel2<<< m_blocks, m_threads >>>( seqs, dSubPop, dStats);
 
         finalize_pairwise_diff_stats<<< 1, 32 >>>( dStats );
     }
@@ -99,6 +112,8 @@ struct test_kernel {
 
     basic_data_space< int_type > *  dSubPop;
     pairwise_diff_stats         *  dStats;
+
+    dim3    m_threads, m_blocks;
 };
 
 void upload_sequences( device_sequence_space< int_type > & seqs, device_sequence_space< int_type > *dSeqs ) {
@@ -186,6 +201,22 @@ void compute_expectation( device_sequence_space< int_type > &  seqs, pairwise_di
     exp_stats.mean = accum::weighted_mean(global_diff);
 }
 
+void evalDefaultKernel(pairwise_diff_stats & exp_stats, device_sequence_space< int_type > * dSeqs, unsigned int N, unsigned int tx, unsigned int ty ) {
+    std::cout << "Evaluating default algorithm (" << tx << ", " << ty << ")" << std::endl;
+    test_kernel t(tx, ty);
+
+    t( dSeqs, N );
+    t.validate( exp_stats );
+}
+
+void evalAlternateKernel(pairwise_diff_stats & exp_stats, device_sequence_space< int_type > * dSeqs, unsigned int N, unsigned int tx, unsigned int ty ) {
+    std::cout << "Evaluating alternate algorithm (" << tx << ", " << ty << ")" << std::endl;
+    test_kernel t(tx, ty);
+
+    t.eval2( dSeqs, N );
+    t.validate( exp_stats );
+}
+
 int main( int argc, char ** argv ) {
 
     device_sequence_space< int_type >   seqs;
@@ -199,14 +230,17 @@ int main( int argc, char ** argv ) {
     resize_space( dSeqs, seqs.seq_width, seqs.seq_count );
     upload_sequences( seqs, dSeqs );
 
-    test_kernel t1;
-
-    t1( dSeqs, seqs.seq_count );
-
     pairwise_diff_stats exp_stats;
     compute_expectation( seqs, exp_stats );
 
-    t1.validate( exp_stats );
+    evalDefaultKernel( exp_stats, dSeqs, seqs.seq_count, 32, 32);
+    evalDefaultKernel( exp_stats, dSeqs, seqs.seq_count, 32, 1 );
+    evalDefaultKernel( exp_stats, dSeqs, seqs.seq_count, 32, 10 );
+
+    evalAlternateKernel( exp_stats, dSeqs, seqs.seq_count, 32, 32);
+    evalAlternateKernel( exp_stats, dSeqs, seqs.seq_count, 32, 1);
+    evalAlternateKernel( exp_stats, dSeqs, seqs.seq_count, 32, 10);
+
 
     if( seqs.sequences ) {
         delete seqs.sequences;
