@@ -546,7 +546,7 @@ void POWERSET_SPECIALIZATION::pruneSpace() {
         } else {
             to_remove.push_back( it );
         }
-        ++it;
+        it++;
     }
 
     m_lost_variable.flip();

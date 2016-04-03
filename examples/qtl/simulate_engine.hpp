@@ -62,6 +62,7 @@
 
 #include "clotho/genetics/pairwise_statistic.hpp"
 #include "clotho/genetics/population_growth_toolkit.hpp"
+#include "clotho/genetics/sequence_helper.hpp"
 
 #include "qtl_logging_parameter.hpp"
 #include "../population_parameter.hpp"
@@ -69,48 +70,9 @@
 
 namespace accum=boost::accumulators;
 
-//extern const string SAMPLING_K;
-//extern const string SIZE_K;
-//extern const string PAIRWISE_K;
-//
-//struct sample_log_params {
-//    unsigned int    sample_size;
-//    bool            pairwise;
-//
-//    sample_log_params( unsigned int ss = 100, bool p = false ) : sample_size(ss), pairwise(p) {}
-//
-//    sample_log_params( boost::property_tree::ptree & params ) : sample_size(100), pairwise(false) {
-//        if( params.empty() ) {
-//            // done for backwards compatiability
-//            std::ostringstream tmp;
-//            tmp << params.data();
-//
-//            if(! tmp.str().empty() ) {
-//                sample_size = boost::lexical_cast< unsigned int >( tmp.str() );
-//            }
-//            return;
-//        }
-//
-//        if( params.get_child_optional( SIZE_K ) != boost::none ) {
-//            sample_size = params.get< unsigned int >( SIZE_K, sample_size );
-//        } else {
-//            params.put( SIZE_K, sample_size );
-//        }
-//
-//        if( params.get_child_optional( PAIRWISE_K ) != boost::none ) {
-//            pairwise = params.get< bool >( PAIRWISE_K, pairwise );
-//        } else {
-//            params.put( PAIRWISE_K, pairwise );
-//        }
-//    }
-//
-//    sample_log_params( const sample_log_params & slp ) :
-//        sample_size( slp.sample_size )
-//        , pairwise( slp.pairwise ) {
-//    }
-//};
-
 #include "clotho/utility/popcount.hpp"
+
+#include "EffectSizeMatrix.hpp"
 
 template < class URNG, class AlleleType, class LogType, class TimerType >
 class simulate_engine : public qtl_logging_parameter {
@@ -181,6 +143,8 @@ public:
     typedef typename ref_map_type::iterator             ref_map_iterator;
     typedef std::vector< unsigned int >                 allele_dist_type;
 
+    typedef EffectSizeMatrix < typename allele_type::weight_type::value_type > effect_size_matrix_type;
+
     simulate_engine( boost::property_tree::ptree & config ) :
         qtl_logging_parameter( config )
         , m_rng()
@@ -195,7 +159,9 @@ public:
         , m_parent_fit( &m_fit_buff1 )
         , m_child_fit( &m_fit_buff2 )
         , m_pairwise_pop(false)
-        , m_pop_grow() {
+        , m_pop_grow() 
+        , m_eff_matrix( 0, 0)
+    {
         parseConfig( config );
         initialize();
     }
@@ -216,7 +182,9 @@ public:
 
         std::generate_n( std::back_inserter( *m_child ), p_size, ind_gen );
 
-        updatePhenotypes( *m_child_pheno, *m_child );
+        m_child_pheno->reserve( m_child->size() );
+
+        updatePhenotypes2( *m_child_pheno, *m_child );
         updateFitness( *m_child_fit, *m_child_pheno );
     }
 
@@ -313,15 +281,88 @@ protected:
         }
 
         if( all_neutral ) {
-            typename population_phenotypes::value_type r;
-            while( phenos.size() < p.size() ) {
-                phenos.push_back( r );
-            }
+//            typename population_phenotypes::value_type r;
+//            while( phenos.size() < p.size() ) {
+//                phenos.push_back( r );
+//            }
+            buildPhenotypesForNeutralTraits( phenos, p );
         } else {
             population_phenotyper_type ppheno;
             BOOST_FOREACH( auto& i, p ) {
                 phenos.push_back( ppheno(i) );
             }
+        }
+    }
+
+    inline void buildPhenotypesForNeutralTraits( population_phenotypes & phenos, population_type & p ) {
+        while( phenos.size() < p.size() ) {
+            typename population_phenotypes::value_type r;
+            phenos.push_back( r );
+        }
+    }
+
+    inline void updatePhenotypes2( population_phenotypes & phenos, population_type & p ) {
+//        bool all_neutral = true;
+//        unsigned int allele_count = m_alleles.size();
+//
+//        typename allele_set_type::cvariable_iterator it = m_alleles.variable_begin();
+//
+//        // assume all alleles effect the same number of traits
+//        // just use the first allele to determine this
+//        unsigned int trait_count = it->trait_count();
+//
+//        typedef typename population_phenotypes::value_type::value_type effect_size_type;
+//
+//        m_eff_matrix.resize( allele_count, trait_count );
+//
+//        typename effect_size_matrix_type::value_type * eff_size_matrix = m_eff_matrix.m_eff_size_mat;
+//
+//        unsigned int i = 0;
+//        while( it != m_alleles.variable_end() ) {
+//            all_neutral = all_neutral && it->isNeutral();
+//            for( typename allele_type::weight_citerator wit = it->begin(); wit != it->end(); wit++) {
+//                effect_size_matrix[ i++ ] = *wit;
+//            }
+//            it++;
+//        }
+
+        bool all_neutral = m_eff_matrix.update( m_alleles );
+
+        if( all_neutral ) {
+            buildPhenotypesForNeutralTraits( phenos, p );
+        } else {
+            buildPhenotypes( phenos, p );
+        }
+    }
+
+    inline void buildPhenotypes( population_phenotypes & phenos, population_type & p ) {
+        population_iterator pit = p.begin();
+
+        while( pit != p.end() ) {
+            typename population_phenotypes::value_type ind_pheno( m_eff_matrix.m_trait_count, 0 );
+            
+            accum_sequence_phenotype( ind_pheno, (*pit->first) );
+            accum_sequence_phenotype( ind_pheno, (*pit->second) );
+
+            phenos.push_back( ind_pheno );
+            ++pit;
+        }
+    }
+
+    void accum_sequence_phenotype(typename population_phenotypes::value_type & ind_pheno, sequence_type & seq ) {
+        typename effect_size_matrix_type::value_type * eff_size_matrix = m_eff_matrix.m_eff_size_mat;
+        unsigned int traits = m_eff_matrix.m_trait_count;
+
+        typename sequence_type::index_type idx = seq.find_first();
+        while( idx.second != sequence_type::npos ) {
+            unsigned int eff_size_idx = idx.first * traits;
+            unsigned int i = 0;
+
+            while( i < traits ) {
+                ind_pheno[ i++ ] += eff_size_matrix[ eff_size_idx++ ];
+            }
+
+            idx = seq.find_next( idx );
         }
     }
 
@@ -745,6 +786,8 @@ protected:
     bool m_pairwise_pop;
 
     population_growth_type m_pop_grow;
+
+    effect_size_matrix_type m_eff_matrix;
 };
 
 namespace clotho {

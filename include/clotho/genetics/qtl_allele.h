@@ -48,6 +48,10 @@ struct qtl_allele : public basic_allele {
         return m_weights.end();
     }
 
+    size_t trait_count() const {
+        return m_weights.size();
+    }
+
     virtual ~qtl_allele() {}
 
     trait_weights   m_weights;
