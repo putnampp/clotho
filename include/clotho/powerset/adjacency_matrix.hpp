@@ -16,7 +16,7 @@
 
 #include <utility>
 
-#include "clotho/utility/bit_helpers.hpp"
+#include "clotho/utility/bit_helper.hpp"
 
 #define _DEBUGGING_
 
