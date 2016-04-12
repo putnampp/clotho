@@ -27,7 +27,7 @@
 
 #include <memory>
 
-#include "clotho/utility/block_masks.hpp"
+#include "clotho/utility/bit_helpers.hpp"
 #include "clotho/powerset/element_key_of.hpp"
 #include "clotho/powerset/block_map.hpp"
 
@@ -57,13 +57,13 @@ public:
     typedef typename set_type::iterator      variable_iterator;
     typedef typename set_type::const_iterator cvariable_iterator;
 
-    typedef clotho::utility::block_masks< block_type > masks;
+    typedef clotho::utility::BitHelper< block_type > bit_helper_type;
 
     static const unsigned int       max_elements = (std::numeric_limits< element_index_type >::max() / 2);
     //static const unsigned int       npos = -1;
     static const size_t             npos = -1;
     static const unsigned int       fixed_flag = ((element_index_type)npos ^ (((element_index_type)npos)>> 1));
-    static const unsigned int       bits_per_block = masks::bits_per_block;
+    static const unsigned int       bits_per_block = bit_helper_type::BITS_PER_BLOCK;
 
     typedef Subset                              subset_type;
     typedef std::shared_ptr< subset_type >            subset_ptr;
@@ -389,7 +389,7 @@ typename POWERSET_SPECIALIZATION::element_index_type POWERSET_SPECIALIZATION::fi
         return idx;
     }
 
-    block_type  mask = masks::position_mask( _offset );
+    block_type  mask = bit_helper_type::bit_offset( _offset );
 
     if( !m_free_ranges.empty() && (m_free_ranges.m_bits[0] & mask ) ) {
         if( m_free_list.num_blocks() == 1 ) {
@@ -446,7 +446,7 @@ void POWERSET_SPECIALIZATION::updateFreeIndex( element_index_type idx, bool stat
     element_index_type block_idx = idx / bits_per_block;//, block_offset = idx % bits_per_block;
     element_index_type path = block_idx + m_free_ranges.num_blocks();
 
-//    block_type clear_mask = masks::position_mask( block_offset );
+//    block_type clear_mask = bit_helper_type::position_mask( block_offset );
 //   block_type set_mask = ((state) ? clear_mask : 0);
 
 //    clear_mask = ~clear_mask;
