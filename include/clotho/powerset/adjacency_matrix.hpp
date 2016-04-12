@@ -11,10 +11,12 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_POPULATION_MATRIX_HPP_
-#define CLOTHO_POPULATION_MATRIX_HPP_
+#ifndef CLOTHO_ADJACENCY_MATRIX_HPP_
+#define CLOTHO_ADJACENCY_MATRIX_HPP_
 
 #include <utility>
+
+#include "clotho/utility/bit_helpers.hpp"
 
 #define _DEBUGGING_
 
@@ -32,19 +34,20 @@
 #endif  // _DEBUGGING_
 
 namespace clotho {
-namespace genetics {
+namespace powersets {
 
 template < class BinaryType = unsigned long long, class SizeType = size_t >
-class PopulationMatrix {
+class AdjacencyMatrix {
 public:
     typedef BinaryType  bit_block_type;
     typedef SizeType    size_type;
 
     typedef bit_block_type * row_pointer;
 
-    static const unsigned int BITS_PER_BLOCK = sizeof( bit_block_type ) * 8; 
+    typedef clotho::utility::BitHelper< bit_block_type > bit_helper_type;
 
-    PopulationMatrix( size_type height, size_type bit_width ) :
+
+    AdjacencyMatrix( size_type height, size_type bit_width ) :
         m_data(NULL)
         , m_soft_max(NULL)
         , m_height(0)
@@ -93,10 +96,10 @@ public:
     }
 
     size_type getBitWidth() const {
-        return m_width * BITS_PER_BLOCK;
+        return m_width * bit_helper_type::BITS_PER_BLOCK;
     }
 
-    virtual ~PopulationMatrix() {
+    virtual ~AdjacencyMatrix() {
         if( m_data != NULL ) {
             delete [] m_data;
         }
@@ -109,7 +112,7 @@ public:
 protected:
 
     size_type scale_bits_to_blocks( size_type bits ) {
-        return (bits / BITS_PER_BLOCK ) + 1;
+        return (bits / bit_helper_typer::BITS_PER_BLOCK ) + 1;
     }
 
     void resize( size_type height, size_type bit_width ) {
@@ -150,7 +153,7 @@ protected:
     size_type        m_height, m_width, m_size, m_soft_size;
 };
 
-}   // namespace genetics
+}   // namespace powersets
 }   // namespace clotho
 
-#endif  // CLOTHO_POPULATION_MATRIX_HPP_
+#endif  // CLOTHO_ADJACENCY_MATRIX_HPP_
