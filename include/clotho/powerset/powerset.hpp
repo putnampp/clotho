@@ -27,7 +27,7 @@
 
 #include <memory>
 
-#include "clotho/utility/bit_helpers.hpp"
+#include "clotho/utility/bit_helper.hpp"
 #include "clotho/powerset/element_key_of.hpp"
 #include "clotho/powerset/block_map.hpp"
 
