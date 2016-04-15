@@ -49,6 +49,10 @@ struct BitHelper : public bit_helper< sizeof(T) > {
     static block_type bit_offset( unsigned int idx ) {
         return (block_type) bit_masks[ idx ];
     }
+
+    static block_type low_bit_mask( unsigned int idx ) {
+        return (block_type) low_bit_masks[ idx ];
+    }
 };
 
 }   // namespace utility
