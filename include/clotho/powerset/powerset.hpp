@@ -65,22 +65,22 @@ public:
     static const unsigned int       fixed_flag = ((element_index_type)npos ^ (((element_index_type)npos)>> 1));
     static const unsigned int       bits_per_block = bit_helper_type::BITS_PER_BLOCK;
 
-    typedef Subset                              subset_type;
-    typedef std::shared_ptr< subset_type >            subset_ptr;
-    typedef boost::dynamic_bitset< block_type > bitset_type;
+    typedef Subset                                                  subset_type;
+    typedef std::shared_ptr< subset_type >                          subset_ptr;
+    typedef boost::dynamic_bitset< block_type >                     bitset_type;
 
-    typedef std::set< subset_ptr >       family_type;
-    typedef typename family_type::iterator  family_iterator;
-    typedef typename family_type::const_iterator  cfamily_iterator;
+    typedef std::set< subset_ptr >                                  family_type;
+    typedef typename family_type::iterator                          family_iterator;
+    typedef typename family_type::const_iterator                    cfamily_iterator;
 
-    typedef block_type                           bitset_block_type;
-    typedef typename bitset_type::allocator_type bitset_allocator_type;
+    typedef block_type                                              bitset_block_type;
+    typedef typename bitset_type::allocator_type                    bitset_allocator_type;
     typedef std::vector< bitset_block_type, bitset_allocator_type > bitset_buffer_type;
 
-    typedef typename bitset_buffer_type::iterator free_block_iterator;
-    typedef typename bitset_buffer_type::const_iterator cfree_block_iterator;
+    typedef typename bitset_buffer_type::iterator                   free_block_iterator;
+    typedef typename bitset_buffer_type::const_iterator             cfree_block_iterator;
 
-    typedef typename subset_type::data_container_type dc_type;
+    typedef typename subset_type::data_container_type               dc_type;
 
     powerset();
 

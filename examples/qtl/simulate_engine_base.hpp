@@ -19,6 +19,8 @@
 #include <vector>
 #include <utility>
 
+#include "clotho/genetics/population_matrix.hpp"
+
 template < class URNG, class AlleleType, class LogType, class TimerType >
 class simulate_engine_base {
 public:
@@ -38,9 +40,9 @@ public:
     typedef RECOMBTYPE                              classifier_type;
     typedef clotho::utility::random_generator< rng_type, classifier_type >  classifier_generator;
 
-    typedef std::pair< sequence_pointer, sequence_pointer >                  individual_type;
-    typedef std::vector< individual_type >                                   population_type;
-    typedef typename population_type::iterator                               population_iterator;
+//    typedef std::pair< sequence_pointer, sequence_pointer >                  individual_type;
+//    typedef std::vector< individual_type >                                   population_type;
+//    typedef typename population_type::iterator                               population_iterator;
 };
 
 #endif  // SIMULATE_ENGINE_BASE_HPP_

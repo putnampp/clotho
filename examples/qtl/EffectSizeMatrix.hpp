@@ -14,10 +14,11 @@
 #ifndef EFFECT_SIZE_MATRIX_HPP_
 #define EFFECT_SIZE_MATRIX_HPP_
 
-template < class EffSizeType >
+template < class AlleleSetType >
 class EffectSizeMatrix {
 public:
-    typedef EffSizeType value_type;
+    typedef AlleleSetType                                                   allele_set_type;
+    typedef typename allele_set_type::value_type::weight_type::value_type   value_type;
 
     value_type *    m_eff_size_mat;
 
@@ -33,23 +34,32 @@ public:
         resize( allele_count, trait_count);
     }
 
-    template< class AlleleType >
-    bool update( const AlleleType & alleles ) {
+    value_type operator()( unsigned int x, unsigned int y ) {
+        unsigned int idx = x * m_trait_count + y;
+
+        assert( idx < m_size );
+
+        m_eff_size_mat[ idx ] ;
+    }
+
+    bool update( allele_set_type & alleles ) {
         bool all_neutral = true;
-        unsigned int i = 0;
 
-        unsigned int a_count = alleles.size();
+        unsigned int a_count = alleles.variable_allocated_size();
 
-        typename AlleleType::cvariable_iterator it = alleles.variable_begin();
+        typename allele_set_type::cvariable_iterator it = alleles.variable_begin();
 
         unsigned int t_count = it->trait_count();
 
         resize( a_count, t_count );
 
+        unsigned int i = 0;
         while( it != alleles.variable_end() ) {
             all_neutral = all_neutral && it->isNeutral();
-            for( typename AlleleType::value_type::weight_citerator wit = it->begin(); wit != it->end(); wit++) {
-                m_eff_size_mat[ i++ ] = *wit;
+            for( typename allele_set_type::value_type::weight_citerator wit = it->begin(); wit != it->end(); wit++) {
+                assert( i < m_size );
+                m_eff_size_mat[ i ] = *wit;
+                ++i;
             }
             it++;
         }

@@ -37,7 +37,7 @@ namespace clotho {
 namespace powersets {
 
 template < class BinaryType = unsigned long long, class SizeType = size_t >
-class AdjacencyMatrix {
+class adjacency_matrix {
 public:
     typedef BinaryType  bit_block_type;
     typedef SizeType    size_type;
@@ -47,7 +47,7 @@ public:
     typedef clotho::utility::BitHelper< bit_block_type > bit_helper_type;
 
 
-    AdjacencyMatrix( size_type height, size_type bit_width ) :
+    adjacency_matrix( size_type height, size_type bit_width ) :
         m_data(NULL)
         , m_soft_max(NULL)
         , m_height(0)
@@ -99,7 +99,7 @@ public:
         return m_width * bit_helper_type::BITS_PER_BLOCK;
     }
 
-    virtual ~AdjacencyMatrix() {
+    virtual ~adjacency_matrix() {
         if( m_data != NULL ) {
             delete [] m_data;
         }
