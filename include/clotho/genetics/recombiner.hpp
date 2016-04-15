@@ -58,7 +58,7 @@ public:
             return res;
         }
 
-        // at this point neiter base or alt can both be NULL
+        // at this point neither base or alt can both be NULL
         typename sequence_type::powerset_type * p = ((base) ? base->getParent() : alt->getParent());
         assert( p );
 
