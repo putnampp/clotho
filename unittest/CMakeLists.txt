@@ -17,6 +17,7 @@ LIST(APPEND DIRS powerset )
 LIST(APPEND DIRS utility )
 LIST(APPEND DIRS fitness )
 LIST(APPEND DIRS classifiers )
+LIST(APPEND DIRS data_spaces )
 
 SET(LOCAL_LIBS)
 
