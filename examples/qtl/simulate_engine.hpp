@@ -143,7 +143,7 @@ public:
     typedef typename ref_map_type::iterator             ref_map_iterator;
     typedef std::vector< unsigned int >                 allele_dist_type;
 
-    typedef EffectSizeMatrix < typename allele_type::weight_type::value_type > effect_size_matrix_type;
+    typedef EffectSizeMatrix < allele_set_type > effect_size_matrix_type;
 
     simulate_engine( boost::property_tree::ptree & config ) :
         qtl_logging_parameter( config )
@@ -160,10 +160,14 @@ public:
         , m_child_fit( &m_fit_buff2 )
         , m_pairwise_pop(false)
         , m_pop_grow() 
-        , m_eff_matrix( 0, 0)
+        , m_eff_matrix( NULL )
     {
         parseConfig( config );
         initialize();
+    }
+
+    virtual ~simulate_engine() {
+        delete m_eff_matrix;
     }
 
 //    void simulate( unsigned int gen = 0) {
@@ -183,6 +187,7 @@ public:
         std::generate_n( std::back_inserter( *m_child ), p_size, ind_gen );
 
         m_child_pheno->reserve( m_child->size() );
+        m_child_fit->reserve( m_child->size() );
 
         updatePhenotypes2( *m_child_pheno, *m_child );
         updateFitness( *m_child_fit, *m_child_pheno );
@@ -274,7 +279,7 @@ public:
 
 protected:
 
-    inline void updatePhenotypes( population_phenotypes & phenos, population_type & p ) {
+    void updatePhenotypes( population_phenotypes & phenos, population_type & p ) {
         bool all_neutral = true;
         for( typename allele_set_type::cvariable_iterator it = m_alleles.variable_begin(); all_neutral && it != m_alleles.variable_end(); ++it ) {
             all_neutral = it->isNeutral();
@@ -294,14 +299,14 @@ protected:
         }
     }
 
-    inline void buildPhenotypesForNeutralTraits( population_phenotypes & phenos, population_type & p ) {
+    void buildPhenotypesForNeutralTraits( population_phenotypes & phenos, population_type & p ) {
         while( phenos.size() < p.size() ) {
-            typename population_phenotypes::value_type r;
+            typename population_phenotypes::value_type r( m_eff_matrix->m_trait_count, 0);
             phenos.push_back( r );
         }
     }
 
-    inline void updatePhenotypes2( population_phenotypes & phenos, population_type & p ) {
+    void updatePhenotypes2( population_phenotypes & phenos, population_type & p ) {
 //        bool all_neutral = true;
 //        unsigned int allele_count = m_alleles.size();
 //
@@ -326,7 +331,7 @@ protected:
 //            it++;
 //        }
 
-        bool all_neutral = m_eff_matrix.update( m_alleles );
+        bool all_neutral = m_eff_matrix->update( m_alleles );
 
         if( all_neutral ) {
             buildPhenotypesForNeutralTraits( phenos, p );
@@ -335,11 +340,11 @@ protected:
         }
     }
 
-    inline void buildPhenotypes( population_phenotypes & phenos, population_type & p ) {
+    void buildPhenotypes( population_phenotypes & phenos, population_type & p ) {
         population_iterator pit = p.begin();
 
         while( pit != p.end() ) {
-            typename population_phenotypes::value_type ind_pheno( m_eff_matrix.m_trait_count, 0 );
+            typename population_phenotypes::value_type ind_pheno( m_eff_matrix->m_trait_count, 0 );
             
             accum_sequence_phenotype( ind_pheno, (*pit->first) );
             accum_sequence_phenotype( ind_pheno, (*pit->second) );
@@ -350,8 +355,8 @@ protected:
     }
 
     void accum_sequence_phenotype(typename population_phenotypes::value_type & ind_pheno, sequence_type & seq ) {
-        typename effect_size_matrix_type::value_type * eff_size_matrix = m_eff_matrix.m_eff_size_mat;
-        unsigned int traits = m_eff_matrix.m_trait_count;
+        typename effect_size_matrix_type::value_type * eff_size_matrix = m_eff_matrix->m_eff_size_mat;
+        unsigned int traits = m_eff_matrix->m_trait_count;
 
         typename sequence_type::index_type idx = seq.find_first();
         while( idx.second != sequence_type::npos ) {
@@ -366,7 +371,7 @@ protected:
         }
     }
 
-    inline void updateFitness( population_fitnesses & fit, population_phenotypes & phenos ) {
+    void updateFitness( population_fitnesses & fit, population_phenotypes & phenos ) {
 //        fitness_operator pfit = m_fit_gen( phenos.begin(), phenos.end() );
         if( m_fit_gen ) {
             fitness_operator pfit = m_fit_gen->generate( phenos );
@@ -468,6 +473,8 @@ protected:
 
         m_pop.reserve( m_founder_size );
         m_buffer.reserve( m_founder_size );
+
+        m_eff_matrix = new effect_size_matrix_type(0, 0);
 
         // results in the existence of multiple 'empty' sequences in the family
         sequence_generator_type sgen( m_alleles );
@@ -653,7 +660,7 @@ protected:
 //        buildAlleleDistribution(m,a);
     }
 
-    inline unsigned int buildAlleleDistribution( ref_map_type & m, allele_dist_type & a) {
+    unsigned int buildAlleleDistribution( ref_map_type & m, allele_dist_type & a) {
         unsigned int nAlleles = 0;
         for( ref_map_iterator rit = m.begin(); rit != m.end(); ++rit ) {
             unsigned int n = rit->second;
@@ -787,7 +794,7 @@ protected:
 
     population_growth_type m_pop_grow;
 
-    effect_size_matrix_type m_eff_matrix;
+    effect_size_matrix_type * m_eff_matrix;
 };
 
 namespace clotho {
