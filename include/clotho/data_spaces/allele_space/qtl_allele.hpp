@@ -63,7 +63,9 @@ public:
     }
 
     virtual ~qtl_allele_vectorized() {
-
+        if( m_weights != NULL ) {
+            delete [] m_weights;
+        }
     }
 
 protected:
