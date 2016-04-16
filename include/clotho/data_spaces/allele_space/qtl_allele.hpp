@@ -15,7 +15,7 @@
 #define CLOTHO_QTL_ALLELE_HPP_
 
 #include "clotho/data_spaces/allele_space/neutral_allele.hpp"
-#include "clotho/data_spaces/allele_space/growable2D.hpp"
+#include "clotho/data_spaces/growable2D.hpp"
 
 #include <iostream>
 

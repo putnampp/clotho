@@ -16,7 +16,7 @@
 
 #include <vector>
 
-#include "clotho/data_spaces/allele_space/growable1D.hpp"
+#include "clotho/data_spaces/growable1D.hpp"
 
 #include <iostream>
 

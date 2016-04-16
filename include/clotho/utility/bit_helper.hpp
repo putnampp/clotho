@@ -25,34 +25,43 @@ struct bit_helper;
 template < >
 struct bit_helper< 1 > {
     static const unsigned int BITS_PER_BLOCK = 8;
+    static const unsigned long long POW2_MOD = LOW_POW2_2;
 };
 
 template < >
 struct bit_helper< 2 > {
     static const unsigned int BITS_PER_BLOCK = 16;
+    static const unsigned long long POW2_MOD = LOW_POW2_3;
 };
 
 template < >
 struct bit_helper< 4 > {
     static const unsigned int BITS_PER_BLOCK = 32;
+    static const unsigned long long POW2_MOD = LOW_POW2_4;
 };
 
 template < >
 struct bit_helper< 8 > {
     static const unsigned int BITS_PER_BLOCK = 64;
+    static const unsigned long long POW2_MOD = LOW_POW2_5;
 };
 
 template < class T >
 struct BitHelper : public bit_helper< sizeof(T) > {
     typedef T block_type;
+    typedef bit_helper< sizeof(T) > base_type;
 
-    static block_type bit_offset( unsigned int idx ) {
-        return (block_type) bit_masks[ idx ];
+#define MOD_POW2( x ) x & base_type::POW2_MOD
+
+    static block_type bit_offset( size_t idx ) {
+        return (block_type) bit_masks[ MOD_POW2( idx ) ];
     }
 
-    static block_type low_bit_mask( unsigned int idx ) {
-        return (block_type) low_bit_masks[ idx ];
+    static block_type low_bit_mask( size_t idx ) {
+        return (block_type) low_bit_masks[ MOD_POW2( idx )  ];
     }
+
+#undef MOD_POW2
 };
 
 }   // namespace utility
