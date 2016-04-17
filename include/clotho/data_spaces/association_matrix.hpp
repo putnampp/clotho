@@ -16,6 +16,8 @@
 
 #include "clotho/data_spaces/growable2D.hpp"
 #include "clotho/utility/bit_helper.hpp"
+#include <cstring>
+#include <iostream>
 
 namespace clotho {
 namespace genetics {
@@ -37,39 +39,55 @@ public:
 
     typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
-//    class BlockIterator {
-//    public:
-//        typedef block_type  value_type;
-//
-//        BlockIterator( block_type * start, block_type * end, size_t offset ) : 
-//            m_start( start )
-//            , m_end( end )
-//            , m_offset( offset )
-//        {}
-//
-//        BlockIterator( const BlockIterator & other ) : 
-//            m_start( other.m_start )
-//            , m_end( other.m_end )
-//            , m_offset( other.m_offset )
-//        {}
-//
-//        bool hasNext() const {
-//            return (m_start + offset) < m_end;
-//        }
-//
-//        value_type next() {
-//            m_start += offset;
-//            return *m_start;
-//        }
-//
-//        virtual ~BlockIterator() {}
-//    protected:
-//        block_type *    m_start, * m_end;
-//        
-//    };
-//
-//    typedef BlockIterator       block_iterator;
-//
+    class BlockIterator {
+    public:
+        BlockIterator( block_type * start, size_t row_bound, size_t column_bound ) : 
+            m_start( start )
+            , m_row_bound( row_bound )
+            , m_column_bound( column_bound )
+            , m_i(0)
+            , m_j(0)
+        {}
+
+        BlockIterator( const BlockIterator & other ) : 
+            m_start( other.m_start )
+            , m_row_bound( other.m_row_bound )
+            , m_column_bound( other.m_column_bound )
+        {}
+
+        bool hasNext() const {
+            return ( m_i < m_row_bound );
+        }
+
+        block_type next() {
+            assert( hasNext() );
+
+            block_type v = *(m_start + m_i * m_column_bound + m_j);
+            if( ++m_j >= m_column_bound ) {
+                m_j = 0;
+                ++m_i;
+            }
+            
+            return v;
+        }
+
+        size_t max_rows() const {
+            return m_row_bound;
+        }
+
+        size_t max_columns() const {
+            return m_column_bound;
+        }
+
+        virtual ~BlockIterator() {}
+    protected:
+        block_type *    m_start;
+        size_t          m_row_bound, m_column_bound;
+        size_t          m_i, m_j;
+    };
+
+    typedef BlockIterator       block_iterator;
+
 
     association_matrix( size_t rows = 1, size_t columns = 1 ) :
         m_data( NULL )
@@ -110,6 +128,14 @@ public:
         return m_rows;
     }
 
+    size_t block_count() const {
+        return m_rows * scale_columns( m_columns );
+    }
+
+    block_iterator raw_iterator() const {
+        return block_iterator( m_data, block_row_count(), block_column_count() );
+    }
+
     size_t size() const {
         return m_columns * m_rows;
     }
@@ -123,6 +149,10 @@ public:
         return this->size();
     }
 
+    void clear() {
+        memset( m_data, 0, sizeof( block_type ) * m_allocated_size);
+    }
+
     virtual ~association_matrix() {
         if( m_data != NULL ) {
             delete [] m_data;
@@ -131,11 +161,11 @@ public:
 
 protected:
     
-    inline size_t block_index( size_t row, size_t col ) {
+    inline size_t block_index( size_t row, size_t col ) const {
         return ((col / bit_helper_type::BITS_PER_BLOCK) * m_rows) + row;
     }
 
-    size_t scale_columns( size_t cols ) {
+    size_t scale_columns( size_t cols ) const {
         return (cols / bit_helper_type::BITS_PER_BLOCK + 1 );
     }
 

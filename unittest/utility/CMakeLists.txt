@@ -14,6 +14,7 @@
 INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
 
 LIST(APPEND UTILITY_SRCS bit_walker_test.cpp )
+LIST(APPEND UTILITY_SRCS debruijn_bit_walker_test.cpp )
 LIST(APPEND UTILITY_SRCS popcount_test.cpp )
 
 ADD_LIBRARY(${PROJECT_NAME}_utility_test SHARED ${UTILITY_SRCS} )

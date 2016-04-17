@@ -16,6 +16,7 @@
 
 #include "clotho/data_spaces/allele_space/neutral_allele.hpp"
 #include "clotho/data_spaces/growable2D.hpp"
+#include "clotho/data_spaces/trait_type_of.hpp"
 
 #include <iostream>
 
@@ -27,7 +28,39 @@ class qtl_allele_vectorized : public neutral_allele_vectorized< PositionType >, 
 public:
     typedef neutral_allele_vectorized< PositionType > base_type;
 
-    typedef WeightType  weight_type;
+    typedef WeightType                  weight_type;
+    typedef std::vector< WeightType >   trait_type;
+
+    class weight_iterator {
+    public:
+        weight_iterator( weight_type * ptr, size_t size ) :
+            m_ptr( ptr )
+            , m_size( size ) {}
+
+        weight_iterator( const weight_iterator & other ) :
+            m_ptr( other.m_ptr )
+            , m_size( other.m_size )
+        {}
+
+        bool hasNext() const {
+            return (m_size > 0);
+        }
+        
+        weight_type next() {
+            assert( m_size > 0 );
+            weight_type w = *m_ptr++;
+            --m_size;
+
+            return w;
+        }
+
+        virtual ~weight_iterator() {}
+    protected:
+        weight_type * m_ptr;
+        size_t      m_size;
+    };
+
+    typedef weight_iterator     trait_iterator;
 
     qtl_allele_vectorized( size_t rows = 1, size_t columns = 1 ) :
         m_weights(NULL)
@@ -37,7 +70,18 @@ public:
     {
         this->resize(rows, columns);
     }
-    
+ 
+    trait_iterator getTraitIterator( size_t allele_idx ) const {
+        assert( 0 <= allele_idx && allele_idx < m_rows );
+        return trait_iterator( m_weights + allele_idx * m_columns, m_columns );
+    }
+
+    void updateTraitWeight( size_t allele_idx, size_t trait_idx, weight_type w ) {
+        assert( 0 <= allele_idx && allele_idx < m_rows );
+        assert( 0 <= trait_idx && trait_idx < m_columns );
+
+        m_weights[ allele_idx * m_columns + trait_idx ] = w;
+    }
 
     virtual size_t grow( size_t alleles ) {
         this->resize( alleles );
@@ -49,6 +93,11 @@ public:
 
         return m_rows;
     }
+
+    trait_type  makeEmptyTrait() {
+        return trait_type( m_columns, 0.0);
+    }
+
 
     size_t allele_count() const {
         return m_rows;
@@ -95,12 +144,30 @@ protected:
     }
 
     virtual void resize( size_t rows ) {
-        std::cout << "QTL 1D resize" << std::endl;    
         this->resize( rows, m_columns );
     }
 
     weight_type * m_weights;
     size_t      m_rows, m_columns, m_size;
+};
+
+template < class PositionType, class WeightType >
+struct trait_type_of< qtl_allele_vectorized< PositionType, WeightType > > {
+    typedef qtl_allele_vectorized< PositionType, WeightType >   allele_type;
+
+    typedef typename allele_type::trait_type type;
+
+    static type makeEmptyTrait( const allele_type & all ) {
+        return type( all.trait_count, 0.0);
+    }
+
+    static void resetTrait( type & trait ) {
+        size_t i = 0;
+        while( i < trait.size() ) {
+            trait[i++] = 0.0;
+        }
+    }
+
 };
 
 }   // namespace genetics

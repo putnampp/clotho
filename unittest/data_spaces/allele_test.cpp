@@ -40,8 +40,6 @@ BOOST_AUTO_TEST_CASE( base_allele_vectorized_test ) {
 
 BOOST_AUTO_TEST_CASE( qtl_allele_vectorized_test ) {
 
-    std::cout << "QTL Allele Test:" << std::endl;
-
     qtl_allele_vectorized< double, double > all;
 
     size_t obs_size = all.size();
@@ -83,6 +81,40 @@ BOOST_AUTO_TEST_CASE( qtl_allele_vectorized_test ) {
     BOOST_REQUIRE_MESSAGE( obs_traits == exp_traits, "Unexpected traits upon initialization; Observed: " << obs_traits << "; Expected: " << exp_traits );
     BOOST_REQUIRE_MESSAGE( obs_allocated_size == (exp_alleles * exp_traits), "Unexpected allocated upon initialization; Observed: " << obs_allocated_size << "; Expected: " << (exp_alleles * exp_traits) );
 
+}
+
+BOOST_AUTO_TEST_CASE( qtl_allele_weight_iterator_test ) {
+
+    typedef qtl_allele_vectorized< double, double > allele_type;
+    typedef typename allele_type::trait_iterator    trait_iterator;
+    typedef typename allele_type::weight_type       weight_type;
+
+    size_t exp_alleles = 10, exp_traits = 3;
+    allele_type all( exp_alleles, exp_traits );
+
+    size_t all_idx = 6;
+    std::vector< weight_type > exp_weights;
+
+    size_t i = 0;
+    weight_type ww = 12.0;
+    while ( i < exp_traits ) {
+        all.updateTraitWeight( all_idx, i, ww * i );
+        exp_weights.push_back( ww * i );
+
+        ++i;
+    }
+
+    trait_iterator trait_it = all.getTraitIterator( all_idx );
+    i = 0;
+    while( trait_it.hasNext() ) {
+        weight_type w = trait_it.next();
+
+        BOOST_REQUIRE_MESSAGE( w == exp_weights[i], "Unexpected weight encountered at index " << i << "; Observed: " << w << "; Expected: " << exp_weights[i]);
+
+        ++i;
+    }
+
+    BOOST_REQUIRE_MESSAGE( i == exp_traits, "Unexpected number of traits; Observed: " << i << "; Expected: " << exp_traits );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
