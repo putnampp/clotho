@@ -17,7 +17,7 @@
 #include "clotho/data_spaces/growable2D.hpp"
 #include "clotho/utility/bit_helper.hpp"
 #include <cstring>
-#include <iostream>
+//#include <iostream>
 
 namespace clotho {
 namespace genetics {
@@ -41,10 +41,11 @@ public:
 
     class BlockIterator {
     public:
-        BlockIterator( block_type * start, size_t row_bound, size_t column_bound ) : 
+        BlockIterator( block_type * start, size_t row_bound, size_t column_bound, size_t step = 1 ) : 
             m_start( start )
             , m_row_bound( row_bound )
             , m_column_bound( column_bound )
+            , m_step( step )
             , m_i(0)
             , m_j(0)
         {}
@@ -53,6 +54,9 @@ public:
             m_start( other.m_start )
             , m_row_bound( other.m_row_bound )
             , m_column_bound( other.m_column_bound )
+            , m_step( other.m_step )
+            , m_i( other.m_i )
+            , m_j( other.m_j )
         {}
 
         bool hasNext() const {
@@ -63,7 +67,8 @@ public:
             assert( hasNext() );
 
             block_type v = *(m_start + m_i * m_column_bound + m_j);
-            if( ++m_j >= m_column_bound ) {
+            m_j += m_step;
+            if( m_j >= m_column_bound ) {
                 m_j = 0;
                 ++m_i;
             }
@@ -82,11 +87,13 @@ public:
         virtual ~BlockIterator() {}
     protected:
         block_type *    m_start;
-        size_t          m_row_bound, m_column_bound;
+        size_t          m_row_bound, m_column_bound, m_step;
         size_t          m_i, m_j;
     };
 
     typedef BlockIterator       block_iterator;
+    typedef BlockIterator       row_iterator;
+    typedef BlockIterator       column_iterator;
 
 
     association_matrix( size_t rows = 1, size_t columns = 1 ) :
@@ -134,6 +141,18 @@ public:
 
     block_iterator raw_iterator() const {
         return block_iterator( m_data, block_row_count(), block_column_count() );
+    }
+
+    row_iterator   getRowAt( size_t idx ) const {
+        ASSERT_VALID_RANGE( idx, 0, block_column_count() );
+
+        return row_iterator( m_data + idx, block_row_count(), block_column_count(), block_column_count() );
+    }
+
+    column_iterator getColumnAt( size_t idx ) const {
+        ASSERT_VALID_RANGE( idx, 0, block_row_count() );
+
+        return column_iterator( m_data + idx * block_column_count(), 1, block_column_count() );
     }
 
     size_t size() const {

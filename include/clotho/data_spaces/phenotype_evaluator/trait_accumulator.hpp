@@ -38,6 +38,11 @@ public:
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
 
+    TraitWeightAccumulator( ) :
+        m_soft_size(0)
+        , m_trait_count(0)
+    {}
+
     TraitWeightAccumulator( genetic_space_type & genomes ) :
         m_soft_size(0)
         , m_trait_count(0)

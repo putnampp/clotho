@@ -33,6 +33,8 @@ public:
     typedef association_matrix< BlockType > association_type;
     typedef typename association_type::block_iterator   block_iterator;
 
+    typedef typename association_type::row_iterator     sequence_iterator;
+
     genetic_space() {
         this->grow(1, 1);
     }
@@ -47,6 +49,10 @@ public:
 
     association_type & getSequenceSpace() {
         return m_assoc_data;
+    }
+
+    sequence_iterator    getSequenceAt( size_t idx ) const {
+        return m_assoc_data.getRowAt( idx );
     }
 
     block_iterator  getBlockIterator() const {

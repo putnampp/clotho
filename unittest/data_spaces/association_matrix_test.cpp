@@ -147,8 +147,6 @@ BOOST_AUTO_TEST_CASE( association_matrix_raw_iterator_test2 ) {
     size_t obs_blocks = 0;
     i = 0; j = 0;
 
-    std::vector< block_type >::iterator exp_it = exp_blocks.begin();
-
     while( it.hasNext() ) {
         block_type b = it.next();
 
@@ -166,4 +164,128 @@ BOOST_AUTO_TEST_CASE( association_matrix_raw_iterator_test2 ) {
     BOOST_REQUIRE_MESSAGE( exp_block_count == obs_blocks, "Unexpected number of raw blocks; Observed: " << obs_blocks << "; Expected: " << exp_block_count );
 }
 
+BOOST_AUTO_TEST_CASE( association_matrix_row_iterator_test ) {
+    typedef unsigned long long block_type;
+
+    typedef unsigned long long block_type;
+    typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
+
+    typedef association_matrix< block_type >            association_type;
+    typedef typename association_type::row_iterator   iterator;
+
+    size_t exp_rows = 5, exp_cols = 240;
+
+    association_type amat( exp_rows, exp_cols );
+
+    size_t blocks_per_row = (exp_cols / bit_helper_type::BITS_PER_BLOCK + 1);
+
+    amat.clear();
+
+    std::vector< block_type > exp_blocks;
+    
+    size_t i = 0, j = 0, k = 0;
+    block_type _b = 0;
+    while( i < exp_rows ) {
+        amat.flip( i, j );
+
+        if( k != j / bit_helper_type::BITS_PER_BLOCK ) {
+            exp_blocks.push_back(_b);
+            _b = 0;
+            ++k;
+        }
+
+        _b |= (1L << (j % bit_helper_type::BITS_PER_BLOCK));
+
+        j += 15;
+        if( j >= exp_cols ) {
+            exp_blocks.push_back( _b );
+            j = 0;
+            k = 0;
+            _b = 0;
+            ++i;
+        }
+    }
+
+
+    size_t obs_blocks = 0;
+    i = 2; j = 0;
+
+    iterator it = amat.getRowAt( i );
+
+    while( it.hasNext() ) {
+        block_type b = it.next();
+
+        size_t idx = i * blocks_per_row + j;
+
+        BOOST_REQUIRE_MESSAGE( b == exp_blocks[idx], "Unexpected block state at row: " << std::dec << i << ", column: " << std::dec << j << "; Observed: " << std::hex << std::setw( sizeof( block_type ) * 2) << std::setfill('0') << b << "; Expected [" << idx << "]: " << std::hex << std::setw( sizeof(block_type) * 2) << std::setfill('0') << exp_blocks[idx] );
+
+        ++j;
+        ++obs_blocks;
+    }
+
+    BOOST_REQUIRE_MESSAGE( blocks_per_row == obs_blocks, "Unexpected number of raw blocks; Observed: " << obs_blocks << "; Expected: " << blocks_per_row );
+}
+
+BOOST_AUTO_TEST_CASE( association_matrix_column_iterator_test ) {
+    typedef unsigned long long block_type;
+
+    typedef unsigned long long block_type;
+    typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
+
+    typedef association_matrix< block_type >            association_type;
+    typedef typename association_type::column_iterator  iterator;
+
+    size_t exp_rows = 5, exp_cols = 240;
+
+    association_type amat( exp_rows, exp_cols );
+
+    size_t blocks_per_row = (exp_cols / bit_helper_type::BITS_PER_BLOCK + 1);
+    size_t blocks_per_column = exp_rows;
+
+    amat.clear();
+
+    std::vector< block_type > exp_blocks;
+    
+    size_t i = 0, j = 0, k = 0;
+    block_type _b = 0;
+    while( i < exp_rows ) {
+        amat.flip( i, j );
+
+        if( k != j / bit_helper_type::BITS_PER_BLOCK ) {
+            exp_blocks.push_back(_b);
+            _b = 0;
+            ++k;
+        }
+
+        _b |= (1L << (j % bit_helper_type::BITS_PER_BLOCK));
+
+        j += 15;
+        if( j >= exp_cols ) {
+            exp_blocks.push_back( _b );
+            j = 0;
+            k = 0;
+            _b = 0;
+            ++i;
+        }
+    }
+
+
+    size_t obs_blocks = 0;
+    i = 2; j = 0;
+
+    iterator it = amat.getColumnAt( i );
+
+    while( it.hasNext() ) {
+        block_type b = it.next();
+
+        size_t idx = j * blocks_per_row + i;
+
+        BOOST_REQUIRE_MESSAGE( b == exp_blocks[idx], "Unexpected block state at row: " << std::dec << i << ", column: " << std::dec << j << "; Observed: " << std::hex << std::setw( sizeof( block_type ) * 2) << std::setfill('0') << b << "; Expected [" << idx << "]: " << std::hex << std::setw( sizeof(block_type) * 2) << std::setfill('0') << exp_blocks[idx] );
+
+        ++j;
+        ++obs_blocks;
+    }
+
+    BOOST_REQUIRE_MESSAGE( blocks_per_column == obs_blocks, "Unexpected number of raw blocks; Observed: " << obs_blocks << "; Expected: " << blocks_per_column );
+}
 BOOST_AUTO_TEST_SUITE_END()
