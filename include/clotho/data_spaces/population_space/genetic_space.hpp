@@ -24,7 +24,9 @@ namespace genetics {
 template < class AlleleSpaceType, class BlockType = unsigned long long >
 class genetic_space : public growable2D {
 public:
-    typedef AlleleSpaceType                         allele_space_type;
+    typedef AlleleSpaceType                         allele_type;
+
+    typedef BlockType                               block_type;
     typedef std::pair< size_t, size_t >             individual_genome_type;
     typedef std::vector< individual_genome_type >   population_genomes_type;
 
@@ -35,7 +37,7 @@ public:
         this->grow(1, 1);
     }
 
-    allele_space_type & getAlleleSpace() {
+    allele_type & getAlleleSpace() {
         return m_alleles;
     }
 
@@ -48,7 +50,7 @@ public:
     }
 
     block_iterator  getBlockIterator() const {
-        return m_assoc_data.data_iterator();
+        return m_assoc_data.raw_iterator();
     }
 
     size_t  allele_count() const {
@@ -96,7 +98,7 @@ protected:
         alleles = m_alleles.grow( alleles );
     }
 
-    allele_space_type           m_alleles;
+    allele_type           m_alleles;
     population_genomes_type     m_genomes;
     association_type            m_assoc_data;
 };

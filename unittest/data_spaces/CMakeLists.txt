@@ -16,7 +16,7 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
 LIST(APPEND DATA_SPACE_SRCS allele_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS association_matrix_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS genetic_space_test.cpp )
-#LIST(APPEND DATA_SPACE_SRCS trait_accumulator_test.cpp )
+LIST(APPEND DATA_SPACE_SRCS trait_accumulator_test.cpp )
 
 
 ADD_LIBRARY(${PROJECT_NAME}_data_spaces_test SHARED ${DATA_SPACE_SRCS} )

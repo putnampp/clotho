@@ -157,8 +157,8 @@ struct trait_type_of< qtl_allele_vectorized< PositionType, WeightType > > {
 
     typedef typename allele_type::trait_type type;
 
-    static type makeEmptyTrait( const allele_type & all ) {
-        return type( all.trait_count, 0.0);
+    static type makeEmptyTrait( allele_type & all ) {
+        return type( all.trait_count(), 0.0);
     }
 
     static void resetTrait( type & trait ) {

@@ -24,10 +24,10 @@ BOOST_AUTO_TEST_SUITE( test_data_space )
 
 BOOST_AUTO_TEST_CASE( trait_accum_size_test ) {
 
-    typedef clotho::genetics::qtl_allele_vectorized< double, double >   allele_type;
-    typedef unsigned long long                                          block_type;
-    typedef clotho::genetics::genetic_space< allele_type, block_type >  genetic_space_type;
-    typedef clotho::genetics::trait_accumulator< genetic_space_type >   trait_accumulator_type;
+    typedef clotho::genetics::qtl_allele_vectorized< double, double >           allele_type;
+    typedef unsigned long long                                                  block_type;
+    typedef clotho::genetics::genetic_space< allele_type, block_type >          genetic_space_type;
+    typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >      trait_accumulator_type;
 
     size_t exp_alleles = 12, exp_genomes = 110, exp_traits = 15;
     genetic_space_type  gs;
