@@ -80,10 +80,6 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test ) {
 
     size_t exp_alleles = int_dist(rand_engine), exp_genomes = int_dist( rand_engine ), exp_traits = int_dist(rand_engine);
 
-    std::cout << "Expected Random Alleles: " << exp_alleles
-                << "; Expected Genomes: "   << exp_genomes
-                << "; Expected Traits: "    << exp_traits << std::endl;
-
     genetic_space_type  gs;
 
     gs.grow( exp_genomes, exp_alleles );
@@ -191,10 +187,6 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test2 ) {
 
 
     size_t exp_alleles = int_dist(rand_engine), exp_genomes = int_dist( rand_engine ), exp_traits = int_dist(rand_engine);
-
-    std::cout << "Expected Random Alleles: " << exp_alleles
-                << "; Expected Genomes: "   << exp_genomes
-                << "; Expected Traits: "    << exp_traits << std::endl;
 
     genetic_space_type  gs;
 

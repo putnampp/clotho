@@ -18,8 +18,6 @@
 #include "clotho/data_spaces/growable2D.hpp"
 #include "clotho/data_spaces/trait_type_of.hpp"
 
-#include <iostream>
-
 namespace clotho {
 namespace genetics {
 
@@ -120,7 +118,6 @@ public:
 protected:
 
     virtual void resize( size_t rows, size_t columns ) {
-        std::cout << "QTL 2D resize" << std::endl;
         base_type::resize( rows );
 
         rows = base_type::size();

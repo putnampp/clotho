@@ -68,7 +68,6 @@ public:
 protected:
 
     virtual void resize( size_t s ) {
-        std::cout << "Neutral 1D resize" << std::endl;
         base_type::resize( s );
 
         m_neutral.resize( base_type::size() );

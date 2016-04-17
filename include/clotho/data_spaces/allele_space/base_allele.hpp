@@ -75,7 +75,6 @@ public:
 protected:
 
     virtual void resize( size_t s ) {
-        std::cout << "base 1D resize" << std::endl;
         m_positions.resize( s );
     }
 
