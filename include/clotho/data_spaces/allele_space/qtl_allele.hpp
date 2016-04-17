@@ -153,12 +153,12 @@ protected:
 
 template < class PositionType, class WeightType >
 struct trait_type_of< qtl_allele_vectorized< PositionType, WeightType > > {
-    typedef qtl_allele_vectorized< PositionType, WeightType >   allele_type;
-
+    typedef qtl_allele_vectorized< PositionType, WeightType > allele_type;
     typedef typename allele_type::trait_type type;
 
-    static type makeEmptyTrait( allele_type & all ) {
-        return type( all.trait_count(), 0.0);
+    static type makeEmptyTrait( size_t N ) {
+        type r = type( N, 0.0);
+        return r;
     }
 
     static void resetTrait( type & trait ) {

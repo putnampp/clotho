@@ -38,15 +38,19 @@ public:
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
 
-    TraitWeightAccumulator( genetic_space_type & genomes ) {
+    TraitWeightAccumulator( genetic_space_type & genomes ) :
+        m_soft_size(0)
+        , m_trait_count(0)
+    {
         update( genomes );
     }
 
     void update( genetic_space_type & genomes ) {
 
-        size_t N = genomes.sequence_count();
+        m_soft_size = genomes.sequence_count();
+        m_trait_count = genomes.getAlleleSpace().trait_count();
 
-        m_trait_weights.reserve( N );
+        m_trait_weights.reserve( m_soft_size );
 
         typedef typename genetic_space_type::block_iterator block_iterator;
 
@@ -59,14 +63,14 @@ public:
             block_type b = block_iter.next();
 
             if( j == 0 ) {
-                if( j >= m_trait_weights.size() ) {
-                    m_trait_weights.push_back( trait_helper_type::makeEmptyTrait( genomes.getAlleleSpace() ) );
+                if( i >= m_trait_weights.size() ) {
+                    m_trait_weights.push_back( trait_helper_type::makeEmptyTrait( m_trait_count ) );
                 } else {
-                    trait_helper_type::resetTrait(m_trait_weights[j]);
+                    trait_helper_type::resetTrait(m_trait_weights[i]);
                 }
             }
 
-            trait_vector_type & t = m_trait_weights[ j ];
+            trait_vector_type & t = m_trait_weights[ i ];
 
             while( b ) {
                 unsigned int b_idx = bit_walker_type::unset_next_index( b );
@@ -78,7 +82,7 @@ public:
                 }
             }
 
-            if( ++i >= N ) {
+            if( ++i >= m_soft_size ) {
                 i = 0;
                 j += genetic_space_type::association_type::bit_helper_type::BITS_PER_BLOCK;
             }
@@ -86,14 +90,23 @@ public:
     }
 
     trait_vector_type &  getTraitAt( size_t idx ) {
-        assert( 0 <= idx && idx < m_trait_weights.size() );
+        assert( 0 <= idx && idx < m_soft_size );
         return m_trait_weights[ idx ];
+    }
+
+    size_t size() const {
+        return m_soft_size;
+    }
+
+    size_t trait_count() const {
+        return m_trait_count;
     }
 
     virtual ~TraitWeightAccumulator() {}
 protected:
 
-    accumulator_type   m_trait_weights;    
+    accumulator_type    m_trait_weights;
+    size_t              m_soft_size, m_trait_count;
 };
 
 }   // namespace genetics
