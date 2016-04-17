@@ -26,24 +26,32 @@ template < >
 struct bit_helper< 1 > {
     static const unsigned int BITS_PER_BLOCK = 8;
     static const unsigned long long POW2_MOD = LOW_POW2_2;
+    static const unsigned char ALL_SET = 0xFF;
+    static const unsigned char ALL_UNSET = 0x00;
 };
 
 template < >
 struct bit_helper< 2 > {
     static const unsigned int BITS_PER_BLOCK = 16;
     static const unsigned long long POW2_MOD = LOW_POW2_3;
+    static const unsigned short ALL_SET = 0xFFFF;
+    static const unsigned short ALL_UNSET = 0x0000;
 };
 
 template < >
 struct bit_helper< 4 > {
     static const unsigned int BITS_PER_BLOCK = 32;
     static const unsigned long long POW2_MOD = LOW_POW2_4;
+    static const unsigned int ALL_SET = 0xFFFFFFFF;
+    static const unsigned int ALL_UNSET = 0x00000000;
 };
 
 template < >
 struct bit_helper< 8 > {
     static const unsigned int BITS_PER_BLOCK = 64;
     static const unsigned long long POW2_MOD = LOW_POW2_5;
+    static const unsigned long long ALL_SET = 0xFFFFFFFFFFFFFFFF;
+    static const unsigned long long ALL_UNSET = 0x0000000000000000;
 };
 
 template < class T >

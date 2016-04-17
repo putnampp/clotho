@@ -20,6 +20,7 @@
 #include "clotho/data_spaces/population_space/genetic_space.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/trait_accumulator.hpp"
 #include "clotho/data_spaces/free_space/free_space.hpp"
+#include "clotho/data_spaces/selection/selection_generator.hpp"
 
 class Engine {
 public:
@@ -32,23 +33,37 @@ public:
 
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >  trait_accumulator_type;
     typedef clotho::genetics::FreeSpaceAnalyzer< genetic_space_type >       free_space_type;
+    typedef clotho::genetics::SelectionGenerator< genetic_space_type >      selection_type;
 
     Engine( boost::property_tree::ptree & config ) : 
         m_parent( &m_pop0 )
         , m_child( &m_pop1 )
+        , select_gen( config )
     {}
 
     void simulate() {
         std::swap( m_child, m_parent );     // use the current child population as the parent population for the next round
-
-        size_t pN = pop_gen.generateSize( m_parent );   // generate the number of children
-        size_t pM = mut_gen.generateSize( m_parent );   // generate the number of new mutations
+        // at the start of each simulate round, m_fit has already been updated from the previous
+        // round with the fitness of the "then child/now parent" popualtions fitness
+        //
+        size_t pN = select_gen.update( m_parent, m_fit );    // generate the number of children
+        size_t pM = mutate_gen.generateSize( m_parent );     // generate the number of new mutations
 
         updateFixedAlleles( m_parent );                 // update the fixed alleles with those of parent population
 
         pM = child_max_alleles( m_parent->allele_count(), m_free_space.free_size(), pM );
 
         m_child->grow( pN, pM );                        // grow the child population accordingly
+
+        m_child->updateFreeSpace( m_free.free_begin(), m_free.free_end() );
+
+        cross_gen.update( m_child, m_parent, select_gen );
+
+        mut_gen.update( m_child, m_parent );
+
+        m_trait_accum.update( *m_child );
+        m_pheno.update( *m_child, m_trait_accum );
+        m_fit.update( m_pheno );
     }
 
     genetic_space_type * getChildPopulation() const {
@@ -85,6 +100,9 @@ protected:
 
     trait_accumulator_type  m_trait_accum;
     free_space_type         m_free_space;
+
+    selection_type          select_gen;
+    mutation_type           mutate_gen;
 };
 
 #endif  // CLOTHO_SIM_ENGINE_HPP_

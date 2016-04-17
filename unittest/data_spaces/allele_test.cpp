@@ -15,8 +15,7 @@
 
 #include "../unittest_config.h"
 
-#include "clotho/data_spaces/allele_space/neutral_allele.hpp"
-#include "clotho/data_spaces/allele_space/qtl_allele.hpp"
+#include "clotho/data_spaces/allele_space/allele_space.hpp"
 
 using namespace clotho::genetics;
 
@@ -115,6 +114,30 @@ BOOST_AUTO_TEST_CASE( qtl_allele_weight_iterator_test ) {
     }
 
     BOOST_REQUIRE_MESSAGE( i == exp_traits, "Unexpected number of traits; Observed: " << i << "; Expected: " << exp_traits );
+}
+
+BOOST_AUTO_TEST_CASE( qtl_allele_free_space_test ) {
+
+    typedef qtl_allele_vectorized< double, double > allele_type;
+
+    size_t exp_alleles = 10, exp_traits = 3;
+    allele_type all( exp_alleles, exp_traits );
+
+    size_t obs_size = all.free_size();
+
+    BOOST_REQUIRE_MESSAGE( obs_size == exp_alleles, "Unexpected free space size; Observed: " << obs_size << "; Expected: " << exp_alleles );
+
+    size_t exp_idx = 0;
+    size_t obs_idx = all.next_free();
+    while( obs_idx != -1 ) {
+
+        BOOST_REQUIRE_MESSAGE( exp_idx == obs_idx, "Unexpected free index; Observed: " << obs_idx << "; Expected: " << exp_idx );
+        ++exp_idx;
+        obs_idx = all.next_free();       
+    }
+
+    BOOST_REQUIRE_MESSAGE( exp_idx == exp_alleles, "Unexpected number of free indices returned; Observed: " << exp_idx << "; Expected: " << exp_alleles );
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()
