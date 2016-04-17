@@ -46,6 +46,10 @@ public:
         m_start = clock_type::now();
     }
 
+    unsigned long long getStart() {
+        return m_start.time_since_epoch().count();
+    }
+
     /**
      *  stop the timer
      */

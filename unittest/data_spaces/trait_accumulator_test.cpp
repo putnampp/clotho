@@ -18,6 +18,9 @@
 
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_01.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+
+#include "clotho/utility/timer.hpp"
 
 #include "clotho/data_spaces/allele_space/qtl_allele.hpp"
 #include "clotho/data_spaces/population_space/genetic_space.hpp"
@@ -68,7 +71,19 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test ) {
     typedef typename trait_accumulator_type::trait_vector_type                  trait_vector_type;
     typedef typename trait_accumulator_type::trait_helper_type                  trait_helper_type;
 
-    size_t exp_alleles = 12, exp_genomes = 110, exp_traits = 15;
+    clotho::utility::timer t;
+
+    boost::random::mt19937  rand_engine( t.getStart() );
+    boost::random::uniform_01< weight_type >  uni;
+    boost::random::uniform_int_distribution< unsigned int > int_dist( 1, 200 );
+
+
+    size_t exp_alleles = int_dist(rand_engine), exp_genomes = int_dist( rand_engine ), exp_traits = int_dist(rand_engine);
+
+    std::cout << "Expected Random Alleles: " << exp_alleles
+                << "; Expected Genomes: "   << exp_genomes
+                << "; Expected Traits: "    << exp_traits << std::endl;
+
     genetic_space_type  gs;
 
     gs.grow( exp_genomes, exp_alleles );
@@ -76,19 +91,20 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test ) {
 
     gs.getSequenceSpace().clear();
 
-    boost::random::mt19937  rand_engine;
-    boost::random::uniform_01< weight_type >  uni;
-
     size_t i = 0, j = 0;
 
+    boost::random::uniform_int_distribution< unsigned int > seq_int( 0, 2 * exp_genomes - 1 );
+    boost::random::uniform_int_distribution< unsigned int > all_gen( 0, exp_alleles - 1 );
+
+    boost::random::uniform_int_distribution< unsigned int > cnt_gen(1, 2 * exp_genomes * exp_alleles );
+
+    unsigned int C = cnt_gen( rand_engine );
 
     // flip some bits
-    while( i < 2 * exp_genomes ) {
-
-        gs.getSequenceSpace().flip( i, (j % exp_alleles));
-
-        j += (i % exp_alleles);
-        ++i;
+    while( C-- ) {
+        i = seq_int( rand_engine);
+        j = all_gen( rand_engine);   
+        gs.getSequenceSpace().flip( i, j);
     }
 
     i = 0;
@@ -145,7 +161,7 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test ) {
 
         BOOST_REQUIRE_MESSAGE( eq, "Unexpected weight vector at " << i);
         
-        i += 11;
+        i += 1;
     }
 }
 

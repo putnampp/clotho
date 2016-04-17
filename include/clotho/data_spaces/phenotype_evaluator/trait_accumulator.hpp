@@ -74,6 +74,7 @@ public:
 
             while( b ) {
                 unsigned int b_idx = bit_walker_type::unset_next_index( b );
+
                 trait_iterator trait_it = genomes.getAlleleSpace().getTraitIterator( j + b_idx );
                 size_t k = 0;
                 while( trait_it.hasNext() ) {
