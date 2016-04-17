@@ -19,8 +19,6 @@
 #include <vector>
 #include <utility>
 
-#include "clotho/genetics/population_matrix.hpp"
-
 template < class URNG, class AlleleType, class LogType, class TimerType >
 class simulate_engine_base {
 public:
