@@ -19,6 +19,8 @@
 #include "clotho/data_spaces/allele_space/qtl_allele.hpp"
 
 #include "clotho/data_spaces/allele_space/allele_generator.hpp"
+#include "clotho/data_spaces/allele_space/base_allele_generator.hpp"
+#include "clotho/data_spaces/allele_space/neutral_allele_generator.hpp"
 #include "clotho/data_spaces/allele_space/qtl_allele_generator.hpp"
 
 #endif  // CLOTHO_ALLELE_SPACE_HPP_

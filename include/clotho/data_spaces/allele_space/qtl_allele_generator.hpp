@@ -42,6 +42,12 @@ public:
     void generate( allele_type & all, size_t offset ) {
         all.setPositionAt( offset, m_pos_gen() );
         all.setNeutralAt( offset, m_neut_gen() );
+
+        size_t i = 0, N = all.trait_count();
+        while( i < N ) {
+            all.updateTraitWeight( offset, i, m_weight_gen());
+            ++i;
+        }
     }
 
     virtual ~AlleleGenerator() {}

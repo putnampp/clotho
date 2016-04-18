@@ -35,7 +35,7 @@ public:
     { }
 
     result_type   operator()() {
-        return m_dist( * m_rand );
+        return this->m_dist( *m_rand );
     }
 
     virtual ~neutral_generator() {}

@@ -31,7 +31,36 @@ typedef double weight_type;
 
 BOOST_AUTO_TEST_SUITE( test_data_space )
 
-BOOST_AUTO_TEST_CASE( allele_generator_test ) {
+BOOST_AUTO_TEST_CASE( base_allele_generator_test ) {
+    typedef base_allele_vectorized< position_type > allele_type;
+    typedef AlleleGenerator< rng_type, allele_type > allele_generator_type;
+
+    rng_type    rng;
+    boost::property_tree::ptree exp_config;
+    boost::property_tree::ptree obs_config;
+
+    allele_generator_type   all_gen( &rng, obs_config );
+
+    BOOST_REQUIRE_MESSAGE( obs_config == exp_config, "Unexpected configuration of default base allele" );
+}
+
+BOOST_AUTO_TEST_CASE( neutral_allele_generator_test ) {
+    typedef neutral_allele_vectorized< position_type > allele_type;
+    typedef AlleleGenerator< rng_type, allele_type > allele_generator_type;
+
+    rng_type    rng;
+    boost::property_tree::ptree exp_config;
+
+    exp_config.put( "neutral.p", 0.5 );     // qtl alleles may be neutral
+
+    boost::property_tree::ptree obs_config;
+
+    allele_generator_type   all_gen( &rng, obs_config );
+
+    BOOST_REQUIRE_MESSAGE( obs_config == exp_config, "Unexpected configuration of default neutral allele" );
+}
+
+BOOST_AUTO_TEST_CASE( qtl_allele_generator_test ) {
     typedef qtl_allele_vectorized< position_type, weight_type > allele_type;
     typedef AlleleGenerator< rng_type, allele_type > allele_generator_type;
 
@@ -46,10 +75,21 @@ BOOST_AUTO_TEST_CASE( allele_generator_test ) {
 
     allele_generator_type   all_gen( &rng, obs_config );
 
-    BOOST_REQUIRE_MESSAGE( obs_config == exp_config, "Unexpected configuration" );
+    BOOST_REQUIRE_MESSAGE( obs_config == exp_config, "Unexpected configuration default qtl allele" );
+}
 
-    boost::property_tree::write_json( std::cout, obs_config );
-    boost::property_tree::write_json( std::cout, exp_config );
+BOOST_AUTO_TEST_CASE( qtl_allele_generator_test2 ) {
+    typedef qtl_allele_vectorized< position_type, weight_type > allele_type;
+    typedef AlleleGenerator< rng_type, allele_type > allele_generator_type;
+
+    rng_type    rng;
+    boost::property_tree::ptree config;
+
+    allele_type all( 2, 3);
+
+    allele_generator_type   all_gen( &rng, config );
+
+    all_gen.generate( all, 1 );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

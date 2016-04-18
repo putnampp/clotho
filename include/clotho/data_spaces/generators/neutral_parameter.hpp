@@ -17,34 +17,41 @@
 #include <boost/property_tree/ptree.hpp>
 #include "clotho/utility/clotho_strings.hpp"
 
+#include <boost/random/bernoulli_distribution.hpp>
+
 namespace clotho {
 namespace genetics {
 
 template < class RealType >
 struct neutral_parameter {
-    RealType    m_p;
+    typedef RealType        real_type;
+    typedef boost::random::bernoulli_distribution< real_type >   distribution_type;
+
+    distribution_type   m_dist;
 
     static constexpr RealType DEFAULT_NEUTRALITY = 0.5;
 
     neutral_parameter( RealType m = DEFAULT_NEUTRALITY ) :
-        m_p( m )
+        m_dist( m )
     { }
 
     neutral_parameter( boost::property_tree::ptree & config ) :
-        m_p( DEFAULT_NEUTRALITY )
+        m_dist( DEFAULT_NEUTRALITY )
     {
         boost::property_tree::ptree lconfig;
         lconfig = config.get_child( NEUTRAL_BLOCK_K, lconfig );
 
-        m_p = lconfig.get< RealType >( P_K, m_p );
+        real_type p = lconfig.get< RealType >( P_K, DEFAULT_NEUTRALITY );
 
-        lconfig.put( P_K, m_p );
+        lconfig.put( P_K, p );
         config.put_child( NEUTRAL_BLOCK_K, lconfig );
+
+        m_dist.param( typename distribution_type::param_type( p ) );
     }
 
     void write_parameter( boost::property_tree::ptree & l ) {
         boost::property_tree::ptree c;
-        c.put( P_K, m_p );
+        c.put( P_K, m_dist.p() );
         l.put_child( NEUTRAL_BLOCK_K, c );
     }
 
