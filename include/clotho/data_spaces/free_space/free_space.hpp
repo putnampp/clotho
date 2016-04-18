@@ -18,6 +18,8 @@
 #include "clotho/utility/bit_helper.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
+#include <iostream>
+
 namespace clotho {
 namespace genetics {
 
@@ -32,8 +34,8 @@ public:
     typedef typename association_type::block_type   block_type;
 
     typedef std::vector< size_t >                   index_vector;
-    typedef typename free_index_vector::iterator    iterator;
-    typedef typename free_index_vector::const_iterator    const_iterator;
+    typedef typename index_vector::iterator    iterator;
+    typedef typename index_vector::const_iterator    const_iterator;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
 
@@ -50,27 +52,27 @@ public:
         m_fixed.clear();
         m_lost.clear();
 
-        typedef std::vector< block_type >   block_vector;
-
         block_iterator b_it = gs.getBlockIterator();
 
         size_t M = gs.allele_count();
 
         block_type fx = bit_helper_type::ALL_SET, var = bit_helper_type::ALL_UNSET;
-        size_t i = 0, j = 0;
+        size_t i = 0, j = 0, k = 0;
         while( b_it.hasNext() ) {
-            block_type v = b.next();
+            block_type v = b_it.next();
             
             fx &= v;
             var |= v;
 
-            if( ++i >= gs.block_column_count() ) {
+            if( ++i >= gs.getSequenceSpace().block_column_count() ) {
+                i = 0;
+                ++k;
                 block_type ls = ~(fx | var);
 
                 while( fx ) {
                     size_t idx = bit_walker_type::unset_next_index( fx ) + j;
                     if( idx < M ) {
-                        m_fixed.push_back( idx);
+                        m_fixed.push_back( idx );
                         m_free.push_back( idx );
                     }
                 }
@@ -90,8 +92,7 @@ public:
             }
         }
 
-        assert( i == gs.block_row_count() );
-        assert( _fixed.size() == i );
+        assert( k == gs.getSequenceSpace().block_row_count() );
     }
 
     size_t free_size() const {
