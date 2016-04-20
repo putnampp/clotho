@@ -24,16 +24,17 @@ namespace genetics {
 template < class AlleleSpaceType, class BlockType = unsigned long long >
 class genetic_space : public growable2D {
 public:
-    typedef AlleleSpaceType                         allele_type;
+    typedef AlleleSpaceType                                 allele_type;
 
-    typedef BlockType                               block_type;
-    typedef std::pair< size_t, size_t >             individual_genome_type;
-    typedef std::vector< individual_genome_type >   population_genomes_type;
+    typedef BlockType                                       block_type;
+    typedef std::pair< size_t, size_t >                     individual_genome_type;
+    typedef std::vector< individual_genome_type >           population_genomes_type;
 
-    typedef association_matrix< BlockType > association_type;
-    typedef typename association_type::block_iterator   block_iterator;
+    typedef association_matrix< BlockType >                 association_type;
+    typedef typename association_type::block_iterator       block_iterator;
 
-    typedef typename association_type::row_iterator     sequence_iterator;
+    typedef typename association_type::row_iterator         sequence_iterator;
+    typedef typename association_type::row_pair_iterator    genome_iterator;
 
     genetic_space() {
         this->grow(1, 1);
@@ -59,6 +60,10 @@ public:
         return m_assoc_data.raw_iterator();
     }
 
+    genome_iterator getGenomeAt( size_t idx ) const {
+        return m_assoc_data.getRowPairAt(2 * idx );
+    }
+
     size_t  allele_count() const {
         return m_alleles.size();
     }
@@ -71,7 +76,7 @@ public:
         return m_assoc_data.row_count();
     }
 
-    individual_genome_type  getGenomeAt( size_t idx ) {
+    individual_genome_type  getIndividualAt( size_t idx ) {
         assert( 0 <= idx && idx < m_genomes.size() );
 
         return m_genomes[ idx ];

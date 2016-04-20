@@ -43,6 +43,7 @@ public:
     public:
         BlockIterator( block_type * start, size_t row_bound, size_t column_bound, size_t step = 1 ) : 
             m_start( start )
+            , m_ptr( start )
             , m_row_bound( row_bound )
             , m_column_bound( column_bound )
             , m_step( step )
@@ -52,6 +53,7 @@ public:
 
         BlockIterator( const BlockIterator & other ) : 
             m_start( other.m_start )
+            , m_ptr( other.m_ptr )
             , m_row_bound( other.m_row_bound )
             , m_column_bound( other.m_column_bound )
             , m_step( other.m_step )
@@ -66,14 +68,29 @@ public:
         block_type next() {
             assert( hasNext() );
 
-            block_type v = *(m_start + m_i * m_column_bound + m_j);
-            m_j += m_step;
-            if( m_j >= m_column_bound ) {
-                m_j = 0;
-                ++m_i;
-            }
+            block_type v = *m_ptr;
+
+            advance_pointer();
             
             return v;
+        }
+
+        std::pair< block_type, block_type > next_pair() {
+            assert( hasNext() );
+
+            block_type v = *m_ptr++;
+            block_type w = *m_ptr;
+
+            advance_pointer();
+            
+            return std::make_pair(v, w);
+        }
+
+        void write_next( block_type v ) {
+            assert( hasNext() );
+
+            *(m_ptr) = v;
+            advance_pointer();
         }
 
         size_t max_rows() const {
@@ -86,7 +103,18 @@ public:
 
         virtual ~BlockIterator() {}
     protected:
-        block_type *    m_start;
+
+        void advance_pointer() {
+            m_j += m_step;
+            if( m_j >= m_column_bound ) {
+                m_j = 0;
+                ++m_i;
+            }
+
+            m_ptr = m_start + m_i * m_column_bound + m_j;
+        }
+
+        block_type      * m_start, *m_ptr;
         size_t          m_row_bound, m_column_bound, m_step;
         size_t          m_i, m_j;
     };
@@ -94,6 +122,7 @@ public:
     typedef BlockIterator       block_iterator;
     typedef BlockIterator       row_iterator;
     typedef BlockIterator       column_iterator;
+    typedef BlockIterator       row_pair_iterator;
 
 
     association_matrix( size_t rows = 1, size_t columns = 1 ) :
@@ -146,6 +175,12 @@ public:
     row_iterator   getRowAt( size_t idx ) const {
         ASSERT_VALID_RANGE( idx, 0, block_column_count() );
 
+        return row_iterator( m_data + idx, block_row_count(), block_column_count(), block_column_count() );
+    }
+
+    row_pair_iterator getRowPairAt( size_t idx ) const {
+        ASSERT_VALID_RANGE( idx, 0, block_column_count() );
+        ASSERT_VALID_RANGE( idx + 1, 0, block_column_count() );
         return row_iterator( m_data + idx, block_row_count(), block_column_count(), block_column_count() );
     }
 
