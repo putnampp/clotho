@@ -71,8 +71,6 @@ public:
 
         IntType e = m_event_dist( *m_rand );
 
-        std::cout << "Generating " << e << " crossover events" << std::endl;
-
         size_t prev = 0;
         while( m_events.size() < e ) {
             position_type p = m_pos_dist( *m_rand );

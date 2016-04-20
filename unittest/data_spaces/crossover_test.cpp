@@ -68,6 +68,8 @@ BOOST_AUTO_TEST_CASE( crossover_test ) {
     // any position greater than this should come from  sequence 3
     parents.getAlleleSpace().setPositionAt( 88, 0.75 );
     parents.getAlleleSpace().setPositionAt( 99, 0.85 );
+    parents.getAlleleSpace().setPositionAt( 22, 0.6221 );   // allele same bin as event, but before the event
+    parents.getAlleleSpace().setPositionAt( 15, 0.62211 );  // allele same bin as event, but after the event
 
     // embed some alleles in the parental genomes
     parents.getSequenceSpace().flip( 0, 28 );
@@ -75,10 +77,13 @@ BOOST_AUTO_TEST_CASE( crossover_test ) {
     
     parents.getSequenceSpace().flip( 1, 28 );   // parent 0 homozygous at allele 28
 
+    parents.getSequenceSpace().flip( 2, 22 );
     parents.getSequenceSpace().flip( 2, 77 );
     parents.getSequenceSpace().flip( 2, 99 );   // parent 1 heterozygous at allele 99
+
     parents.getSequenceSpace().flip( 3, 77 );   // parent 1 homozygous at allele 77
     parents.getSequenceSpace().flip( 3, 88 );   // parent 1 heterozygous at allele 88
+    parents.getSequenceSpace().flip( 3, 15 );
 
     xover.update( &parents, mates, &offspring );
 
@@ -96,6 +101,12 @@ BOOST_AUTO_TEST_CASE( crossover_test ) {
 
     obs_state = offspring.getSequenceSpace()( 1, 99 );  // after recombination we expect this to be unset
     BOOST_REQUIRE_MESSAGE( !obs_state, "Unexpected state for offspring at allele 99" );
+
+    obs_state = offspring.getSequenceSpace()( 1, 22 );  // after recombination we expect this to be set
+    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring at allele 22" );
+
+    obs_state = offspring.getSequenceSpace()( 1, 15 );  // after recombination we expect this to be set
+    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring at allele 15" );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

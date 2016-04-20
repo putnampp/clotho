@@ -77,19 +77,20 @@ protected:
             std::pair< block_type, block_type > g = p.next_pair();
 
             block_type hets = g.first ^ g.second;
-            block_type c = bit_helper_type::ALL_UNSET;
+            block_type sec  = bit_helper_type::ALL_UNSET;   // mask state from second strand
+
             while( hets ) {
                 size_t idx = bit_walker_type::unset_next_index( hets ) + j;
 
-                position_type pos = all.getPositionAt( idx );
-                if( m_event_gen( pos ) ) {
-                    c |= bit_helper_type::bit_offset( idx );
+                if( m_event_gen( idx ) ) {
+                    sec |= bit_helper_type::bit_offset( idx );
                 }
             }
 
-            hets = ((g.first & c) | (g.second & ~c));
-
+            hets = ((g.first & ~sec) | (g.second & sec));
             s.write_next( hets );
+
+            j += bit_helper_type::BITS_PER_BLOCK;
         }
     }
 
