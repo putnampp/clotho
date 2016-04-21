@@ -21,12 +21,16 @@
 #include "clotho/data_spaces/phenotype_evaluator/trait_accumulator.hpp"
 #include "clotho/data_spaces/free_space/free_space.hpp"
 #include "clotho/data_spaces/selection/selection_generator.hpp"
+#include "clotho/data_spaces/crossover/crossover.hpp"
 
+template < class RNG >
 class Engine {
 public:
     typedef double                      position_type;
     typedef double                      weight_type;
     typedef unsigned long long          block_type;
+
+    typedef RNG                                                             random_engine_type;
 
     typedef clotho::genetics::qtl_allele< position_type, weight_type >      allele_type;
     typedef clotho::genetics::genetic_space< allele_type, block_type >      genetic_space_type;
@@ -34,11 +38,13 @@ public:
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >  trait_accumulator_type;
     typedef clotho::genetics::FreeSpaceAnalyzer< genetic_space_type >       free_space_type;
     typedef clotho::genetics::SelectionGenerator< genetic_space_type >      selection_type;
+    typedef clotho::genetics::Crossover< random_engine_type, genetic_space_type >               crossover_type;
 
-    Engine( boost::property_tree::ptree & config ) : 
+    Engine( random_engine_type * rng, boost::property_tree::ptree & config ) : 
         m_parent( &m_pop0 )
         , m_child( &m_pop1 )
         , select_gen( config )
+        , cross_gen( rng, config )
     {}
 
     void simulate() {
@@ -57,7 +63,7 @@ public:
 
         m_child->updateFreeSpace( m_free.free_begin(), m_free.free_end() );
 
-        cross_gen.update( m_child, m_parent, select_gen );
+        cross_gen.update( m_parent, select_gen.getMatePairs(), m_child );
 
         mut_gen.update( m_child, m_parent );
 
@@ -103,6 +109,7 @@ protected:
 
     selection_type          select_gen;
     mutation_type           mutate_gen;
+    crossover_type          cross_gen;
 };
 
 #endif  // CLOTHO_SIM_ENGINE_HPP_

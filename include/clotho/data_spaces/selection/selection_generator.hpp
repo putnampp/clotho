@@ -16,30 +16,59 @@
 
 #include <boost/property_tree/ptree.hpp>
 
+#include <boost/random/uniform_int_distribution.hpp>
+
 #include <vector>
 
 namespace clotho {
 namespace genetics {
 
-template < class GeneticSpaceType >
+/**
+ * Random selection
+ */
+template < class RNG, class GeneticSpaceType >
 class SelectionGenerator {
 public:
-    typedef GeneticSpaceType    genetic_space_type;
+    typedef RNG                                                                 random_engine_type;
+    typedef GeneticSpaceType                                                    genetic_space_type;
+    typedef typename genetic_space_type::individual_id_type                     individual_id_type;
 
-    typedef std::vector< std::pair< size_t, size_t > > mate_pair_vector;
-    typedef typename mate_pair_vector::iterator     parent_iterator;
-    typedef typename mate_pair_vector::const_iterator     const_parent_iterator;
+    typedef std::vector< std::pair< individual_id_type, individual_id_type > >  mate_pair_vector;
+    typedef typename mate_pair_vector::iterator                                 parent_iterator;
+    typedef typename mate_pair_vector::const_iterator                           const_parent_iterator;
 
-    SelectionGenerator( boost::property_tree::ptree & config ){}
+    typedef typename genetic_space_type::fitness_score_type                     fitness_score_type;
+    typedef typename genetic_space_type::fitness_scores                         fitness_scores;
 
-    void update( genetic_space_type * parents, fitness_type *, unsigned int
+    typedef boost::random::uniform_int_distribution< individual_id_type >       distribution_type;
+
+    SelectionGenerator( random_engine_type * rng, boost::property_tree::ptree & config ) :
+        m_rand( rng )
+    {
+        std::cout << "simple random selection" << std::endl;
+    }
+
+    void update( genetic_space_type * parents, unsigned int count ) {
+        typename distribution_type::param_type  param_type;
+
+        // distribution generates numbers in range [0, N]
+        // therefore N needs to be the maximum index
+        m_dist.param( param_type( 0, parents->individual_count() - 1 ) );
+
+        while( count-- ) {
+            individual_id_type  id0 = m_dist( *m_rand );
+            individual_id_type  id1 = m_dist( *m_rand );
+
+            m_pairs.push_back( std::make_pair( id0, id1 ) );
+        }   
+    }
 
     parent_iterator begin() {
         return m_pairs.begin();
     }
 
     parent_iterator end() {
-        return m_pairs.end()
+        return m_pairs.end();
     }
 
     const_parent_iterator begin() const {
@@ -47,11 +76,16 @@ public:
     }
 
     const_parent_iterator end() const {
-        return m_pairs.end()
+        return m_pairs.end();
     }
 
+    virtual ~SelectionGenerator() {}
+
 protected:
+    random_engine_type  * m_rand;
     mate_pair_vector    m_pairs;
+
+    distribution_type   m_dist;
 };
 
 }   // namespace genetics

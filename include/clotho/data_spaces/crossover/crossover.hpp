@@ -34,14 +34,15 @@ public:
 
     typedef typename genetic_space_type::sequence_iterator  sequence_iterator;
     typedef typename genetic_space_type::genome_iterator    genome_iterator;
+    typedef typename genetic_space_type::individual_id_type individual_id_type;
 
     typedef crossover_event_generator< RNG, position_type >       event_generator_type;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
 
-    typedef std::vector< std::pair< size_t, size_t > >  mate_pair_type;
-    typedef typename mate_pair_type::iterator           iterator;
+    typedef std::vector< std::pair< individual_id_type, individual_id_type > >  mate_pair_type;
+    typedef typename mate_pair_type::iterator                                   iterator;
 
     Crossover( RNG * rng, boost::property_tree::ptree & config ) :
         m_event_gen(rng, config )

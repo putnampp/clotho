@@ -27,7 +27,10 @@ public:
     typedef AlleleSpaceType                                 allele_type;
 
     typedef BlockType                                       block_type;
-    typedef std::pair< size_t, size_t >                     individual_genome_type;
+    typedef size_t                                          sequence_id_type;
+    typedef size_t                                          individual_id_type;
+    
+    typedef std::pair< sequence_id_type, sequence_id_type > individual_genome_type;
     typedef std::vector< individual_genome_type >           population_genomes_type;
 
     typedef association_matrix< BlockType >                 association_type;
@@ -35,6 +38,11 @@ public:
 
     typedef typename association_type::row_iterator         sequence_iterator;
     typedef typename association_type::row_pair_iterator    genome_iterator;
+
+    typedef double                                          fitness_score_type;
+    typedef std::vector< fitness_score_type >               fitness_scores;
+    typedef typename fitness_scores::iterator               fitness_iterator;
+    typedef typename fitness_scores::const_iterator         const_fitness_iterator;
 
     genetic_space() {
         this->grow(1, 1);
@@ -52,6 +60,10 @@ public:
         return m_assoc_data;
     }
 
+    fitness_scores & getFitnessSpace() {
+        return m_fitness;
+    }
+
     sequence_iterator    getSequenceAt( size_t idx ) const {
         return m_assoc_data.getRowAt( idx );
     }
@@ -60,12 +72,16 @@ public:
         return m_assoc_data.raw_iterator();
     }
 
-    genome_iterator getGenomeAt( size_t idx ) const {
+    genome_iterator getGenomeAt( individual_id_type idx ) const {
         return m_assoc_data.getRowPairAt(2 * idx );
     }
 
     size_t  allele_count() const {
         return m_alleles.size();
+    }
+
+    size_t  individual_count() const {
+        return m_genomes.size();
     }
 
     size_t  genome_count() const {
@@ -76,10 +92,26 @@ public:
         return m_assoc_data.row_count();
     }
 
-    individual_genome_type  getIndividualAt( size_t idx ) {
+    individual_genome_type  getIndividualAt( individual_id_type idx ) {
         assert( 0 <= idx && idx < m_genomes.size() );
 
         return m_genomes[ idx ];
+    }
+
+    fitness_iterator    fitness_begin() {
+        return m_fitness.begin();
+    }
+
+    fitness_iterator    fitness_end() {
+        return m_fitness.end();
+    }
+
+    const_fitness_iterator    fitness_begin() const {
+        return m_fitness.begin();
+    }
+
+    const_fitness_iterator    fitness_end() const {
+        return m_fitness.end();
     }
 
     virtual size_t  grow( size_t genomes, size_t alleles) {
@@ -109,9 +141,11 @@ protected:
         alleles = m_alleles.grow( alleles );
     }
 
-    allele_type           m_alleles;
+    allele_type                 m_alleles;
     population_genomes_type     m_genomes;
     association_type            m_assoc_data;
+
+    fitness_scores              m_fitness;
 };
 
 }   // namespace clotho
