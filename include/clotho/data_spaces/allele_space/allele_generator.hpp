@@ -26,6 +26,10 @@ public:
 
     AlleleGenerator( boost::property_tree::ptree & config ) {}
 
+    void operator()( allele_type & all, size_t offset ) {
+        assert(false);
+    }
+
     void generate( allele_type & all, size_t offset ) {
         assert(false);
     }

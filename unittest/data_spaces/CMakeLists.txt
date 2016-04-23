@@ -21,6 +21,7 @@ LIST(APPEND DATA_SPACE_SRCS free_space_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS allele_generator_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS crossover_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS selection_test.cpp )
+LIST(APPEND DATA_SPACE_SRCS mutation_test.cpp )
 
 
 ADD_LIBRARY(${PROJECT_NAME}_data_spaces_test SHARED ${DATA_SPACE_SRCS} )

@@ -15,29 +15,36 @@
 #define CLOTHO_MUTATION_GENERATOR_HPP_
 
 #include <boost/property_tree/ptree.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
 
 #include "clotho/data_spaces/allele_space/allele_generator.hpp"
 
 namespace clotho {
-namepsace genetics {
+namespace genetics {
 
-template < class GeneticSpaceType >
+template < class RNG, class GeneticSpaceType >
 class MutationGenerator {
 public:
-    typedef GeneticSpaceType genetic_space_type;
-    tyepdef genetic_space_type::allele_type allele_type;
+    typedef GeneticSpaceType                            genetic_space_type;
+    typedef typename genetic_space_type::allele_type    allele_type;
 
-    typedef AlleleGenerator< allele_type > allele_generator_type;
+    typedef RNG                                 random_engine_type;
 
-    MutationGenerator( boost::property_tree::ptree & config ) :
-        allele_gen( config )
-{}
+    typedef boost::random::uniform_int_distribution< size_t >   sequence_generator_type;
+    typedef AlleleGenerator< random_engine_type, allele_type >  allele_generator_type;
+
+    MutationGenerator( random_engine_type * rng, boost::property_tree::ptree & config ) :
+        m_rand( rng )
+        , m_allele_gen( rng, config )
+    {}
 
     size_t generateSize( genetic_space_type * parent ) {
         return 1;
     }
 
-    void update( genetic_space_type * child, size_t N ) {
+    void operator()( genetic_space_type * child, size_t N ) {
+        m_seq_gen.param( typename sequence_generator_type::param_type( 0, child->sequence_count() ) );
+
         while( N-- ) {
             size_t seq_idx = 1;
             size_t all_idx = child->getAlleleSpace().next_free();
@@ -45,15 +52,16 @@ public:
             assert( all_idx != -1 );
 
             child->getSequenceSpace().flip( seq_idx, all_idx );
-            all_gen.update( child->getAlleleSpace(), all_idx );
+            m_allele_gen( child->getAlleleSpace(), all_idx );
         }
     }
 
     virtual ~MutationGenerator() {}
 
 protected:
-
-    allele_generator_type   allele_gen;
+    random_engine_type      * m_rand;
+    allele_generator_type   m_allele_gen;
+    sequence_generator_type m_seq_gen;
 };
 
 }   // namespace genetics

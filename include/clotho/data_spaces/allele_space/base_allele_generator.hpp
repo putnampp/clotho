@@ -33,6 +33,10 @@ public:
         m_position_gen( rng, config )
     {}
 
+    void operator()( allele_type & all, size_t offset ) {
+        generate( all, offset );
+    }
+
     void generate( allele_type & all, size_t offset ) {
         all.setPositionAt( offset, m_position_gen() );
     }
