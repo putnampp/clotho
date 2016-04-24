@@ -92,4 +92,58 @@ BOOST_AUTO_TEST_CASE( qtl_allele_generator_test2 ) {
     all_gen.generate( all, 1 );
 }
 
+BOOST_AUTO_TEST_CASE( qtl_allele_push_back_test ) {
+    typedef qtl_allele_vectorized< position_type, weight_type > allele_type;
+    typedef AlleleGenerator< rng_type, allele_type >            allele_generator_type;
+
+    typedef typename allele_type::trait_iterator                trait_iterator;
+
+    rng_type    rng;
+    boost::property_tree::ptree config;
+
+    allele_generator_type agen( &rng, config );
+
+    size_t exp_alleles = 350, exp_traits = 10;
+    allele_type gs, fixed;
+
+    gs.grow( exp_alleles, exp_traits );
+
+    size_t i = 0;
+    while( i < exp_alleles ) {
+        agen( gs, i++);
+    }
+
+    size_t exp_fixed_idx = 220;   
+
+    fixed.push_back( gs, exp_fixed_idx );
+
+    size_t obs_fixed_count = fixed.allele_count();
+
+    BOOST_REQUIRE_MESSAGE( obs_fixed_count == 1, "Unexpected number of fixed alleles; Observed: " << obs_fixed_count << "; Expected: 1" );
+
+    position_type exp_pos = gs.getPositionAt( exp_fixed_idx );
+    position_type obs_pos = fixed.getPositionAt( 0 );
+
+    BOOST_REQUIRE_MESSAGE( exp_pos == obs_pos, "Unexpected fixed allele position; Observed: " << obs_pos << "; Expected: " << exp_pos );
+
+    bool exp_neutral = gs.getNeutralAt( exp_fixed_idx );
+    bool obs_neutral = fixed.getNeutralAt( 0 );
+
+    BOOST_REQUIRE_MESSAGE( exp_neutral == obs_neutral, "Unexpected fixed allele neutrality; Observed: " << obs_neutral << "; Expected: " << exp_neutral );
+
+    size_t obs_traits = fixed.trait_count();
+
+    BOOST_REQUIRE_MESSAGE( exp_traits == obs_traits, "Unexpected fixed allele trait count; Observed: " << obs_traits << "; Expected: " << exp_traits );
+
+    trait_iterator exp_it = gs.getTraitIterator( exp_fixed_idx );
+    trait_iterator obs_it = fixed.getTraitIterator( 0 );
+
+    while( obs_it.hasNext() && exp_it.hasNext() ) {
+        weight_type exp = exp_it.next();
+        weight_type obs = obs_it.next();
+
+        BOOST_REQUIRE_MESSAGE( exp == obs, "Unexpected fixed allele trait weight; Observed: " << obs << "; Expected: " << exp );
+    }   
+}
+
 BOOST_AUTO_TEST_SUITE_END()

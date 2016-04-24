@@ -22,12 +22,18 @@ namespace genetics {
 template < class PositionType >
 class neutral_allele_vectorized : public base_allele_vectorized< PositionType > {
 public:
+    typedef base_allele_vectorized< PositionType >      base_type;
+    typedef neutral_allele_vectorized< PositionType >   self_type;
 
-    typedef base_allele_vectorized< PositionType >   base_type;
-
-    typedef std::vector< bool >     neutrality_vector_type;
+    typedef std::vector< bool >                             neutrality_vector_type;
     typedef typename neutrality_vector_type::iterator       neutrality_iterator;
     typedef typename neutrality_vector_type::const_iterator const_neutrality_iterator;
+
+    neutral_allele_vectorized( size_t a = 0 ) :
+        base_type( a )
+    {
+        this->grow( a );
+    }
 
     bool getNeutralAt( size_t index ) const {
         return m_neutral[ index ];
@@ -55,6 +61,15 @@ public:
 
     const_neutrality_iterator neutral_end() const {
         return m_neutral.end();
+    }
+
+    void push_back( self_type & other, size_t idx ) {
+        size_t e = this->size();
+
+        this->resize( e + 1 );
+
+        this->setPositionAt( e, other.getPositionAt( idx ) );
+        this->setNeutralAt( e, other.getNeutralAt( idx ) );
     }
 
     virtual size_t grow( size_t rows ) {

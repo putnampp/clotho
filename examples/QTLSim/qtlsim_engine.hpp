@@ -65,7 +65,7 @@ public:
 
         cross_gen.update( m_parent, select_gen.getMatePairs(), m_child );
 
-        mut_gen.update( m_child, m_parent );
+        mutate_gen( m_child, m_parent );
 
         m_trait_accum.update( *m_child );
         m_pheno.update( *m_child, m_trait_accum );
@@ -97,6 +97,17 @@ protected:
 
     void updateFixedAlleles( genetic_space_type * gs ) {
         m_free_space.update( *gs );               // analyze the parent population
+
+        typedef typename free_space_type::iterator  fixed_iterator;
+
+        fixed_iterator  fix_it = m_free_space.fixed_begin();
+        fixed_iterator  fix_end = m_free_space.fixed_end();
+
+        while( fix_it != fix_end ) {
+            size_t  fixed_index = *fix_it++;
+
+            m_fixed.push_back( gs->getAlleleSpace(), fixed_index );
+        }
     }
 
     genetic_space_type m_pop0, m_pop1;

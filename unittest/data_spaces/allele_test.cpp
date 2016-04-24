@@ -41,15 +41,17 @@ BOOST_AUTO_TEST_CASE( qtl_allele_vectorized_test ) {
 
     qtl_allele_vectorized< double, double > all;
 
+    size_t exp_size = 0;
+
     size_t obs_size = all.size();
     size_t obs_alleles = all.allele_count();
     size_t obs_traits = all.trait_count();
     size_t obs_allocated_size = all.allocated_size();
 
-    BOOST_REQUIRE_MESSAGE( obs_size == 1, "Unexpected size upon initialization; Observed: " << obs_size << "; Expected: 1" );
-    BOOST_REQUIRE_MESSAGE( obs_alleles == 1, "Unexpected alleles upon initialization; Observed: " << obs_alleles << "; Expected: 1" );
-    BOOST_REQUIRE_MESSAGE( obs_traits == 1, "Unexpected traits upon initialization; Observed: " << obs_traits << "; Expected: 1" );
-    BOOST_REQUIRE_MESSAGE( obs_allocated_size == 1, "Unexpected allocated upon initialization; Observed: " << obs_allocated_size << "; Expected: 1" );
+    BOOST_REQUIRE_MESSAGE( obs_size == exp_size, "Unexpected size upon initialization; Observed: " << obs_size << "; Expected: " << exp_size );
+    BOOST_REQUIRE_MESSAGE( obs_alleles == exp_size, "Unexpected alleles upon initialization; Observed: " << obs_alleles << "; Expected: " << exp_size );
+    BOOST_REQUIRE_MESSAGE( obs_traits == exp_size, "Unexpected traits upon initialization; Observed: " << obs_traits << "; Expected: " << exp_size );
+    BOOST_REQUIRE_MESSAGE( obs_allocated_size == exp_size, "Unexpected allocated upon initialization; Observed: " << obs_allocated_size << "; Expected: " << exp_size );
 
     size_t exp_alleles = 10;
     all.grow( exp_alleles );
@@ -59,10 +61,9 @@ BOOST_AUTO_TEST_CASE( qtl_allele_vectorized_test ) {
     obs_traits = all.trait_count();
     obs_allocated_size = all.allocated_size();
 
-
     BOOST_REQUIRE_MESSAGE( obs_size == exp_alleles, "Unexpected size upon initialization; Observed: " << obs_size << "; Expected: " << exp_alleles );
     BOOST_REQUIRE_MESSAGE( obs_alleles == exp_alleles, "Unexpected alleles upon initialization; Observed: " << obs_alleles << "; Expected: " << exp_alleles );
-    BOOST_REQUIRE_MESSAGE( obs_traits == 1, "Unexpected traits upon initialization; Observed: " << obs_traits << "; Expected: 1" );
+    BOOST_REQUIRE_MESSAGE( obs_traits == 1 , "Unexpected traits upon initialization; Observed: " << obs_traits << "; Expected: 1" );
     BOOST_REQUIRE_MESSAGE( obs_allocated_size == exp_alleles, "Unexpected allocated upon initialization; Observed: " << obs_allocated_size << "; Expected: " << exp_alleles );
 
     size_t exp_traits = 5;

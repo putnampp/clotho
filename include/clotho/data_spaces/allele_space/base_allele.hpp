@@ -27,15 +27,20 @@ namespace genetics {
 template < class PositionType = double >
 class base_allele_vectorized : public growable1D {
 public:
-    typedef PositionType     position_type;
+    typedef base_allele_vectorized< PositionType >              self_type;
+    typedef PositionType                                        position_type;
 
     typedef std::vector< position_type >                        position_vector_type;
     typedef typename position_vector_type::iterator             position_iterator;
     typedef typename position_vector_type::const_iterator       const_position_iterator;
 
-    typedef std::deque< size_t >                               free_vector_type;
+    typedef std::deque< size_t >                                free_vector_type;
     typedef typename free_vector_type::iterator                 free_iterator;
-    typedef typename free_vector_type::const_iterator                 const_free_iterator;
+    typedef typename free_vector_type::const_iterator           const_free_iterator;
+
+    base_allele_vectorized( size_t a = 0 ) {
+        this->grow( a );
+    }
 
     position_type getPositionAt( size_t index ) const {
         return m_positions[ index ];
@@ -110,6 +115,14 @@ public:
 
     const_free_iterator free_end() const {
         return m_free.end();
+    }
+
+    void push_back( self_type & other, size_t idx ) {
+        size_t e = this->m_positions.size();
+
+        this->resize( e + 1 );
+
+        this->setPositionAt( e, other.getPositionAt( idx ) );
     }
 
     virtual ~base_allele_vectorized() {}

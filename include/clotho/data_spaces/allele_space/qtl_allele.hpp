@@ -25,6 +25,7 @@ template < class PositionType, class WeightType >
 class qtl_allele_vectorized : public neutral_allele_vectorized< PositionType >, public growable2D {
 public:
     typedef neutral_allele_vectorized< PositionType > base_type;
+    typedef qtl_allele_vectorized< PositionType, WeightType > self_type;
 
     typedef WeightType                  weight_type;
     typedef std::vector< WeightType >   trait_type;
@@ -60,7 +61,7 @@ public:
 
     typedef weight_iterator     trait_iterator;
 
-    qtl_allele_vectorized( size_t rows = 1, size_t columns = 1 ) :
+    qtl_allele_vectorized( size_t rows = 0, size_t columns = 0 ) :
         m_weights(NULL)
         , m_rows(0)
         , m_columns(0)
@@ -82,7 +83,11 @@ public:
     }
 
     virtual size_t grow( size_t alleles ) {
-        this->resize( alleles );
+        size_t t = trait_count();
+        if( t == 0 ) {
+            t += 1;
+        }
+        this->resize( alleles, t );
         return m_rows;
     }
 
@@ -109,6 +114,25 @@ public:
         return m_size;
     }
 
+    void push_back( self_type & other, size_t idx ) {
+        size_t  acount = allele_count();
+        size_t  tcount = trait_count();
+
+        if( tcount < other.trait_count() ) {
+            tcount = other.trait_count();
+        }
+
+        this->resize( acount + 1, tcount );
+
+        this->setPositionAt( acount, other.getPositionAt(idx) );
+        this->setNeutralAt( acount, other.getNeutralAt(idx) );
+
+        weight_type * t = other.m_weights + idx * tcount;
+        weight_type * s = this->m_weights + acount * tcount;
+
+        memcpy( s, t, tcount * sizeof(weight_type) );
+    }
+
     virtual ~qtl_allele_vectorized() {
         if( m_weights != NULL ) {
             delete [] m_weights;
@@ -124,14 +148,18 @@ protected:
 
         size_t new_size = rows * columns;
 
-        assert( 0 < new_size );
+        assert( 0 <= new_size );
 
         if( m_size < new_size ) {
+            // growing trait space
+            weight_type * tmp = new weight_type[ new_size ];
+
             if( m_weights != NULL ) {
+                memcpy( tmp, m_weights, m_size * sizeof( weight_type ) );
                 delete [] m_weights;
             }
 
-            m_weights = new weight_type[ new_size ];
+            m_weights = tmp;
 
             m_size = new_size;
         }
