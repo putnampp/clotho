@@ -11,16 +11,16 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_TRAIT_TYPE_OF_HPP_
-#define CLOTHO_TRAIT_TYPE_OF_HPP_
+#ifndef CLOTHO_TRAIT_HELPER_OF_HPP_
+#define CLOTHO_TRAIT_HELPER_OF_HPP_
 
 namespace clotho {
 namespace genetics {
 
 template < class AlleleType >
-struct trait_type_of;
+struct trait_helper_of;
 
 }   // namespace genetics
 }   // namespace clotho
 
-#endif  // CLOTHO_TRAIT_TYPE_OF_HPP_
+#endif  // CLOTHO_TRAIT_HELPER_OF_HPP_
