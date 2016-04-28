@@ -16,7 +16,7 @@
 
 #include "clotho/data_spaces/allele_space/neutral_allele.hpp"
 #include "clotho/data_spaces/growable2D.hpp"
-#include "clotho/data_spaces/trait_type_of.hpp"
+#include "clotho/data_spaces/trait_helper_of.hpp"
 
 namespace clotho {
 namespace genetics {
@@ -177,7 +177,7 @@ protected:
 };
 
 template < class PositionType, class WeightType >
-struct trait_type_of< qtl_allele_vectorized< PositionType, WeightType > > {
+struct trait_helper_of< qtl_allele_vectorized< PositionType, WeightType > > {
     typedef qtl_allele_vectorized< PositionType, WeightType > allele_type;
     typedef typename allele_type::trait_type type;
 

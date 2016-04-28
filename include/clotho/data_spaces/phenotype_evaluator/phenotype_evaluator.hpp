@@ -19,32 +19,44 @@
 namespace clotho {
 namespace genetics {
 
-template < class GeneticSpaceType, class EvalMethod >
+template < class EvalMethodType >
 class phenotype_evaluator {
 public:
-    typedef GeneticSpaceType genetic_space_type;
+    typedef EvalMethodType                                              method_type;
+    typedef typename accumulator_helper_of< method_type >::type         trait_accumulator_type;
+    typedef typename accumulator_helper_of< method_type >::result_type  phenotype_type;
 
-    typedef RealType                        real_type;
-    typedef std::vector< real_type >        phenotype_type;
-    typedef std::vector< phenotype_type >   population_phenotype_type;
+    typedef typename trait_accumulator_type::genetic_space_type     genetic_space_type;
 
-    typedef typename population_phenotype_type::iterator phenotype_iterator;
-    typedef typename population_phenotype_type::const_iterator const_phenotype_iterator;
+    typedef typename trait_accumulator_type::trait_vector_type      trait_vector_type;
+    typedef std::vector< phenotype_type >                           population_phenotype_type;
 
-    phenotype_evaluator( const genetic_space_type & genomes ) {
-        update( genomes );
-    }
+    typedef typename population_phenotype_type::iterator            phenotype_iterator;
+    typedef typename population_phenotype_type::const_iterator      const_phenotype_iterator;
 
-    void update( const genetic_space_type & genomes ) {
-        size_t N = genomes.individual_count();
+    typedef typename genetic_space_type::individual_iterator        individual_iterator;
+
+    phenotype_evaluator( ) { }
+
+    void update( genetic_space_type * gs, trait_accumulator_type & traits ) {
+        size_t N = traits.size();
 
         resize( N );
 
-        m_eval( m_phenos, genomes );
+        typedef typename genetic_space_type::individual_genome_type    individual_type;
+        individual_iterator ind_it = gs->individual_begin(), ind_end = gs->individual_end();
+
+        size_t i = 0;
+        while( ind_it != ind_end )  {
+            individual_type ind = *ind_it++;
+            phenotype_type p = m_eval( traits.getTraitAt( ind.first ), traits.getTraitAt( ind.second ) );
+
+            m_phenos[ i++ ] = p;
+        }
     }
 
-    phenotype_type & getPhenotypeAt( size_t idx ) const {
-        assert( 0 <= idx && < idx < m_phenos.size() );
+    phenotype_type & getPhenotypeAt( size_t idx ) {
+        assert( 0 <= idx && idx < m_phenos.size() );
 
         return m_phenos[ idx ];
     }
@@ -79,7 +91,7 @@ protected:
 
     population_phenotype_type   m_phenos;
 
-    EvalMethod                  m_eval;
+    method_type      m_eval;
 };
 
 }   // namespace genetics

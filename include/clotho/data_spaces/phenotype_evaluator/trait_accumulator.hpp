@@ -16,7 +16,7 @@
 
 #include <vector>
 
-#include "clotho/data_spaces/trait_type_of.hpp"
+#include "clotho/data_spaces/trait_helper_of.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
 namespace clotho {
@@ -31,7 +31,7 @@ public:
 
     typedef typename genetic_space_type::allele_type            allele_type;
     
-    typedef clotho::genetics::trait_type_of< allele_type >      trait_helper_type;
+    typedef clotho::genetics::trait_helper_of< allele_type >    trait_helper_type;
     typedef typename trait_helper_type::type                    trait_vector_type;
 
     typedef std::vector< trait_vector_type >                    accumulator_type;

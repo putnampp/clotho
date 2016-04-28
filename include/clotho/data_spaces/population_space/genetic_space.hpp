@@ -33,6 +33,9 @@ public:
     typedef std::pair< sequence_id_type, sequence_id_type > individual_genome_type;
     typedef std::vector< individual_genome_type >           population_genomes_type;
 
+    typedef typename population_genomes_type::iterator          individual_iterator;
+    typedef typename population_genomes_type::const_iterator    const_individual_iterator;
+
     typedef association_matrix< BlockType >                 association_type;
     typedef typename association_type::block_iterator       block_iterator;
 
@@ -98,6 +101,12 @@ public:
         return m_genomes[ idx ];
     }
 
+    void setIndividualAt( individual_genome_type & ind, individual_id_type idx ) {
+        assert( 0 <= idx && idx < m_genomes.size() );
+
+        m_genomes[ idx ] = ind;
+    }
+
     fitness_iterator    fitness_begin() {
         return m_fitness.begin();
     }
@@ -114,6 +123,21 @@ public:
         return m_fitness.end();
     }
 
+    individual_iterator         individual_begin() {
+        return m_genomes.begin();
+    }
+
+    individual_iterator         individual_end() {
+        return m_genomes.end();
+    }
+
+    const_individual_iterator         individual_begin() const {
+        return m_genomes.begin();
+    }
+
+    const_individual_iterator         individual_end() const {
+        return m_genomes.end();
+    }
     virtual size_t  grow( size_t genomes, size_t alleles) {
         this->resize( genomes, alleles );
         return 0;
