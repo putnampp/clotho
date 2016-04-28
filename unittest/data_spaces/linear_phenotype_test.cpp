@@ -50,6 +50,8 @@ BOOST_AUTO_TEST_CASE( linear_combination_phenotype_test ) {
     gs.grow( exp_genomes, exp_alleles );
     gs.getAlleleSpace().grow( exp_alleles, exp_traits );
 
+    gs.getSequenceSpace().clear();
+
     random_engine_type          rand(1234);
     boost::property_tree::ptree exp_config;
 
@@ -96,7 +98,6 @@ BOOST_AUTO_TEST_CASE( linear_combination_phenotype_test ) {
     phenotype_type obs_pheno = ph.getPhenotypeAt( id );
 
     BOOST_REQUIRE_MESSAGE( exp_pheno == obs_pheno, "Unexpected phenotype; Observed: " << obs_pheno << "; Expected: " << exp_pheno );
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()
