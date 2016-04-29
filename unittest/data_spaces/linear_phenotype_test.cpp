@@ -23,6 +23,8 @@
 
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <vector>
+#include <unordered_map>
 
 typedef boost::random::mt19937                                                  random_engine_type;
 typedef double                                                                  position_type;
@@ -42,14 +44,13 @@ typedef clotho::genetics::AlleleGenerator< random_engine_type, allele_type >   a
 
 BOOST_AUTO_TEST_SUITE( test_data_space )
 
-BOOST_AUTO_TEST_CASE( linear_combination_phenotype_test ) {
+BOOST_AUTO_TEST_CASE( single_trait_linear_combination_phenotype_test ) {
     
     size_t exp_alleles = 200, exp_genomes = 20, exp_traits = 1;
     genetic_space_type gs;
 
     gs.grow( exp_genomes, exp_alleles );
     gs.getAlleleSpace().grow( exp_alleles, exp_traits );
-
     gs.getSequenceSpace().clear();
 
     random_engine_type          rand(1234);
@@ -67,22 +68,48 @@ BOOST_AUTO_TEST_CASE( linear_combination_phenotype_test ) {
     }
 
     size_t id = 10;
-    individual_type exp_ind = std::make_pair(0, 11);
-
-    gs.getSequenceSpace().flip( exp_ind.first , 12 );
-    gs.getSequenceSpace().flip( exp_ind.first, 35 );
-    gs.getSequenceSpace().flip( exp_ind.first, 120 );
-
-    gs.getSequenceSpace().flip( exp_ind.second, 50 );
-    gs.getSequenceSpace().flip( exp_ind.second, 150 );
-    gs.getSequenceSpace().flip( exp_ind.second, 199 );
-
-    gs.setIndividualAt( exp_ind, id );
-
+    individual_type exp_ind = std::make_pair(2 * id, 2 * id + 1);
     individual_type obs_ind = gs.getIndividualAt( id );
 
     BOOST_REQUIRE_MESSAGE( obs_ind.first == exp_ind.first, "Unexpected individual's first sequence; Observed: " << obs_ind.first << "; Expected: " << exp_ind.first );
     BOOST_REQUIRE_MESSAGE( obs_ind.second == exp_ind.second, "Unexpected individual's second sequence; Observed: " << obs_ind.second << "; Expected: " << exp_ind.second );
+
+    typedef  std::vector< std::pair< size_t, size_t> > allele_index_type;
+    typedef typename allele_index_type::iterator allele_iterator;
+
+    std::unordered_map< size_t, weight_type > exp_trait_w;
+    allele_index_type exp_a;
+
+    exp_a.push_back( std::make_pair( exp_ind.first, 12) );
+    exp_a.push_back( std::make_pair( exp_ind.first, 35) );
+    exp_a.push_back( std::make_pair( exp_ind.first, 120) );
+    exp_a.push_back( std::make_pair( exp_ind.second, 50) );
+    exp_a.push_back( std::make_pair( exp_ind.second, 150) );
+    exp_a.push_back( std::make_pair( exp_ind.second, 199) );
+
+    phenotype_type exp_pheno = 0.0;
+
+    allele_iterator ait = exp_a.begin();
+    while( ait != exp_a.end() ) {
+        std::pair< size_t, size_t > tmp = *ait++;
+        gs.getSequenceSpace().flip( tmp.first, tmp.second );
+
+        typedef typename allele_type::trait_iterator iterator;
+
+        iterator it = gs.getAlleleSpace().getTraitIterator( tmp.second );
+        weight_type w = 0.0;
+        while( it.hasNext() ) {
+            weight_type _w = it.next();
+            w += _w;
+        }
+
+        exp_pheno += w;
+
+        if( exp_trait_w.find( tmp.first ) != exp_trait_w.end() ) {
+            w += exp_trait_w[ tmp.first ];
+        }
+        exp_trait_w[ tmp.first ] = w;
+    }
 
     trait_accum_type tacc;
 
@@ -92,11 +119,18 @@ BOOST_AUTO_TEST_CASE( linear_combination_phenotype_test ) {
 
     ph.update( &gs, tacc );
 
-    phenotype_type exp_pheno = tacc.getTraitAt( exp_ind.first )[ 0 ];
-    exp_pheno += tacc.getTraitAt( exp_ind.second )[ 0 ];
+    weight_type exp_weight_0 = exp_trait_w[ exp_ind.first ];
+    weight_type exp_weight_1 = exp_trait_w[ exp_ind.second ];
+
+    weight_type obs_weight_0 = tacc.getTraitAt( exp_ind.first )[ 0 ];
+    weight_type obs_weight_1 = tacc.getTraitAt( exp_ind.second )[ 0 ];
+
+    BOOST_REQUIRE_MESSAGE( exp_weight_0 == obs_weight_0, "Unexpected trait weight 0; Observed: " << obs_weight_0 << "; Expected: " << exp_weight_0 );
+    BOOST_REQUIRE_MESSAGE( exp_weight_1 == obs_weight_1, "Unexpected trait weight 0; Observed: " << obs_weight_1 << "; Expected: " << exp_weight_1 );
 
     phenotype_type obs_pheno = ph.getPhenotypeAt( id );
 
+    BOOST_REQUIRE_MESSAGE( exp_pheno != 0.0, "Unexpected zero phenotype value" );
     BOOST_REQUIRE_MESSAGE( exp_pheno == obs_pheno, "Unexpected phenotype; Observed: " << obs_pheno << "; Expected: " << exp_pheno );
 }
 

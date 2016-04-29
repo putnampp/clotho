@@ -44,11 +44,11 @@ public:
         resize( N );
 
         typedef typename genetic_space_type::individual_genome_type    individual_type;
-        individual_iterator ind_it = gs->individual_begin(), ind_end = gs->individual_end();
+//        individual_iterator ind_it = gs->individual_begin(), ind_end = gs->individual_end();
 
-        size_t i = 0;
-        while( ind_it != ind_end )  {
-            individual_type ind = *ind_it++;
+        size_t i = 0, M = gs->individual_count();
+        while( i < M )  {
+            individual_type ind = gs->getIndividualAt( i );
             phenotype_type p = m_eval( traits.getTraitAt( ind.first ), traits.getTraitAt( ind.second ) );
 
             m_phenos[ i++ ] = p;
