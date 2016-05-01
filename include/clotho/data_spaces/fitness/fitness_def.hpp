@@ -11,18 +11,18 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef ENGINE_CONFIGURATION_LOGGER_HPP_
-#define ENGINE_CONFIGURATION_LOGGER_HPP_
-
-#include <cstring>
+#ifndef CLOTHO_FITNESS_DEF_HPP_
+#define CLOTHO_FITNESS_DEF_HPP_
 
 #include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
 
-#include "clotho/utility/clotho_strings.hpp"
+namespace clotho {
+namespace genetics {
 
-#include <iostream>
+template < class PhenotypeType >
+class Fitness;
 
-void write_engine_config( const std::string & out_path );
+}   // namespace genetics
+}   // namespace clotho
 
-#endif  // ENGINE_CONFIGURATION_LOGGER_HPP_
+#endif  // CLOTHO_FITNESS_DEF_HPP_

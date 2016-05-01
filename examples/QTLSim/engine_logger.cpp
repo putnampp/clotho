@@ -13,6 +13,14 @@
 //   limitations under the License.
 #include "engine_logger.hpp"
 
+#define XSTR( x ) #x
+#define STR( x )  XSTR( x )
+
+const std::string ENGINE_BLOCK_K = "engine";
+const std::string POWERSET_BLOCK_K = "powerset";
+const std::string SUBSET_BLOCK_K = "subset";
+const std::string CLASSIFIER_BLOCK_K = "classifier";
+
 void write_engine_config( const std::string & out_path ) {
 
     boost::property_tree::ptree sset, recomb, pset;
@@ -22,7 +30,7 @@ void write_engine_config( const std::string & out_path ) {
     sset.put( TYPE_K, STR( SUBSETTYPE ) );
 
     pset.put_child( SUBSET_BLOCK_K, sset );
-    pset.put( "block_size", BLOCK_UNIT_SIZE );
+//    pset.put( "block_size", BLOCK_UNIT_SIZE );
 //    compile_log.put(ENGINE_BLOCK_K + "." + REC_BLOCK_K + "." + TYPE_K, STR( (RECOMBTYPE) ) );
 //    compile_log.put(ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K +"." + SIZE_K, BLOCK_UNIT_SIZE );
 

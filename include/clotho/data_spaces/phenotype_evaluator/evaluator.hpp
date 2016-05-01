@@ -11,18 +11,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef ENGINE_CONFIGURATION_LOGGER_HPP_
-#define ENGINE_CONFIGURATION_LOGGER_HPP_
+#ifndef CLOTHO_EVALUATOR_GUARD_HPP_
+#define CLOTHO_EVALUATOR_GUARD_HPP_
 
-#include <cstring>
+#include "clotho/data_spaces/phenotype_evaluator/trait_accumulator.hpp"
+#include "clotho/data_spaces/phenotype_evaluator/linear_combination_method.hpp"
+#include "clotho/data_spaces/phenotype_evaluator/phenotype_evaluator.hpp"
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-
-#include "clotho/utility/clotho_strings.hpp"
-
-#include <iostream>
-
-void write_engine_config( const std::string & out_path );
-
-#endif  // ENGINE_CONFIGURATION_LOGGER_HPP_
+#endif  // CLOTHO_EVALUATOR_GUARD_HPP_

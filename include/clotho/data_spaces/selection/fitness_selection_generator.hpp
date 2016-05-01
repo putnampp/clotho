@@ -46,9 +46,7 @@ public:
 
     SelectionGenerator( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rand( rng )
-    {
-        std::cout << "simple fitness selection" << std::endl;
-    }
+    { }
 
     void update( genetic_space_type * parents, unsigned int count ) {
         typename distribution_type::param_type  param_type;

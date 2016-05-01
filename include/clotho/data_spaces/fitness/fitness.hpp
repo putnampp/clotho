@@ -11,29 +11,10 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_FITNESS_HPP_
-#define CLOTHO_FITNESS_HPP_
+#ifndef CLOTHO_FITNESS_GUARD_HPP_
+#define CLOTHO_FITNESS_GUARD_HPP_
 
-#include <boost/property_tree/ptree.hpp>
+#include "clotho/data_spaces/fitness/fitness_def.hpp"
+#include "clotho/data_spaces/fitness/phenotype_evaluator_fitness.hpp"
 
-namespace clotho {
-namespace genetics {
-
-template < class TraitAccType, class Measurement >
-class Fitness {
-public:
-    typedef TraitAccType    trait_accumulator_type;
-
-    Fitness( boost::property_tree::ptree & config ) {}
-
-    void update( trait_accumulator_type & traits ) {
-
-    }
-
-    virtual ~Fitness() {}
-};
-
-}   // namespace genetics
-}   // namespace clotho
-
-#endif  // CLOTHO_FITNESS_HPP_
+#endif  // CLOTHO_FITNESS_GUARD_HPP_
