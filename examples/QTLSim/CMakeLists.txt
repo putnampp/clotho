@@ -37,7 +37,7 @@ LIST(APPEND OPTIONS_SRC ../qtl/qtl_logging_parameter.cpp)
 
 LIST(APPEND OPTIONS_SRC simulation_log.cpp)
 LIST(APPEND OPTIONS_SRC qtlsim_common.cpp)
-LIST(APPEND OPTIONS_SRC engine_logger.cpp)
+LIST(APPEND OPTIONS_SRC log_writer.cpp)
 
 IF( WITH_CUDA_EXAMPLES )
 

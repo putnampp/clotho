@@ -16,6 +16,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 
+#include "clotho/genetics/population_growth_toolkit.hpp"
+
 #include "clotho/data_spaces/allele_space/allele_space.hpp"
 #include "clotho/data_spaces/population_space/genetic_space.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/trait_accumulator.hpp"
@@ -48,6 +50,8 @@ public:
     typedef clotho::genetics::phenotype_evaluator< trait_reduction_type >                           phenotype_eval_type;
     typedef clotho::genetics::Fitness< phenotype_eval_type >                                        fitness_type;
 
+    typedef std::shared_ptr< ipopulation_growth >                                                   population_growth_type;
+
     Engine( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rand( rng )
         , m_parent( &m_pop0 )
@@ -56,14 +60,25 @@ public:
         , mutate_gen( rng, config )
         , cross_gen( rng, config )
         , m_fit( config )
+        , m_generation( 0 )
+        , m_pop_growth()
     {}
 
     void simulate() {
         std::swap( m_child, m_parent );     // use the current child population as the parent population for the next round
+
+        size_t generation = m_generation++;
+
         // at the start of each simulate round, m_fit has already been updated from the previous
         // round with the fitness of the "then child/now parent" popualtions fitness
         //
-        size_t pN = select_gen.update( m_parent, m_fit );    // generate the number of children
+        size_t pN = m_parent->individual_count();
+        if( m_pop_growth ) {
+            pN = (*m_pop_growth)( pN, generation );
+        }
+
+        select_gen.update( m_parent, pN );
+
         size_t pM = mutate_gen.generateSize( m_parent );     // generate the number of new mutations
 
         updateFixedAlleles( m_parent );                 // update the fixed alleles with those of parent population
@@ -135,6 +150,10 @@ protected:
     mutation_type           mutate_gen;
     crossover_type          cross_gen;
     fitness_type            m_fit;
+
+    size_t                  m_generation;
+
+    population_growth_type  m_pop_growth;
 };
 
 #endif  // CLOTHO_SIM_ENGINE_HPP_

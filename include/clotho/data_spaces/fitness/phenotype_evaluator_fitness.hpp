@@ -17,29 +17,43 @@
 #include <boost/property_tree/ptree.hpp>
 #include "clotho/data_spaces/phenotype_evaluator/phenotype_evaluator.hpp"
 
+#include "clotho/fitness/fitness_toolkit.hpp"
+
 namespace clotho {
 namespace genetics {
 
 template < class TraitAccumType >
 class Fitness < phenotype_evaluator< TraitAccumType > > {
 public:
-    typedef phenotype_evaluator< TraitAccumType >           phenotype_type;
+    typedef phenotype_evaluator< TraitAccumType >           evaluator_type;
     typedef TraitAccumType                                  trait_accumulator_type;
 
-    typedef typename phenotype_type::genetic_space_type     genetic_space_type;
+    typedef typename evaluator_type::phenotype_type         phenotype_type;
+
+    typedef typename evaluator_type::genetic_space_type     genetic_space_type;
     typedef double                                          result_type;
 
-    Fitness( boost::property_tree::ptree & config ) {}
+    typedef std::shared_ptr< ifitness_generator >           fitness_generator;
+    typedef std::shared_ptr< ifitness >                     fitness_operator;
 
-    void update( genetic_space_type * pop, phenotype_type & phenos ) {
+    Fitness( boost::property_tree::ptree & config ) :
+        m_fitness()
+    {
+        m_fitness = fitness_toolkit::getInstance()->get_tool( config );
 
+        if( !m_fitness ) {
+            fitness_toolkit::getInstance()->tool_configurations( config );
+        }
     }
 
-    result_type getFitnessAt( size_t idx ) {
-        return 0.0;
+    void update( genetic_space_type * pop, evaluator_type & eval ) {
+        fitness_operator op = m_fitness->generate( eval.getPhenotypes() );
     }
 
     virtual ~Fitness() {}
+
+protected:
+    fitness_generator    m_fitness;
 };
 
 }   // namespace genetics

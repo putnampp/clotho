@@ -13,6 +13,8 @@
 //   limitations under the License.
 #include "engine_logger.hpp"
 
+#include "log_writer.hpp"
+
 #define XSTR( x ) #x
 #define STR( x )  XSTR( x )
 
@@ -23,6 +25,17 @@ const std::string CLASSIFIER_BLOCK_K = "classifier";
 
 void write_engine_config( const std::string & out_path ) {
 
+    std::shared_ptr< log_writer > logger = makeLogWriter( out_path, ".engine_compilation" );
+
+    boost::property_tree::ptree elog;
+
+    write_engine_config( elog );
+
+    logger->write( elog );
+}
+
+
+void write_engine_config( boost::property_tree::ptree & elog ) {
     boost::property_tree::ptree sset, recomb, pset;
     recomb.put( "tag0", STR( RECOMBINE_INSPECT_METHOD ) );
     recomb.put( "tag1", STR( BIT_WALK_METHOD ) );
@@ -49,15 +62,5 @@ void write_engine_config( const std::string & out_path ) {
     eng.put( "individual_selector.type", STR(IND_SELECT) );
     eng.put( "description", "Simulator compiled objects; READ ONLY");
 
-    boost::property_tree::ptree compile_log;
-    compile_log.put_child( ENGINE_BLOCK_K, eng );
-
-    if( out_path.empty() ) {
-        boost::property_tree::write_json( std::cout, compile_log );
-    } else {
-        std::ostringstream oss;
-        oss << out_path << ".engine_compilation.json";
-
-        boost::property_tree::write_json( oss.str(), compile_log );
-    }
+    elog.put_child( ENGINE_BLOCK_K, eng );
 }

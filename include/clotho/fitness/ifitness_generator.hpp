@@ -31,6 +31,7 @@ struct ifitness_generator {
      * the provided population phenotype distribution
      */
     virtual std::shared_ptr< ifitness > generate( const std::vector< std::vector< double > > & ) = 0;
+
     virtual const std::string name() const = 0;
 
     virtual void log( std::ostream &  ) const = 0;

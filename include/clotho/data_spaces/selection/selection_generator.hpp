@@ -46,11 +46,11 @@ public:
         m_rand( rng )
     { }
 
-    void update( genetic_space_type * parents, unsigned int count ) {
+    void update( genetic_space_type * parents, size_t count ) {
         typename distribution_type::param_type  param_type;
 
         // distribution generates numbers in range [0, N]
-        // therefore N needs to be the maximum index
+        // therefore N needs to be the maximum index (individual_count - 1)
         m_dist.param( param_type( 0, parents->individual_count() - 1 ) );
 
         while( count-- ) {

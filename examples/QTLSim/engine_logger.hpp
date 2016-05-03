@@ -25,4 +25,6 @@
 
 void write_engine_config( const std::string & out_path );
 
+void write_engine_config( boost::property_tree::ptree & elog );
+
 #endif  // ENGINE_CONFIGURATION_LOGGER_HPP_

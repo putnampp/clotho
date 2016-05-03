@@ -61,6 +61,10 @@ public:
         return m_phenos[ idx ];
     }
 
+    population_phenotype_type & getPhenotypes() {
+        return m_phenos;
+    }
+
     phenotype_iterator begin() {
         return m_phenos.begin();
     }
