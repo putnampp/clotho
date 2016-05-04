@@ -38,10 +38,6 @@ public:
         , m_allele_gen( rng, config )
     {}
 
-    size_t generateSize( genetic_space_type * parent ) {
-        return 1;
-    }
-
     void operator()( genetic_space_type * child, size_t N ) {
         m_seq_gen.param( typename sequence_generator_type::param_type( 0, child->sequence_count() ) );
 

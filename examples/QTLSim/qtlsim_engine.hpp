@@ -64,7 +64,11 @@ public:
         , m_pop_growth()
     {}
 
-    void simulate() {
+    size_t getGeneration() const {
+        return m_generation;
+    }
+
+    void simulate( ) {
         std::swap( m_child, m_parent );     // use the current child population as the parent population for the next round
 
         size_t generation = m_generation++;

@@ -77,6 +77,10 @@ public:
         return m_pairs.end();
     }
 
+    mate_pair_vector & getMatePairs() {
+        return m_pairs;
+    }
+
     virtual ~SelectionGenerator() {}
 
 protected:

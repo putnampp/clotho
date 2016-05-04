@@ -58,6 +58,7 @@ int main( int argc, char ** argv ) {
 
     std::shared_ptr< log_writer > config_logger = makeLogWriter( out_path, ".config" );
     std::shared_ptr< log_writer > performance_logger = makeLogWriter( out_path, ".performance" );
+    std::shared_ptr< log_writer > stat_logger = makeLogWriter( out_path, ".status" );
 
     boost::property_tree::ptree conf_block = config.get_child( CONFIG_BLOCK_K, config );
 
@@ -67,15 +68,46 @@ int main( int argc, char ** argv ) {
 
     random_engine_type  rand_engine( seed_param.m_seed );
 
-    simulate_engine_type engine( &rand_engine, conf_block );
+    simulate_engine_type sim_engine( &rand_engine, conf_block );
 
     config.put_child( CONFIG_BLOCK_K, conf_block );
     config_logger->write( config );
 
     if( !print_config_only ) {
-        for( unsigned int i = 0; i < gen_param.m_size; ++i ) {
+        unsigned int log_period = (( gen_param.m_size < log_param.m_period ) ? gen_param.m_size : log_param.m_period);
 
+        boost::property_tree::ptree sim_times, stat_times;
+
+        timer_type rep_time;
+        unsigned int T_gen = gen_param.m_size;
+        while( --T_gen ) {
+            timer_type sim_time;
+            //sim_engine.simulate( );
+            sim_time.stop();
+
+            clotho::utility::add_value_array( sim_times, sim_time );
+
+            if( !( --log_period ) ) {
+                boost::property_tree::ptree stat_log;
+                timer_type stat_time;
+
+                log_period = ((log_param.m_period < T_gen) ? log_param.m_period : T_gen - 1 );
+                stat_time.stop();
+
+                clotho::utility::add_value_array( stat_times, stat_time );
+
+                stat_logger->write( stat_log );
+            }
         }
+
+        rep_time.stop();
+
+        boost::property_tree::ptree perform_log;
+        perform_log.add( "performance.runtime", rep_time.elapsed().count() );
+        perform_log.put_child( "performance.simulate", sim_times );
+        perform_log.put_child( "performance.stats", stat_times );
+
+        performance_logger->write( perform_log );
     }
 
     return 0;
