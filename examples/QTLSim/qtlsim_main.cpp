@@ -61,6 +61,7 @@ int main( int argc, char ** argv ) {
 
     boost::property_tree::ptree conf_block = config.get_child( CONFIG_BLOCK_K, config );
 
+    generation_parameter    gen_param( conf_block );
     qtl_logging_parameter   log_param( conf_block );
     seed_parameter< >       seed_param( conf_block );
 
@@ -69,7 +70,13 @@ int main( int argc, char ** argv ) {
     simulate_engine_type engine( &rand_engine, conf_block );
 
     config.put_child( CONFIG_BLOCK_K, conf_block );
-    config_logger->write( config ); 
+    config_logger->write( config );
+
+    if( !print_config_only ) {
+        for( unsigned int i = 0; i < gen_param.m_size; ++i ) {
+
+        }
+    }
 
     return 0;
 }
