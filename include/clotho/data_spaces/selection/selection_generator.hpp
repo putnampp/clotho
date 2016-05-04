@@ -53,6 +53,8 @@ public:
         // therefore N needs to be the maximum index (individual_count - 1)
         m_dist.param( param_type( 0, parents->individual_count() - 1 ) );
 
+        m_pairs.clear();
+
         while( count-- ) {
             individual_id_type  id0 = m_dist( *m_rand );
             individual_id_type  id1 = m_dist( *m_rand );
@@ -79,6 +81,10 @@ public:
 
     mate_pair_vector & getMatePairs() {
         return m_pairs;
+    }
+
+    size_t  size() const {
+        return m_pairs.size();
     }
 
     virtual ~SelectionGenerator() {}

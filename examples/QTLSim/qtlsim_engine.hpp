@@ -24,6 +24,7 @@
 #include "clotho/data_spaces/free_space/free_space.hpp"
 #include "clotho/data_spaces/selection/selection_generator.hpp"
 #include "clotho/data_spaces/mutation/mutation_generator.hpp"
+#include "clotho/data_spaces/mutation/mutation_allocator.hpp"
 #include "clotho/data_spaces/crossover/crossover.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/evaluator.hpp"
 #include "clotho/data_spaces/fitness/fitness.hpp"
@@ -42,6 +43,7 @@ public:
     typedef clotho::genetics::genetic_space< allele_type, block_type >                              genetic_space_type;
 
     typedef clotho::genetics::MutationGenerator< random_engine_type, genetic_space_type >           mutation_type;
+    typedef clotho::genetics::mutation_allocator< random_engine_type, size_t >                      mutation_alloc_type;
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >                          trait_accumulator_type;
     typedef clotho::genetics::FreeSpaceAnalyzer< genetic_space_type >                               free_space_type;
     typedef clotho::genetics::SelectionGenerator< random_engine_type, genetic_space_type >          selection_type;
@@ -62,6 +64,7 @@ public:
         , m_fit( config )
         , m_generation( 0 )
         , m_pop_growth()
+        , m_mut_alloc( rng, config )
     {}
 
     size_t getGeneration() const {
@@ -83,15 +86,14 @@ public:
 
         select_gen.update( m_parent, pN );
 
-        size_t pM = mutate_gen.generateSize( m_parent );     // generate the number of new mutations
+        size_t pM = m_mut_alloc.allocator( pN );        // generate the number of new mutations
 
         updateFixedAlleles( m_parent );                 // update the fixed alleles with those of parent population
 
-        pM = child_max_alleles( m_parent->allele_count(), m_free_space.free_size(), pM );
+        pM = child_max_alleles( m_parent->allele_count(), m_free_space.free_size(), pM );   // rescale allele space for child population given free space from parent population and new allele count (pM)
 
         m_child->grow( pN, pM );                        // grow the child population accordingly
 
-        //m_child->updateFreeSpace( m_free_space.free_begin(), m_free_space.free_end() );
 
         cross_gen.update( m_parent, select_gen.getMatePairs(), m_child );
 
@@ -126,7 +128,7 @@ protected:
     }
 
     void updateFixedAlleles( genetic_space_type * gs ) {
-        m_free_space.update( *gs );               // analyze the parent population
+        m_free_space.update( *gs );               // analyze the parent population sequence space
 
         typedef typename free_space_type::iterator  fixed_iterator;
 
@@ -158,6 +160,7 @@ protected:
     size_t                  m_generation;
 
     population_growth_type  m_pop_growth;
+    mutation_alloc_type     m_mut_alloc;
 };
 
 #endif  // CLOTHO_SIM_ENGINE_HPP_

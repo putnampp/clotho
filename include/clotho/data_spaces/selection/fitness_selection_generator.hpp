@@ -52,6 +52,8 @@ public:
         typename distribution_type::param_type  param_type;
         m_dist.param( param_type( parents->fitness_begin(), parents->fitness_end() ) );
 
+        m_pairs.clear();
+
         while( count-- ) {
             individual_id_type  id0 = m_dist( *m_rand );
             individual_id_type  id1 = m_dist( *m_rand );
@@ -74,6 +76,14 @@ public:
 
     const_parent_iterator end() const {
         return m_pairs.end();
+    }
+
+    mate_pair_vector & getMatePairs() {
+        return m_pairs;
+    }
+
+    size_t size() const {
+        return m_pairs.size();
     }
 
     virtual ~SelectionGenerator() {}
