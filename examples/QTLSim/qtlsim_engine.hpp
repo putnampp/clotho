@@ -138,6 +138,8 @@ protected:
         while( fix_it != fix_end ) {
             size_t  fixed_index = *fix_it++;
 
+            gs->getGeneticSpace().flipColumn( fixed_index );
+
             m_fixed.push_back( gs->getAlleleSpace(), fixed_index );
         }
     }

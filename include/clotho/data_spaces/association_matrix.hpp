@@ -148,6 +148,31 @@ public:
         m_data[ block_index( row, col ) ] ^= bit_helper_type::bit_offset( col );
     }
 
+    void flipColumn( size_t idx ) {
+        ASSERT_VALID_RANGE( idx, 0, m_columns );
+
+        block_type mask = bit_helper_type::bit_offset( idx );
+        size_t offset = block_index( 0, idx );
+
+        while( offset < m_rows ) {
+            m_data[ offset++ ] ^= mask;
+        }
+    }
+
+    void flipRow( size_t idx ) {
+        ASSERT_VALID_RANGE( idx, 0, m_rows );
+
+        block_type mask = bit_helper_type::ALL_SET;
+        size_t offset = block_index( idx, 0 );
+        size_t S = size();
+
+        while( offset < S ) {
+            m_data[ offset ] ^= mask;
+
+            offset += m_rows;
+        }
+    }
+
     size_t row_count() const {
         return m_rows;
     }
