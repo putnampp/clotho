@@ -25,8 +25,13 @@
 #include "clotho/random/seed_parameter.hpp"
 #include "../qtl/qtl_logging_parameter.hpp"
 
+#include "clotho/data_spaces/analysis/allele_frequency/allele_frequency.hpp"
+//#include "clotho/data_spaces/analysis/pairwise_difference/pairwise_difference.hpp"
+
 typedef boost::random::mt19937          random_engine_type;
 typedef Engine< random_engine_type >    simulate_engine_type;
+
+typedef clotho::genetics::allele_frequency< typename simulate_engine_type::genetic_space_type > allele_freq_type;
 
 
 //#define XSTR( x ) #x
@@ -88,13 +93,22 @@ int main( int argc, char ** argv ) {
             clotho::utility::add_value_array( sim_times, sim_time );
 
             if( !( --log_period ) ) {
-                boost::property_tree::ptree stat_log;
                 timer_type stat_time;
+
+                allele_freq_type af;
+                af.evaluate( *sim_engine.getChildPopulation() );
 
                 log_period = ((log_param.m_period < T_gen) ? log_param.m_period : T_gen );
                 stat_time.stop();
 
+                boost::property_tree::ptree af_log;
+                af.recordResults( af_log );
+
+
                 clotho::utility::add_value_array( stat_times, stat_time );
+
+                boost::property_tree::ptree stat_log;
+                stat_log.add_child( "allele_frequency", af_log );
 
                 stat_logger->write( stat_log );
             }
