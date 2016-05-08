@@ -19,6 +19,7 @@
 #include "clotho/data_spaces/association_matrix.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
+#include <boost/dynamic_bitset.hpp>
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/accumulators/statistics/mean.hpp>
@@ -41,9 +42,68 @@ public:
     typedef typename space_type::bit_helper_type                        bit_helper_type;
     typedef typename clotho::utility::debruijn_bit_walker< block_type > bit_walker_type;
 
-    typedef std::vector< size_t >                  result_type;
+    typedef std::vector< size_t >                                       result_type;
+    typedef boost::dynamic_bitset<>                                     analyzed_set_type;
 
     void evaluate( space_type & ss ) {
+        m_indices.resize( ss.row_count() );
+
+        m_indices.reset();
+        m_indices.flip();
+
+        eval( ss );
+    }
+
+    template < class Iterator >
+    void evaluate( space_type & ss, Iterator first, Iterator last ) {
+        m_indices.resize( ss.row_count() );
+        m_indices.reset();
+
+        size_t N = 0;
+        while( first != last ) {
+            size_t i = *first++;
+            m_indices[i] = true;
+            ++N;
+        }
+
+        eval( ss );
+    }
+
+    result_type &   getResults() {
+        return m_results;
+    }
+
+    void recordResults( boost::property_tree::ptree & log ) {
+        typedef typename result_type::iterator          iterator;
+                    
+        iterator b = m_results.begin(), e = m_results.end();
+ 
+        typedef ac::accumulator_set< size_t, ac::stats< ac::tag::min, ac::tag::mean, ac::tag::max, ac::tag::variance, ac::tag::median > > accumulator_t;
+
+        accumulator_t   accum;       
+
+        boost::property_tree::ptree dist;
+        
+        while( b != e ) {
+            size_t v = *b++;
+            clotho::utility::add_value_array( dist, v );
+            accum( v );
+        }
+
+        log.put_child( "distribution", dist );
+
+        log.put( "min", ac::min( accum ) );
+        log.put( "max", ac::max( accum ) );
+        log.put( "mean", ac::mean( accum ) );
+        log.put( "median", ac::median( accum ) );
+        log.put( "variance", ac::variance( accum ) );
+    }
+
+    virtual ~allele_frequency() {}
+
+protected:
+
+    void eval( space_type & ss ) {
         m_results.clear();
 
         size_t M = ss.column_count();
@@ -61,9 +121,11 @@ public:
 
             block_type b = b_it.next();
 
-            while( b ) {
-                unsigned int b_idx = bit_walker_type::unset_next_index( b );
-                buffer[ b_idx ] += 1;
+            if( m_indices[ i ] ) {
+                while( b ) {
+                    unsigned int b_idx = bit_walker_type::unset_next_index( b );
+                    buffer[ b_idx ] += 1;
+                }
             }
 
             if( ++i >= N ) {
@@ -92,39 +154,8 @@ public:
         }
     }
 
-    result_type &   getResults() {
-        return m_results;
-    }
-
-    void recordResults( boost::property_tree::ptree & log ) {
-        typedef typename result_type::iterator iterator;
-                    
-        iterator b = m_results.begin(), e = m_results.end();
- 
-        typedef ac::accumulator_set< size_t, ac::stats< ac::tag::min, ac::tag::mean, ac::tag::max, ac::tag::variance, ac::tag::median > > accumulator_t;
-
-        accumulator_t   accum;       
-
-        boost::property_tree::ptree dist;
-        while( b != e ) {
-            size_t v = *b++;
-            clotho::utility::add_value_array( dist, v);
-            accum( v );
-        }
-
-        log.put_child( "distribution", dist );
-
-        log.put( "min", ac::min( accum ) );
-        log.put( "max", ac::max( accum ) );
-        log.put( "mean", ac::mean( accum ) );
-        log.put( "median", ac::median( accum ) );
-        log.put( "variance", ac::variance( accum ) );
-    }
-
-    virtual ~allele_frequency() {}
-
-protected:
-    result_type m_results;
+    result_type         m_results;
+    analyzed_set_type   m_indices;
 };
 
 }   // namespace genetics

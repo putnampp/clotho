@@ -30,6 +30,11 @@ public:
         base_type::evaluate( gs.getSequenceSpace() );
     }
 
+    template < class Iterator >
+    void evaluate( genetic_space_type & gs, Iterator first, Iterator last ) {
+        base_type::evaluate( gs.getSequenceSpace(), first, last );
+    }
+
     virtual ~allele_frequency() {}
 };
 

@@ -18,6 +18,8 @@
 #include <iostream>
 #include <algorithm>
 #include <map>
+#include <set>
+#include <sstream>
 
 #include <boost/random/mersenne_twister.hpp>
 
@@ -25,13 +27,17 @@
 #include "clotho/random/seed_parameter.hpp"
 #include "../qtl/qtl_logging_parameter.hpp"
 
+#include "clotho/data_spaces/generators/random_sample_generator.hpp"
 #include "clotho/data_spaces/analysis/allele_frequency/allele_frequency.hpp"
-//#include "clotho/data_spaces/analysis/pairwise_difference/pairwise_difference.hpp"
+#include "clotho/data_spaces/analysis/pairwise_difference/pairwise_difference.hpp"
 
 typedef boost::random::mt19937          random_engine_type;
 typedef Engine< random_engine_type >    simulate_engine_type;
+typedef typename simulate_engine_type::genetic_space_type   genetic_space_type;
 
-typedef clotho::genetics::allele_frequency< typename simulate_engine_type::genetic_space_type > allele_freq_type;
+typedef clotho::genetics::random_sample_generator< random_engine_type, genetic_space_type >  random_sample_type;
+typedef clotho::genetics::allele_frequency< genetic_space_type > allele_freq_type;
+typedef clotho::genetics::pairwise_difference< genetic_space_type > pairwise_diff_type;
 
 
 //#define XSTR( x ) #x
@@ -42,6 +48,21 @@ typedef clotho::genetics::allele_frequency< typename simulate_engine_type::genet
 //const std::string SUBSET_BLOCK_K = "subset";
 //const std::string CLASSIFIER_BLOCK_K = "classifier";
 //void write_engine_config( boost::property_tree::ptree & elog );
+//
+
+class population_analyzer {
+public:
+    population_analyzer( genetic_space_type * p );
+    population_analyzer( random_sample_type * s );
+
+    void operator()( boost::property_tree::ptree & log );
+
+    virtual ~population_analyzer() {}
+
+protected:
+    genetic_space_type * m_pop;
+    random_sample_type * m_samp;
+};
 
 int main( int argc, char ** argv ) {
 
@@ -93,24 +114,36 @@ int main( int argc, char ** argv ) {
             clotho::utility::add_value_array( sim_times, sim_time );
 
             if( !( --log_period ) ) {
+                boost::property_tree::ptree stat_log;
                 timer_type stat_time;
+                population_analyzer an( sim_engine.getChildPopulation() );
+                an( stat_log );
 
-                allele_freq_type af;
-                af.evaluate( *sim_engine.getChildPopulation() );
+                size_t samp_idx = 0;
+                BOOST_FOREACH( auto& v, log_param.m_sampling ) {
+                    if( v.sample_size <= 0 ) {
+                        ++samp_idx;
+                        continue;
+                    }
 
-                log_period = ((log_param.m_period < T_gen) ? log_param.m_period : T_gen );
+                    std::ostringstream oss;
+                    oss << "sample." << samp_idx++;
+
+                    random_sample_type samp( &rand_engine, sim_engine.getChildPopulation(), v.sample_size );
+
+                    population_analyzer _an( &samp );
+
+                    boost::property_tree::ptree samp_log;
+                    _an( samp_log );
+
+                    stat_log.put_child( oss.str(), samp_log );
+                }
+
                 stat_time.stop();
-
-                boost::property_tree::ptree af_log;
-                af.recordResults( af_log );
-
-
                 clotho::utility::add_value_array( stat_times, stat_time );
 
-                boost::property_tree::ptree stat_log;
-                stat_log.add_child( "allele_frequency", af_log );
-
                 stat_logger->write( stat_log );
+                log_period = ((log_param.m_period < T_gen) ? log_param.m_period : T_gen );
             }
         }
 
@@ -125,6 +158,38 @@ int main( int argc, char ** argv ) {
     }
 
     return 0;
+}
+
+population_analyzer::population_analyzer( genetic_space_type * pop ) : 
+    m_pop( pop )
+    , m_samp( NULL )
+{}
+
+population_analyzer::population_analyzer( random_sample_type * samp ) :
+    m_pop( NULL )
+    , m_samp( samp )
+{}
+
+void population_analyzer::operator()( boost::property_tree::ptree & log ) {
+    allele_freq_type af;
+    pairwise_diff_type pd;
+
+    if( m_pop ) {
+        af.evaluate( *m_pop );
+        pd.evaluate( *m_pop );
+    } else if( m_samp ) {
+        af.evaluate( *m_samp->getPopulation(), m_samp->begin(), m_samp->end() );
+        pd.evaluate( *m_samp->getPopulation(), m_samp->begin(), m_samp->end() );
+    } else {
+        assert( false );
+    }
+
+    boost::property_tree::ptree af_log, pd_log;
+    af.recordResults( af_log );
+    pd.recordResults( pd_log );
+
+    log.add_child( "allele_frequency", af_log );
+    log.add_child( "pairwise_difference", pd_log );
 }
 
 //void write_engine_config( boost::property_tree::ptree & elog ) {
