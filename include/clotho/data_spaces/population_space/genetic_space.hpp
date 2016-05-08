@@ -24,6 +24,7 @@ namespace genetics {
 template < class AlleleSpaceType, class BlockType = unsigned long long >
 class genetic_space : public growable2D {
 public:
+    typedef genetic_space< AlleleSpaceType, BlockType >     self_type;
     typedef AlleleSpaceType                                 allele_type;
 
     typedef BlockType                                       block_type;
@@ -55,10 +56,6 @@ public:
         return m_alleles;
     }
 
-//    population_type & getIndividualSpace() {
-//        return m_population;
-//    }
-
     association_type & getSequenceSpace() {
         return m_assoc_data;
     }
@@ -75,6 +72,13 @@ public:
         return m_assoc_data.raw_iterator();
     }
 
+    template < class FreeIterator >
+    void inherit_alleles( self_type * parent_pop, FreeIterator first, FreeIterator last ) {
+
+        m_alleles.inherit( parent_pop->m_alleles );
+        m_alleles.updateFreeSpace( first, last );
+    }
+
     genome_iterator getGenomeAt( individual_id_type idx ) const {
         return m_assoc_data.getRowPairAt(2 * idx );
     }
@@ -85,11 +89,9 @@ public:
 
     size_t  individual_count() const {
         return m_assoc_data.row_count() / 2;
-//        return m_population.size();
     }
 
     size_t  genome_count() const {
-//        return m_population.size();
         return m_assoc_data.row_count() / 2;
     }
 
@@ -101,7 +103,12 @@ public:
         assert( 0 <= idx && idx < individual_count() );
 
         return std::make_pair( 2 * idx, 2 * idx + 1);
-//        return m_population[ idx ];
+    }
+
+    void setFitnessAt( size_t idx, fitness_score_type f ) {
+        assert( 0 <= idx && idx < individual_count() );
+
+        m_fitness[ idx ] = f;
     }
 
     fitness_iterator    fitness_begin() {
@@ -120,51 +127,27 @@ public:
         return m_fitness.end();
     }
 
-//    individual_iterator         individual_begin() {
-//        return m_population.begin();
-//    }
-//
-//    individual_iterator         individual_end() {
-//        return m_population.end();
-//    }
-//
-//    const_individual_iterator         individual_begin() const {
-//        return m_population.begin();
-//    }
-//
-//    const_individual_iterator         individual_end() const {
-//        return m_population.end();
-//    }
-//
-    virtual size_t  grow( size_t genomes, size_t alleles) {
-        this->resize( genomes, alleles );
+    virtual size_t  grow( size_t individuals, size_t alleles) {
+        this->resize( individuals, alleles );
         return 0;
     }
 
     virtual ~genetic_space() {}
 protected:
 
-    void resize( size_t genomes, size_t alleles ) {
+    void resize( size_t individuals, size_t alleles ) {
         // 1 association row represents 1 'chromosome'
         // 2 chromosomes per genome
         //
-        m_assoc_data.grow( 2 * genomes, alleles );
+        size_t seqs = 2 * individuals;
+        m_assoc_data.grow( seqs, alleles );
 
         m_alleles.grow( alleles );
 
-//        if( genomes > m_population.size() ) {
-//            m_population.reserve( genomes );
-//
-//            while( m_population.size() < genomes ) {
-//                m_population.push_back( std::make_pair( 0, 0) );
-//            }
-//        }
-
-        alleles = m_alleles.grow( alleles );
+        m_fitness.resize( individuals );
     }
 
     allele_type                 m_alleles;
-//    population_type     m_population;
     association_type            m_assoc_data;
 
     fitness_scores              m_fitness;

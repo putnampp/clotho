@@ -64,12 +64,12 @@ BOOST_AUTO_TEST_CASE( crossover_test ) {
     // based upon random number generator initialization
     // and recombination rate configuration
     // an event will be generated when recombining parent genome 1
-    // and the event will occur at 0.622109
+    // and the event will occur at 0.377891
     // any position greater than this should come from  sequence 3
     parents.getAlleleSpace().setPositionAt( 88, 0.75 );
     parents.getAlleleSpace().setPositionAt( 99, 0.85 );
-    parents.getAlleleSpace().setPositionAt( 22, 0.6221 );   // allele same bin as event, but before the event
-    parents.getAlleleSpace().setPositionAt( 15, 0.62211 );  // allele same bin as event, but after the event
+    parents.getAlleleSpace().setPositionAt( 22, 0.3778 );   // allele same bin as event, but before the event
+    parents.getAlleleSpace().setPositionAt( 15, 0.377892 );  // allele same bin as event, but after the event
 
     // embed some alleles in the parental genomes
     parents.getSequenceSpace().flip( 0, 28 );

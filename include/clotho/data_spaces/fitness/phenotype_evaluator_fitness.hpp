@@ -36,24 +36,40 @@ public:
     typedef std::shared_ptr< ifitness_generator >           fitness_generator;
     typedef std::shared_ptr< ifitness >                     fitness_operator;
 
-    Fitness( boost::property_tree::ptree & config ) :
-        m_fitness()
-    {
-        m_fitness = fitness_toolkit::getInstance()->get_tool( config );
+    typedef typename genetic_space_type::fitness_score_type fitness_score;
 
-        if( !m_fitness ) {
+    Fitness( boost::property_tree::ptree & config ) :
+        m_fit_gen()
+    {
+        m_fit_gen = fitness_toolkit::getInstance()->get_tool( config );
+
+        if( !m_fit_gen ) {
             fitness_toolkit::getInstance()->tool_configurations( config );
         }
     }
 
     void update( genetic_space_type * pop, evaluator_type & eval ) {
-        fitness_operator op = m_fitness->generate( eval.getPhenotypes() );
+        size_t N = eval.getPhenotypes().size();
+
+        if( N == 0 )    return;
+
+        std::cerr << N << " == " << pop->individual_count() << " [ " << pop->sequence_count() << " ]"  << std::endl;
+        assert( N == pop->individual_count() );
+        fitness_operator op = m_fit_gen->generate( N );
+
+        size_t i = 0;
+
+        while( i < N ) {
+            fitness_score f = (*op)( eval.getPhenotypeAt(i) );
+            pop->setFitnessAt( i, f);
+            ++i;
+        }
     }
 
     virtual ~Fitness() {}
 
 protected:
-    fitness_generator    m_fitness;
+    fitness_generator   m_fit_gen;
 };
 
 }   // namespace genetics

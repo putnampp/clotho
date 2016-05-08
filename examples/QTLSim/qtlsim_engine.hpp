@@ -34,7 +34,7 @@ class Engine {
 public:
     typedef double                      position_type;
     typedef double                      weight_type;
-    typedef double                      phenotype_type;
+    typedef std::vector< double >       phenotype_type;
     typedef unsigned long long          block_type;
 
     typedef RNG                                                                                     random_engine_type;
@@ -42,8 +42,8 @@ public:
     typedef clotho::genetics::qtl_allele_vectorized< position_type, weight_type >                   allele_type;
     typedef clotho::genetics::genetic_space< allele_type, block_type >                              genetic_space_type;
 
-    typedef clotho::genetics::MutationGenerator< random_engine_type, genetic_space_type >           mutation_type;
     typedef clotho::genetics::mutation_allocator< random_engine_type, size_t >                      mutation_alloc_type;
+    typedef clotho::genetics::MutationGenerator< random_engine_type, genetic_space_type >           mutation_type;
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >                          trait_accumulator_type;
     typedef clotho::genetics::FreeSpaceAnalyzer< genetic_space_type >                               free_space_type;
     typedef clotho::genetics::SelectionGenerator< random_engine_type, genetic_space_type >          selection_type;
@@ -52,6 +52,7 @@ public:
     typedef clotho::genetics::phenotype_evaluator< trait_reduction_type >                           phenotype_eval_type;
     typedef clotho::genetics::Fitness< phenotype_eval_type >                                        fitness_type;
 
+    typedef std::shared_ptr< ipopulation_growth_generator >                                         population_growth_generator_type;
     typedef std::shared_ptr< ipopulation_growth >                                                   population_growth_type;
 
     Engine( random_engine_type * rng, boost::property_tree::ptree & config ) :
@@ -65,7 +66,21 @@ public:
         , m_generation( 0 )
         , m_pop_growth()
         , m_mut_alloc( rng, config )
-    {}
+    {
+        population_growth_generator_type tmp  = population_growth_toolkit::getInstance()->get_tool( config );
+        if( tmp ) {
+            m_pop_growth = tmp->generate();
+            if( m_pop_growth ) {
+                m_pop_growth->log( std::cerr );
+                std::cerr << std::endl;
+            }
+        } else {
+            population_growth_toolkit::getInstance()->tool_configurations( config );
+        }
+
+        m_pop0.getSequenceSpace().clear();
+        m_pop1.getSequenceSpace().clear();
+    }
 
     size_t getGeneration() const {
         return m_generation;
@@ -81,28 +96,58 @@ public:
         //
         size_t pN = m_parent->individual_count();
         if( m_pop_growth ) {
-            pN = (*m_pop_growth)( pN, generation );
+            pN = m_pop_growth->operator()( pN, generation );
         }
+
+        size_t pM = m_mut_alloc.allocate( pN );        // generate the number of new mutations
+
+        std::cerr << "Generation " << generation << ": " << pN << " individuals; " << pM << " new alleles" << std::endl;
 
         select_gen.update( m_parent, pN );
 
-        size_t pM = m_mut_alloc.allocator( pN );        // generate the number of new mutations
-
         updateFixedAlleles( m_parent );                 // update the fixed alleles with those of parent population
 
-        pM = child_max_alleles( m_parent->allele_count(), m_free_space.free_size(), pM );   // rescale allele space for child population given free space from parent population and new allele count (pM)
+        size_t all_size = child_max_alleles( m_parent->allele_count(), m_free_space.free_size(), pM );   // rescale allele space for child population given free space from parent population and new allele count (pM)
+        std::cerr << "Rescaling child population to be: " << pN << " individuals x " << all_size << " alleles" << std::endl;
+        m_child->grow( pN, all_size );                        // grow the child population accordingly
 
-        m_child->grow( pN, pM );                        // grow the child population accordingly
-
+        m_child->inherit_alleles( m_parent, m_free_space.free_begin(), m_free_space.free_end() );
 
         cross_gen.update( m_parent, select_gen.getMatePairs(), m_child );
 
-        mutate_gen( m_child, m_parent );
+        mutate_gen( m_child, pM );
 
         m_trait_accum.update( *m_child );
         m_pheno.update( m_child, m_trait_accum );
         m_fit.update( m_child, m_pheno );
     }
+
+/*
+    void dump( boost::property_tree::ptree & l ) {
+        boost::property_tree::ptree par, chi;
+
+        m_parent->dump(par);
+        l.put_child( "parent", par );
+
+        m_child->dump(chi);
+        l.put_child( "child", chi );
+
+        boost::property_tree::ptree free;
+        m_free_space.dump(free);
+        l.put_child( "free", free );
+
+        boost::property_tree::ptree tra;
+        m_trait_accum.dump( tra );
+        l.put_child( "trait", tra );
+    
+        boost::property_tree::ptree phe;
+        m_pheno.dump(phe);
+        l.put_child( "phenotype", phe);
+
+        boost::property_tree::ptree fit;
+        m_fit.update(fit);
+        l.put_child( "fitness", fit );
+    }*/
 
     genetic_space_type * getChildPopulation() const {
         return m_child;
@@ -124,7 +169,16 @@ protected:
  * M_child  - number of new alleles to be added the child population
  */
     size_t child_max_alleles( size_t N_parent, size_t F_parent, size_t M_child ) const {
-        return (N_parent - F_parent) + M_child;
+        std::cerr << "Parent alleles: " << N_parent << "; Free: " << F_parent << "; New Alleles: " << M_child << std::endl;
+
+        if( F_parent >= M_child ) {
+            // if there are more free alleles in the parent generation
+            // than there are new alleles to be added to the child generation
+            // then do not adjust scale of the allele space
+            return N_parent;
+        } else {
+            return N_parent + (M_child - F_parent);
+        }
     }
 
     void updateFixedAlleles( genetic_space_type * gs ) {
@@ -138,7 +192,7 @@ protected:
         while( fix_it != fix_end ) {
             size_t  fixed_index = *fix_it++;
 
-            gs->getGeneticSpace().flipColumn( fixed_index );
+            gs->getSequenceSpace().flipColumn( fixed_index );
 
             m_fixed.push_back( gs->getAlleleSpace(), fixed_index );
         }

@@ -32,6 +32,8 @@ struct ifitness_generator {
      */
     virtual std::shared_ptr< ifitness > generate( const std::vector< std::vector< double > > & ) = 0;
 
+    virtual std::shared_ptr< ifitness > generate( size_t  ) = 0;
+
     virtual const std::string name() const = 0;
 
     virtual void log( std::ostream &  ) const = 0;

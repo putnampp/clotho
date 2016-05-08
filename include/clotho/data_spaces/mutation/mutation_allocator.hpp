@@ -25,12 +25,12 @@ namespace genetics {
 template < class RNG, class IntType = size_t >
 class mutation_allocator {
 public:
-    typedef RNG random_engine_type;
+    typedef RNG                                     random_engine_type;
     typedef IntType                                 int_type;
     typedef double                                  real_type;
     typedef mutation_rate_parameter< real_type >    rate_type;
 
-    typedef boost::random::poisson_distribution< real_type, int_type > distribution_type;
+    typedef boost::random::poisson_distribution< int_type, real_type > distribution_type;
     
 
     mutation_allocator( random_engine_type * rng, boost::property_tree::ptree & config ) :

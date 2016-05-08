@@ -70,6 +70,10 @@ public:
         return m_positions.begin();
     }
 
+    void inherit( self_type & parent ) {
+        std::copy( parent.position_begin(), parent.position_end(), this->position_begin() );
+    }
+
     size_t next_free() {
         if( m_free.empty() ) {
             return -1;
@@ -90,7 +94,8 @@ public:
         return m_positions.size();
     }
 
-    void updateFreeSpace( free_iterator start, free_iterator end ) {
+    template < class Iterator >
+    void updateFreeSpace( Iterator start, Iterator end ) {
         while( start != end ) {
             m_free.push_back( *start );
             ++start;

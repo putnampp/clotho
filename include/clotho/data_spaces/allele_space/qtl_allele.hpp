@@ -18,6 +18,8 @@
 #include "clotho/data_spaces/growable2D.hpp"
 #include "clotho/data_spaces/trait_helper_of.hpp"
 
+#include <algorithm>
+
 namespace clotho {
 namespace genetics {
 
@@ -112,6 +114,26 @@ public:
 
     size_t allocated_size() const {
         return m_size;
+    }
+
+    void inherit( self_type & parent ) {
+        std::copy( parent.position_begin(), parent.position_end(), this->position_begin() );
+        std::copy( parent.neutral_begin(), parent.neutral_end(), this->m_neutral.begin() );
+
+        size_t t = trait_count();
+        size_t ot = parent.trait_count();
+
+        size_t a = allele_count();
+        size_t oa = parent.allele_count();
+
+        assert( oa <= a );
+
+        size_t i = 0, T = ((t < ot) ? t : ot );
+        while( i < T ) {
+            memcpy( this->m_weights + i * a, parent.m_weights + i * oa, oa * sizeof( weight_type ) );
+            ++i;
+        }
+         
     }
 
     void push_back( self_type & other, size_t idx ) {

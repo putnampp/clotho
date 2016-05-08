@@ -40,14 +40,14 @@ public:
     typedef typename genetic_space_type::fitness_score_type                     fitness_score_type;
     typedef typename genetic_space_type::fitness_scores                         fitness_scores;
 
-    typedef boost::random::uniform_int_distribution< individual_id_type >       distribution_type;
+    typedef boost::random::uniform_int_distribution< size_t >                   distribution_type;
 
     SelectionGenerator( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rand( rng )
     { }
 
     void update( genetic_space_type * parents, size_t count ) {
-        typename distribution_type::param_type  param_type;
+        typedef typename distribution_type::param_type  param_type;
 
         // distribution generates numbers in range [0, N]
         // therefore N needs to be the maximum index (individual_count - 1)

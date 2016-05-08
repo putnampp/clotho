@@ -54,6 +54,7 @@ public:
         m_event_dist.param( typename event_distribution_type::param_type( rho.m_rho ) );
     }
 
+    // copy the genetic position of all alleles into a local vector
     void update( position_iterator first, position_iterator last ) {
         m_pos.clear();
         m_bins.clear();
@@ -61,19 +62,31 @@ public:
             position_type p = *first++;
 
             m_pos.push_back(p);
+
+            assert( p < 1.0 );
+
+            assert( p * BIN_MAX < BIN_MAX );
             m_bins.push_back( p * BIN_MAX );
         }
     }
 
+    // generate a new event distribution
     void generate() {
         // clear the counts
         m_events.clear();
 
-        IntType e = m_event_dist( *m_rand );
+        IntType e = m_event_dist( *m_rand );    // generate the maximum number of events
 
         size_t prev = 0;
-        while( m_events.size() < e ) {
+        position_type accum = 0.0;
+
+        while( e ) {
             position_type p = m_pos_dist( *m_rand );
+            accum += log( p ) / (position_type) e;
+
+            p = (1.0 - exp( accum ));
+
+            assert( m_events.empty() || m_events.back() < p);
 
             size_t cur = p * BIN_MAX;   // transform the current event to its specific bin
             while( prev < cur ) {
@@ -83,6 +96,7 @@ public:
             m_events.push_back(p);
             m_counts[ cur ] = m_events.size();
             prev = cur;
+            --e;
         }
 
         while( prev <= BIN_MAX ) {
@@ -91,10 +105,17 @@ public:
 
     }
 
+    // test whether the genetic position at the given index
+    // 
     bool operator()( size_t index ) {
+
+        assert( 0 <= index && index < m_pos.size() );
+
         position_type p = m_pos[ index ];
         size_t bin_index = m_bins[index];
-        
+
+        assert( bin_index < BIN_MAX );
+
         size_t hi = m_counts[ bin_index ];
         size_t lo =  ((bin_index == 0) ? 0 : m_counts[ bin_index - 1]);
 

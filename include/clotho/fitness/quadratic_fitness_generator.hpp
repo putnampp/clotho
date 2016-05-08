@@ -45,6 +45,7 @@ public:
     std::shared_ptr< ifitness_generator > create( boost::property_tree::ptree & config ) const;
 
     std::shared_ptr< ifitness > generate( const std::vector< std::vector< real_type > > & pop_traits );
+    std::shared_ptr< ifitness > generate( size_t );
 
     const std::string name() const;
 

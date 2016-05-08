@@ -35,12 +35,16 @@ std::shared_ptr< ifitness_generator > quadratic_fitness_generator::create( boost
 }
 
 std::shared_ptr< ifitness > quadratic_fitness_generator::generate( const std::vector< std::vector< real_type > > & pop_traits ) {
+    return generate( pop_traits.size() );
+}
+
+std::shared_ptr< ifitness > quadratic_fitness_generator::generate( size_t N ) {
     // theoretical standard deviation:
     // sqrt( 2 * N * mu), where
     //  N - is the haploid sequence count
     //  mu - mutation rate per sequence
 
-    double std = 4.0 * (double)pop_traits.size();
+    double std = 4.0 * (double)N;
     std *= m_mu;
     std = sqrt( std );  // theoretical standard deviation
 

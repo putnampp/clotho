@@ -47,6 +47,11 @@ public:
         m_neutral[ index ] = neu;
     }
 
+    void inherit( self_type & parent ) {
+        std::copy( parent.position_begin(), parent.position_end(), this->position_begin() );
+        std::copy( parent.neutral_begin(), parent.neutral_end(), this->m_neutral.begin() );
+    }
+
     neutrality_iterator neutral_begin() {
         return m_neutral.begin();
     }

@@ -55,9 +55,12 @@ public:
         block_iterator b_it = gs.getBlockIterator();
 
         size_t M = gs.allele_count();
+        std::cerr << "Allele space calculation: " << M << std::endl;
 
         block_type fx = bit_helper_type::ALL_SET, var = bit_helper_type::ALL_UNSET;
         size_t i = 0, j = 0, k = 0;
+
+        size_t fixed_count = 0, lost_count = 0;
         while( b_it.hasNext() ) {
             block_type v = b_it.next();
             
@@ -74,6 +77,7 @@ public:
                     if( idx < M ) {
                         m_fixed.push_back( idx );
                         m_free.push_back( idx );
+                        ++fixed_count;
                     }
                 }
 
@@ -82,6 +86,7 @@ public:
                     if( idx < M ) {
                         m_lost.push_back( idx );
                         m_free.push_back( idx );
+                        ++lost_count;
                     }
                 }
 
@@ -92,7 +97,13 @@ public:
             }
         }
 
+        m_fixed.resize( fixed_count );
+        m_lost.resize( lost_count );
+        m_free.resize( fixed_count + lost_count );
+
         assert( k == gs.getSequenceSpace().block_row_count() );
+
+        std::cerr << "Free Size: " << m_free.size() << "; Lost Size: " << m_lost.size() << "; Fixed Size: " << m_fixed.size() << std::endl;
     }
 
     size_t free_size() const {

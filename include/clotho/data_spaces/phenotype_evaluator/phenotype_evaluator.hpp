@@ -40,13 +40,15 @@ public:
 
     void update( genetic_space_type * gs, trait_accumulator_type & traits ) {
         size_t N = traits.size();
+        size_t M = gs->individual_count();
 
-        resize( N );
+        assert( M == N / 2 );
+
+        resize( M );
 
         typedef typename genetic_space_type::individual_genome_type    individual_type;
-//        individual_iterator ind_it = gs->individual_begin(), ind_end = gs->individual_end();
 
-        size_t i = 0, M = gs->individual_count();
+        size_t i = 0;
         while( i < M )  {
             individual_type ind = gs->getIndividualAt( i );
             phenotype_type p = m_eval( traits.getTraitAt( ind.first ), traits.getTraitAt( ind.second ) );

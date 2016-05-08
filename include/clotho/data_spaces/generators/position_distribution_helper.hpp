@@ -40,13 +40,13 @@ struct position_distribution_helper< float > {
     static constexpr float MAX = 1.0;
 };
 
-template < >
-struct position_distribution_helper< unsigned int > {
-    typedef boost::random::uniform_int_distribution< unsigned int > type;
-
-    static const unsigned int MIN = 0;
-    static const unsigned int MAX = 0xFFFFFFFF;
-};
+//template < >
+//struct position_distribution_helper< unsigned int > {
+//    typedef boost::random::uniform_int_distribution< unsigned int > type;
+//
+//    static const unsigned int MIN = 0;
+//    static const unsigned int MAX = 0xFFFFFFFF;
+//};
 
 }   // namespace genetics
 }   // namespace clotho

@@ -27,6 +27,11 @@ std::shared_ptr< ifitness_generator > constant_fitness_generator::create( boost:
 }
 
 std::shared_ptr< ifitness > constant_fitness_generator::generate( const std::vector< std::vector< real_type > > & pop_traits ) {
+    return generate( 0 );
+}
+
+std::shared_ptr< ifitness > constant_fitness_generator::generate( size_t N ) {
+
     std::shared_ptr< ifitness > t( new constant_fitness_metric( 1.0 ) );
     return t;
 }

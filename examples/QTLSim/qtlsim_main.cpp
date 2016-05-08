@@ -80,9 +80,9 @@ int main( int argc, char ** argv ) {
 
         timer_type rep_time;
         unsigned int T_gen = gen_param.m_size;
-        while( --T_gen ) {
+        while( T_gen-- ) {
             timer_type sim_time;
-            //sim_engine.simulate( );
+            sim_engine.simulate( );
             sim_time.stop();
 
             clotho::utility::add_value_array( sim_times, sim_time );
@@ -91,7 +91,7 @@ int main( int argc, char ** argv ) {
                 boost::property_tree::ptree stat_log;
                 timer_type stat_time;
 
-                log_period = ((log_param.m_period < T_gen) ? log_param.m_period : T_gen - 1 );
+                log_period = ((log_param.m_period < T_gen) ? log_param.m_period : T_gen );
                 stat_time.stop();
 
                 clotho::utility::add_value_array( stat_times, stat_time );

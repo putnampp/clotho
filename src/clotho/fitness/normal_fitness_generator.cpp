@@ -30,6 +30,10 @@ std::shared_ptr< ifitness_generator > normal_fitness_generator::create( boost::p
 }
 
 std::shared_ptr< ifitness > normal_fitness_generator::generate( const std::vector< std::vector< double > > & pop_traits ) {
+    return generate( pop_traits.size() );
+}
+
+std::shared_ptr< ifitness > normal_fitness_generator::generate( size_t N ) {
     // theoretical standard deviation:
     // sqrt( 2 * P * N * mu), where
     //  N - is the individual count
@@ -38,7 +42,7 @@ std::shared_ptr< ifitness > normal_fitness_generator::generate( const std::vecto
     //
     //  NP = haploid sequence count of the population
 
-    double n = 4.0 * (double)pop_traits.size();
+    double n = 4.0 * (double)N;
 
     n *= m_mu;
     n = sqrt(n);    // theoretical standard deviation

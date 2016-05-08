@@ -14,6 +14,7 @@
 #ifndef CLOTHO_LINEAR_COMBINATION_METHOD_HPP_
 #define CLOTHO_LINEAR_COMBINATION_METHOD_HPP_
 
+#include <vector>
 #include "clotho/data_spaces/accumulator_helper_of.hpp"
 
 namespace clotho {
@@ -46,6 +47,33 @@ struct linear_combination {
     }
 };
 
+template < class TraitAccumType, class RealType >
+struct linear_combination< TraitAccumType, std::vector< RealType > > {
+
+    typedef TraitAccumType                                  trait_accum_type;
+    typedef typename trait_accum_type::trait_vector_type    trait_type;
+    typedef std::vector< RealType >                         result_type;
+
+    result_type operator()( trait_type & s0, trait_type & s1 ) {
+        typedef typename trait_type::iterator iterator;
+
+        iterator b = s0.begin(), e = s0.end();
+        result_type res;
+
+        while( b != e ) {
+            res.push_back( *b++ );
+        }
+
+        b = s1.begin(); e = s1.end();
+
+        size_t i = 0;
+        while( b != e ) {
+            res[ i++ ] += *b++;
+        }
+
+        return res;
+    }
+};
 template < class TraitAccumType, class ResultType >
 struct accumulator_helper_of< linear_combination< TraitAccumType, ResultType > > {
     typedef TraitAccumType          type;
