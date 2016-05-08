@@ -103,9 +103,11 @@ protected:
                 assert( !( i_it.hasNext() ^ j_it.hasNext() ) ); // both should be false
 
                 m_results( diff );
+
+                j = m_indices.find_next( j );
             }
 
-            i = j;
+            i = m_indices.find_next(i);
         }
     }
 
