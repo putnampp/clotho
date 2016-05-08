@@ -104,6 +104,8 @@ protected:
 
                 m_results( diff );
             }
+
+            i = j;
         }
     }
 
