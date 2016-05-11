@@ -80,6 +80,10 @@ public:
 
         m_pop0.getSequenceSpace().clear();
         m_pop1.getSequenceSpace().clear();
+
+        size_t acount = m_pop0.getAlleleSpace().allele_count();
+        m_pop0.getAlleleSpace().grow(acount, 1);
+        m_pop1.getAlleleSpace().grow(acount, 1);
     }
 
     size_t getGeneration() const {
