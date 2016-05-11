@@ -23,10 +23,10 @@ namespace genetics {
 template < class RNG, class WeightType >
 class weight_generator : public weight_parameter< WeightType > {
 public:
-    typedef weight_parameter< WeightType > base_type;
+    typedef weight_parameter< WeightType >      base_type;
 
-    typedef RNG                              random_engine_type;
-    typedef typename base_type::weight_type  weight_type;
+    typedef RNG                                 random_engine_type;
+    typedef typename base_type::weight_type      weight_type;
 
 
     weight_generator( random_engine_type * rng, boost::property_tree::ptree & config ) : 
