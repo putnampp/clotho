@@ -41,6 +41,8 @@ public:
 
     class BlockIterator {
     public:
+        typedef BlockType * pointer_type;
+
         BlockIterator( block_type * start, size_t row_bound, size_t column_bound, size_t step = 1 ) : 
             m_start( start )
             , m_ptr( start )
@@ -75,11 +77,19 @@ public:
             return v;
         }
 
+        pointer_type next_ptr() {
+            assert( hasNext() );
+            pointer_type p = m_ptr;
+            advance_pointer();
+
+            return p;
+        }
+
         std::pair< block_type, block_type > next_pair() {
             assert( hasNext() );
 
-            block_type v = *m_ptr++;
-            block_type w = *m_ptr;
+            block_type v = *m_ptr;
+            block_type w = *(m_ptr + 1);
 
             advance_pointer();
             

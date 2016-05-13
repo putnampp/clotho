@@ -39,10 +39,10 @@ public:
     {}
 
     void operator()( genetic_space_type * child, size_t N ) {
-        m_seq_gen.param( typename sequence_generator_type::param_type( 0, child->sequence_count() ) );
+        m_seq_gen.param( typename sequence_generator_type::param_type( 0, child->sequence_count() - 1 ) );
 
         while( N-- ) {
-            size_t seq_idx = 1;
+            size_t seq_idx = m_seq_gen( *m_rand );
             size_t all_idx = child->getAlleleSpace().next_free();
 
             assert( all_idx != -1 );

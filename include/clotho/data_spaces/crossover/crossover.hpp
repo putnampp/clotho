@@ -34,6 +34,7 @@ public:
 
     typedef typename genetic_space_type::sequence_iterator  sequence_iterator;
     typedef typename genetic_space_type::genome_iterator    genome_iterator;
+    typedef typename genetic_space_type::genome_iterator::pointer_type pointer;
     typedef typename genetic_space_type::individual_id_type individual_id_type;
 
     typedef crossover_event_generator< RNG, position_type >       event_generator_type;
@@ -72,12 +73,17 @@ public:
 
 protected:
     void crossover( genome_iterator & p, sequence_iterator & s, allele_type & all ) {
+        typedef typename genome_iterator::pointer_type pointer;
         m_event_gen.generate();
         size_t j = 0;
         while( p.hasNext() ) {
-            std::pair< block_type, block_type > g = p.next_pair();
+            //std::pair< block_type, block_type > g = p.next_pair();
+            pointer tmp = p.next_ptr();
 
-            block_type hets = g.first ^ g.second;
+            block_type first = *tmp++;
+            block_type second = *tmp;
+
+            block_type hets = first ^ second;
             block_type sec  = bit_helper_type::ALL_UNSET;   // mask state from second strand
 
             while( hets ) {
@@ -88,7 +94,7 @@ protected:
                 }
             }
 
-            hets = ((g.first & ~sec) | (g.second & sec));
+            hets = ((first & ~sec) | (second & sec));
             s.write_next( hets );
 
             j += bit_helper_type::BITS_PER_BLOCK;
