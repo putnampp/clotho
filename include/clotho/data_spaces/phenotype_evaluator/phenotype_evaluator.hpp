@@ -16,6 +16,9 @@
 
 #include <vector>
 
+#include "clotho/utility/state_object.hpp"
+#include "clotho/utility/log_helper.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -101,6 +104,32 @@ protected:
 };
 
 }   // namespace genetics
+}   // namespace clotho
+
+namespace clotho {
+namespace utility {
+
+template < class EvalMethodType >
+struct state_getter< clotho::genetics::phenotype_evaluator< EvalMethodType > >  {
+    typedef clotho::genetics::phenotype_evaluator< EvalMethodType > object_type;
+
+    void operator()( boost::property_tree::ptree & s, object_type & obj ) {
+        typedef typename object_type::phenotype_iterator iterator;
+
+        iterator first = obj.begin(), last = obj.end();
+
+        while( first != last ) {
+            boost::property_tree::ptree p;
+            clotho::utility::add_value_array( p, first->begin(), first->end() );
+            ++first;
+
+            s.push_back( std::make_pair( "", p ) );
+        }
+    }
+};
+
+
+}   // namespace utility
 }   // namespace clotho
 
 #endif  // CLOTHO_PHENOTYPE_EVALUATOR_HPP_

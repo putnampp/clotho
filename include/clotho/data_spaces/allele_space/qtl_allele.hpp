@@ -18,6 +18,9 @@
 #include "clotho/data_spaces/growable2D.hpp"
 #include "clotho/data_spaces/trait_helper_of.hpp"
 
+#include "clotho/utility/state_object.hpp"
+#include "clotho/utility/log_helper.hpp"
+
 #include <algorithm>
 
 namespace clotho {
@@ -31,6 +34,8 @@ public:
 
     typedef WeightType                  weight_type;
     typedef std::vector< WeightType >   trait_type;
+
+    friend class clotho::utility::state_getter< self_type >;
 
     class weight_iterator {
     public:
@@ -220,4 +225,40 @@ struct trait_helper_of< qtl_allele_vectorized< PositionType, WeightType > > {
 }   // namespace genetics
 }   // namespace clotho
 
+
+namespace clotho {
+namespace utility {
+
+template < class PositionType, class WeightType >
+struct state_getter< clotho::genetics::qtl_allele_vectorized< PositionType, WeightType > > {
+    typedef clotho::genetics::qtl_allele_vectorized< PositionType, WeightType > object_type;
+
+    void operator()( boost::property_tree::ptree & s, object_type & obj ) {
+        typedef typename object_type::trait_iterator    iterator;
+        typedef typename object_type::weight_type       weight_type;
+
+        size_t all_count = obj.allele_count();
+        size_t i = 0;
+        while( i < all_count ) {
+            boost::property_tree::ptree all;
+            all.put( "position", obj.getPositionAt(i) );
+            all.put( "neutral", obj.getNeutralAt(i) );
+
+            boost::property_tree::ptree t;
+            iterator it = obj.getTraitIterator( i );
+            while( it.hasNext() ) {
+                weight_type w = it.next();
+                clotho::utility::add_value_array( t, w );
+            }
+            all.put_child( "trait", t );
+
+            s.push_back( std::make_pair("", all ) );
+            ++i;
+        }
+
+    }
+};
+
+}   // namespace utility
+}   // namespace clotho
 #endif  // CLOTHO_QTL_ALLELE_HPP_

@@ -20,6 +20,9 @@
 
 #include <iostream>
 
+#include "clotho/utility/state_object.hpp"
+#include "clotho/utility/log_helper.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -175,4 +178,21 @@ protected:
 }   // namespace genetics
 }   // namespace clotho
 
+namespace clotho {
+namespace utility {
+
+template < class GeneticSpaceType >
+struct state_getter< clotho::genetics::FreeSpaceAnalyzer< GeneticSpaceType > > {
+    typedef clotho::genetics::FreeSpaceAnalyzer< GeneticSpaceType > object_type;
+
+    void operator()( boost::property_tree::ptree & s, object_type & obj ) {
+        boost::property_tree::ptree fr;
+        clotho::utility::add_value_array( fr, obj.free_begin(), obj.free_end() );
+        
+        s.put_child( "free", fr );
+    }
+};
+
+}   // namespace utility
+}   // namespace clotho
 #endif  // CLOTHO_FREE_SPACE_HPP_

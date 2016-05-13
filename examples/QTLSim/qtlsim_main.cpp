@@ -39,6 +39,7 @@ typedef clotho::genetics::random_sample_generator< random_engine_type, genetic_s
 typedef clotho::genetics::allele_frequency< genetic_space_type > allele_freq_type;
 typedef clotho::genetics::pairwise_difference< genetic_space_type > pairwise_diff_type;
 
+typedef clotho::utility::state_getter< simulate_engine_type >   engine_logger_type;
 
 //#define XSTR( x ) #x
 //#define STR( x )  XSTR( x )
@@ -138,6 +139,12 @@ int main( int argc, char ** argv ) {
 
                     stat_log.put_child( oss.str(), samp_log );
                 }
+
+                boost::property_tree::ptree e_log;
+                engine_logger_type e_logger;
+                e_logger( e_log, sim_engine );
+
+                stat_log.put_child( "population_data", e_log );
 
                 stat_time.stop();
                 clotho::utility::add_value_array( stat_times, stat_time );

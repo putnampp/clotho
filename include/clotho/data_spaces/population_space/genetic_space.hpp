@@ -18,6 +18,8 @@
 #include "clotho/data_spaces/association_matrix.hpp"
 #include <vector>
 
+#include "clotho/utility/state_object.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -155,5 +157,30 @@ protected:
 
 }   // namespace clotho
 }   // namespace genetics
+
+namespace clotho {
+namespace utility {
+
+
+template < class AlleleSpaceType, class BlockType >
+struct state_getter< clotho::genetics::genetic_space< AlleleSpaceType, BlockType > > {
+    typedef clotho::genetics::genetic_space< AlleleSpaceType, BlockType > object_type;
+
+    void operator()( boost::property_tree::ptree & s, object_type & obj ) {
+
+        boost::property_tree::ptree al;
+        state_getter< typename object_type::allele_type > a_log;
+        a_log( al, obj.getAlleleSpace() );
+
+        boost::property_tree::ptree ft;
+        clotho::utility::add_value_array( ft, obj.fitness_begin(), obj.fitness_end() );
+
+        s.put_child( "alleles" , al );
+        s.put_child( "fitness", ft );
+    }
+};
+
+}   // namespace utility
+}   // namespace clotho
 
 #endif  // CLOTHO_GENETIC_SPACE_HPP_

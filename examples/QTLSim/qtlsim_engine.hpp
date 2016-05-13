@@ -29,9 +29,13 @@
 #include "clotho/data_spaces/phenotype_evaluator/evaluator.hpp"
 #include "clotho/data_spaces/fitness/fitness.hpp"
 
+#include "clotho/utility/state_object.hpp"
+
 template < class RNG >
 class Engine {
 public:
+    typedef Engine< RNG >               self_type;
+
     typedef double                      position_type;
     typedef double                      weight_type;
     typedef std::vector< double >       phenotype_type;
@@ -54,6 +58,8 @@ public:
 
     typedef std::shared_ptr< ipopulation_growth_generator >                                         population_growth_generator_type;
     typedef std::shared_ptr< ipopulation_growth >                                                   population_growth_type;
+
+    friend class clotho::utility::state_getter< self_type >;
 
     Engine( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rand( rng )
@@ -222,5 +228,47 @@ protected:
     population_growth_type  m_pop_growth;
     mutation_alloc_type     m_mut_alloc;
 };
+
+namespace clotho {
+namespace utility {
+
+template < class RNG >
+struct state_getter< Engine< RNG > > {
+    typedef Engine< RNG >           object_type;
+
+    void operator()( boost::property_tree::ptree & s, object_type & obj ) {
+        boost::property_tree::ptree tr;
+        state_getter< typename object_type::trait_accumulator_type > tr_logger;
+        tr_logger( tr, obj.m_trait_accum );
+
+        boost::property_tree::ptree ph;
+        state_getter< typename object_type::phenotype_eval_type > pheno_logger;
+        pheno_logger( ph, obj.m_pheno );
+
+        boost::property_tree::ptree fr;
+        state_getter< typename object_type::free_space_type > free_logger;
+        free_logger( fr, obj.m_free_space );
+
+        boost::property_tree::ptree fx;
+        state_getter< typename object_type::allele_type > all_logger;
+        all_logger( fx, obj.m_fixed );
+
+        boost::property_tree::ptree c_pop, p_pop;
+        state_getter< typename object_type::genetic_space_type > pop_logger;
+        pop_logger( p_pop, *(obj.m_parent) );
+        pop_logger( c_pop, *(obj.m_child) );
+
+        s.put_child( "traits", tr );
+        s.put_child( "phenotypes", ph );
+        s.put_child( "free_space", fr );
+        s.put_child( "fixed_alleles", fx );
+
+        //s.put_child( "parent", p_pop );
+        s.put_child( "child", c_pop );
+    }
+};
+
+}
+}
 
 #endif  // CLOTHO_SIM_ENGINE_HPP_

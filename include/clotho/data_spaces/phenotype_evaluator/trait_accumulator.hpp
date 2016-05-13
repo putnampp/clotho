@@ -19,6 +19,8 @@
 #include "clotho/data_spaces/trait_helper_of.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
+#include "clotho/utility/state_object.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -35,6 +37,7 @@ public:
     typedef typename trait_helper_type::type                    trait_vector_type;
 
     typedef std::vector< trait_vector_type >                    accumulator_type;
+    typedef typename accumulator_type::iterator                 trait_iterator;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
 
@@ -108,6 +111,14 @@ public:
         return m_trait_count;
     }
 
+    trait_iterator begin() {
+        return m_trait_weights.begin();
+    }
+
+    trait_iterator end() {
+        return m_trait_weights.end();
+    }
+
     virtual ~TraitWeightAccumulator() {}
 protected:
 
@@ -116,6 +127,33 @@ protected:
 };
 
 }   // namespace genetics
+}   // namespace clotho
+
+namespace clotho {
+namespace utility {
+
+template < class GeneticSpaceType >
+struct state_getter< clotho::genetics::TraitWeightAccumulator< GeneticSpaceType > > {
+    typedef clotho::genetics::TraitWeightAccumulator< GeneticSpaceType > object_type;
+
+    void operator()( boost::property_tree::ptree & s, object_type & obj ) {
+        typedef typename object_type::trait_iterator iterator;
+
+        iterator first = obj.begin(), last = obj.end();
+
+        while( first != last ) {
+            boost::property_tree::ptree p;
+            clotho::utility::add_value_array( p, first->begin(), first->end() );
+            ++first;
+
+            s.push_back( std::make_pair( "", p ) );
+        }
+    
+    }
+};
+
+
+}   // namespace utility
 }   // namespace clotho
 
 #endif  // CLOTHO_TRAIT_WEIGHT_ACCUMULATOR_HPP_

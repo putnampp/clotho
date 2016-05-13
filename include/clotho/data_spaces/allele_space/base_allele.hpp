@@ -21,6 +21,8 @@
 
 #include <iostream>
 
+#include "clotho/utility/state_object.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -153,6 +155,30 @@ protected:
 };
 
 }   // namespace genetics
+}   // namespace clotho
+
+namespace clotho {
+namespace utility {
+
+template < class PositionType >
+struct state_getter< clotho::genetics::base_allele_vectorized< PositionType > > {
+    typedef clotho::genetics::base_allele_vectorized< PositionType > object_type;
+
+    void operator()( boost::property_tree::ptree & s, object_type & obj ) {
+
+        size_t all_count = obj.allele_count();
+        size_t i = 0;
+        while( i < all_count ) {
+            boost::property_tree::ptree all;
+            all.put( "position", obj.getPositionAt(i) );
+            s.push_back( std::make_pair("", all ) );
+            ++i;
+        }
+
+    }
+};
+
+}   // namespace utility
 }   // namespace clotho
 
 #endif  // CLOTHO_BASE_ALLELE_HPP_
