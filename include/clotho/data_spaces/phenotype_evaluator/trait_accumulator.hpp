@@ -16,6 +16,7 @@
 
 #include <vector>
 
+#include "clotho/data_spaces/growable2D.hpp"
 #include "clotho/data_spaces/trait_helper_of.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
@@ -25,13 +26,15 @@ namespace clotho {
 namespace genetics {
 
 template < class GeneticSpaceType >
-class TraitWeightAccumulator {
+class TraitWeightAccumulator : public growable2D {
 public:
-    
+    typedef TraitWeightAccumulator< GeneticSpaceType >          self_type;
+
     typedef GeneticSpaceType                                    genetic_space_type;
     typedef typename genetic_space_type::block_type             block_type;
 
     typedef typename genetic_space_type::allele_type            allele_type;
+    typedef typename allele_type::weight_type                   weight_type;
     
     typedef clotho::genetics::trait_helper_of< allele_type >    trait_helper_type;
     typedef typename trait_helper_type::type                    trait_vector_type;
@@ -42,88 +45,115 @@ public:
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
 
     TraitWeightAccumulator( ) :
-        m_soft_size(0)
+        m_trait_weights(NULL)
+        , m_rows(0)
         , m_trait_count(0)
+        , m_size(0)
     {}
 
     TraitWeightAccumulator( genetic_space_type & genomes ) :
-        m_soft_size(0)
+        m_trait_weights(NULL)
+        , m_rows(0)
         , m_trait_count(0)
+        , m_size(0)
     {
         update( genomes );
     }
 
     void update( genetic_space_type & genomes ) {
 
-        m_soft_size = genomes.sequence_count();
-        m_trait_count = genomes.getAlleleSpace().trait_count();
-
-        m_trait_weights.reserve( m_soft_size );
+        this->grow( genomes.sequence_count(), genomes.getAlleleSpace().trait_count() );
 
         typedef typename genetic_space_type::block_iterator block_iterator;
 
         typedef typename allele_type::trait_iterator        trait_iterator;
-        typedef typename allele_type::weight_type           weight_type;
+
+        memset( m_trait_weights, 0, m_size * sizeof(weight_type) );
+
+        if( genomes.getAlleleSpace().isAllNeutral() )   return;
 
         block_iterator block_iter = genomes.getBlockIterator();
         size_t i = 0, j = 0;
         while( block_iter.hasNext() ) {
             block_type b = block_iter.next();
 
-            if( j == 0 ) {
-                if( i >= m_trait_weights.size() ) {
-                    m_trait_weights.push_back( trait_helper_type::makeEmptyTrait( m_trait_count ) );
-                } else {
-                    trait_helper_type::resetTrait(m_trait_weights[i]);
-                }
-            }
-
-            trait_vector_type & t = m_trait_weights[ i ];
-
             while( b ) {
                 unsigned int b_idx = bit_walker_type::unset_next_index( b );
 
                 trait_iterator trait_it = genomes.getAlleleSpace().getTraitIterator( j + b_idx );
-                size_t k = 0;
+                size_t k = i * m_trait_count;
                 while( trait_it.hasNext() ) {
-                    weight_type w = trait_it.next();
-                    t[ k++ ] += w;
+                    m_trait_weights[ k++ ] += trait_it.next();
                 }
             }
 
-            if( ++i >= m_soft_size ) {
+            if( ++i >= m_rows ) {
                 i = 0;
                 j += genetic_space_type::association_type::bit_helper_type::BITS_PER_BLOCK;
             }
         }
     }
 
-    trait_vector_type &  getTraitAt( size_t idx ) {
-        assert( 0 <= idx && idx < m_soft_size );
-        return m_trait_weights[ idx ];
+    std::shared_ptr< trait_vector_type >   getTraitAt( size_t idx ) {
+        assert( 0 <= idx && idx < m_rows );
+
+        idx *= m_trait_count;
+
+        std::shared_ptr< trait_vector_type>  t( new trait_vector_type( m_trait_weights + idx, m_trait_weights + idx + m_trait_count ));
+
+        return t;
     }
 
     size_t size() const {
-        return m_soft_size;
+        return m_rows;
     }
 
     size_t trait_count() const {
         return m_trait_count;
     }
 
-    trait_iterator begin() {
-        return m_trait_weights.begin();
+    virtual size_t grow( size_t seq ) {
+        size_t t = trait_count();
+        if( t == 0 ) {
+            t = 1;
+        }
+
+        this->resize( seq, t );
+        return m_rows;
     }
 
-    trait_iterator end() {
-        return m_trait_weights.end();
+    virtual size_t grow( size_t seq, size_t traits ) {
+        this->resize( seq, traits );
+        return m_rows;
     }
 
-    virtual ~TraitWeightAccumulator() {}
+    virtual ~TraitWeightAccumulator() {
+        if( m_trait_weights != NULL ) {
+            delete [] m_trait_weights;
+        }
+    }
+
 protected:
 
-    accumulator_type    m_trait_weights;
-    size_t              m_soft_size, m_trait_count;
+    virtual void resize( size_t rows, size_t columns ) {
+        size_t new_size = rows * columns;
+
+        assert( 0 <= new_size );
+
+        if( m_size < new_size ) {
+            if( m_trait_weights != NULL ) {
+                delete [] m_trait_weights;
+            }
+            m_trait_weights = new weight_type[ new_size ];
+            m_size = new_size;
+        }
+
+        m_rows = rows;
+        m_trait_count = columns;
+    }
+
+    weight_type         * m_trait_weights;
+    size_t              m_rows, m_trait_count,m_size;
 };
 
 }   // namespace genetics
@@ -137,14 +167,11 @@ struct state_getter< clotho::genetics::TraitWeightAccumulator< GeneticSpaceType 
     typedef clotho::genetics::TraitWeightAccumulator< GeneticSpaceType > object_type;
 
     void operator()( boost::property_tree::ptree & s, object_type & obj ) {
-        typedef typename object_type::trait_iterator iterator;
-
-        iterator first = obj.begin(), last = obj.end();
-
-        while( first != last ) {
+        size_t i = 0, N = obj.size();
+        while( i < N ) {
+            std::shared_ptr< typename object_type::trait_vector_type > t = obj.getTraitAt(i++);
             boost::property_tree::ptree p;
-            clotho::utility::add_value_array( p, first->begin(), first->end() );
-            ++first;
+            clotho::utility::add_value_array( p, t->begin(), t->end() );
 
             s.push_back( std::make_pair( "", p ) );
         }

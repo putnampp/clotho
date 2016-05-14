@@ -50,6 +50,16 @@ public:
         m_neutral[ index ] = neu;
     }
 
+    bool isAllNeutral() const {
+        const_neutrality_iterator first = m_neutral.begin(), last = this->m_neutral.end();
+        bool all_neutral = true;
+        while( all_neutral && first != last ) {
+            all_neutral = *first++;
+        }
+
+        return all_neutral;
+    }
+
     void inherit( self_type & parent ) {
         std::copy( parent.position_begin(), parent.position_end(), this->position_begin() );
         std::copy( parent.neutral_begin(), parent.neutral_end(), this->m_neutral.begin() );

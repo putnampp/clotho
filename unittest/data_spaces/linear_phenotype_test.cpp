@@ -122,8 +122,8 @@ BOOST_AUTO_TEST_CASE( single_trait_linear_combination_phenotype_test ) {
     weight_type exp_weight_0 = exp_trait_w[ exp_ind.first ];
     weight_type exp_weight_1 = exp_trait_w[ exp_ind.second ];
 
-    weight_type obs_weight_0 = tacc.getTraitAt( exp_ind.first )[ 0 ];
-    weight_type obs_weight_1 = tacc.getTraitAt( exp_ind.second )[ 0 ];
+    weight_type obs_weight_0 = tacc.getTraitAt( exp_ind.first )->at( 0 );
+    weight_type obs_weight_1 = tacc.getTraitAt( exp_ind.second )->at( 0 );
 
     BOOST_REQUIRE_MESSAGE( exp_weight_0 == obs_weight_0, "Unexpected trait weight 0; Observed: " << obs_weight_0 << "; Expected: " << exp_weight_0 );
     BOOST_REQUIRE_MESSAGE( exp_weight_1 == obs_weight_1, "Unexpected trait weight 0; Observed: " << obs_weight_1 << "; Expected: " << exp_weight_1 );

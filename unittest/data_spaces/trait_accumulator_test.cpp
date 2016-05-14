@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE( trait_accum_size_test ) {
     size_t i = 0;
 
     while( i < obs_size ) {
-        size_t obs_traits = weights.getTraitAt(i).size();
+        size_t obs_traits = weights.getTraitAt(i)->size();
 
         BOOST_REQUIRE_MESSAGE( obs_traits == exp_traits, "Unexpected number of traits at index " << i << "; Observed: " << obs_traits << "; Expected: " << exp_traits );
 
@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test ) {
 
     i = 0;
     while( i < obs_size ) {
-        size_t obs_traits = weights.getTraitAt(i).size();
+        size_t obs_traits = weights.getTraitAt(i)->size();
 
         BOOST_REQUIRE_MESSAGE( obs_traits == exp_traits, "Unexpected number of traits at index " << i << "; Observed: " << obs_traits << "; Expected: " << exp_traits );
 
@@ -150,14 +150,14 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test ) {
 
         bool eq = true;
         j = 0;
+        std::shared_ptr< typename trait_accumulator_type::trait_vector_type > t = weights.getTraitAt(i);
         while( eq && (j < exp_traits )) {
-            eq = (res[ j ] == weights.getTraitAt(i)[j]);
+            eq = (res[ j ] == (*t)[j]);
             ++j;
         }
 
         BOOST_REQUIRE_MESSAGE( eq, "Unexpected weight vector at " << i);
-        
-        i += 1;
+        ++i;   
     }
 }
 
@@ -255,8 +255,9 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test2 ) {
         }
         bool eq = true;
         j = 0;
+        std::shared_ptr< typename trait_accumulator_type::trait_vector_type > t = weights.getTraitAt(i);
         while( eq && (j < exp_traits )) {
-            eq = (res[ j ] == weights.getTraitAt(i)[j]);
+            eq = (res[ j ] == (*t)[j]);
             ++j;
         }
 

@@ -27,17 +27,17 @@ struct linear_combination {
     typedef typename trait_accum_type::trait_vector_type    trait_type;
     typedef ResultType                                      result_type;
 
-    result_type operator()( trait_type & s0, trait_type & s1 ) {
+    result_type operator()( std::shared_ptr< trait_type > s0, std::shared_ptr< trait_type > s1 ) {
         typedef typename trait_type::iterator iterator;
 
-        iterator b = s0.begin(), e = s0.end();
+        iterator b = s0->begin(), e = s0->end();
         result_type res = 0.0;
 
         while( b != e ) {
             res += *b++;
         }
 
-        b = s1.begin(); e = s1.end();
+        b = s1->begin(); e = s1->end();
 
         while( b != e ) {
             res += *b++;
@@ -54,17 +54,17 @@ struct linear_combination< TraitAccumType, std::vector< RealType > > {
     typedef typename trait_accum_type::trait_vector_type    trait_type;
     typedef std::vector< RealType >                         result_type;
 
-    result_type operator()( trait_type & s0, trait_type & s1 ) {
+    result_type operator()( std::shared_ptr < trait_type >  s0, std::shared_ptr <trait_type>  s1 ) {
         typedef typename trait_type::iterator iterator;
 
-        iterator b = s0.begin(), e = s0.end();
+        iterator b = s0->begin(), e = s0->end();
         result_type res;
 
         while( b != e ) {
             res.push_back( *b++ );
         }
 
-        b = s1.begin(); e = s1.end();
+        b = s1->begin(); e = s1->end();
 
         size_t i = 0;
         while( b != e ) {
