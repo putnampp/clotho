@@ -30,6 +30,7 @@ class crossover_event_generator {
 public:
     typedef RNG             random_engine_type;
     typedef PositionType    position_type;
+    typedef PositionType    event_type;
 
     typedef typename position_distribution_helper< PositionType >::type position_distribution_type;
     
@@ -42,12 +43,16 @@ public:
     typedef typename position_vector::iterator          position_iterator;
     typedef typename position_vector::const_iterator    const_position_iterator;
 
+    typedef event_type *                                event_vector;
+
     typedef std::vector< size_t >                       bin_vector;
 
     static const unsigned int BIN_MAX = 256;
 
     crossover_event_generator( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rand( rng )
+        , m_events( NULL )
+        , m_events_size(0)
     {
         recombination_rate_parameter< double > rho( config);
 
@@ -73,34 +78,35 @@ public:
     // generate a new event distribution
     void generate() {
         // clear the counts
-        m_events.clear();
-
         IntType e = m_event_dist( *m_rand );    // generate the maximum number of events
+
+        resize( e );
 
         size_t prev = 0;
         position_type accum = 0.0;
 
+        size_t i = 0;
         while( e ) {
             position_type p = m_pos_dist( *m_rand );
             accum += log( p ) / (position_type) e;
 
             p = (1.0 - exp( accum ));
 
-            assert( m_events.empty() || m_events.back() < p);
+            assert( i == 0 || m_events[ i - 1 ] < p);
 
             size_t cur = p * BIN_MAX;   // transform the current event to its specific bin
             while( prev < cur ) {
-                m_counts[ prev++ ] = m_events.size();
+                m_counts[ prev++ ] = i;
             }
 
-            m_events.push_back(p);
-            m_counts[ cur ] = m_events.size();
+            m_events[ i++ ] = p;
+            m_counts[ cur ] = i;
             prev = cur;
             --e;
         }
 
         while( prev <= BIN_MAX ) {
-            m_counts[ prev++ ] = m_events.size();
+            m_counts[ prev++ ] = i;
         }
 
     }
@@ -119,14 +125,30 @@ public:
         size_t hi = m_counts[ bin_index ];
         size_t lo =  ((bin_index == 0) ? 0 : m_counts[ bin_index - 1]);
 
-        while( lo < hi &&  m_events[lo] < p ){ ++lo; }
+        while( lo < hi && m_events[lo] < p ){ ++lo; }
 
         return (lo & 1);    // % 2
     }
 
-    virtual ~crossover_event_generator() {}
+    virtual ~crossover_event_generator() {
+        if( m_events != NULL ) {
+            delete [] m_events;
+        }
+    }
 
 protected:
+
+    void resize( size_t e ) {
+        if( e > m_events_size ) {
+            if( m_events != NULL ) {
+                delete [] m_events;
+            }
+            m_events = new event_type[ e ];
+
+            m_events_size = e;
+        }
+    }
+
     random_engine_type          * m_rand;
     event_distribution_type     m_event_dist;
     position_distribution_type  m_pos_dist;
@@ -134,7 +156,8 @@ protected:
     position_vector     m_pos;
     bin_vector          m_bins;
 
-    position_vector     m_events;
+    event_vector        m_events;
+    size_t              m_events_size;
 
     size_t              m_counts[ BIN_MAX + 1 ];
 };
