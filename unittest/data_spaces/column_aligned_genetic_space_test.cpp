@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_SUITE( test_data_space )
 BOOST_AUTO_TEST_CASE( genetic_space_size_test ) {
     typedef clotho::genetics::qtl_allele_vectorized< double, double >   allele_type;
     typedef unsigned long long                                          block_type;
-    typedef clotho::genetics::genetic_space< allele_type, block_type >  genetic_space_type;
+    typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::column_aligned >  genetic_space_type;
 
     size_t _alleles = 10, _genomes = 11;
     size_t _seqs = 2 * _genomes;
