@@ -23,7 +23,7 @@
 namespace clotho {
 namespace genetics {
 
-template < class AlleleSpaceType, class BlockType = unsigned long long >
+template < class AlleleSpaceType, class BlockType = unsigned long long, class OrganizationType = column_aligned >
 class genetic_space : public growable2D {
 public:
     typedef genetic_space< AlleleSpaceType, BlockType >     self_type;
@@ -39,8 +39,8 @@ public:
     typedef typename population_type::iterator          individual_iterator;
     typedef typename population_type::const_iterator    const_individual_iterator;
 
-    typedef association_matrix< BlockType >                 association_type;
-    typedef typename association_type::block_iterator       block_iterator;
+    typedef association_matrix< BlockType, OrganizationType >   association_type;
+    typedef typename association_type::block_iterator           block_iterator;
 
     typedef typename association_type::row_iterator         sequence_iterator;
     typedef typename association_type::row_pair_iterator    genome_iterator;

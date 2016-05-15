@@ -33,10 +33,10 @@ namespace clotho {
 namespace genetics {
 
 template < class BlockType >
-class pairwise_difference< association_matrix< BlockType > > {
+class pairwise_difference< association_matrix< BlockType, column_aligned > > {
 public:
 
-    typedef association_matrix< BlockType >                             space_type;
+    typedef association_matrix< BlockType, column_aligned >             space_type;
     typedef typename space_type::block_type                             block_type;
 
     typedef ac::accumulator_set< size_t, ac::stats< ac::tag::min, ac::tag::mean, ac::tag::max, ac::tag::variance, ac::tag::median > >                                                           result_type;

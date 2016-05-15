@@ -11,8 +11,10 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_ASSOCIATION_MATRIX_HPP_
-#define CLOTHO_ASSOCIATION_MATRIX_HPP_
+#ifndef CLOTHO_COLUMN_ALIGNEDASSOCIATION_MATRIX_HPP_
+#define CLOTHO_COLUMN_ALIGNEDASSOCIATION_MATRIX_HPP_
+
+#include "clotho/data_spaces/association_matrix/association_matrix_def.hpp"
 
 #include "clotho/data_spaces/growable2D.hpp"
 #include "clotho/utility/bit_helper.hpp"
@@ -32,8 +34,10 @@ namespace genetics {
 
 #endif  // DEBUGGING
 
-template < class BlockType = unsigned long long >
-class association_matrix : public growable2D {
+struct column_aligned {};
+
+template < class BlockType >
+class association_matrix< BlockType, column_aligned > : public growable2D {
 public:
     typedef BlockType   block_type;
 
@@ -299,4 +303,4 @@ protected:
 
 #undef ASSERT_VALID_RANGE
 
-#endif  // CLOTHO_ASSOCIATION_MATRIX_HPP_
+#endif  // CLOTHO_COLUMN_ALIGNEDASSOCIATION_MATRIX_HPP_

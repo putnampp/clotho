@@ -34,9 +34,9 @@ namespace clotho {
 namespace genetics {
 
 template < class BlockType >
-class allele_frequency< association_matrix< BlockType > > {
+class allele_frequency< association_matrix< BlockType, column_aligned > > {
 public:
-    typedef association_matrix< BlockType >        space_type;
+    typedef association_matrix< BlockType, column_aligned >             space_type;
 
     typedef typename space_type::block_type                             block_type;
     typedef typename space_type::bit_helper_type                        bit_helper_type;
