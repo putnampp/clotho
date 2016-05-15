@@ -111,14 +111,14 @@ public:
 
         size_t pM = m_mut_alloc.allocate( pN );        // generate the number of new mutations
 
-        std::cerr << "Generation " << generation << ": " << pN << " individuals; " << pM << " new alleles" << std::endl;
+//        std::cerr << "Generation " << generation << ": " << pN << " individuals; " << pM << " new alleles" << std::endl;
 
         select_gen.update( m_parent, pN );
 
         updateFixedAlleles( m_parent );                 // update the fixed alleles with those of parent population
 
         size_t all_size = child_max_alleles( m_parent->allele_count(), m_free_space.free_size(), pM );   // rescale allele space for child population given free space from parent population and new allele count (pM)
-        std::cerr << "Rescaling child population to be: " << pN << " individuals x " << all_size << " alleles" << std::endl;
+//        std::cerr << "Rescaling child population to be: " << pN << " individuals x " << all_size << " alleles" << std::endl;
         m_child->grow( pN, all_size );                        // grow the child population accordingly
 
         m_child->inherit_alleles( m_parent, m_free_space.free_begin(), m_free_space.free_end() );
@@ -179,7 +179,7 @@ protected:
  * M_child  - number of new alleles to be added the child population
  */
     size_t child_max_alleles( size_t N_parent, size_t F_parent, size_t M_child ) const {
-        std::cerr << "Parent alleles: " << N_parent << "; Free: " << F_parent << "; New Alleles: " << M_child << std::endl;
+//        std::cerr << "Parent alleles: " << N_parent << "; Free: " << F_parent << "; New Alleles: " << M_child << std::endl;
 
         if( F_parent >= M_child ) {
             // if there are more free alleles in the parent generation
