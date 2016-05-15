@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE( association_matrix_sizing_test ) {
     size_t exp_size = exp_rows * exp_cols;
     size_t exp_alloc_size = (exp_cols / bit_helper_type::BITS_PER_BLOCK + 1) * exp_rows;
 
-    association_matrix< block_type > amat( exp_rows, exp_cols );
+    association_matrix< block_type, column_aligned > amat( exp_rows, exp_cols );
 
     size_t obs_size = amat.size();
     size_t obs_alloc_size = amat.allocated_size();
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE( association_matrix_flip_test ) {
 
     size_t exp_rows = 5, exp_cols = 12;
 
-    association_matrix< block_type > amat( exp_rows, exp_cols );
+    association_matrix< block_type, column_aligned > amat( exp_rows, exp_cols );
 
     size_t flip_row = 3, flip_col = 6;
 
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE( association_matrix_raw_iterator_test ) {
     typedef unsigned long long block_type;
     typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
-    typedef association_matrix< block_type >            association_type;
+    typedef association_matrix< block_type, column_aligned >            association_type;
     typedef typename association_type::block_iterator   iterator;
 
     size_t exp_rows = 5, exp_cols = 240;
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE( association_matrix_raw_iterator_test2 ) {
     typedef unsigned long long block_type;
     typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
-    typedef association_matrix< block_type >            association_type;
+    typedef association_matrix< block_type, column_aligned >            association_type;
     typedef typename association_type::block_iterator   iterator;
 
     size_t exp_rows = 5, exp_cols = 240;
@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE( association_matrix_row_iterator_test ) {
     typedef unsigned long long block_type;
     typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
-    typedef association_matrix< block_type >            association_type;
+    typedef association_matrix< block_type, column_aligned >            association_type;
     typedef typename association_type::row_iterator   iterator;
 
     size_t exp_rows = 5, exp_cols = 240;
@@ -232,7 +232,7 @@ BOOST_AUTO_TEST_CASE( association_matrix_column_iterator_test ) {
     typedef unsigned long long block_type;
     typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
-    typedef association_matrix< block_type >            association_type;
+    typedef association_matrix< block_type, column_aligned >            association_type;
     typedef typename association_type::column_iterator  iterator;
 
     size_t exp_rows = 5, exp_cols = 240;
