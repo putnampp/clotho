@@ -134,6 +134,8 @@ public:
     typedef BlockIterator       column_iterator;
     typedef BlockIterator       row_pair_iterator;
 
+    typedef block_type *        raw_block_pointer;
+
 
     association_matrix( size_t rows = 1, size_t columns = 1 ) :
         m_data( NULL )
@@ -211,6 +213,18 @@ public:
         ASSERT_VALID_RANGE( idx, 0, block_column_count() );
 
         return row_iterator( m_data + idx, block_row_count(), block_column_count(), block_column_count() );
+    }
+
+    raw_block_pointer begin_block_row( size_t idx ) const {
+        ASSERT_VALID_RANGE( idx, 0, block_row_count() );
+
+        return m_data + idx * block_column_count();
+    }
+
+    raw_block_pointer end_block_row( size_t idx ) const {
+        ASSERT_VALID_RANGE( idx, 0, block_row_count() );
+
+        return m_data + (idx + 1) * block_column_count();
     }
 
     row_pair_iterator getRowPairAt( size_t idx ) const {

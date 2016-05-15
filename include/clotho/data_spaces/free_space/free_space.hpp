@@ -14,11 +14,8 @@
 #ifndef CLOTHO_FREE_SPACE_HPP_
 #define CLOTHO_FREE_SPACE_HPP_
 
-#include <vector>
 #include "clotho/utility/bit_helper.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
-
-#include <iostream>
 
 #include "clotho/utility/state_object.hpp"
 #include "clotho/utility/log_helper.hpp"
@@ -32,147 +29,197 @@ public:
     typedef GeneticSpaceType    genetic_space_type;
     typedef typename genetic_space_type::association_type   association_type;
 
-    typedef typename genetic_space_type::block_iterator block_iterator;
+    typedef typename association_type::raw_block_pointer    block_pointer;
 
-    typedef typename association_type::block_type   block_type;
+    typedef typename association_type::block_type           block_type;
 
-    typedef std::vector< size_t >                   index_vector;
-    typedef typename index_vector::iterator    iterator;
-    typedef typename index_vector::const_iterator    const_iterator;
+    typedef size_t *                                    index_vector;
+    typedef size_t *                                    iterator;
+    typedef size_t *                                    const_iterator;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
 
     typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
-    FreeSpaceAnalyzer(){}
+    FreeSpaceAnalyzer():
+        m_indices( NULL )
+        , m_fixed_count(0)
+        , m_lost_count(0)
+        , m_free_count(0)
+        , m_width(0)
+        , m_size(0)
+    {}
 
-    FreeSpaceAnalyzer( genetic_space_type & gs ) {
+    FreeSpaceAnalyzer( genetic_space_type & gs ) :
+        m_indices( NULL )
+        , m_fixed_count(0)
+        , m_lost_count(0)
+        , m_free_count(0)
+        , m_width(0)
+        , m_size(0)
+    {
         update( gs );
     }
 
     void update( genetic_space_type & gs ) {
-        m_free.clear();
-        m_fixed.clear();
-        m_lost.clear();
-
-        block_iterator b_it = gs.getBlockIterator();
+        m_fixed_count = 0;
+        m_lost_count = 0;
+        m_free_count = 0;
 
         size_t M = gs.allele_count();
-        std::cerr << "Allele space calculation: " << M << std::endl;
+        resize( M ) ;
 
-        block_type fx = bit_helper_type::ALL_SET, var = bit_helper_type::ALL_UNSET;
-        size_t i = 0, j = 0, k = 0;
+        const size_t col_count = gs.getSequenceSpace().block_column_count();
+        const size_t row_count = gs.getSequenceSpace().block_row_count();
 
-        size_t fixed_count = 0, lost_count = 0;
-        while( b_it.hasNext() ) {
-            block_type v = b_it.next();
-            
-            fx &= v;
-            var |= v;
+        const size_t N = col_count % 4;
 
-            if( ++i >= gs.getSequenceSpace().block_column_count() ) {
-                i = 0;
-                ++k;
-                block_type ls = ~(fx | var);
+        size_t j = 0, k = 0;
 
-                while( fx ) {
-                    size_t idx = bit_walker_type::unset_next_index( fx ) + j;
-                    if( idx < M ) {
-                        m_fixed.push_back( idx );
-                        m_free.push_back( idx );
-                        ++fixed_count;
-                    }
-                }
+        size_t fixed_offset = m_width, lost_offset = 2 * m_width;
+        
+        while( k < row_count ) {
+            block_type fx = bit_helper_type::ALL_SET, var = bit_helper_type::ALL_UNSET;
 
-                while( ls ) {
-                    size_t idx = bit_walker_type::unset_next_index( ls ) + j;
-                    if( idx < M ) {
-                        m_lost.push_back( idx );
-                        m_free.push_back( idx );
-                        ++lost_count;
-                    }
-                }
+            block_pointer start = gs.getSequenceSpace().begin_block_row( k );
+            block_pointer end = gs.getSequenceSpace().end_block_row( k );
 
-                fx = bit_helper_type::ALL_SET;
-                var = bit_helper_type::ALL_UNSET;
-
-                j += bit_helper_type::BITS_PER_BLOCK;
+            // unwinding loop
+            size_t i = N;
+            while( i-- ) {
+                block_type v = *start++;
+                fx &= v;
+                var |= v;
             }
+
+            while( start != end ) {
+                block_type v = *start++;
+                fx &= v;
+                var |= v;
+
+                v = *start++;
+                fx &= v;
+                var |= v;
+
+                v = *start++;
+                fx &= v;
+                var |= v;
+
+                v = *start++;
+                fx &= v;
+                var |= v;
+            }
+
+            block_type ls = ~(fx | var);
+
+            while( fx ) {
+                size_t idx = bit_walker_type::unset_next_index( fx ) + j;
+                if( idx < M ) {
+                    m_indices[ m_free_count++ ] = idx;
+                    m_indices[ fixed_offset++ ] =  idx;
+                }
+            }
+
+            while( ls ) {
+                size_t idx = bit_walker_type::unset_next_index( ls ) + j;
+                if( idx < M ) {
+                    m_indices[ m_free_count++ ] = idx;
+                    m_indices[ lost_offset++ ] = idx;
+                }
+            }
+
+            j += bit_helper_type::BITS_PER_BLOCK;
+            ++k;
         }
 
-        m_fixed.resize( fixed_count );
-        m_lost.resize( lost_count );
-        m_free.resize( fixed_count + lost_count );
+        m_fixed_count = fixed_offset - m_width;
+        m_lost_count = lost_offset - (2 * m_width);
 
-        assert( k == gs.getSequenceSpace().block_row_count() );
-
-        std::cerr << "Free Size: " << m_free.size() << "; Lost Size: " << m_lost.size() << "; Fixed Size: " << m_fixed.size() << std::endl;
+        assert( m_fixed_count + m_lost_count == m_free_count );
     }
 
     size_t free_size() const {
-        return m_free.size();
+        return m_free_count;
     }
 
     iterator free_begin() {
-        return m_free.begin();
+        return m_indices;
     }
 
     iterator free_end() {
-        return m_free.end();
+        return m_indices + m_free_count;
     }
 
     const_iterator free_begin() const {
-        return m_free.begin();
+        return m_indices;
     }
 
     const_iterator free_end() const {
-        return m_free.end();
+        return m_indices + m_free_count;
     }
 
     size_t fixed_size() const {
-        return m_fixed.size();
+        return m_fixed_count;
     }
 
     iterator fixed_begin() {
-        return m_fixed.begin();
+        return m_indices + m_width;
     }
 
     iterator fixed_end() {
-        return m_fixed.end();
+        return m_indices + m_width + m_fixed_count;
     }
 
     const_iterator fixed_begin() const {
-        return m_fixed.begin();
+        return m_indices + m_width;
     }
 
     const_iterator fixed_end() const {
-        return m_fixed.end();
+        return m_indices + m_width + m_fixed_count;
     }
 
     size_t lost_size() const {
-        return m_lost.size();
+        return m_lost_count;
     }
 
     iterator lost_begin() {
-        return m_lost.begin();
+        return m_indices + 2 * m_width;
     }
 
     iterator lost_end() {
-        return m_lost.end();
+        return m_indices + 2 * m_width + m_lost_count;
     }
 
     const_iterator lost_begin() const {
-        return m_lost.begin();
+        return m_indices + 2 * m_width;
     }
 
     const_iterator lost_end() const {
-        return m_lost.end();
+        return m_indices + 2 * m_width + m_lost_count;
     }
 
-    virtual ~FreeSpaceAnalyzer() {}
+    virtual ~FreeSpaceAnalyzer() {
+        if( m_indices != NULL ) {
+            delete [] m_indices;
+        }
+    }
 protected:
-    index_vector m_free, m_fixed, m_lost;
+    
+    void resize( size_t s ) {
+        if( s > m_width ) {
+            if( m_indices != NULL ) {
+                delete [] m_indices;
+            }
 
+            m_indices = new size_t[ 3 * s ];
+            m_size = 3 * s;
+            m_width = s;
+        }
+    }
+
+    size_t  * m_indices;
+    size_t  m_fixed_count, m_lost_count, m_free_count;
+    size_t  m_width, m_size;
 };
 
 }   // namespace genetics
