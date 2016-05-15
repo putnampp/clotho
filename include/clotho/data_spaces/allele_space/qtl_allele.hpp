@@ -35,6 +35,8 @@ public:
     typedef WeightType                  weight_type;
     typedef std::vector< WeightType >   trait_type;
 
+    typedef weight_type *               weight_pointer;
+
     friend class clotho::utility::state_getter< self_type >;
 
     class weight_iterator {
@@ -141,6 +143,18 @@ public:
          
     }
 
+    weight_pointer begin_trait_weight( size_t idx ) {
+        assert( 0 <= idx && idx < allele_count() );
+
+        return m_weights + idx * trait_count();
+    }
+
+    weight_pointer end_trait_weight( size_t idx ) {
+        assert( 0 <= idx && idx < allele_count() );
+
+        return m_weights + (idx + 1) * trait_count();
+    }
+
     void push_back( self_type & other, size_t idx ) {
         size_t  acount = allele_count();
         size_t  tcount = trait_count();
@@ -199,8 +213,8 @@ protected:
         this->resize( rows, m_columns );
     }
 
-    weight_type * m_weights;
-    size_t      m_rows, m_columns, m_size;
+    weight_pointer  m_weights;
+    size_t          m_rows, m_columns, m_size;
 };
 
 template < class PositionType, class WeightType >

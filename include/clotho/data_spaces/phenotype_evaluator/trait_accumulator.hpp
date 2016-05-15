@@ -30,17 +30,19 @@ class TraitWeightAccumulator : public growable2D {
 public:
     typedef TraitWeightAccumulator< GeneticSpaceType >          self_type;
 
-    typedef GeneticSpaceType                                    genetic_space_type;
-    typedef typename genetic_space_type::block_type             block_type;
+    typedef GeneticSpaceType                                                    genetic_space_type;
+    typedef typename genetic_space_type::block_type                             block_type;
+    typedef typename genetic_space_type::association_type::raw_block_pointer    block_pointer;
 
     typedef typename genetic_space_type::allele_type            allele_type;
     typedef typename allele_type::weight_type                   weight_type;
+    typedef typename allele_type::weight_pointer                weight_pointer;
     
     typedef clotho::genetics::trait_helper_of< allele_type >    trait_helper_type;
     typedef typename trait_helper_type::type                    trait_vector_type;
 
     typedef std::vector< trait_vector_type >                    accumulator_type;
-    typedef typename accumulator_type::iterator                 trait_iterator;
+
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
 
@@ -64,33 +66,38 @@ public:
 
         this->grow( genomes.sequence_count(), genomes.getAlleleSpace().trait_count() );
 
-        typedef typename genetic_space_type::block_iterator block_iterator;
-
-        typedef typename allele_type::trait_iterator        trait_iterator;
-
         memset( m_trait_weights, 0, m_size * sizeof(weight_type) );
 
         if( genomes.getAlleleSpace().isAllNeutral() )   return;
 
-        block_iterator block_iter = genomes.getBlockIterator();
+        size_t  M = genomes.getSequenceSpace().block_row_count();
+        
         size_t i = 0, j = 0;
-        while( block_iter.hasNext() ) {
-            block_type b = block_iter.next();
+        while( i < M ) {
 
-            while( b ) {
-                unsigned int b_idx = bit_walker_type::unset_next_index( b );
+            block_pointer start = genomes.getSequenceSpace().begin_block_row( i );
+            block_pointer end = genomes.getSequenceSpace().end_block_row(i);
 
-                trait_iterator trait_it = genomes.getAlleleSpace().getTraitIterator( j + b_idx );
-                size_t k = i * m_trait_count;
-                while( trait_it.hasNext() ) {
-                    m_trait_weights[ k++ ] += trait_it.next();
+            size_t k = 0;
+            while( start != end ) {
+                block_type b = *start++;
+
+                while( b ) {
+                    unsigned int b_idx = bit_walker_type::unset_next_index( b ) + j;
+
+                    weight_pointer t_start = genomes.getAlleleSpace().begin_trait_weight( b_idx );
+                    weight_pointer t_end = genomes.getAlleleSpace().end_trait_weight( b_idx );
+
+                    size_t a = k;
+                    while( t_start != t_end ) {
+                        m_trait_weights[ a++ ] += *t_start++;
+                    }
                 }
+                k += m_trait_count;
             }
 
-            if( ++i >= m_rows ) {
-                i = 0;
-                j += genetic_space_type::association_type::bit_helper_type::BITS_PER_BLOCK;
-            }
+            j += genetic_space_type::association_type::bit_helper_type::BITS_PER_BLOCK;
+            ++i;
         }
     }
 
@@ -102,6 +109,16 @@ public:
         std::shared_ptr< trait_vector_type>  t( new trait_vector_type( m_trait_weights + idx, m_trait_weights + idx + m_trait_count ));
 
         return t;
+    }
+
+    weight_pointer begin_trait_weight( size_t idx ) {
+        assert( 0 <= idx && idx < m_rows );
+        return m_trait_weights + idx * m_trait_count;
+    }
+
+    weight_pointer end_trait_weight( size_t idx ) {
+        assert( 0 <= idx && idx < m_rows );
+        return m_trait_weights + (idx + 1) * m_trait_count;
     }
 
     size_t size() const {
@@ -152,7 +169,7 @@ protected:
         m_trait_count = columns;
     }
 
-    weight_type         * m_trait_weights;
+    weight_pointer      m_trait_weights;
     size_t              m_rows, m_trait_count,m_size;
 };
 
