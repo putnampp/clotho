@@ -14,11 +14,13 @@
 #ifndef CLOTHO_FREE_SPACE_HPP_
 #define CLOTHO_FREE_SPACE_HPP_
 
-#include "clotho/utility/bit_helper.hpp"
-#include "clotho/utility/debruijn_bit_walker.hpp"
+//#include "clotho/utility/bit_helper.hpp"
+//#include "clotho/utility/debruijn_bit_walker.hpp"
 
 #include "clotho/utility/state_object.hpp"
 #include "clotho/utility/log_helper.hpp"
+
+#include "clotho/data_spaces/free_space/free_space_evaluator.hpp"
 
 namespace clotho {
 namespace genetics {
@@ -29,17 +31,19 @@ public:
     typedef GeneticSpaceType    genetic_space_type;
     typedef typename genetic_space_type::association_type   association_type;
 
-    typedef typename association_type::raw_block_pointer    block_pointer;
+    typedef clotho::genetics::free_space_evaluator< association_type > evaluator_type;
 
-    typedef typename association_type::block_type           block_type;
+//    typedef typename association_type::raw_block_pointer    block_pointer;
+//
+//    typedef typename association_type::block_type           block_type;
 
     typedef size_t *                                    index_vector;
     typedef size_t *                                    iterator;
     typedef size_t *                                    const_iterator;
 
-    typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
-
-    typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
+//    typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
+//
+//    typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
     FreeSpaceAnalyzer():
         m_indices( NULL )
@@ -62,78 +66,18 @@ public:
     }
 
     void update( genetic_space_type & gs ) {
-        m_fixed_count = 0;
-        m_lost_count = 0;
-        m_free_count = 0;
-
         size_t M = gs.allele_count();
         resize( M ) ;
 
-        const size_t col_count = gs.getSequenceSpace().block_column_count();
-        const size_t row_count = gs.getSequenceSpace().block_row_count();
+        m_free_count = 0;
+        m_fixed_count = m_width;
+        m_lost_count = 2 * m_width;
 
-        const size_t N = col_count % 4;
+        evaluator_type eval;
+        eval( gs.getSequenceSpace(), m_indices, m_fixed_count, m_lost_count, m_free_count, m_width );
 
-        size_t j = 0, k = 0;
-
-        size_t fixed_offset = m_width, lost_offset = 2 * m_width;
-        
-        while( k < row_count ) {
-            block_type fx = bit_helper_type::ALL_SET, var = bit_helper_type::ALL_UNSET;
-
-            block_pointer start = gs.getSequenceSpace().begin_block_row( k );
-            block_pointer end = gs.getSequenceSpace().end_block_row( k );
-
-            // unwinding loop
-            size_t i = N;
-            while( i-- ) {
-                block_type v = *start++;
-                fx &= v;
-                var |= v;
-            }
-
-            while( start != end ) {
-                block_type v = *start++;
-                fx &= v;
-                var |= v;
-
-                v = *start++;
-                fx &= v;
-                var |= v;
-
-                v = *start++;
-                fx &= v;
-                var |= v;
-
-                v = *start++;
-                fx &= v;
-                var |= v;
-            }
-
-            block_type ls = ~(fx | var);
-
-            while( fx ) {
-                size_t idx = bit_walker_type::unset_next_index( fx ) + j;
-                if( idx < M ) {
-                    m_indices[ m_free_count++ ] = idx;
-                    m_indices[ fixed_offset++ ] =  idx;
-                }
-            }
-
-            while( ls ) {
-                size_t idx = bit_walker_type::unset_next_index( ls ) + j;
-                if( idx < M ) {
-                    m_indices[ m_free_count++ ] = idx;
-                    m_indices[ lost_offset++ ] = idx;
-                }
-            }
-
-            j += bit_helper_type::BITS_PER_BLOCK;
-            ++k;
-        }
-
-        m_fixed_count = fixed_offset - m_width;
-        m_lost_count = lost_offset - (2 * m_width);
+        m_fixed_count -= m_width;
+        m_lost_count -= (2 * m_width);
 
         assert( m_fixed_count + m_lost_count == m_free_count );
     }
@@ -203,6 +147,7 @@ public:
             delete [] m_indices;
         }
     }
+
 protected:
     
     void resize( size_t s ) {

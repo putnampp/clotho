@@ -32,7 +32,7 @@ typedef double                                                                  
 typedef unsigned long long                                                              block_type;
 
 typedef clotho::genetics::qtl_allele_vectorized< position_type, weight_type >           allele_type;
-typedef clotho::genetics::genetic_space< allele_type, block_type >                      genetic_space_type;
+typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::column_aligned > genetic_space_type;
 typedef clotho::genetics::MutationGenerator< random_engine_type, genetic_space_type >   mutation_generator_type;
 
 typedef clotho::genetics::FreeSpaceAnalyzer< genetic_space_type >                       free_space_type;

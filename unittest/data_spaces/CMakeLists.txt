@@ -15,7 +15,7 @@ INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
 
 LIST(APPEND DATA_SPACE_SRCS allele_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS association_matrix_test.cpp )
-LIST(APPEND DATA_SPACE_SRCS genetic_space_test.cpp )
+LIST(APPEND DATA_SPACE_SRCS column_aligned_genetic_space_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS trait_accumulator_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS free_space_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS allele_generator_test.cpp )
@@ -23,6 +23,8 @@ LIST(APPEND DATA_SPACE_SRCS crossover_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS selection_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS mutation_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS linear_phenotype_test.cpp )
-
+LIST(APPEND DATA_SPACE_SRCS row_grouped_genetic_space_test.cpp )
+LIST(APPEND DATA_SPACE_SRCS row_grouped_free_space_test.cpp )
+LIST(APPEND DATA_SPACE_SRCS row_grouped_trait_accumulator_test.cpp )
 
 ADD_LIBRARY(${PROJECT_NAME}_data_spaces_test SHARED ${DATA_SPACE_SRCS} )

@@ -32,12 +32,11 @@ public:
     typedef typename genetic_space_type::block_type         block_type;
     typedef typename allele_type::position_type             position_type;
 
-    typedef typename genetic_space_type::sequence_iterator  sequence_iterator;
-    typedef typename genetic_space_type::genome_iterator    genome_iterator;
-    typedef typename genetic_space_type::genome_iterator::pointer_type pointer;
-    typedef typename genetic_space_type::individual_id_type individual_id_type;
+    typedef typename genetic_space_type::sequence_iterator      sequence_iterator;
+    typedef typename genetic_space_type::genome_iterator        genome_iterator;
+    typedef typename genetic_space_type::individual_id_type     individual_id_type;
 
-    typedef crossover_event_generator< RNG, position_type >       event_generator_type;
+    typedef crossover_event_generator< RNG, position_type >     event_generator_type;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
@@ -55,15 +54,21 @@ public:
         m_event_gen.update( parental_genomes->getAlleleSpace().position_begin(), parental_genomes->getAlleleSpace().position_end() );
 
         size_t i = 0;
+        size_t p_step = parental_genomes->getSequenceSpace().block_column_count();
+        size_t c_step = offspring_genomes->getSequenceSpace().block_column_count();
         while( mate_it != mate_end ) {
-            genome_iterator p = parental_genomes->getGenomeAt( mate_it->first );
-            sequence_iterator c = offspring_genomes->getSequenceAt( i++ );
 
-            crossover( p, c, parental_genomes->getAlleleSpace() );
+            genome_iterator start = parental_genomes->begin_genome( mate_it->first );
+            genome_iterator end = parental_genomes->end_genome( mate_it->first );
+            sequence_iterator c = offspring_genomes->begin_sequence( i++ );
+
+            crossover( start, end, c, parental_genomes->getAlleleSpace(), p_step, c_step );
             
-            genome_iterator q = parental_genomes->getGenomeAt( mate_it->second );
-            c = offspring_genomes->getSequenceAt( i++ );
-            crossover( q, c, parental_genomes->getAlleleSpace() );
+            start = parental_genomes->begin_genome( mate_it->second );
+            end = parental_genomes->end_genome( mate_it->second );
+            c = offspring_genomes->begin_sequence( i++ );
+
+            crossover( start, end, c, parental_genomes->getAlleleSpace(), p_step, c_step );
 
             ++mate_it;
         }
@@ -72,16 +77,15 @@ public:
     virtual ~Crossover() {}
 
 protected:
-    void crossover( genome_iterator & p, sequence_iterator & s, allele_type & all ) {
-        typedef typename genome_iterator::pointer_type pointer;
+    void crossover( genome_iterator start, genome_iterator end, sequence_iterator & s, allele_type & all, size_t p_step, size_t s_step ) {
+
+        p_step--;
+
         m_event_gen.generate();
         size_t j = 0;
-        while( p.hasNext() ) {
-            //std::pair< block_type, block_type > g = p.next_pair();
-            pointer tmp = p.next_ptr();
-
-            block_type first = *tmp++;
-            block_type second = *tmp;
+        while( start != end ) {
+            block_type first = *start++;
+            block_type second = *start;
 
             block_type hets = first ^ second;
             block_type sec  = bit_helper_type::ALL_UNSET;   // mask state from second strand
@@ -95,9 +99,12 @@ protected:
             }
 
             hets = ((first & ~sec) | (second & sec));
-            s.write_next( hets );
+            *s = hets;
 
             j += bit_helper_type::BITS_PER_BLOCK;
+
+            start += p_step;
+            s += s_step;
         }
     }
 

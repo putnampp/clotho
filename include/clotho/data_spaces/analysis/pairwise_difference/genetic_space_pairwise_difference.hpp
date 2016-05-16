@@ -20,11 +20,11 @@
 namespace clotho {
 namespace genetics {
 
-template < class AlleleType, class BlockType >
-class pairwise_difference< genetic_space< AlleleType, BlockType > > : public pairwise_difference< typename genetic_space< AlleleType, BlockType >::association_type > {
+template < class AlleleType, class BlockType, class OrganizationType >
+class pairwise_difference< genetic_space< AlleleType, BlockType, OrganizationType > > : public pairwise_difference< typename genetic_space< AlleleType, BlockType, OrganizationType >::association_type > {
 public:
-    typedef pairwise_difference< typename genetic_space< AlleleType, BlockType >::association_type >    base_type;
-    typedef genetic_space< AlleleType, BlockType >                                                      space_type;
+    typedef pairwise_difference< typename genetic_space< AlleleType, BlockType, OrganizationType >::association_type >    base_type;
+    typedef genetic_space< AlleleType, BlockType, OrganizationType >                                       space_type;
 
     void evaluate( space_type & ss ) {
         base_type::evaluate( ss.getSequenceSpace() );

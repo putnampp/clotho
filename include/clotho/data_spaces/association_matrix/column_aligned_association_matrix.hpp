@@ -11,10 +11,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_COLUMN_ALIGNEDASSOCIATION_MATRIX_HPP_
-#define CLOTHO_COLUMN_ALIGNEDASSOCIATION_MATRIX_HPP_
+#ifndef CLOTHO_COLUMN_ALIGNED_ASSOCIATION_MATRIX_HPP_
+#define CLOTHO_COLUMN_ALIGNED_ASSOCIATION_MATRIX_HPP_
 
 #include "clotho/data_spaces/association_matrix/association_matrix_def.hpp"
+#include "clotho/data_spaces/association_matrix/types/column_aligned.hpp"
 
 #include "clotho/data_spaces/growable2D.hpp"
 #include "clotho/utility/bit_helper.hpp"
@@ -34,12 +35,11 @@ namespace genetics {
 
 #endif  // DEBUGGING
 
-struct column_aligned {};
-
 template < class BlockType >
 class association_matrix< BlockType, column_aligned > : public growable2D {
 public:
-    typedef BlockType   block_type;
+    typedef BlockType           block_type;
+    typedef column_aligned      alignment_type;
 
     typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
@@ -154,14 +154,17 @@ public:
         ASSERT_VALID_RANGE( row, 0, m_rows );
         ASSERT_VALID_RANGE( col, 0, m_columns );
 
-        return ((m_data[ block_index( row, col ) ] & bit_helper_type::bit_offset( col )) != 0);
+        size_t idx = block_index( row, col );
+        return ((m_data[ idx ] & bit_helper_type::bit_offset( col )) != 0);
     }
 
     void flip( size_t row, size_t col ) {
         ASSERT_VALID_RANGE( row, 0, m_rows );
         ASSERT_VALID_RANGE( col, 0, m_columns );
 
-        m_data[ block_index( row, col ) ] ^= bit_helper_type::bit_offset( col );
+        size_t idx = block_index( row, col );
+
+        m_data[ idx ] ^= bit_helper_type::bit_offset( col );
     }
 
     void flipColumn( size_t idx ) {
@@ -198,7 +201,7 @@ public:
     }
 
     size_t block_row_count() const {
-        return scale_columns( m_columns );
+        return bit_helper_type::padded_block_count( m_columns );
     }
 
     size_t block_column_count() const {
@@ -206,7 +209,7 @@ public:
     }
 
     size_t block_count() const {
-        return m_rows * scale_columns( m_columns );
+        return m_rows * bit_helper_type::padded_block_count( m_columns );
     }
 
     block_iterator raw_iterator() const {
@@ -217,6 +220,14 @@ public:
         ASSERT_VALID_RANGE( idx, 0, block_column_count() );
 
         return row_iterator( m_data + idx, block_row_count(), block_column_count(), block_column_count() );
+    }
+
+    raw_block_pointer begin_row( size_t idx ) const {
+        return m_data + idx;
+    }
+
+    raw_block_pointer end_row( size_t idx ) const {
+        return m_data + block_count()  + idx;
     }
 
     raw_block_pointer begin_block_row( size_t idx ) const {
@@ -272,13 +283,11 @@ protected:
         return ((col / bit_helper_type::BITS_PER_BLOCK) * m_rows) + row;
     }
 
-    size_t scale_columns( size_t cols ) const {
-        return (cols / bit_helper_type::BITS_PER_BLOCK + 1 );
-    }
 
     void resize( size_t rows, size_t columns ) {
-        size_t block_rows = scale_columns( columns );
-        size_t new_size = rows * block_rows;
+        size_t block_columns = rows;
+        size_t block_rows = bit_helper_type::padded_block_count( columns );
+        size_t new_size = block_columns * block_rows;
 
         if( new_size > m_allocated_size ) {
             if( m_data != NULL ) {
@@ -303,4 +312,4 @@ protected:
 
 #undef ASSERT_VALID_RANGE
 
-#endif  // CLOTHO_COLUMN_ALIGNEDASSOCIATION_MATRIX_HPP_
+#endif  // CLOTHO_COLUMN_ALIGNED_ASSOCIATION_MATRIX_HPP_

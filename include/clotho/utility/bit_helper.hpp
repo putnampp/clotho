@@ -69,6 +69,10 @@ struct BitHelper : public bit_helper< sizeof(T) > {
         return (block_type) low_bit_masks[ MOD_POW2( idx )  ];
     }
 
+    static size_t   padded_block_count( size_t s ) {
+        return (s / base_type::BITS_PER_BLOCK ) + ((MOD_POW2( s )) ? 1 : 0);
+    }
+
 #undef MOD_POW2
 };
 

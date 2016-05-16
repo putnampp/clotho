@@ -44,7 +44,7 @@ public:
     typedef RNG                                                                                     random_engine_type;
 
     typedef clotho::genetics::qtl_allele_vectorized< position_type, weight_type >                   allele_type;
-    typedef clotho::genetics::genetic_space< allele_type, block_type >                              genetic_space_type;
+    typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::row_grouped< 2 > > genetic_space_type;
 
     typedef clotho::genetics::mutation_allocator< random_engine_type, size_t >                      mutation_alloc_type;
     typedef clotho::genetics::MutationGenerator< random_engine_type, genetic_space_type >           mutation_type;

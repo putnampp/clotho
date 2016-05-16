@@ -11,11 +11,12 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_ASSOCIATION_MATRIX_GUARD_HPP_
-#define CLOTHO_ASSOCIATION_MATRIX_GUARD_HPP_
+#ifndef FREQUENCY_EVALUATOR_HPP_
+#define FREQUENCY_EVALUATOR_HPP_
 
-#include "clotho/data_spaces/association_matrix/association_matrix_def.hpp"
-#include "clotho/data_spaces/association_matrix/column_aligned_association_matrix.hpp"
-#include "clotho/data_spaces/association_matrix/row_grouped_association_matrix.hpp"
+#include "clotho/data_spaces/analysis/allele_frequency/frequency_evaluator_def.hpp"
+#include "clotho/data_spaces/analysis/allele_frequency/column_aligned_frequency_evaluator.hpp"
+#include "clotho/data_spaces/analysis/allele_frequency/row_grouped_frequency_evaluator.hpp"
 
-#endif  // CLOTHO_ASSOCIATION_MATRIX_GUARD_HPP_
+#endif  // FREQUENCY_EVALUATOR_HPP_
+

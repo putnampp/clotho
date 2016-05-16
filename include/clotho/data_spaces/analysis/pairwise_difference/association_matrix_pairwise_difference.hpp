@@ -15,10 +15,9 @@
 #define CLOTHO_ASSOCIATION_MATRIX_PAIRWISE_DIFFERENCE_HPP_
 
 #include "clotho/data_spaces/analysis/pairwise_difference/pairwise_difference_def.hpp"
+#include "clotho/data_spaces/analysis/pairwise_difference/pairwise_difference_evaluator.hpp"
 
 #include "clotho/data_spaces/association_matrix.hpp"
-
-#include "clotho/utility/popcount.hpp"
 
 #include <boost/dynamic_bitset.hpp>
 #include <boost/accumulators/accumulators.hpp>
@@ -32,15 +31,17 @@
 namespace clotho {
 namespace genetics {
 
-template < class BlockType >
-class pairwise_difference< association_matrix< BlockType, column_aligned > > {
+template < class BlockType, class AlignmentType >
+class pairwise_difference< association_matrix< BlockType, AlignmentType > > {
 public:
 
-    typedef association_matrix< BlockType, column_aligned >             space_type;
+    typedef association_matrix< BlockType, AlignmentType >              space_type;
     typedef typename space_type::block_type                             block_type;
 
     typedef ac::accumulator_set< size_t, ac::stats< ac::tag::min, ac::tag::mean, ac::tag::max, ac::tag::variance, ac::tag::median > >                                                           result_type;
     typedef boost::dynamic_bitset<>                                     analyzed_set_type;
+
+    typedef pairwise_difference_evaluator< BlockType, AlignmentType >   evaluator_type;
     pairwise_difference( ) { }
 
     void evaluate( space_type & ss ) {
@@ -84,23 +85,22 @@ public:
 protected:
     
     void eval( space_type & ss ) {
-        typedef typename space_type::row_iterator iterator;
+        typedef typename space_type::raw_block_pointer iterator;
+
+        evaluator_type ee( ss.block_count() );
 
         size_t i = m_indices.find_first();
         while( i != analyzed_set_type::npos ) {
             size_t j = m_indices.find_next( i );
             while( j != analyzed_set_type::npos ) {
-                iterator i_it = ss.getRowAt( i ), j_it = ss.getRowAt( j );
 
-                size_t diff = 0;
-                while( i_it.hasNext() && j_it.hasNext() ) {
-                    block_type _i = i_it.next();
-                    block_type _j = j_it.next();
+                iterator i_start = ss.begin_block_column( i );
+                iterator i_end = ss.end_block_column(i);
 
-                    diff += popcount( _i ^ _j );
-                }
+                iterator j_start = ss.begin_block_column( j );
+                iterator j_end = ss.end_block_column(j);
 
-                assert( !( i_it.hasNext() ^ j_it.hasNext() ) ); // both should be false
+                size_t diff = ee( i_start, i_end, j_start, j_end );
 
                 m_results( diff );
 

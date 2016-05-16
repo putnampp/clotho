@@ -11,11 +11,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_ASSOCIATION_MATRIX_GUARD_HPP_
-#define CLOTHO_ASSOCIATION_MATRIX_GUARD_HPP_
+#ifndef CLOTHO_PAIRWISE_DIFFERENCE_EVALUATOR_GUARD_HPP_
+#define CLOTHO_PAIRWISE_DIFFERENCE_EVALUATOR_GUARD_HPP_
 
-#include "clotho/data_spaces/association_matrix/association_matrix_def.hpp"
-#include "clotho/data_spaces/association_matrix/column_aligned_association_matrix.hpp"
-#include "clotho/data_spaces/association_matrix/row_grouped_association_matrix.hpp"
+#include "clotho/data_spaces/analysis/pairwise_difference/pairwise_difference_def.hpp"
+#include "clotho/data_spaces/analysis/pairwise_difference/column_alignment_pairwise_difference.hpp"
+#include "clotho/data_spaces/analysis/pairwise_difference/row_grouped_pairwise_difference.hpp"
 
-#endif  // CLOTHO_ASSOCIATION_MATRIX_GUARD_HPP_
+#endif  // CLOTHO_PAIRWISE_DIFFERENCE_EVALUATOR_GUARD_HPP_

@@ -22,6 +22,8 @@
 
 #include "clotho/utility/state_object.hpp"
 
+#include "clotho/data_spaces/phenotype_evaluator/weight_accumulator.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -32,7 +34,8 @@ public:
 
     typedef GeneticSpaceType                                                    genetic_space_type;
     typedef typename genetic_space_type::block_type                             block_type;
-    typedef typename genetic_space_type::association_type::raw_block_pointer    block_pointer;
+    typedef typename genetic_space_type::association_type                       association_type;
+    typedef typename association_type::raw_block_pointer    block_pointer;
 
     typedef typename genetic_space_type::allele_type            allele_type;
     typedef typename allele_type::weight_type                   weight_type;
@@ -43,8 +46,7 @@ public:
 
     typedef std::vector< trait_vector_type >                    accumulator_type;
 
-
-    typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
+    typedef clotho::genetics::weight_accumulator< allele_type, association_type > evaluator_type;
 
     TraitWeightAccumulator( ) :
         m_trait_weights(NULL)
@@ -70,35 +72,9 @@ public:
 
         if( genomes.getAlleleSpace().isAllNeutral() )   return;
 
-        size_t  M = genomes.getSequenceSpace().block_row_count();
-        
-        size_t i = 0, j = 0;
-        while( i < M ) {
+        evaluator_type eval;
 
-            block_pointer start = genomes.getSequenceSpace().begin_block_row( i );
-            block_pointer end = genomes.getSequenceSpace().end_block_row(i);
-
-            size_t k = 0;
-            while( start != end ) {
-                block_type b = *start++;
-
-                while( b ) {
-                    unsigned int b_idx = bit_walker_type::unset_next_index( b ) + j;
-
-                    weight_pointer t_start = genomes.getAlleleSpace().begin_trait_weight( b_idx );
-                    weight_pointer t_end = genomes.getAlleleSpace().end_trait_weight( b_idx );
-
-                    size_t a = k;
-                    while( t_start != t_end ) {
-                        m_trait_weights[ a++ ] += *t_start++;
-                    }
-                }
-                k += m_trait_count;
-            }
-
-            j += genetic_space_type::association_type::bit_helper_type::BITS_PER_BLOCK;
-            ++i;
-        }
+        eval( genomes.getAlleleSpace(), genomes.getSequenceSpace(), m_trait_weights, m_trait_count );
     }
 
     std::shared_ptr< trait_vector_type >   getTraitAt( size_t idx ) {

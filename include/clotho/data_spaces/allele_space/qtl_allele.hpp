@@ -22,6 +22,7 @@
 #include "clotho/utility/log_helper.hpp"
 
 #include <algorithm>
+#include <iostream>
 
 namespace clotho {
 namespace genetics {
@@ -80,6 +81,9 @@ public:
     }
  
     trait_iterator getTraitIterator( size_t allele_idx ) const {
+        if( !(0 <= allele_idx && allele_idx < m_rows )) {
+            std::cerr << "Allele Index out of bounds: " << allele_idx << " > " << m_rows << std::endl;
+        }
         assert( 0 <= allele_idx && allele_idx < m_rows );
         return trait_iterator( m_weights + allele_idx * m_columns, m_columns );
     }

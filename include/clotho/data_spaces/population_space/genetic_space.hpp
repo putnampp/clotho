@@ -23,10 +23,10 @@
 namespace clotho {
 namespace genetics {
 
-template < class AlleleSpaceType, class BlockType = unsigned long long, class OrganizationType = column_aligned >
+template < class AlleleSpaceType, class BlockType, class OrganizationType >
 class genetic_space : public growable2D {
 public:
-    typedef genetic_space< AlleleSpaceType, BlockType >     self_type;
+    typedef genetic_space< AlleleSpaceType, BlockType, OrganizationType >     self_type;
     typedef AlleleSpaceType                                 allele_type;
 
     typedef BlockType                                       block_type;
@@ -40,10 +40,10 @@ public:
     typedef typename population_type::const_iterator    const_individual_iterator;
 
     typedef association_matrix< BlockType, OrganizationType >   association_type;
-    typedef typename association_type::block_iterator           block_iterator;
+//    typedef typename association_type::block_iterator           block_iterator;
 
-    typedef typename association_type::row_iterator         sequence_iterator;
-    typedef typename association_type::row_pair_iterator    genome_iterator;
+    typedef typename association_type::raw_block_pointer         sequence_iterator;
+    typedef typename association_type::raw_block_pointer    genome_iterator;
 
     typedef double                                          fitness_score_type;
     typedef std::vector< fitness_score_type >               fitness_scores;
@@ -66,13 +66,13 @@ public:
         return m_fitness;
     }
 
-    sequence_iterator    getSequenceAt( size_t idx ) const {
-        return m_assoc_data.getRowAt( idx );
-    }
-
-    block_iterator  getBlockIterator() const {
-        return m_assoc_data.raw_iterator();
-    }
+//    sequence_iterator    getSequenceAt( size_t idx ) const {
+//        return m_assoc_data.getRowAt( idx );
+//    }
+//
+//    block_iterator  getBlockIterator() const {
+//        return m_assoc_data.raw_iterator();
+//    }
 
     template < class FreeIterator >
     void inherit_alleles( self_type * parent_pop, FreeIterator first, FreeIterator last ) {
@@ -81,8 +81,20 @@ public:
         m_alleles.updateFreeSpace( first, last );
     }
 
-    genome_iterator getGenomeAt( individual_id_type idx ) const {
-        return m_assoc_data.getRowPairAt(2 * idx );
+    sequence_iterator begin_sequence( size_t idx ) const {
+        return m_assoc_data.begin_row( idx );
+    }
+
+    sequence_iterator end_sequence( size_t idx ) const {
+        return m_assoc_data.end_row( idx );
+    }
+
+    genome_iterator begin_genome( individual_id_type idx ) const {
+        return m_assoc_data.begin_row(2 * idx);
+    }
+
+    genome_iterator end_genome( individual_id_type idx ) const {
+        return m_assoc_data.end_row(2 * idx);
     }
 
     size_t  allele_count() const {
@@ -162,9 +174,9 @@ namespace clotho {
 namespace utility {
 
 
-template < class AlleleSpaceType, class BlockType >
-struct state_getter< clotho::genetics::genetic_space< AlleleSpaceType, BlockType > > {
-    typedef clotho::genetics::genetic_space< AlleleSpaceType, BlockType > object_type;
+template < class AlleleSpaceType, class BlockType, class OrganizationType >
+struct state_getter< clotho::genetics::genetic_space< AlleleSpaceType, BlockType, OrganizationType > > {
+    typedef clotho::genetics::genetic_space< AlleleSpaceType, BlockType, OrganizationType > object_type;
 
     void operator()( boost::property_tree::ptree & s, object_type & obj ) {
 

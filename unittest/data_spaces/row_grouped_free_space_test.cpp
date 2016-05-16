@@ -22,12 +22,12 @@ typedef double              position_type;
 typedef double              weight_type;
 typedef unsigned long long  block_type;
 typedef clotho::genetics::qtl_allele_vectorized< position_type, weight_type >       allele_type;
-typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::column_aligned > genetic_space_type;
+typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::row_grouped< 2 > > genetic_space_type;
 typedef clotho::genetics::FreeSpaceAnalyzer< genetic_space_type >                   free_space_type;
 
 BOOST_AUTO_TEST_SUITE( test_data_space )
 
-BOOST_AUTO_TEST_CASE( free_space_test ) {
+BOOST_AUTO_TEST_CASE( row_grouped_free_space_test ) {
     size_t  exp_alleles = 200, exp_genomes = 11;
     genetic_space_type  gs;
 

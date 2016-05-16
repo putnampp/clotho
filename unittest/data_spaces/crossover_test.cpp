@@ -30,7 +30,7 @@ typedef double                                              position_type;
 typedef double                                              weight_type;
 typedef unsigned long long                                  block_type;
 typedef qtl_allele_vectorized< position_type, weight_type > allele_type;
-typedef genetic_space< allele_type, block_type >             genetic_space_type;
+typedef genetic_space< allele_type, block_type, clotho::genetics::column_aligned >             genetic_space_type;
 
 BOOST_AUTO_TEST_SUITE( test_data_space )
 

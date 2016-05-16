@@ -31,7 +31,7 @@ typedef double                                                                  
 typedef double                                                                  weight_type;
 typedef unsigned long long                                                      block_type;
 typedef clotho::genetics::qtl_allele_vectorized< position_type, weight_type >   allele_type;
-typedef clotho::genetics::genetic_space< allele_type, block_type >              genetic_space_type;
+typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::column_aligned >              genetic_space_type;
 typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >          trait_accum_type;
 
 typedef typename genetic_space_type::individual_genome_type                     individual_type;

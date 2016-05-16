@@ -28,11 +28,11 @@
 
 BOOST_AUTO_TEST_SUITE( test_data_space )
 
-BOOST_AUTO_TEST_CASE( trait_accum_size_test ) {
+BOOST_AUTO_TEST_CASE( row_grouped_trait_accum_size_test ) {
 
     typedef clotho::genetics::qtl_allele_vectorized< double, double >           allele_type;
     typedef unsigned long long                                                  block_type;
-    typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::column_aligned >          genetic_space_type;
+    typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::row_grouped< 2 > >          genetic_space_type;
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >      trait_accumulator_type;
 
     size_t exp_alleles = 12, exp_genomes = 110, exp_traits = 15;
@@ -60,12 +60,12 @@ BOOST_AUTO_TEST_CASE( trait_accum_size_test ) {
     }
 }
 
-BOOST_AUTO_TEST_CASE( trait_accum_update_test ) {
+BOOST_AUTO_TEST_CASE( row_grouped_trait_accum_update_test ) {
 
     typedef double                                                              weight_type;
     typedef clotho::genetics::qtl_allele_vectorized< double, weight_type >      allele_type;
     typedef unsigned long long                                                  block_type;
-    typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::column_aligned >          genetic_space_type;
+    typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::row_grouped< 2 > >          genetic_space_type;
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >      trait_accumulator_type;
 
     typedef typename allele_type::trait_iterator                                trait_iterator;
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test ) {
     boost::random::uniform_int_distribution< unsigned int > int_dist( 1, 200 );
 
 
-    size_t exp_alleles = int_dist(rand_engine), exp_genomes = int_dist( rand_engine ), exp_traits = int_dist(rand_engine);
+    size_t exp_alleles = 4 * int_dist(rand_engine), exp_genomes = int_dist( rand_engine ), exp_traits = int_dist(rand_engine);
 
     genetic_space_type  gs;
 
@@ -88,13 +88,14 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test ) {
     gs.getAlleleSpace().grow( exp_alleles, exp_traits );
 
     gs.getSequenceSpace().clear();
+    BOOST_REQUIRE_MESSAGE( gs.getSequenceSpace().row_count() == 2 * exp_genomes, "Unexpect number of sequences for given genomes" );
 
     size_t i = 0, j = 0;
 
     boost::random::uniform_int_distribution< unsigned int > seq_int( 0, 2 * exp_genomes - 1 );
     boost::random::uniform_int_distribution< unsigned int > all_gen( 0, exp_alleles - 1 );
 
-    boost::random::uniform_int_distribution< unsigned int > cnt_gen(1, 2 * exp_genomes * exp_alleles );
+    boost::random::uniform_int_distribution< unsigned int > cnt_gen(1, 2 * exp_genomes * exp_alleles - 1 );
 
     unsigned int C = cnt_gen( rand_engine );
 
@@ -163,12 +164,12 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test ) {
     }
 }
 
-BOOST_AUTO_TEST_CASE( trait_accum_update_test2 ) {
+BOOST_AUTO_TEST_CASE( row_grouped_trait_accum_update_test2 ) {
 
     typedef double                                                              weight_type;
     typedef clotho::genetics::qtl_allele_vectorized< double, weight_type >      allele_type;
     typedef unsigned long long                                                  block_type;
-    typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::column_aligned >          genetic_space_type;
+    typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::row_grouped< 2 > >          genetic_space_type;
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >      trait_accumulator_type;
 
     typedef typename allele_type::trait_iterator                                trait_iterator;
@@ -179,7 +180,7 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test2 ) {
     typedef typename genetic_space_type::sequence_iterator                      sequence_iterator;
 
     typedef typename genetic_space_type::association_type::bit_helper_type      bit_helper_type;
-    typedef typename trait_accumulator_type::evaluator_type::bit_walker_type    bit_walker_type;
+    typedef typename trait_accumulator_type::evaluator_type::bit_walker_type                    bit_walker_type;
 
     clotho::utility::timer t;
 
@@ -188,7 +189,7 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test2 ) {
     boost::random::uniform_int_distribution< unsigned int > int_dist( 1, 200 );
 
 
-    size_t exp_alleles = int_dist(rand_engine), exp_genomes = int_dist( rand_engine ), exp_traits = int_dist(rand_engine);
+    size_t exp_alleles = 4 * int_dist(rand_engine), exp_genomes = int_dist( rand_engine ), exp_traits = int_dist(rand_engine);
 
     genetic_space_type  gs;
 
@@ -202,7 +203,7 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test2 ) {
     boost::random::uniform_int_distribution< unsigned int > seq_int( 0, 2 * exp_genomes - 1 );
     boost::random::uniform_int_distribution< unsigned int > all_gen( 0, exp_alleles - 1 );
 
-    boost::random::uniform_int_distribution< unsigned int > cnt_gen(1, 2 * exp_genomes * exp_alleles );
+    boost::random::uniform_int_distribution< unsigned int > cnt_gen(1, 2 * exp_genomes * exp_alleles - 1 );
 
     unsigned int C = cnt_gen( rand_engine );
 
@@ -240,15 +241,13 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test2 ) {
         sequence_iterator first = gs.begin_sequence(i);
         sequence_iterator last = gs.end_sequence(i);
 
-        size_t step = gs.getSequenceSpace().block_column_count();
-
         while( first != last ) {
             block_type b = *first;
 
             while( b ) {
-                unsigned int idx = bit_walker_type::unset_next_index(b);
+                size_t idx = j + bit_walker_type::unset_next_index(b);
 
-                trait_iterator it = gs.getAlleleSpace().getTraitIterator( j + idx );
+                trait_iterator it = gs.getAlleleSpace().getTraitIterator( idx );
                 size_t k = 0;
                 while( it.hasNext() ) {
                     weight_type r = it.next();
@@ -257,7 +256,7 @@ BOOST_AUTO_TEST_CASE( trait_accum_update_test2 ) {
             }
 
             j += bit_helper_type::BITS_PER_BLOCK;
-            first += step;
+            first += genetic_space_type::association_type::alignment_type::GROUP_SIZE;
         }
         bool eq = true;
         j = 0;
