@@ -26,5 +26,6 @@ LIST(APPEND DATA_SPACE_SRCS linear_phenotype_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS row_grouped_genetic_space_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS row_grouped_free_space_test.cpp )
 LIST(APPEND DATA_SPACE_SRCS row_grouped_trait_accumulator_test.cpp )
+LIST(APPEND DATA_SPACE_SRCS row_grouped_crossover_test.cpp )
 
 ADD_LIBRARY(${PROJECT_NAME}_data_spaces_test SHARED ${DATA_SPACE_SRCS} )

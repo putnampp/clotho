@@ -45,11 +45,6 @@ public:
             block_pointer start = seqs.begin_row( i );
             block_pointer end = seqs.end_row(i);
 
-            std::cerr << "Testing " << i << ":" << start << ", " << end << " [" << (end - start) << "]" << std::endl;
-
-            std::cerr << "Allele Count: " << alls.size() << std::endl;
-            std::cerr << "Block Count: " << seqs.block_column_count() << std::endl;
-
             size_t j = 0;
             while( start != end ) {
 

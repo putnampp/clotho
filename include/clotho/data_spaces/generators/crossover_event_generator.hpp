@@ -15,10 +15,12 @@
 #define CLOTHO_CROSSOVER_EVENT_GENERATOR_HPP_
 
 #include <boost/property_tree/ptree.hpp>
+#include <boost/random/bernoulli_distribution.hpp>
 #include <cstring>
 #include <iostream>
 
 #include "clotho/recombination/recombination_rate_parameter.hpp"
+#include "clotho/recombination/sequence_bias_parameter.hpp"
 #include "clotho/data_spaces/generators/position_distribution_helper.hpp"
 #include "clotho/data_spaces/generators/crossover_event_distribution_helper.hpp"
 
@@ -35,6 +37,8 @@ public:
     typedef typename position_distribution_helper< PositionType >::type position_distribution_type;
     
     typedef crossover_event_distribution_helper< double > event_distribution_helper_type;
+
+    typedef boost::random::bernoulli_distribution< double > sequence_bias_distribution_type;
 
     typedef typename event_distribution_helper_type::IntType    IntType;
     typedef typename event_distribution_helper_type::type       event_distribution_type;
@@ -57,6 +61,9 @@ public:
         recombination_rate_parameter< double > rho( config);
 
         m_event_dist.param( typename event_distribution_type::param_type( rho.m_rho ) );
+
+        sequence_bias_parameter< double > bias( config );
+        m_seq_bias.param( typename sequence_bias_distribution_type::param_type( bias.m_bias ) );
     }
 
     // copy the genetic position of all alleles into a local vector
@@ -76,19 +83,22 @@ public:
     }
 
     // generate a new event distribution
-    void generate() {
+    size_t generate() {
         // clear the counts
-        IntType e = m_event_dist( *m_rand );    // generate the maximum number of events
+        IntType N = m_event_dist( *m_rand );    // generate the maximum number of events
 
-        resize( e );
+        setBaseSequence( m_seq_bias( *m_rand ) );
+
+        resize( N );
 
         size_t prev = 0;
         position_type accum = 0.0;
 
         size_t i = 0;
-        while( e ) {
+        position_type e = (position_type)(N);
+        while( e > (position_type) 0 ) {
             position_type p = m_pos_dist( *m_rand );
-            accum += log( p ) / (position_type) e;
+            accum += log( p ) / e;
 
             p = (1.0 - exp( accum ));
 
@@ -102,13 +112,15 @@ public:
             m_events[ i++ ] = p;
             m_counts[ cur ] = i;
             prev = cur;
-            --e;
+            e -= 1.0;
         }
 
         while( prev <= BIN_MAX ) {
             m_counts[ prev++ ] = i;
         }
 
+        assert( i == N );
+        return N;
     }
 
     // test whether the genetic position at the given index
@@ -127,7 +139,15 @@ public:
 
         while( lo < hi && m_events[lo] < p ){ ++lo; }
 
-        return (lo & 1);    // % 2
+        return (m_base_seq ^ (lo & 1));    // % 2
+    }
+
+    void setBaseSequence( bool is_base ) {
+        m_base_seq = ((is_base) ? 0 : 1);
+    }
+
+    size_t getBaseSequence() {
+        return m_base_seq;;
     }
 
     virtual ~crossover_event_generator() {
@@ -160,6 +180,9 @@ protected:
     size_t              m_events_size;
 
     size_t              m_counts[ BIN_MAX + 1 ];
+
+    sequence_bias_distribution_type m_seq_bias;
+    size_t              m_base_seq;
 };
 
 }   // namespace genetics

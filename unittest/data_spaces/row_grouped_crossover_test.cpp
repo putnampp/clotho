@@ -30,11 +30,11 @@ typedef double                                              position_type;
 typedef double                                              weight_type;
 typedef unsigned long long                                  block_type;
 typedef qtl_allele_vectorized< position_type, weight_type > allele_type;
-typedef genetic_space< allele_type, block_type, clotho::genetics::column_aligned >             genetic_space_type;
+typedef genetic_space< allele_type, block_type, clotho::genetics::row_grouped< 2 > >             genetic_space_type;
 
 BOOST_AUTO_TEST_SUITE( test_data_space )
 
-BOOST_AUTO_TEST_CASE( crossover_test ) {
+BOOST_AUTO_TEST_CASE( row_grouped_crossover_test ) {
     typedef Crossover< random_engine_type, genetic_space_type > crossover_type;
 
     typedef typename crossover_type::mate_pair_type mate_pair_type;
@@ -89,25 +89,25 @@ BOOST_AUTO_TEST_CASE( crossover_test ) {
     xover.update( &parents, mates, &offspring );
 
     bool obs_state = offspring.getSequenceSpace()(0, 28);        // offspring should be set at 28
-    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring from first parent at allele 28");
+    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring at allele 28");
 
     obs_state = offspring.getSequenceSpace()(1, 77);
-    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring from second parent at allele 77");
+    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring at allele 77");
 
     obs_state = offspring.getSequenceSpace()(1, 33 );
-    BOOST_REQUIRE_MESSAGE( !obs_state, "Unexpected state for offspring from second parent at allele 33" );
+    BOOST_REQUIRE_MESSAGE( !obs_state, "Unexpected state for offspring at allele 33" );
 
     obs_state = offspring.getSequenceSpace()( 1, 88 );  // after recombination we expect this to be set
-    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring from second parent at allele 88" );
+    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring at allele 88" );
 
     obs_state = offspring.getSequenceSpace()( 1, 99 );  // after recombination we expect this to be unset
-    BOOST_REQUIRE_MESSAGE( !obs_state, "Unexpected state for offspring from second parent at allele 99" );
+    BOOST_REQUIRE_MESSAGE( !obs_state, "Unexpected state for offspring at allele 99" );
 
     obs_state = offspring.getSequenceSpace()( 1, 22 );  // after recombination we expect this to be set
-    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring from second parent at allele 22" );
+    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring at allele 22" );
 
     obs_state = offspring.getSequenceSpace()( 1, 15 );  // after recombination we expect this to be set
-    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring from second parent at allele 15" );
+    BOOST_REQUIRE_MESSAGE( obs_state, "Unexpected state for offspring at allele 15" );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
