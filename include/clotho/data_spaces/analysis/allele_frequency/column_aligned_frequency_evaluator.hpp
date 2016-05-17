@@ -32,9 +32,9 @@ struct frequency_evaluator< association_matrix< BlockType, column_aligned > > {
 
     typedef size_t *                                        result_type;
 
-    void operator()( space_type & ss, boost::dynamic_bitset<> & indices, result_type * res ) {
+    void operator()( space_type & ss, boost::dynamic_bitset<> & indices, result_type res ) {
         size_t M = ss.column_count();
-        size_t N = ss.block_column_count();
+//        size_t N = ss.block_column_count();
 
         size_t buffer[ bit_helper_type::BITS_PER_BLOCK ];
         memset( buffer, 0, bit_helper_type::BITS_PER_BLOCK * sizeof( size_t ) );
