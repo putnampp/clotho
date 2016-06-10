@@ -71,8 +71,7 @@ public:
                     }
                 }
 
-                hets = ((first & ~sec) | (second & sec));
-                *s = hets;
+                *s = ((first & ~sec) | (second & sec));
 
                 j += bit_helper_type::BITS_PER_BLOCK;
 
@@ -80,15 +79,19 @@ public:
             }
         } else {
             if( m_event_gen.getBaseSequence() != 0 ) {
+
                 ++start;
                 ++end;
             }
 
+            size_t j = 0;
             while( start != end ) {
                 *s = *start;
 
                 start += row_grouped< 2 >::GROUP_SIZE;
                 s += row_grouped< 2 >::GROUP_SIZE;
+
+                j += bit_helper_type::BITS_PER_BLOCK;
             }
         }
     }

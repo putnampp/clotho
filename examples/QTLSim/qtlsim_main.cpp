@@ -182,10 +182,10 @@ void population_analyzer::operator()( boost::property_tree::ptree & log ) {
     pairwise_diff_type pd;
 
     if( m_pop ) {
-//        af.evaluate( *m_pop );
+        af.evaluate( *m_pop );
 //        pd.evaluate( *m_pop );
     } else if( m_samp ) {
-//        af.evaluate( *m_samp->getPopulation(), m_samp->begin(), m_samp->end() );
+        af.evaluate( *m_samp->getPopulation(), m_samp->begin(), m_samp->end() );
 //        pd.evaluate( *m_samp->getPopulation(), m_samp->begin(), m_samp->end() );
     } else {
         assert( false );

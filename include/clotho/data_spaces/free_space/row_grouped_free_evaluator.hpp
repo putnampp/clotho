@@ -47,6 +47,9 @@ public:
         size_t fo = fixed_offset;
         size_t lo = lost_offset;
         size_t fr = free_count;
+        
+        block_type * fx_ptr = tmp;
+        block_type * var_ptr = tmp + W;
 
         size_t k = 0;
         while( k < row_count ) {
@@ -54,28 +57,33 @@ public:
             block_pointer start = ss.begin_block_row( k );
             block_pointer end = ss.end_block_row( k );
 
-            size_t fix_idx = 0, var_idx = W;
-            while( start != end ) {
-                block_type fx = bit_helper_type::ALL_SET;
-                block_type var = bit_helper_type::ALL_UNSET;
+            fx_ptr = tmp;
+            var_ptr = tmp + W;
 
-                size_t i = row_grouped< P >::GROUP_SIZE;
-                while( i-- ) {
-                    block_type b = *start++;
-                    fx &= b;
-                    var |= b;
+            size_t i = 0; 
+            while( start != end ) {
+                block_type b = *start++;
+                *fx_ptr &= b;
+                *var_ptr |= b;
+                if( ++i == row_grouped< P >::GROUP_SIZE ) {
+                    ++fx_ptr;
+                    ++var_ptr;
+                    i = 0;
                 }
-                tmp[ fix_idx++ ] &= fx;
-                tmp[ var_idx++ ] |= var;
             }
+
+            assert(fx_ptr == tmp + W);
 
             k += row_grouped< P >::GROUP_SIZE;
         }
 
-        size_t fix_idx = 0, var_idx = W, j = 0;
-        while( fix_idx < W ) {
-            block_type fx = tmp[ fix_idx++ ];
-            block_type var = tmp[ var_idx++ ];
+        size_t j = 0;
+        
+        fx_ptr = tmp;
+        var_ptr = tmp + W;
+        while( fx_ptr != tmp + W ) {
+            block_type fx = *fx_ptr++;
+            block_type var = *var_ptr++;
 
             block_type ls = ~(fx | var);
 

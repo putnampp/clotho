@@ -78,6 +78,7 @@ public:
     void inherit_alleles( self_type * parent_pop, FreeIterator first, FreeIterator last ) {
 
         m_alleles.inherit( parent_pop->m_alleles );
+        m_alleles.trimFreeSpace( parent_pop->m_alleles.size() );
         m_alleles.updateFreeSpace( first, last );
     }
 

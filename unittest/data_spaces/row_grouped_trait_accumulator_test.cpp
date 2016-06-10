@@ -26,6 +26,8 @@
 #include "clotho/data_spaces/population_space/genetic_space.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/trait_accumulator.hpp"
 
+#include <set>
+
 BOOST_AUTO_TEST_SUITE( test_data_space )
 
 BOOST_AUTO_TEST_CASE( row_grouped_trait_accum_size_test ) {
@@ -99,10 +101,12 @@ BOOST_AUTO_TEST_CASE( row_grouped_trait_accum_update_test ) {
 
     unsigned int C = cnt_gen( rand_engine );
 
+    std::set< size_t > p_i, p_j;
+
     // flip some bits
     while( C-- ) {
-        i = seq_int( rand_engine);
-        j = all_gen( rand_engine);   
+        i = seq_int(rand_engine);
+        j = all_gen(rand_engine); 
         gs.getSequenceSpace().flip( i, j);
     }
 

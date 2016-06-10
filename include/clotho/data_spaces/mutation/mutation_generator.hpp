@@ -46,6 +46,7 @@ public:
             size_t all_idx = child->getAlleleSpace().next_free();
 
             assert( all_idx != -1 );
+            assert( all_idx < child->getSequenceSpace().column_count() );
 
             child->getSequenceSpace().flip( seq_idx, all_idx );
             m_allele_gen( child->getAlleleSpace(), all_idx );

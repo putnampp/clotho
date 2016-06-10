@@ -62,6 +62,8 @@ public:
         m_method.initAlleles( parental_genomes->getAlleleSpace() );
 
 //        m_event_gen.update( parental_genomes->getAlleleSpace().position_begin(), parental_genomes->getAlleleSpace().position_end() );
+//
+        offspring_genomes->getSequenceSpace().clear();
 
         size_t i = 0;
         size_t p_step = parental_genomes->getSequenceSpace().block_column_count();

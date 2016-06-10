@@ -15,13 +15,15 @@
 #define CLOTHO_BASE_ALLELE_HPP_
 
 #include <vector>
-#include <deque>
+//#include <deque>
 
 #include "clotho/data_spaces/growable1D.hpp"
 
 #include <iostream>
 
 #include "clotho/utility/state_object.hpp"
+
+#include <boost/dynamic_bitset.hpp>
 
 namespace clotho {
 namespace genetics {
@@ -36,9 +38,9 @@ public:
     typedef typename position_vector_type::iterator             position_iterator;
     typedef typename position_vector_type::const_iterator       const_position_iterator;
 
-    typedef std::deque< size_t >                                free_vector_type;
-    typedef typename free_vector_type::iterator                 free_iterator;
-    typedef typename free_vector_type::const_iterator           const_free_iterator;
+    typedef boost::dynamic_bitset< unsigned int >               free_vector_type;
+//    typedef typename free_vector_type::iterator                 free_iterator;
+//    typedef typename free_vector_type::const_iterator           const_free_iterator;
 
     base_allele_vectorized( size_t a = 0 ) {
         this->grow( a );
@@ -77,12 +79,10 @@ public:
     }
 
     size_t next_free() {
-        if( m_free.empty() ) {
-            return -1;
+        size_t res = m_free.find_first();
+        if( res != free_vector_type::npos ) {
+            m_free.reset( res );
         }
-
-        size_t res = m_free.front();
-        m_free.pop_front();
         return res;
     }
 
@@ -96,33 +96,38 @@ public:
         return m_positions.size();
     }
 
+    void trimFreeSpace( size_t parent_size ) {
+        while(parent_size < size() ) {
+            m_free.set( parent_size++ );
+        }       
+    }
+
     template < class Iterator >
     void updateFreeSpace( Iterator start, Iterator end ) {
         while( start != end ) {
-            m_free.push_back( *start );
-            ++start;
+            m_free.set( *start++);
         }
     }
 
-    size_t      free_size() const {
-        return m_free.size();
-    }
-
-    free_iterator free_begin() {
-        return m_free.begin();
-    }
-
-    free_iterator free_end() {
-        return m_free.end();
-    }
-    
-    const_free_iterator free_begin() const {
-        return m_free.begin();
-    }
-
-    const_free_iterator free_end() const {
-        return m_free.end();
-    }
+//    size_t      free_size() const {
+//        return m_free.size();
+//    }
+//
+//    free_iterator free_begin() {
+//        return m_free.begin();
+//    }
+//
+//    free_iterator free_end() {
+//        return m_free.end();
+//    }
+//    
+//    const_free_iterator free_begin() const {
+//        return m_free.begin();
+//    }
+//
+//    const_free_iterator free_end() const {
+//        return m_free.end();
+//    }
 
     void push_back( self_type & other, size_t idx ) {
         size_t e = this->m_positions.size();
@@ -137,16 +142,12 @@ public:
 protected:
 
     virtual void resize( size_t s ) {
-        size_t n = m_positions.size();
-
         m_positions.resize( s );
 
         size_t m = m_positions.size();
 
-        while( n < m ) {
-            m_free.push_back( n );
-            ++n;
-        }
+        m_free.resize( m );
+        m_free.reset();
     }
 
     position_vector_type            m_positions;

@@ -37,7 +37,10 @@ struct frequency_evaluator< association_matrix< BlockType, row_grouped< P > > > 
         size_t N = ss.row_count();
         size_t i = 0;
         while ( i < N ) {
-            if( !indices[i] ) continue;
+            if( !indices.test(i) ) {
+                ++i;
+                continue;
+            }
 
             iterator start = ss.begin_row(i);
             iterator end = ss.end_row(i);

@@ -38,10 +38,10 @@ public:
         , m_mut_rate( config )
     {}
 
-    int_type allocate( size_t pop_size ) {
+    int_type allocate( size_t N ) {
         typedef typename distribution_type::param_type param_type;
 
-        m_dist.param( param_type( 2.0 * m_mut_rate.m_mu * pop_size ) );
+        m_dist.param( param_type( m_mut_rate.m_mu * N ) );
 
         return m_dist( *m_rand );
     }

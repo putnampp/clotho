@@ -44,8 +44,8 @@ public:
     typedef RNG                                                                                     random_engine_type;
 
     typedef clotho::genetics::qtl_allele_vectorized< position_type, weight_type >                   allele_type;
-    typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::column_aligned > genetic_space_type;
-//    typedef clotho::genetics::genetic_space< allele_type, block_type, clotho::genetics::row_grouped< 2 > > genetic_space_type;
+
+    typedef clotho::genetics::genetic_space< allele_type, block_type, __ALIGNMENT_TYPE__ > genetic_space_type;
 
     typedef clotho::genetics::mutation_allocator< random_engine_type, size_t >                      mutation_alloc_type;
     typedef clotho::genetics::MutationGenerator< random_engine_type, genetic_space_type >           mutation_type;
@@ -110,9 +110,10 @@ public:
             pN = m_pop_growth->operator()( pN, generation );
         }
 
-        size_t pM = m_mut_alloc.allocate( pN );        // generate the number of new mutations
-
-//        std::cerr << "Generation " << generation << ": " << pN << " individuals; " << pM << " new alleles" << std::endl;
+        size_t pM = m_mut_alloc.allocate( 2 * pN );        // generate the number of new mutations
+#ifdef _DEBUGGING_
+        std::cerr << "Generation " << generation << ": " << pN << " individuals; " << pM << " new alleles" << std::endl;
+#endif  // _DEBUGGING_
 
         select_gen.update( m_parent, pN );
 
@@ -207,6 +208,21 @@ protected:
 
             m_fixed.push_back( gs->getAlleleSpace(), fixed_index );
         }
+
+#ifdef _DEBUGGING_
+        typedef typename free_space_type::iterator free_iterator;
+        free_iterator fr_it = m_free_space.free_begin();
+        free_iterator fr_end = m_free_space.free_end();
+
+        while( fr_it != fr_end ) {
+            size_t i = *fr_it++;
+
+            if( !gs->getSequenceSpace().freeColumn( i ) ) {
+                std::cerr << "Column is not actually free: " << i << " out of " << gs->getAlleleSpace().size() << std::endl;
+                assert(false);
+            }
+        }
+#endif // _DEBUGGING_
     }
 
     random_engine_type  * m_rand;

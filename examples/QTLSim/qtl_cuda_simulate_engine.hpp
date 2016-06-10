@@ -160,7 +160,7 @@ public:
         all_freq.evaluate( current_pop );
         seq_weight.evaluate( current_pop );
 
-        pair_diff.evaluate( current_pop );
+        //pair_diff.evaluate( current_pop );
 
         cudaDeviceSynchronize();
     }
@@ -170,12 +170,12 @@ public:
 
         SamplePopulation< population_space_type > samps( current_pop, N );
 
-        pair_diff.evaluate( current_pop, samps.m_dSubpop );
+//        pair_diff.evaluate( current_pop, samps.m_dSubpop );
 
         cudaDeviceSynchronize();
         t.stop();
 
-        pair_diff.get_state( samp_res );
+//        pair_diff.get_state( samp_res );
         samp_res.put( "rt", t.elapsed_long());
     }
 
@@ -196,7 +196,7 @@ public:
         boost::property_tree::ptree asis;
         all_freq.get_state( asis );
         seq_weight.get_state( asis );
-        pair_diff.get_state( asis );
+//        pair_diff.get_state( asis );
 
         boost::property_tree::ptree fit;
         fit_trans.get_state( fit );

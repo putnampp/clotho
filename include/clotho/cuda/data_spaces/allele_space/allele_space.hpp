@@ -73,18 +73,18 @@ protected:
 _HEADER
 _CLASS::AlleleSpace( boost::property_tree::ptree & config ) : dAlleles( NULL ) {
 
-    boost::property_tree::ptree all, neu;
+    boost::property_tree::ptree /*all,*/ neu;
 
-    all = config.get_child( ALLELE_BLOCK_K, all );
-    neu = all.get_child(NEUTRAL_BLOCK_K, neu );
+//    all = config.get_child( ALLELE_BLOCK_K, all );
+    neu = config.get_child(NEUTRAL_BLOCK_K, neu );
 
     real_type p = neu.get< real_type >( P_K, 0.0 );
 
     assert( 0.0 <= p && p <= 1.0 );
 
     neu.put( P_K, p );
-    all.put_child( NEUTRAL_BLOCK_K, neu );
-    config.put_child( ALLELE_BLOCK_K, all );
+    config.put_child( NEUTRAL_BLOCK_K, neu );
+//    config.put_child( ALLELE_BLOCK_K, neu );
 
     initialize();
 

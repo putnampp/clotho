@@ -144,6 +144,9 @@ public:
     }
 
     weight_pointer begin_trait_weight( size_t idx ) {
+        if(!( 0 <= idx && idx < allele_count()) ) {
+            std::cerr << "Trait out of range: " << idx << " [ " << allele_count() << " ]" << std::endl;
+        }
         assert( 0 <= idx && idx < allele_count() );
 
         return m_weights + idx * trait_count();

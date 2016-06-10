@@ -87,18 +87,18 @@ protected:
     void eval( space_type & ss ) {
         typedef typename space_type::raw_block_pointer iterator;
 
-        evaluator_type ee( ss.block_count() );
+        evaluator_type ee( ss.block_column_count() );
 
         size_t i = m_indices.find_first();
         while( i != analyzed_set_type::npos ) {
             size_t j = m_indices.find_next( i );
             while( j != analyzed_set_type::npos ) {
 
-                iterator i_start = ss.begin_block_column( i );
-                iterator i_end = ss.end_block_column(i);
+                iterator i_start = ss.begin_row( i );
+                iterator i_end = ss.end_row(i);
 
-                iterator j_start = ss.begin_block_column( j );
-                iterator j_end = ss.end_block_column(j);
+                iterator j_start = ss.begin_row( j );
+                iterator j_end = ss.end_row(j);
 
                 size_t diff = ee( i_start, i_end, j_start, j_end );
 

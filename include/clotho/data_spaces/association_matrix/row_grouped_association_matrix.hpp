@@ -69,12 +69,32 @@ public:
         return ((m_data[ idx ] & bit_helper_type::bit_offset( col )) != 0);
     }
 
-    void flip( size_t row, size_t col ) {
+    size_t flip( size_t row, size_t col ) {
         ASSERT_VALID_RANGE( row, 0, m_rows );
         ASSERT_VALID_RANGE( col, 0, m_columns );
 
         size_t idx = block_index( row, col, m_bpr );
+#ifdef DEBUGGING
+        assert( (m_data[ idx ] & bit_helper_type::bit_offset( col )) == 0 );
+#endif  // DEBUGGING
+
         m_data[ idx ] ^= bit_helper_type::bit_offset( col );
+
+        return idx + col;
+    }
+
+    bool freeColumn( size_t fr_idx ) {
+        block_type mask = bit_helper_type::bit_offset( fr_idx );
+
+        size_t i = 0;
+        bool is_free = true;
+        while( is_free && i < m_rows ) {
+            size_t idx = block_index( i++, fr_idx, m_bpr );
+
+            is_free = ((m_data[idx] & mask) == 0);
+            if( !is_free) std::cerr << "Row " << (i - 1) << " at " << idx << " [" << (m_data + idx) << "] -> " << std::hex << (m_data[idx] & mask) << std::dec << std::endl;
+        }
+        return is_free;
     }
 
     void flipColumn( size_t fixed_index ) {
@@ -83,6 +103,10 @@ public:
         size_t i = 0;
         while( i < m_rows ) {
             size_t idx = block_index( i++, fixed_index, m_bpr );
+
+#ifdef DEBUGGING
+            assert( (m_data[idx] & mask) != 0 );
+#endif  // DEBUGGING
             m_data[ idx ] ^= mask;
         }
     }
@@ -159,7 +183,8 @@ protected:
     void resize( size_t r, size_t c ) {
         size_t blocks_per_row =  bit_helper_type::padded_block_count( c );
 
-        size_t new_size = r * blocks_per_row;
+        size_t padded_rows = r + (row_grouped< P >::GROUP_SIZE - (r % row_grouped< P >::GROUP_SIZE) );
+        size_t new_size = padded_rows * blocks_per_row;
 
         if( new_size > m_allocated_size ) {
             if( m_data != NULL ) {
@@ -169,6 +194,10 @@ protected:
             m_data = new block_type[ new_size ];
 
             m_allocated_size = new_size;
+
+            assert( m_data != NULL );
+
+            clear();
         }
 
         m_rows = r;

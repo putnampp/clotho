@@ -170,11 +170,16 @@ protected:
             }
 
             m_results = new size_t[ M ];
+
+            m_allocated_size = M;
         }
 
         m_size = M;
 
+        memset( m_results, 0, sizeof(size_t) * m_allocated_size );
+
         m_indices.resize( ss.row_count() );
+
     }
 
     result_type         m_results;
