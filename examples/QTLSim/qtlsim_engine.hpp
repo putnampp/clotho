@@ -38,7 +38,7 @@ public:
 
     typedef double                      position_type;
     typedef double                      weight_type;
-    typedef std::vector< double >       phenotype_type;
+    typedef weight_type *               phenotype_type;
     typedef unsigned long long          block_type;
 
     typedef RNG                                                                                     random_engine_type;

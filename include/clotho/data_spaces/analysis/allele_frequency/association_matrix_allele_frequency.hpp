@@ -28,6 +28,7 @@
 #include <boost/accumulators/statistics/min.hpp>
 #include <boost/accumulators/statistics/max.hpp>
 #include <boost/accumulators/statistics/variance.hpp>
+#include <boost/accumulators/statistics/count.hpp>
 
 namespace ac = boost::accumulators;
 
@@ -94,25 +95,32 @@ public:
                     
         result_type b = m_results, e = m_results + m_size;
  
-        typedef ac::accumulator_set< size_t, ac::stats< ac::tag::min, ac::tag::mean, ac::tag::max, ac::tag::variance, ac::tag::median > > accumulator_t;
+        typedef ac::accumulator_set< size_t, ac::stats< ac::tag::min, ac::tag::mean, ac::tag::max, ac::tag::variance, ac::tag::median, ac::tag::count > > accumulator_t;
 
         accumulator_t   accum;       
 
-        boost::property_tree::ptree dist;
+        boost::property_tree::ptree dist, lfreq;
+
+        std::vector< size_t > freq( m_indices.size(), 0 );
         
         while( b != e ) {
             size_t v = *b++;
             clotho::utility::add_value_array( dist, v );
             accum( v );
+            freq[v]++;
         }
 
+        clotho::utility::add_value_array(lfreq, freq.begin(), freq.end() );
+
         log.put_child( "distribution", dist );
+        log.put_child( "frequency_distribution", lfreq );
 
         log.put( "min", ac::min( accum ) );
         log.put( "max", ac::max( accum ) );
         log.put( "mean", ac::mean( accum ) );
         log.put( "median", ac::median( accum ) );
         log.put( "variance", ac::variance( accum ) );
+        log.put( "total", ac::count(accum) );
     }
 
     virtual ~allele_frequency() {

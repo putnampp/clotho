@@ -62,6 +62,45 @@ struct frequency_evaluator< association_matrix< BlockType, row_grouped< P > > > 
     }
 };
 
+template < class BlockType >
+struct frequency_evaluator< association_matrix< BlockType, row_grouped< 1 > > > {
+    typedef association_matrix< BlockType, row_grouped< 1 > > space_type;
+    typedef typename space_type::block_type                 block_type;
+    typedef size_t *                                        result_type;
+
+    typedef typename space_type::bit_helper_type                        bit_helper_type;
+    typedef typename clotho::utility::debruijn_bit_walker< block_type > bit_walker_type;
+
+    void operator()( space_type & ss, boost::dynamic_bitset<> & indices, result_type res ) {
+        typedef typename space_type::raw_block_pointer iterator;
+
+        size_t N = ss.row_count();
+        size_t i = 0;
+        while ( i < N ) {
+            if( !indices.test(i) ) {
+                ++i;
+                continue;
+            }
+
+            iterator start = ss.begin_row(i);
+            iterator end = ss.end_row(i);
+
+            size_t j = 0;
+            while( start != end ) {
+                block_type b = *start++;
+
+                while( b ) {
+                    unsigned int b_idx = bit_walker_type::unset_next_index( b ) + j;
+                    res[ b_idx ] += 1;
+                }
+                
+                j += bit_helper_type::BITS_PER_BLOCK;
+            }
+            ++i;
+        }
+    }
+};
+
 }   // namespace genetics
 }   // namespace clotho
 

@@ -47,6 +47,10 @@ public:
         return ((multi_variate.empty()) ? 0.0 : operator()( multi_variate.front(), s ));
     }
 
+    result_type operator()( real_type * first, real_type * last ) {
+        return ( first == last ) ? 0.0 : operator()( *first );
+    }
+
     const std::string name() const;
 
     void log( std::ostream & out ) const;

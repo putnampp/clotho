@@ -49,7 +49,8 @@ public:
     }
 
     void update( genetic_space_type * pop, evaluator_type & eval ) {
-        size_t N = eval.getPhenotypes().size();
+        typedef typename evaluator_type::phenotype_type phenotype_type;
+        size_t N = eval.phenotype_count();
 
         if( N == 0 )    return;
 
@@ -60,7 +61,10 @@ public:
         size_t i = 0;
 
         while( i < N ) {
-            fitness_score f = (*op)( eval.getPhenotypeAt(i) );
+            phenotype_type first = eval.begin_phenotype(i);
+            phenotype_type last = eval.end_phenotype(i);
+
+            fitness_score f = (*op)(first, last);
             pop->setFitnessAt( i, f);
             ++i;
         }

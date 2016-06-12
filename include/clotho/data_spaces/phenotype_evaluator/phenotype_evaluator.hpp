@@ -28,18 +28,26 @@ public:
     typedef EvalMethodType                                              method_type;
     typedef typename accumulator_helper_of< method_type >::type         trait_accumulator_type;
     typedef typename accumulator_helper_of< method_type >::result_type  phenotype_type;
+    typedef typename trait_accumulator_type::weight_type                weight_type;
+    typedef typename trait_accumulator_type::weight_pointer             weight_pointer;
 
     typedef typename trait_accumulator_type::genetic_space_type     genetic_space_type;
 
     typedef typename trait_accumulator_type::trait_vector_type      trait_vector_type;
-    typedef std::vector< phenotype_type >                           population_phenotype_type;
+    //typedef std::vector< phenotype_type >                           population_phenotype_type;
+    typedef weight_pointer                                          population_phenotype_type;
 
-    typedef typename population_phenotype_type::iterator            phenotype_iterator;
-    typedef typename population_phenotype_type::const_iterator      const_phenotype_iterator;
+//    typedef typename population_phenotype_type::iterator            phenotype_iterator;
+//    typedef typename population_phenotype_type::const_iterator      const_phenotype_iterator;
 
     typedef typename genetic_space_type::individual_iterator        individual_iterator;
 
-    phenotype_evaluator( ) { }
+    phenotype_evaluator( ) :
+        m_phenos(NULL)
+        , m_rows(0)
+        , m_columns(0)
+        , m_allocated_size(0)
+    { }
 
     void update( genetic_space_type * gs, trait_accumulator_type & traits ) {
         size_t N = traits.size();
@@ -47,60 +55,99 @@ public:
 
         assert( M == N / 2 );
 
-        resize( M );
+        resize( M, traits.trait_count() );
 
         typedef typename genetic_space_type::individual_genome_type    individual_type;
 
+        population_phenotype_type tmp = m_phenos;
         size_t i = 0;
         while( i < M )  {
             individual_type ind = gs->getIndividualAt( i );
-            phenotype_type p = m_eval( traits.getTraitAt( ind.first ), traits.getTraitAt( ind.second ) );
 
-            m_phenos[ i++ ] = p;
+            weight_pointer begin_f = traits.begin_trait_weight( ind.first );
+            weight_pointer end_f = traits.end_trait_weight( ind.first );
+            weight_pointer begin_s = traits.begin_trait_weight( ind.second );
+            weight_pointer end_s = traits.end_trait_weight( ind.second );
+            
+            m_eval( begin_f, end_f, begin_s, end_s, tmp );
+            tmp += m_columns;
+            ++i;
         }
     }
 
-    phenotype_type & getPhenotypeAt( size_t idx ) {
-        assert( 0 <= idx && idx < m_phenos.size() );
-
-        return m_phenos[ idx ];
+    size_t phenotype_count() const {
+        return m_rows;
     }
 
-    population_phenotype_type & getPhenotypes() {
-        return m_phenos;
+    size_t trait_count() const {
+        return m_columns;
     }
 
-    phenotype_iterator begin() {
-        return m_phenos.begin();
+    phenotype_type begin_phenotype( size_t idx ) {
+        assert( 0 <= idx && idx < m_rows );
+        return m_phenos + idx * m_columns;
     }
 
-    const_phenotype_iterator begin() const {
-        return m_phenos.begin();
+    phenotype_type end_phenotype( size_t idx ) {
+        assert( 0 <= idx && idx < m_rows );
+        return m_phenos + (idx + 1) * m_columns;
     }
 
-    phenotype_iterator end() {
-        return m_phenos.end();
-    }
+//    phenotype_type & getPhenotypeAt( size_t idx ) {
+//        assert( 0 <= idx && idx < m_phenos.size() );
+//
+//        return m_phenos[ idx ];
+//    }
+//
+//    population_phenotype_type & getPhenotypes() {
+//        return m_phenos;
+//    }
+//
+//    phenotype_iterator begin() {
+//        return m_phenos.begin();
+//    }
+//
+//    const_phenotype_iterator begin() const {
+//        return m_phenos.begin();
+//    }
+//
+//    phenotype_iterator end() {
+//        return m_phenos.end();
+//    }
+//
+//    const_phenotype_iterator end() const {
+//        return m_phenos.end();
+//    }
 
-    const_phenotype_iterator end() const {
-        return m_phenos.end();
+    virtual ~phenotype_evaluator() {
+        if( m_phenos != NULL ) {
+            delete [] m_phenos;
+        }
     }
-
-    virtual ~phenotype_evaluator() {}
 
 protected:
 
-    void resize( size_t N ) {
-        m_phenos.reserve( N );
+    void resize( size_t N, size_t W ) {
+        size_t all = N * W;
 
-        while( m_phenos.size() < N ) {
-            m_phenos.push_back( phenotype_type() );
+        if( all > m_allocated_size ) {
+            std::cerr << "Updating size from: " << m_allocated_size << " to " << all << std::endl;
+            if( m_phenos != NULL ) {
+                delete [] m_phenos;
+            }
+
+            m_phenos = new weight_type[ all ];
+            m_allocated_size = all;
         }
+
+        m_rows = N;
+        m_columns = W;
     }
 
     population_phenotype_type   m_phenos;
+    method_type                 m_eval;
 
-    method_type      m_eval;
+    size_t m_rows, m_columns, m_allocated_size;
 };
 
 }   // namespace genetics
@@ -114,18 +161,36 @@ struct state_getter< clotho::genetics::phenotype_evaluator< EvalMethodType > >  
     typedef clotho::genetics::phenotype_evaluator< EvalMethodType > object_type;
 
     void operator()( boost::property_tree::ptree & s, object_type & obj ) {
-        typedef typename object_type::phenotype_iterator iterator;
+        typedef typename object_type::phenotype_type phenotype_type;
 
-        iterator first = obj.begin(), last = obj.end();
+        size_t i = 0;
+        while( i < obj.phenotype_count() ) {
+            phenotype_type first = obj.begin_phenotype( i );
+            phenotype_type last = obj.end_phenotype( i );
 
-        while( first != last ) {
             boost::property_tree::ptree p;
-            clotho::utility::add_value_array( p, first->begin(), first->end() );
-            ++first;
+            clotho::utility::add_value_array( p, first, last );
 
             s.push_back( std::make_pair( "", p ) );
+
+            ++i;
         }
     }
+//    void operator()( boost::property_tree::ptree & s, object_type & obj ) {
+//        typedef typename object_type::phenotype_iterator iterator;
+//
+//        iterator first = obj.begin(), last = obj.end();
+//
+//        while( first != last ) {
+//            boost::property_tree::ptree p;
+//            clotho::utility::add_value_array( p, first->begin(), first->end() );
+//            ++first;
+//
+//            s.push_back( std::make_pair( "", p ) );
+//        }
+//    }
+//
+    
 };
 
 

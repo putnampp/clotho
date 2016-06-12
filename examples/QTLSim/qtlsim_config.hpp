@@ -47,7 +47,7 @@ typedef unsigned int    int_type;
 typedef clotho::utility::timer                              timer_type;
 
 #ifdef USE_ROW_ALIGNMENT
-#define __ALIGNMENT_TYPE__ clotho::genetics::row_grouped< 2 >
+#define __ALIGNMENT_TYPE__ clotho::genetics::row_grouped< 1 >
 #else
 #define __ALIGNMENT_TYPE__ clotho::genetics::column_aligned
 #endif  // USE_ROW_ALIGNMENT

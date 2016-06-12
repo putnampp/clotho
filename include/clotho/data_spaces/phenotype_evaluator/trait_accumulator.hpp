@@ -77,15 +77,15 @@ public:
         eval( genomes.getAlleleSpace(), genomes.getSequenceSpace(), m_trait_weights, m_trait_count );
     }
 
-    std::shared_ptr< trait_vector_type >   getTraitAt( size_t idx ) {
-        assert( 0 <= idx && idx < m_rows );
-
-        idx *= m_trait_count;
-
-        std::shared_ptr< trait_vector_type>  t( new trait_vector_type( m_trait_weights + idx, m_trait_weights + idx + m_trait_count ));
-
-        return t;
-    }
+//    std::shared_ptr< trait_vector_type >   getTraitAt( size_t idx ) {
+//        assert( 0 <= idx && idx < m_rows );
+//
+//       idx *= m_trait_count;
+//
+//        std::shared_ptr< trait_vector_type>  t( new trait_vector_type( m_trait_weights + idx, m_trait_weights + idx + m_trait_count ));
+//
+//       return t;
+//    }
 
     weight_pointer begin_trait_weight( size_t idx ) {
         assert( 0 <= idx && idx < m_rows );
@@ -162,11 +162,13 @@ struct state_getter< clotho::genetics::TraitWeightAccumulator< GeneticSpaceType 
     void operator()( boost::property_tree::ptree & s, object_type & obj ) {
         size_t i = 0, N = obj.size();
         while( i < N ) {
-            std::shared_ptr< typename object_type::trait_vector_type > t = obj.getTraitAt(i++);
+//            std::shared_ptr< typename object_type::trait_vector_type > t = obj.getTraitAt(i++);
             boost::property_tree::ptree p;
-            clotho::utility::add_value_array( p, t->begin(), t->end() );
+            
+            clotho::utility::add_value_array( p, obj.begin_trait_weight(i), obj.end_trait_weight(i) );
 
             s.push_back( std::make_pair( "", p ) );
+            ++i;
         }
     
     }

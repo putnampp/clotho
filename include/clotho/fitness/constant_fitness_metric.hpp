@@ -33,6 +33,10 @@ public:
         return 1.0;
     }
 
+    result_type operator()( real_type * first, real_type * last ) {
+        return 1.0;
+    }
+
     const std::string name() const;
 
     void log( std::ostream & out ) const;

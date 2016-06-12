@@ -46,6 +46,10 @@ public:
         return ((multi_variate.empty()) ? operator()( 0., mu, sigma ) : operator()( multi_variate.front(), mu, sigma ));
     }
 
+    inline result_type operator()( real_type * first, real_type * last ) {
+        return (first == last) ? operator()( 0. ) : operator()( *first );
+    }
+
     const std::string name() const;
 
     void log( std::ostream & out ) const;

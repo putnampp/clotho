@@ -114,6 +114,91 @@ public:
     }
 };
 
+template < class BlockType >
+class free_space_evaluator< association_matrix< BlockType, row_grouped< 1 > > > {
+public:
+    typedef association_matrix< BlockType, row_grouped< 1 > > space_type;
+    typedef typename space_type::block_type                 block_type;
+    typedef size_t *                                        result_type;
+
+    typedef typename space_type::raw_block_pointer    block_pointer;
+
+    typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
+    typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
+
+    void operator()( space_type & ss, result_type res, size_t & fixed_offset, size_t & lost_offset, size_t & free_count, size_t M ) {
+
+        size_t W = bit_helper_type::padded_block_count( M );
+
+        block_type * tmp = new block_type[ 2 * W ];
+
+        memset( tmp, 255, sizeof(block_type) * W );
+        memset( tmp + W, 0, sizeof(block_type) * W );
+
+        const size_t row_count = ss.block_row_count();
+
+        size_t fo = fixed_offset;
+        size_t lo = lost_offset;
+        size_t fr = free_count;
+        
+        block_type * fx_ptr = tmp;
+        block_type * var_ptr = tmp + W;
+
+        size_t k = 0;
+        while( k < row_count ) {
+
+            block_pointer start = ss.begin_block_row( k );
+            block_pointer end = ss.end_block_row( k );
+
+            fx_ptr = tmp;
+            var_ptr = tmp + W;
+
+            while( start != end ) {
+                block_type b = *start++;
+                *fx_ptr++ &= b;
+                *var_ptr++ |= b;
+            }
+
+            assert(fx_ptr == tmp + W);
+            ++k;
+        }
+
+        size_t j = 0;
+        
+        fx_ptr = tmp;
+        var_ptr = tmp + W;
+        while( fx_ptr != tmp + W ) {
+            block_type fx = *fx_ptr++;
+            block_type var = *var_ptr++;
+
+            block_type ls = ~(fx | var);
+
+            while( fx ) {
+                size_t b_idx = bit_walker_type::unset_next_index( fx ) + j;
+                if( b_idx < M ) {
+                    res[ fr++ ] = b_idx;
+                    res[ fo++ ] = b_idx;
+                }
+            }
+
+            while( ls ) {
+                size_t idx = bit_walker_type::unset_next_index( ls ) + j;
+                if( idx < M ) {
+                    res[ fr++ ] = idx;
+                    res[ lo++ ] = idx;
+                }
+            }
+
+            j += bit_helper_type::BITS_PER_BLOCK;
+        }
+
+        fixed_offset = fo;
+        lost_offset = lo;
+        free_count = fr;
+
+        delete [] tmp;
+    }
+};
 }   // namespace genetics
 }   // namespace clotho
 

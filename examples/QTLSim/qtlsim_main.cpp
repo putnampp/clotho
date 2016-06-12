@@ -193,10 +193,10 @@ void population_analyzer::operator()( boost::property_tree::ptree & log ) {
 
     boost::property_tree::ptree af_log, pd_log;
     af.recordResults( af_log );
-    pd.recordResults( pd_log );
+//    pd.recordResults( pd_log );
 
     log.add_child( "allele_frequency", af_log );
-    log.add_child( "pairwise_difference", pd_log );
+//    log.add_child( "pairwise_difference", pd_log );
 }
 
 //void write_engine_config( boost::property_tree::ptree & elog ) {

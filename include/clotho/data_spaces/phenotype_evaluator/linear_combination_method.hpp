@@ -25,6 +25,7 @@ struct linear_combination {
 
     typedef TraitAccumType                                  trait_accum_type;
     typedef typename trait_accum_type::trait_vector_type    trait_type;
+    typedef typename trait_accum_type::weight_pointer       weight_pointer;
     typedef ResultType                                      result_type;
 
     result_type operator()( std::shared_ptr< trait_type > s0, std::shared_ptr< trait_type > s1 ) {
@@ -44,6 +45,23 @@ struct linear_combination {
         }
 
         return res;
+    }
+
+    void operator()( weight_pointer a_first, weight_pointer a_last, weight_pointer b_first, weight_pointer b_last, weight_pointer res ) {
+        weight_pointer tmp = res;
+        while( a_first != a_last ) {
+            double a = *a_first;
+
+            *tmp = a;
+
+            ++tmp;
+            ++a_first;
+        }
+
+        tmp = res;
+        while( b_first != b_last ) {
+            *tmp++ += *b_first++;
+        }
     }
 };
 

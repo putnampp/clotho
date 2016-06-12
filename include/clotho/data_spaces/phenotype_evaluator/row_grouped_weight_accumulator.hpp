@@ -72,6 +72,54 @@ public:
 
 };
 
+template < class AlleleSpace, class BlockType >
+class weight_accumulator< AlleleSpace, association_matrix< BlockType, row_grouped< 1 > > > {
+public:
+    typedef AlleleSpace                                         allele_type;
+    typedef association_matrix< BlockType, row_grouped< 1 > >     association_type;
+
+    typedef typename allele_type::weight_type                   weight_type;
+    typedef typename allele_type::weight_pointer                weight_pointer;
+
+    typedef typename association_type::block_type               block_type;
+    typedef typename association_type::raw_block_pointer        block_pointer;
+
+    typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
+
+    void operator()( allele_type & alls, association_type & seqs, weight_pointer res, size_t trait_count ) {
+        size_t  M = seqs.row_count();
+        
+        size_t i = 0;
+        while( i < M ) {
+
+            block_pointer start = seqs.begin_row( i );
+            block_pointer end = seqs.end_row(i);
+
+            size_t j = 0;
+            while( start != end ) {
+
+                block_type b = *start++;
+
+                while( b ) {
+                    size_t b_idx = j + bit_walker_type::unset_next_index( b );
+
+                    weight_pointer t_start = alls.begin_trait_weight( b_idx );
+                    weight_pointer t_end = alls.end_trait_weight( b_idx );
+
+                    size_t a = i * trait_count;
+                    while( t_start != t_end ) {
+                        res[ a++ ] += *t_start++;
+                    }
+                }
+                
+                j += association_type::bit_helper_type::BITS_PER_BLOCK;
+            }
+
+            ++i;
+        }
+    }
+
+};
 }   // namespace genetics
 }   // namespace clotho
 
