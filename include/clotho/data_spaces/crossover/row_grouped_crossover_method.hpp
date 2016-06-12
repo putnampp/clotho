@@ -162,8 +162,18 @@ public:
                 start = end;
             }
 
-            while( N-- ) {
+            size_t M = N % 4;
+            N -= M;
+            while( M-- ) {
                 *s++ = *start++;
+            }
+
+            while( N ) {
+                *s++ = *start++;
+                *s++ = *start++;
+                *s++ = *start++;
+                *s++ = *start++;
+                N -= 4;
             }
         }
     }
