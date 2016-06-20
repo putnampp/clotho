@@ -24,6 +24,12 @@
 #include "clotho/data_spaces/generators/position_distribution_helper.hpp"
 #include "clotho/data_spaces/generators/crossover_event_distribution_helper.hpp"
 
+#ifdef DEBUGGING
+#define ASSERT_VALID_RANGE( x, min, max ) assert( min <= x && x < max );
+#else
+#define ASSERT_VALID_RANGE( x, min, max )
+#endif
+
 namespace clotho {
 namespace genetics {
 
@@ -33,6 +39,7 @@ public:
     typedef RNG             random_engine_type;
     typedef PositionType    position_type;
     typedef PositionType    event_type;
+    typedef unsigned int    bin_type;
 
     typedef typename position_distribution_helper< PositionType >::type position_distribution_type;
     
@@ -43,20 +50,22 @@ public:
     typedef typename event_distribution_helper_type::IntType    IntType;
     typedef typename event_distribution_helper_type::type       event_distribution_type;
 
-    typedef std::vector< position_type >                position_vector;
-    typedef typename position_vector::iterator          position_iterator;
-    typedef typename position_vector::const_iterator    const_position_iterator;
-
-    typedef event_type *                                event_vector;
-
-    typedef std::vector< size_t >                       bin_vector;
+    typedef position_type *                         position_vector;
+    typedef event_type *                            event_vector;
+    typedef bin_type *                              bin_vector;
 
     static const unsigned int BIN_MAX = 256;
 
     crossover_event_generator( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rand( rng )
+        , m_pos( NULL )
+        , m_bins( NULL )
         , m_events( NULL )
         , m_events_size(0)
+        , m_event_alloc(0)
+        , m_base_seq(0)
+        , m_bin_size(0)
+        , m_alloc_size(0)
     {
         recombination_rate_parameter< double > rho( config);
 
@@ -66,19 +75,24 @@ public:
         m_seq_bias.param( typename sequence_bias_distribution_type::param_type( bias.m_bias ) );
     }
 
-    // copy the genetic position of all alleles into a local vector
-    void update( position_iterator first, position_iterator last ) {
-        m_pos.clear();
-        m_bins.clear();
-        while( first != last ) {
-            position_type p = *first++;
+    void update( position_vector pos, size_t N ) {
+        m_pos = pos;
 
-            m_pos.push_back(p);
+        resizeBins( N );
 
-            assert( p < 1.0 );
+        size_t M = N % 4;
+        size_t i = 0;
+        while( i < M ) {
+            m_bins[ i ] = m_pos[i] * BIN_MAX;
+            i += 1;
+        }
 
-            assert( p * BIN_MAX < BIN_MAX );
-            m_bins.push_back( p * BIN_MAX );
+        while( i < N ) {
+            m_bins[ i ] = m_pos[i] * BIN_MAX;
+            m_bins[ i + 1 ] = m_pos[ i + 1 ] * BIN_MAX;
+            m_bins[ i + 2 ] = m_pos[ i + 2 ] * BIN_MAX;
+            m_bins[ i + 3 ] = m_pos[ i + 3 ] * BIN_MAX;
+            i += 4;
         }
     }
 
@@ -126,13 +140,12 @@ public:
     // test whether the genetic position at the given index
     // 
     bool operator()( size_t index ) {
-
-        assert( 0 <= index && index < m_pos.size() );
+        ASSERT_VALID_RANGE( index, 0, m_bin_size )
 
         position_type p = m_pos[ index ];
-        size_t bin_index = m_bins[index];
+        bin_type bin_index = m_bins[index];
 
-        assert( bin_index < BIN_MAX );
+        ASSERT_VALID_RANGE( bin_index, 0, BIN_MAX );
 
         size_t hi = m_counts[ bin_index ];
         size_t lo =  ((bin_index == 0) ? 0 : m_counts[ bin_index - 1]);
@@ -147,26 +160,45 @@ public:
     }
 
     size_t getBaseSequence() {
-        return m_base_seq;;
+        return m_base_seq;
     }
 
     virtual ~crossover_event_generator() {
         if( m_events != NULL ) {
             delete [] m_events;
         }
+
+        if( m_bins != NULL ) {
+            delete [] m_bins;
+        }
     }
 
 protected:
 
     void resize( size_t e ) {
-        if( e > m_events_size ) {
+        if( e > m_event_alloc ) {
             if( m_events != NULL ) {
                 delete [] m_events;
             }
             m_events = new event_type[ e ];
 
-            m_events_size = e;
+            m_event_alloc = e;
         }
+
+        m_events_size = e;
+    }
+
+    void resizeBins( size_t N ) {
+        if( N > m_alloc_size ) {
+            if( m_bins != NULL ) {
+                delete [] m_bins;
+            }
+
+            m_bins = new bin_type[ N ];
+            m_alloc_size = N;
+        }
+
+        m_bin_size = N;
     }
 
     random_engine_type          * m_rand;
@@ -177,13 +209,16 @@ protected:
     bin_vector          m_bins;
 
     event_vector        m_events;
-    size_t              m_events_size;
+    size_t              m_events_size, m_event_alloc;
 
     size_t              m_counts[ BIN_MAX + 1 ];
 
     sequence_bias_distribution_type m_seq_bias;
     size_t              m_base_seq;
+    size_t              m_bin_size, m_alloc_size;
 };
+
+#undef ASSERT_VALID_RANGE
 
 }   // namespace genetics
 }   // namespace clotho
