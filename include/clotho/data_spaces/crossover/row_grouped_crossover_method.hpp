@@ -17,7 +17,7 @@
 #include "clotho/data_spaces/crossover/crossover_method_def.hpp"
 #include "clotho/data_spaces/association_matrix/row_grouped_association_matrix.hpp"
 
-#include "clotho/data_spaces/generators/crossover_event_generator.hpp"
+#include "clotho/data_spaces/generators/small_crossover_event_generator.hpp"
 #include "clotho/utility/bit_helper.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
@@ -47,7 +47,7 @@ public:
     {}
 
     void initAlleles( allele_type & alls ) {
-        m_event_gen.update( alls.position_begin(), alls.position_end() );
+        m_event_gen.update( alls.getPositions(), alls.size());
     }
 
     void crossover( genome_iterator start, genome_iterator end, sequence_iterator s, size_t p_step, size_t s_step ) {
@@ -107,14 +107,14 @@ class crossover_method< RNG, AlleleSpaceType, association_matrix< BlockType, row
 public:
     typedef RNG                                                 random_engine_type;
     typedef AlleleSpaceType                                     allele_type;
-    typedef association_matrix< BlockType, row_grouped< 2 > >     sequence_space_type;
+    typedef association_matrix< BlockType, row_grouped< 1 > >   sequence_space_type;
 
     typedef typename sequence_space_type::raw_block_pointer     sequence_iterator;
     typedef typename sequence_space_type::raw_block_pointer     genome_iterator;
 
     typedef typename allele_type::position_type                 position_type;
 
-    typedef crossover_event_generator< RNG, position_type >     event_generator_type;
+    typedef small_crossover_event_generator< RNG, position_type >     event_generator_type;
 
     typedef typename sequence_space_type::block_type            block_type;
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
@@ -125,7 +125,7 @@ public:
     {}
 
     void initAlleles( allele_type & alls ) {
-        m_event_gen.update( alls.position_begin(), alls.position_end() );
+        m_event_gen.update( alls.getPositions(), alls.size() );
     }
 
     void crossover( genome_iterator start, genome_iterator end, sequence_iterator s, size_t p_step, size_t s_step ) {
@@ -162,18 +162,19 @@ public:
                 start = end;
             }
 
+            size_t i = 0;
             size_t M = N % 4;
-            N -= M;
-            while( M-- ) {
-                *s++ = *start++;
+            while( i < M ) {
+                s[i] = start[i];
+                ++i;
             }
 
-            while( N ) {
-                *s++ = *start++;
-                *s++ = *start++;
-                *s++ = *start++;
-                *s++ = *start++;
-                N -= 4;
+            while( i < N ) {
+                s[ i ] = start[ i ];
+                s[ i + 1 ] = start[i + 1];
+                s[ i + 2 ] = start[i + 2 ];
+                s[ i + 3 ] = start[i + 3 ];
+                i += 4;
             }
         }
     }
