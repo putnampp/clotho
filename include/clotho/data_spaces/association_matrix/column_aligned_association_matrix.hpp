@@ -27,7 +27,7 @@ namespace genetics {
 
 #ifdef DEBUGGING
 
-#define ASSERT_VALID_RANGE( x, min, max) assert( min <= x && x < max)
+#define ASSERT_VALID_RANGE( x, min, max) assert( min <= x && x < max);
 
 #else   // DEBUGGING
 
@@ -151,16 +151,16 @@ public:
     }
 
     bool operator()( size_t row, size_t col ) {
-        ASSERT_VALID_RANGE( row, 0, m_rows );
-        ASSERT_VALID_RANGE( col, 0, m_columns );
+        ASSERT_VALID_RANGE( row, 0, m_rows )
+        ASSERT_VALID_RANGE( col, 0, m_columns )
 
         size_t idx = block_index( row, col );
         return ((m_data[ idx ] & bit_helper_type::bit_offset( col )) != 0);
     }
 
     void flip( size_t row, size_t col ) {
-        ASSERT_VALID_RANGE( row, 0, m_rows );
-        ASSERT_VALID_RANGE( col, 0, m_columns );
+        ASSERT_VALID_RANGE( row, 0, m_rows )
+        ASSERT_VALID_RANGE( col, 0, m_columns )
 
         size_t idx = block_index( row, col );
 
@@ -168,7 +168,7 @@ public:
     }
 
     void flipColumn( size_t idx ) {
-        ASSERT_VALID_RANGE( idx, 0, m_columns );
+        ASSERT_VALID_RANGE( idx, 0, m_columns )
 
         block_type mask = bit_helper_type::bit_offset( idx );
         size_t offset = block_index( 0, idx );
@@ -179,7 +179,7 @@ public:
     }
 
     void flipRow( size_t idx ) {
-        ASSERT_VALID_RANGE( idx, 0, m_rows );
+        ASSERT_VALID_RANGE( idx, 0, m_rows )
 
         block_type mask = bit_helper_type::ALL_SET;
         size_t offset = block_index( idx, 0 );
@@ -217,7 +217,7 @@ public:
     }
 
     row_iterator   getRowAt( size_t idx ) const {
-        ASSERT_VALID_RANGE( idx, 0, block_column_count() );
+        ASSERT_VALID_RANGE( idx, 0, block_column_count() )
 
         return row_iterator( m_data + idx, block_row_count(), block_column_count(), block_column_count() );
     }
@@ -231,25 +231,25 @@ public:
     }
 
     raw_block_pointer begin_block_row( size_t idx ) const {
-        ASSERT_VALID_RANGE( idx, 0, block_row_count() );
+        ASSERT_VALID_RANGE( idx, 0, block_row_count() )
 
         return m_data + idx * block_column_count();
     }
 
     raw_block_pointer end_block_row( size_t idx ) const {
-        ASSERT_VALID_RANGE( idx, 0, block_row_count() );
+        ASSERT_VALID_RANGE( idx, 0, block_row_count() )
 
         return m_data + (idx + 1) * block_column_count();
     }
 
     row_pair_iterator getRowPairAt( size_t idx ) const {
-        ASSERT_VALID_RANGE( idx, 0, block_column_count() );
-        ASSERT_VALID_RANGE( idx + 1, 0, block_column_count() );
+        ASSERT_VALID_RANGE( idx, 0, block_column_count() )
+        ASSERT_VALID_RANGE( idx + 1, 0, block_column_count() )
         return row_iterator( m_data + idx, block_row_count(), block_column_count(), block_column_count() );
     }
 
     column_iterator getColumnAt( size_t idx ) const {
-        ASSERT_VALID_RANGE( idx, 0, block_row_count() );
+        ASSERT_VALID_RANGE( idx, 0, block_row_count() )
 
         return column_iterator( m_data + idx * block_column_count(), 1, block_column_count() );
     }

@@ -22,7 +22,7 @@
 
 #ifdef DEBUGGING
 
-#define ASSERT_VALID_RANGE( x, min, max) assert( min <= x && x < max)
+#define ASSERT_VALID_RANGE( x, min, max) assert( min <= x && x < max);
 
 #else   // DEBUGGING
 
@@ -238,16 +238,16 @@ public:
     }
 
     bool operator()( size_t row, size_t col ) {
-        ASSERT_VALID_RANGE( row, 0, m_rows );
-        ASSERT_VALID_RANGE( col, 0, m_columns );
+        ASSERT_VALID_RANGE( row, 0, m_rows )
+        ASSERT_VALID_RANGE( col, 0, m_columns )
 
         size_t idx = block_index( row, col, m_bpr );
         return ((m_data[ idx ] & bit_helper_type::bit_offset( col )) != 0);
     }
 
     void flip( size_t row, size_t col ) {
-        ASSERT_VALID_RANGE( row, 0, m_rows );
-        ASSERT_VALID_RANGE( col, 0, m_columns );
+        ASSERT_VALID_RANGE( row, 0, m_rows )
+        ASSERT_VALID_RANGE( col, 0, m_columns )
 
         size_t idx = block_index( row, col, m_bpr );
 #ifdef DEBUGGING
@@ -302,23 +302,23 @@ public:
     }
 
     raw_block_pointer begin_row( size_t idx ) const {
-        ASSERT_VALID_RANGE( idx, 0, row_count() );
+        ASSERT_VALID_RANGE( idx, 0, row_count() )
         return m_data + block_row_offset( idx, m_bpr );
     }
 
     raw_block_pointer end_row( size_t idx ) const {
-        ASSERT_VALID_RANGE( idx, 0, row_count() );
+        ASSERT_VALID_RANGE( idx, 0, row_count() )
         return m_data + block_row_offset( idx + 1, m_bpr );
     }
 
     raw_block_pointer begin_block_row( size_t idx ) const {
-        ASSERT_VALID_RANGE( idx, 0, block_row_count() );
+        ASSERT_VALID_RANGE( idx, 0, block_row_count() )
 
         return m_data + block_row_offset( idx, m_bpr);
     }
 
     raw_block_pointer end_block_row( size_t idx ) const {
-        ASSERT_VALID_RANGE( idx, 0, block_row_count() );
+        ASSERT_VALID_RANGE( idx, 0, block_row_count() )
         return m_data + block_row_offset( idx + 1, m_bpr );
     }
 
