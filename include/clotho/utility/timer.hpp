@@ -22,7 +22,8 @@
 namespace clotho {
 namespace utility {
 
-typedef boost::chrono::high_resolution_clock    clock_type;
+//typedef boost::chrono::high_resolution_clock    clock_type;
+typedef boost::chrono::process_real_cpu_clock   clock_type;
 typedef clock_type::time_point                  time_point_type;
 typedef clock_type::duration                    duration_type;
 
