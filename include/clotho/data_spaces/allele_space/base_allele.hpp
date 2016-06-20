@@ -34,16 +34,21 @@ public:
     typedef base_allele_vectorized< PositionType >              self_type;
     typedef PositionType                                        position_type;
 
-    typedef std::vector< position_type >                        position_vector_type;
-    typedef typename position_vector_type::iterator             position_iterator;
-    typedef typename position_vector_type::const_iterator       const_position_iterator;
+    typedef position_type *                                     position_vector_type;
+    typedef position_type *                                     position_iterator;
 
     typedef boost::dynamic_bitset< unsigned int >               free_vector_type;
-//    typedef typename free_vector_type::iterator                 free_iterator;
-//    typedef typename free_vector_type::const_iterator           const_free_iterator;
 
-    base_allele_vectorized( size_t a = 0 ) {
+    base_allele_vectorized( size_t a = 0 ) :
+        m_positions( NULL )
+        , m_pos_size(0)
+        , m_alloc_size(0)
+    {
         this->grow( a );
+    }
+
+    position_vector_type getPositions() {
+        return m_positions;
     }
 
     position_type getPositionAt( size_t index ) const {
@@ -51,7 +56,7 @@ public:
     }
 
     void setPositionAt( size_t index, position_type pos ) {
-        if( index >= m_positions.size() ) {
+        if( index >= size() ) {
             resize( index + 1 );
         }
 
@@ -59,23 +64,17 @@ public:
     }
 
     position_iterator position_begin() {
-        return m_positions.begin();
+        return m_positions;
     }
 
     position_iterator position_end() {
-        return m_positions.end();
-    }
-
-    const_position_iterator position_begin() const {
-        return m_positions.begin();
-    }
-
-    const_position_iterator position_end() const {
-        return m_positions.begin();
+        return m_positions + m_pos_size;
     }
 
     void inherit( self_type & parent ) {
-        std::copy( parent.position_begin(), parent.position_end(), this->position_begin() );
+        assert( parent.size() <= size() );
+
+        memcpy( m_positions, parent.m_positions, parent.size() * sizeof(position_type) );
     }
 
     size_t next_free() {
@@ -93,7 +92,7 @@ public:
     }
 
     size_t size() const {
-        return m_positions.size();
+        return m_pos_size;
     }
 
     void trimFreeSpace( size_t parent_size ) {
@@ -109,26 +108,6 @@ public:
         }
     }
 
-//    size_t      free_size() const {
-//        return m_free.size();
-//    }
-//
-//    free_iterator free_begin() {
-//        return m_free.begin();
-//    }
-//
-//    free_iterator free_end() {
-//        return m_free.end();
-//    }
-//    
-//    const_free_iterator free_begin() const {
-//        return m_free.begin();
-//    }
-//
-//    const_free_iterator free_end() const {
-//        return m_free.end();
-//    }
-
     void push_back( self_type & other, size_t idx ) {
         size_t e = this->m_positions.size();
 
@@ -142,17 +121,25 @@ public:
 protected:
 
     virtual void resize( size_t s ) {
-        m_positions.resize( s );
+        if ( s > m_alloc_size ) {
+            if( m_positions != NULL ) {
+                delete [] m_positions;
+            }
 
-        size_t m = m_positions.size();
+            m_positions = new position_type[ s ];
 
-        m_free.resize( m );
+            m_alloc_size = s;
+        }
+
+        m_pos_size = s;
+        m_free.resize( s );
         m_free.reset();
     }
 
     position_vector_type            m_positions;
-
     free_vector_type                m_free;
+
+    size_t  m_pos_size, m_alloc_size;
 };
 
 }   // namespace genetics
