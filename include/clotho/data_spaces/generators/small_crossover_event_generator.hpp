@@ -109,7 +109,7 @@ public:
     // test whether the genetic position at the given index
     // 
     bool operator()( size_t index ) {
-        ASSERT_VALID_RANGE( index, 0, m_bin_size )
+        ASSERT_VALID_RANGE( index, 0, m_pos_size )
 
         position_type p = m_pos[ index ];
 

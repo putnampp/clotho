@@ -48,19 +48,17 @@ struct linear_combination {
     }
 
     void operator()( weight_pointer a_first, weight_pointer a_last, weight_pointer b_first, weight_pointer b_last, weight_pointer res ) {
-        weight_pointer tmp = res;
-        while( a_first != a_last ) {
-            double a = *a_first;
+#ifdef DEBUGGING
+        std::cerr << "Linear combination method" << std::endl;
+        std::cerr << "Trait count A: " << (a_last - a_first) << std::endl;
+        std::cerr << "Trait count B: " << (b_last - b_first) << std::endl;
+#endif  // DEBUGGING
+        int i = 0, M = (a_last - a_first);
 
-            *tmp = a;
-
-            ++tmp;
-            ++a_first;
-        }
-
-        tmp = res;
-        while( b_first != b_last ) {
-            *tmp++ += *b_first++;
+        assert( M == (b_last - b_first) );
+        while( i < M ) {
+            res[ i ] = a_first[ i ] + b_first[ i ];
+            ++i;
         }
     }
 };

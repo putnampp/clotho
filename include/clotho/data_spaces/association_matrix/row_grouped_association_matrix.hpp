@@ -127,7 +127,8 @@ public:
 
     raw_block_pointer begin_row( size_t idx ) const {
         ASSERT_VALID_RANGE( idx, 0, row_count() );
-        return m_data + block_row_offset( idx, m_bpr );
+        size_t offset = block_row_offset( idx, m_bpr );
+        return m_data + offset;
     }
 
     raw_block_pointer end_row( size_t idx ) const {
@@ -303,7 +304,10 @@ public:
 
     raw_block_pointer begin_row( size_t idx ) const {
         ASSERT_VALID_RANGE( idx, 0, row_count() )
-        return m_data + block_row_offset( idx, m_bpr );
+
+        size_t offset = block_row_offset( idx, m_bpr );
+
+        return m_data + offset;
     }
 
     raw_block_pointer end_row( size_t idx ) const {
@@ -371,6 +375,8 @@ protected:
             assert( m_data != NULL );
         }
 
+        memset( m_data, 0, new_size * sizeof(block_type));
+
         m_rows = r;
         m_columns = c;
         m_bpr = blocks_per_row;
@@ -381,6 +387,7 @@ protected:
     size_t m_rows, m_columns, m_allocated_size;
     size_t m_bpr;
 };
+
 }   // namespace genetics
 }   // namespace clotho
 

@@ -130,10 +130,12 @@ public:
 
         size_t W = bit_helper_type::padded_block_count( M );
 
-        block_type * tmp = new block_type[ 2 * W ];
+        resize( W );
 
-        memset( tmp, 255, sizeof(block_type) * W );
-        memset( tmp + W, 0, sizeof(block_type) * W );
+        for( size_t i = 0; i < W; ++i ) {
+            tmp[ 2 * i ] = bit_helper_type::ALL_SET;
+            tmp[ 2 * i + 1 ] = bit_helper_type::ALL_UNSET;
+        }
 
         const size_t row_count = ss.block_row_count();
 
@@ -141,35 +143,31 @@ public:
         size_t lo = lost_offset;
         size_t fr = free_count;
         
-        block_type * fx_ptr = tmp;
-        block_type * var_ptr = tmp + W;
-
         size_t k = 0;
         while( k < row_count ) {
 
             block_pointer start = ss.begin_block_row( k );
-            block_pointer end = ss.end_block_row( k );
+//            block_pointer end = ss.end_block_row( k );
 
-            fx_ptr = tmp;
-            var_ptr = tmp + W;
-
-            while( start != end ) {
-                block_type b = *start++;
-                *fx_ptr++ &= b;
-                *var_ptr++ |= b;
+            for( size_t i = 0; i < W; ++i ) {
+                block_type b = start[i];
+                tmp[ 2 * i ] &= b;
+                tmp[ 2 * i + 1 ] |= b;
             }
 
-            assert(fx_ptr == tmp + W);
             ++k;
         }
 
         size_t j = 0;
         
-        fx_ptr = tmp;
-        var_ptr = tmp + W;
-        while( fx_ptr != tmp + W ) {
-            block_type fx = *fx_ptr++;
-            block_type var = *var_ptr++;
+//        fx_ptr = tmp;
+//        var_ptr = tmp + W;
+//        while( fx_ptr != tmp + W ) {
+//            block_type fx = *fx_ptr++;
+//            block_type var = *var_ptr++;
+        for( unsigned int i = 0; i < W; ++i ) {
+            block_type fx = tmp[ 2 *i ];
+            block_type var = tmp[2 * i + 1];
 
             block_type ls = ~(fx | var);
 
@@ -195,9 +193,27 @@ public:
         fixed_offset = fo;
         lost_offset = lo;
         free_count = fr;
-
-        delete [] tmp;
     }
+
+    virtual ~free_space_evaluator() {
+        if( tmp != NULL ) {
+            delete [] tmp;
+        }
+    }
+
+protected:
+    void resize( size_t W ) {
+        if( 2 * W > m_alloc_size ) {
+            if( tmp != NULL ) {
+                delete [] tmp;
+            }
+
+            tmp = new block_type[ 2 * W ];
+            m_alloc_size = 2 * W;
+        }
+    }
+    block_type * tmp;
+    size_t m_alloc_size;
 };
 }   // namespace genetics
 }   // namespace clotho

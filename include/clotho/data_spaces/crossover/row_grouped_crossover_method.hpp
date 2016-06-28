@@ -162,20 +162,23 @@ public:
                 start = end;
             }
 
-            size_t i = 0;
-            size_t M = N % 4;
-            while( i < M ) {
+            for( size_t i = 0; i < N; ++i )
                 s[i] = start[i];
-                ++i;
-            }
-
-            while( i < N ) {
-                s[ i ] = start[ i ];
-                s[ i + 1 ] = start[i + 1];
-                s[ i + 2 ] = start[i + 2 ];
-                s[ i + 3 ] = start[i + 3 ];
-                i += 4;
-            }
+//            size_t i = 0;
+//            size_t M = N % 4;
+//            while( i < M ) {
+//                s[i] = start[i];
+//                ++i;
+//            }
+//
+//            while( i < N ) {
+//                s[ i ] = start[ i ];
+//                s[ i + 1 ] = start[i + 1];
+//                s[ i + 2 ] = start[i + 2 ];
+//                s[ i + 3 ] = start[i + 3 ];
+//                i += 4;
+//            }
+//
         }
     }
 

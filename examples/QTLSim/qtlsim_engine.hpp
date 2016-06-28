@@ -14,6 +14,8 @@
 #ifndef CLOTHO_SIM_ENGINE_HPP_
 #define CLOTHO_SIM_ENGINE_HPP_
 
+//#define DEBUGGING 0
+
 #include <boost/property_tree/ptree.hpp>
 
 #include "clotho/genetics/population_growth_toolkit.hpp"
@@ -22,7 +24,7 @@
 #include "clotho/data_spaces/population_space/genetic_space.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/trait_accumulator.hpp"
 #include "clotho/data_spaces/free_space/free_space.hpp"
-#include "clotho/data_spaces/selection/selection_generator.hpp"
+#include "clotho/data_spaces/selection/selection.hpp"
 #include "clotho/data_spaces/mutation/mutation_generator.hpp"
 #include "clotho/data_spaces/mutation/mutation_allocator.hpp"
 #include "clotho/data_spaces/crossover/crossover.hpp"
@@ -51,7 +53,7 @@ public:
     typedef clotho::genetics::MutationGenerator< random_engine_type, genetic_space_type >           mutation_type;
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >                          trait_accumulator_type;
     typedef clotho::genetics::FreeSpaceAnalyzer< genetic_space_type >                               free_space_type;
-    typedef clotho::genetics::SelectionGenerator< random_engine_type, genetic_space_type >          selection_type;
+    typedef clotho::genetics::SelectionGenerator< random_engine_type, clotho::genetics::fitness_selection< genetic_space_type > >          selection_type;
     typedef clotho::genetics::Crossover< random_engine_type, genetic_space_type >                   crossover_type;
     typedef clotho::genetics::linear_combination< trait_accumulator_type, phenotype_type >          trait_reduction_type;
     typedef clotho::genetics::phenotype_evaluator< trait_reduction_type >                           phenotype_eval_type;
@@ -111,16 +113,18 @@ public:
         }
 
         size_t pM = m_mut_alloc.allocate( 2 * pN );        // generate the number of new mutations
-#ifdef _DEBUGGING_
+#ifdef DEBUGGING
         std::cerr << "Generation " << generation << ": " << pN << " individuals; " << pM << " new alleles" << std::endl;
-#endif  // _DEBUGGING_
+#endif  // DEBUGGING
 
         select_gen.update( m_parent, pN );
 
         updateFixedAlleles( m_parent );                 // update the fixed alleles with those of parent population
 
         size_t all_size = child_max_alleles( m_parent->allele_count(), m_free_space.free_size(), pM );   // rescale allele space for child population given free space from parent population and new allele count (pM)
-//        std::cerr << "Rescaling child population to be: " << pN << " individuals x " << all_size << " alleles" << std::endl;
+#ifdef DEBUGGING
+        std::cerr << "Rescaling child population to be: " << pN << " individuals x " << all_size << " alleles" << std::endl;
+#endif  // DEBUGGING
         m_child->grow( pN, all_size );                        // grow the child population accordingly
 
         m_child->inherit_alleles( m_parent, m_free_space.free_begin(), m_free_space.free_end() );
@@ -209,7 +213,7 @@ protected:
             m_fixed.push_back( gs->getAlleleSpace(), fixed_index );
         }
 
-#ifdef _DEBUGGING_
+#ifdef DEBUGGING
         typedef typename free_space_type::iterator free_iterator;
         free_iterator fr_it = m_free_space.free_begin();
         free_iterator fr_end = m_free_space.free_end();
@@ -222,7 +226,7 @@ protected:
                 assert(false);
             }
         }
-#endif // _DEBUGGING_
+#endif // DEBUGGING
     }
 
     random_engine_type  * m_rand;

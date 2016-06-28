@@ -19,6 +19,8 @@
 #include "clotho/utility/state_object.hpp"
 #include "clotho/utility/log_helper.hpp"
 
+#include "clotho/utility/bit_helper.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -28,58 +30,100 @@ public:
     typedef base_allele_vectorized< PositionType >      base_type;
     typedef neutral_allele_vectorized< PositionType >   self_type;
 
-    typedef std::vector< bool >                             neutrality_vector_type;
-    typedef typename neutrality_vector_type::iterator       neutrality_iterator;
-    typedef typename neutrality_vector_type::const_iterator const_neutrality_iterator;
+    typedef unsigned long long                          block_type;
+    typedef block_type *                                neutrality_vector_type;
+
+    typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
     neutral_allele_vectorized( size_t a = 0 ) :
         base_type( a )
+        , m_neutral( NULL )
+        , m_block_size(0)
+        , m_block_alloc(0)
     {
         this->grow( a );
     }
 
     bool getNeutralAt( size_t index ) const {
-        return m_neutral[ index ];
+        assert( 0 <= index && index < this->m_pos_size );
+
+        size_t bidx = index / bit_helper_type::BITS_PER_BLOCK;
+        block_type bmask = bit_helper_type::bit_offset(index);
+
+        return m_neutral[ bidx ] & bmask;
     }
 
     void setNeutralAt( size_t index, bool neu ) {
-        if( index >= base_type::size() ) {
-            resize( index + 1 );
-        }
+        assert( 0 <= index && index < this->m_pos_size );
 
-        m_neutral[ index ] = neu;
+        size_t bidx = index / bit_helper_type::BITS_PER_BLOCK;
+        block_type mask = bit_helper_type::bit_offset(index);
+
+        if( ((m_neutral[ bidx ] & mask) == mask) != neu )
+            m_neutral[ bidx ] ^= mask;
     }
 
+//    bool getNeutralAt( size_t index ) const {
+//        return m_neutral[ index ];
+//    }
+//
+//    void setNeutralAt( size_t index, bool neu ) {
+//        if( index >= base_type::size() ) {
+//            resize( index + 1 );
+//        }
+//
+//        m_neutral[ index ] = neu;
+//    }
+
+//    bool isAllNeutral() const {
+//        const_neutrality_iterator first = m_neutral.begin(), last = this->m_neutral.end();
+//        bool all_neutral = true;
+//        while( all_neutral && first != last ) {
+//            all_neutral = *first++;
+//        }
+//
+//        return all_neutral;
+//    }
     bool isAllNeutral() const {
-        const_neutrality_iterator first = m_neutral.begin(), last = this->m_neutral.end();
-        bool all_neutral = true;
-        while( all_neutral && first != last ) {
-            all_neutral = *first++;
+        for( size_t i = 0; i < m_block_size - 1; ++i ) {
+            if( m_neutral[i] != bit_helper_type::ALL_SET )
+                return false;
         }
 
-        return all_neutral;
+        block_type mask = bit_helper_type::low_bit_mask( this->m_pos_size - 1 );
+
+//        std::cerr << "Comparing: " << std::hex << m_neutral[m_block_size - 1] << " to " << mask << std::dec << std::endl;
+
+//        std::cerr << "Checking: " << (m_block_size - 1) << std::endl;
+
+        return m_neutral[m_block_size - 1] == mask;
     }
 
     void inherit( self_type & parent ) {
-        std::copy( parent.position_begin(), parent.position_end(), this->position_begin() );
-        std::copy( parent.neutral_begin(), parent.neutral_end(), this->m_neutral.begin() );
+        // inherit positions
+        assert( parent.size() <= this->size() );
+        memcpy( this->m_positions, parent.m_positions, parent.size() * sizeof(typename base_type::base_type::position_type) );
+
+        // inherit neutral
+        assert( parent.m_block_size < this->m_block_alloc );
+        std::copy( parent.m_neutral, parent.m_neutral + parent.m_block_size, this->m_neutral );
     }
 
-    neutrality_iterator neutral_begin() {
-        return m_neutral.begin();
-    }
-
-    neutrality_iterator neutral_end() {
-        return m_neutral.end();
-    }
-
-    const_neutrality_iterator neutral_begin() const {
-        return m_neutral.begin();
-    }
-
-    const_neutrality_iterator neutral_end() const {
-        return m_neutral.end();
-    }
+//    neutrality_iterator neutral_begin() {
+//        return m_neutral.begin();
+//    }
+//
+//    neutrality_iterator neutral_end() {
+//        return m_neutral.end();
+//    }
+//
+//    const_neutrality_iterator neutral_begin() const {
+//        return m_neutral.begin();
+//    }
+//
+//    const_neutrality_iterator neutral_end() const {
+//        return m_neutral.end();
+//    }
 
     void push_back( self_type & other, size_t idx ) {
         size_t e = this->size();
@@ -96,17 +140,34 @@ public:
         return this->size();
     }
 
-    virtual ~neutral_allele_vectorized() {}
+    virtual ~neutral_allele_vectorized() {
+        if( m_neutral != NULL ) {
+            delete [] m_neutral;
+        }
+    }
 
 protected:
 
     virtual void resize( size_t s ) {
         base_type::resize( s );
 
-        m_neutral.resize( base_type::size() );
+        size_t bc = bit_helper_type::padded_block_count( s );
+        if( bc > m_block_alloc ) {
+            if( m_neutral != NULL ) {
+                delete [] m_neutral;
+            }
+
+            m_neutral = new block_type[ bc ];
+            m_block_alloc = bc;
+
+        }
+
+        memset( m_neutral, 0, m_block_alloc * sizeof(block_type));
+        m_block_size = bc;
     }
 
     neutrality_vector_type  m_neutral;
+    size_t m_block_size, m_block_alloc;
 };
 
 }   // namespace genetics

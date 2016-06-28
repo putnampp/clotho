@@ -70,7 +70,13 @@ public:
 
         memset( m_trait_weights, 0, m_size * sizeof(weight_type) );
 
-        if( genomes.getAlleleSpace().isAllNeutral() )   return;
+        if( genomes.getAlleleSpace().isAllNeutral() ) {
+            return;
+#ifdef DEBUGGING
+        } else {
+            std::cerr << "Not all alleles are neutral!" << std::endl;
+#endif // DEBUGGING
+        }
 
         evaluator_type eval;
 

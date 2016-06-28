@@ -97,7 +97,6 @@ public:
 
             size_t j = 0;
             while( start != end ) {
-
                 block_type b = *start++;
 
                 while( b ) {

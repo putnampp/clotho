@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE( qtl_allele_free_space_test ) {
     size_t exp_alleles = 10, exp_traits = 3;
     allele_type all( exp_alleles, exp_traits );
 
-    size_t obs_size = all.free_size();
+    size_t obs_size = all.size();
 
     BOOST_REQUIRE_MESSAGE( obs_size == exp_alleles, "Unexpected free space size; Observed: " << obs_size << "; Expected: " << exp_alleles );
 

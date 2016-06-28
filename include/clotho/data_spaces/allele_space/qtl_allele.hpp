@@ -124,9 +124,16 @@ public:
     }
 
     void inherit( self_type & parent ) {
-        std::copy( parent.position_begin(), parent.position_end(), this->position_begin() );
-        std::copy( parent.neutral_begin(), parent.neutral_end(), this->m_neutral.begin() );
+        // inherit positions
+        assert( parent.size() <= this->size() );
+        memcpy( this->m_positions, parent.m_positions, parent.size() * sizeof( typename base_type::base_type::position_type) );
 
+        // inherit neutral
+//        memset( this->m_neutral, 0, this->m_block_alloc * sizeof(typename base_type::block_type ) );
+        std::copy( parent.m_neutral, parent.m_neutral + parent.m_block_size, this->m_neutral );
+        
+
+        // inherit QTL
         size_t t = trait_count();
         size_t ot = parent.trait_count();
 
@@ -144,13 +151,13 @@ public:
     }
 
     weight_pointer begin_trait_weight( size_t idx ) {
-        assert( 0 <= idx && idx < allele_count() );
+        assert( 0 <= idx && idx < this->m_pos_size );
 
         return m_weights + idx * trait_count();
     }
 
     weight_pointer end_trait_weight( size_t idx ) {
-        assert( 0 <= idx && idx < allele_count() );
+        assert( 0 <= idx && idx < this->m_pos_size );
 
         return m_weights + (idx + 1) * trait_count();
     }
@@ -196,7 +203,8 @@ protected:
             weight_type * tmp = new weight_type[ new_size ];
 
             if( m_weights != NULL ) {
-                memcpy( tmp, m_weights, m_size * sizeof( weight_type ) );
+                if( m_size > 0 )
+                    memcpy( tmp, m_weights, m_size * sizeof( weight_type ) );
                 delete [] m_weights;
             }
 

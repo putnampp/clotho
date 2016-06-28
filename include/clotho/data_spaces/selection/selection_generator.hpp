@@ -47,11 +47,9 @@ public:
     { }
 
     void update( genetic_space_type * parents, size_t count ) {
-        typedef typename distribution_type::param_type  param_type;
-
         // distribution generates numbers in range [0, N]
         // therefore N needs to be the maximum index (individual_count - 1)
-        m_dist.param( param_type( 0, parents->individual_count() - 1 ) );
+        distribution_type dist( 0, parents->individual_count() - 1 );
 
         m_pairs.clear();
 
@@ -92,8 +90,6 @@ public:
 protected:
     random_engine_type  * m_rand;
     mate_pair_vector    m_pairs;
-
-    distribution_type   m_dist;
 };
 
 }   // namespace genetics

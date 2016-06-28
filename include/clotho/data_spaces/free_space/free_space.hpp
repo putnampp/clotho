@@ -73,7 +73,7 @@ public:
         m_fixed_count = m_width;
         m_lost_count = 2 * m_width;
 
-        evaluator_type eval;
+//        evaluator_type eval;
         eval( gs.getSequenceSpace(), m_indices, m_fixed_count, m_lost_count, m_free_count, m_width );
 
         m_fixed_count -= m_width;
@@ -165,6 +165,7 @@ protected:
     size_t  * m_indices;
     size_t  m_fixed_count, m_lost_count, m_free_count;
     size_t  m_width, m_size;
+    evaluator_type eval;
 };
 
 }   // namespace genetics

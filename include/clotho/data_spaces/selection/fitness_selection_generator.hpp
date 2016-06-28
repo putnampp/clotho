@@ -17,6 +17,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <boost/random/discrete_distribution.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
 
 #include <vector>
 
@@ -42,24 +43,49 @@ public:
     typedef typename genetic_space_type::fitness_score_type                     fitness_score_type;
     typedef typename genetic_space_type::fitness_scores                         fitness_scores;
 
-    typedef boost::random::discrete_distribution< individual_id_type, fitness_score_type >  distribution_type;
+    typedef boost::random::discrete_distribution< individual_id_type, fitness_score_type >  discrete_distribution_type;
+    typedef boost::random::uniform_int_distribution< individual_id_type >       uniform_distribution_type;
 
     SelectionGenerator( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rand( rng )
     { }
 
     void update( genetic_space_type * parents, unsigned int count ) {
-        typename distribution_type::param_type  param_type;
-        m_dist.param( param_type( parents->fitness_begin(), parents->fitness_end() ) );
 
+        // pre-scan fitness
+        typedef typename genetic_space_type::fitness_iterator iterator;
+
+        iterator first = parents->fitness_begin(), last = parents->fitness_end();
+        bool constant_fitness = true;
+        unsigned int N = 0;
+        if( first != last ) {
+            typename genetic_space_type::fitness_score_type prev = *first++;
+            ++N;
+            while( constant_fitness && first != last ) {
+                constant_fitness = (prev == *first++);
+                ++N;
+            }
+        }
+
+        if( constant_fitness ) {
+            uniform_distribution_type uni( 0, N - 1 );
+            generate( uni, count );
+        } else {
+            discrete_distribution_type disc( parents->fitness_begin(), parents->fitness_end() );
+            generate( disc, count );
+        }
+    }
+
+    template < class DistributionType >
+    void generate( DistributionType & dist, size_t count ) {
         m_pairs.clear();
 
         while( count-- ) {
-            individual_id_type  id0 = m_dist( *m_rand );
-            individual_id_type  id1 = m_dist( *m_rand );
+            individual_id_type  id0 = dist( *m_rand );
+            individual_id_type  id1 = dist( *m_rand );
 
             m_pairs.push_back( std::make_pair( id0, id1 ) );
-        }   
+        }
     }
 
     parent_iterator begin() {
@@ -91,8 +117,6 @@ public:
 protected:
     random_engine_type  * m_rand;
     mate_pair_vector    m_pairs;
-
-    distribution_type   m_dist;
 };
 
 }   // namespace genetics
