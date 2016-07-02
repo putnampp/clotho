@@ -42,7 +42,18 @@ struct pairwise_difference_evaluator< BlockType, row_grouped< P > > {
             b_start += row_grouped< P >::GROUP_SIZE;
         }
 
-        assert( a_start == a_end && b_start == b_end );
+//        assert( a_start == a_end && b_start == b_end );
+        while( a_start != a_end ) {
+            block_type a = *a_start;
+            diff += popcount(a);
+            a_start += row_grouped< P >::GROUP_SIZE;
+        }
+
+        while( b_start != b_end ) {
+            block_type b = *b_start;
+            diff += popcount(b);
+            b_start += row_grouped< P >::GROUP_SIZE;
+        }
 
         return diff;
     }

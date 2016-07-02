@@ -45,12 +45,12 @@ public:
             size_t seq_idx = m_seq_gen( *m_rand );
             size_t all_idx = child->getAlleleSpace().next_free();
 
-            assert( all_idx != -1 );
-            assert( all_idx < child->getSequenceSpace().column_count() );
-
             child->getSequenceSpace().flip( seq_idx, all_idx );
             m_allele_gen( child->getAlleleSpace(), all_idx );
         }
+
+        // this will cause compilation error if association matrix is not row_grouped< 1 > organized
+        child->getSequenceSpace().finalize();
     }
 
     virtual ~MutationGenerator() {}
@@ -63,5 +63,7 @@ protected:
 
 }   // namespace genetics
 }   // namespace clotho
+
+#include "clotho/data_spaces/mutation/mutation_generator_spec.hpp"
 
 #endif  // CLOTHO_MUTATION_GENERATOR_HPP_

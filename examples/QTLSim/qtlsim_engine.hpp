@@ -93,10 +93,26 @@ public:
         size_t acount = m_pop0.getAlleleSpace().allele_count();
         m_pop0.getAlleleSpace().grow(acount, 1);
         m_pop1.getAlleleSpace().grow(acount, 1);
+
+        init(acount);
     }
 
     size_t getGeneration() const {
         return m_generation;
+    }
+
+    void init( size_t aN ) {
+        size_t generation = m_generation++;
+        size_t pN = m_parent->individual_count();
+        if( m_pop_growth ) {
+            pN = m_pop_growth->operator()( pN, generation );
+        }
+
+        m_pop1.grow( pN, aN );
+
+        m_pop1.getSequenceSpace().fill_empty();
+
+        m_pop1.getSequenceSpace().finalize();
     }
 
     void simulate( ) {

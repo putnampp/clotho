@@ -109,8 +109,8 @@ public:
     typedef AlleleSpaceType                                     allele_type;
     typedef association_matrix< BlockType, row_grouped< 1 > >   sequence_space_type;
 
-    typedef typename sequence_space_type::raw_block_pointer     sequence_iterator;
-    typedef typename sequence_space_type::raw_block_pointer     genome_iterator;
+    typedef typename sequence_space_type::row_vector            row_vector;
+    typedef typename row_vector::raw_pointer                    raw_pointer;
 
     typedef typename allele_type::position_type                 position_type;
 
@@ -122,22 +122,55 @@ public:
 
     crossover_method( RNG * rng, boost::property_tree::ptree & config ) :
         m_event_gen( rng, config )
-    {}
+        , m_size(0)
+        , m_count(0)
+        , m_buffer( NULL )
+    {
+#ifdef DEBUGGING
+        std::cerr << "Using specialized crossover method" << std::endl;
+#endif  // DEBUGGING
+    }
 
     void initAlleles( allele_type & alls ) {
         m_event_gen.update( alls.getPositions(), alls.size() );
+        m_size = bit_helper_type::padded_block_count( alls.size() );
+        m_count = alls.size();
+
+        if( m_buffer != NULL ) {
+            delete [] m_buffer;
+            m_buffer = NULL;
+        }
     }
 
-    void crossover( genome_iterator start, genome_iterator end, sequence_iterator s, size_t p_step, size_t s_step ) {
+    row_vector crossover( row_vector & a, row_vector & b ) {
 
         size_t N = m_event_gen.generate();
 
-        genome_iterator sec_ptr = end;
         if( N != 0 ) {
-            size_t j = 0;
-            while( start != end ) {
-                block_type first = *start++;
-                block_type second = *sec_ptr++;
+            if( a == b ) {
+                return row_vector(a);
+            }
+
+            if( m_buffer == NULL ) {
+                m_buffer = new block_type[ m_size ];
+            }
+
+            size_t N = a.m_size, M = b.m_size;
+
+#ifdef DEBUGGING
+            assert(N <= m_size && M <= m_size);
+            assert( a.m_readonly );
+            assert( b.m_readonly );
+#endif  // DEBUGGING
+
+            raw_pointer a_ptr = a.get(), b_ptr = b.get();
+            raw_pointer c_ptr = m_buffer;
+
+            bool match_first = true, match_second = true;
+            size_t i = 0, j = 0;
+            while( i < m_size ) {
+                block_type first = (( i < N ) ? a_ptr[ i ] : bit_helper_type::ALL_UNSET);
+                block_type second = (( i < M ) ? b_ptr[ i ] : bit_helper_type::ALL_UNSET);
 
                 block_type hets = first ^ second;
                 block_type sec  = bit_helper_type::ALL_UNSET;   // mask state from second strand
@@ -145,48 +178,56 @@ public:
                 while( hets ) {
                     size_t idx = bit_walker_type::unset_next_index( hets ) + j;
 
+#ifdef DEBUGGING
+                    if( idx >= m_count ) {
+                        std::cerr << "Index out of range: " << idx << "; " << std::hex << first << "; " << second << std::dec << "; A size: " << N << "; B size: " << M << "; C size: " << c.m_size << std::endl;
+                        assert( false );
+                    }
+#endif  // DEBUGGING
+
                     if( m_event_gen( idx ) ) {
                         sec |= bit_helper_type::bit_offset( idx );
                     }
                 }
 
-                *s++ = ((first & ~sec) | (second & sec));
+                block_type r = ((first & ~sec) | (second & sec));
+                match_first = match_first && (r == first);
+                match_second = match_second && (r == second );
+                c_ptr[ i ] = r;
 
                 j += bit_helper_type::BITS_PER_BLOCK;
+                ++i;
             }
+
+            if( match_first ) {
+                return row_vector(a);
+            } else if( match_second ) {
+                return row_vector(b);
+            } else {
+                row_vector c( m_size, m_buffer );
+                m_buffer = NULL;
+                return c;
+            }
+        } else if( m_event_gen.getBaseSequence() != 0 ) {
+            return row_vector( b );
         } else {
-            size_t N = (end - start);
-
-            if( m_event_gen.getBaseSequence() != 0 ) {
-                // use second strand
-                start = end;
-            }
-
-            for( size_t i = 0; i < N; ++i )
-                s[i] = start[i];
-//            size_t i = 0;
-//            size_t M = N % 4;
-//            while( i < M ) {
-//                s[i] = start[i];
-//                ++i;
-//            }
-//
-//            while( i < N ) {
-//                s[ i ] = start[ i ];
-//                s[ i + 1 ] = start[i + 1];
-//                s[ i + 2 ] = start[i + 2 ];
-//                s[ i + 3 ] = start[i + 3 ];
-//                i += 4;
-//            }
-//
+            return row_vector( a );
         }
     }
 
-    virtual ~crossover_method() {}
+    virtual ~crossover_method() {
+        if( m_buffer != NULL ) {
+            delete [] m_buffer;
+        }
+    }
 
 protected:
     event_generator_type m_event_gen;
+    size_t m_size, m_count;
+
+    block_type * m_buffer;
 };
+
 }   // namespace genetics
 }   // namespace clotho
 

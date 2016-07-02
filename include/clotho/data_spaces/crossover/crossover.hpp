@@ -52,9 +52,8 @@ public:
     typedef typename mate_pair_type::iterator                                   iterator;
 
     Crossover( RNG * rng, boost::property_tree::ptree & config ) :
-//        m_event_gen(rng, config )
         m_method( rng, config )
-    {}
+    { }
 
     void update( genetic_space_type * parental_genomes, mate_pair_type & parents, genetic_space_type * offspring_genomes ) {
         iterator mate_it = parents.begin(), mate_end = parents.end();
@@ -89,42 +88,12 @@ public:
     virtual ~Crossover() {}
 
 protected:
-//    void crossover( genome_iterator start, genome_iterator end, sequence_iterator & s, allele_type & all, size_t p_step, size_t s_step ) {
-//
-//        p_step--;
-//
-//        m_event_gen.generate();
-//        size_t j = 0;
-//        while( start != end ) {
-//            block_type first = *start++;
-//            block_type second = *start;
-//
-//            block_type hets = first ^ second;
-//            block_type sec  = bit_helper_type::ALL_UNSET;   // mask state from second strand
-//
-//            while( hets ) {
-//                size_t idx = bit_walker_type::unset_next_index( hets ) + j;
-//
-//                if( m_event_gen( idx ) ) {
-//                    sec |= bit_helper_type::bit_offset( idx );
-//                }
-//            }
-//
-//            hets = ((first & ~sec) | (second & sec));
-//            *s = hets;
-//
-//            j += bit_helper_type::BITS_PER_BLOCK;
-//
-//            start += p_step;
-//            s += s_step;
-//        }
-//    }
-//
-//    event_generator_type    m_event_gen;
     method_type m_method;
 };
 
 }   // namespace genetics
 }   // namespace clotho
+
+#include "clotho/data_spaces/crossover/crossover_spec.hpp"
 
 #endif  // CLOTHO_CROSSOVER_GENERATOR_HPP_

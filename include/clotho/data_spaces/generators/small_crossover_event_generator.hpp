@@ -109,7 +109,12 @@ public:
     // test whether the genetic position at the given index
     // 
     bool operator()( size_t index ) {
-        ASSERT_VALID_RANGE( index, 0, m_pos_size )
+#ifdef DEBUGGING
+        if( index >= m_pos_size ) {
+            std::cerr << "Crossover: " << index << " < " << m_pos_size << std::endl;
+            assert(false);
+        }
+#endif
 
         position_type p = m_pos[ index ];
 

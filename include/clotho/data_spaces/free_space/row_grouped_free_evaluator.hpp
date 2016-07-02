@@ -18,6 +18,8 @@
 #include "clotho/utility/bit_helper.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
+#include <set>
+
 namespace clotho {
 namespace genetics {
 
@@ -118,17 +120,24 @@ template < class BlockType >
 class free_space_evaluator< association_matrix< BlockType, row_grouped< 1 > > > {
 public:
     typedef association_matrix< BlockType, row_grouped< 1 > > space_type;
-    typedef typename space_type::block_type                 block_type;
+    typedef typename space_type::row_vector                 row_vector;
+    typedef typename row_vector::block_type                 block_type;
     typedef size_t *                                        result_type;
 
-    typedef typename space_type::raw_block_pointer    block_pointer;
+    typedef typename row_vector::raw_pointer                raw_pointer;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
 
+    free_space_evaluator() :
+        tmp(NULL)
+        , m_alloc_size(0)
+    {}
+
     void operator()( space_type & ss, result_type res, size_t & fixed_offset, size_t & lost_offset, size_t & free_count, size_t M ) {
 
-        size_t W = bit_helper_type::padded_block_count( M );
+//        size_t W = bit_helper_type::padded_block_count( M );
+        size_t W = ss.hard_block_count();
 
         resize( W );
 
@@ -137,7 +146,9 @@ public:
             tmp[ 2 * i + 1 ] = bit_helper_type::ALL_UNSET;
         }
 
-        const size_t row_count = ss.block_row_count();
+        std::set< raw_pointer > analyzed;
+
+        const size_t row_count = ss.row_count();
 
         size_t fo = fixed_offset;
         size_t lo = lost_offset;
@@ -146,25 +157,47 @@ public:
         size_t k = 0;
         while( k < row_count ) {
 
-            block_pointer start = ss.begin_block_row( k );
-//            block_pointer end = ss.end_block_row( k );
+            raw_pointer start = ss.getRow( k ).get();
 
-            for( size_t i = 0; i < W; ++i ) {
-                block_type b = start[i];
-                tmp[ 2 * i ] &= b;
-                tmp[ 2 * i + 1 ] |= b;
+            if( analyzed.find( start ) == analyzed.end() ) {
+                analyzed.insert( start );
+                size_t  N = ss.getRow( k ).m_size;
+
+#ifdef DEBUGGING
+                assert( N <= W );
+#endif // DEBUGGING
+
+//                size_t i = 0;
+//                while( i < N ) {
+//                    block_type b = start[i];
+//                    tmp[ 2 * i ] &= b;
+//                    tmp[ 2 * i + 1 ] |= b;
+//                    ++i;
+//                }
+
+                raw_pointer end = start + N;
+                block_type * t = tmp;
+                while( start != end ) {
+                    *t++ &= *start;
+                    *t++ |= *start++;
+                }
+
+                size_t i = N;
+                while( i < W ) {
+                    tmp[ 2 * i ] = bit_helper_type::ALL_UNSET;
+                    ++i;
+                }
             }
 
             ++k;
         }
 
+#ifdef DEBUGGING
+        std::cerr << "Free Space analyzed: " << analyzed.size() << std::endl;
+#endif  // DEBUGGING
+
         size_t j = 0;
         
-//        fx_ptr = tmp;
-//        var_ptr = tmp + W;
-//        while( fx_ptr != tmp + W ) {
-//            block_type fx = *fx_ptr++;
-//            block_type var = *var_ptr++;
         for( unsigned int i = 0; i < W; ++i ) {
             block_type fx = tmp[ 2 *i ];
             block_type var = tmp[2 * i + 1];
