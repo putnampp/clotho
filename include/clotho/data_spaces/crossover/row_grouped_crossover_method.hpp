@@ -148,6 +148,9 @@ public:
 
         if( N != 0 ) {
             if( a == b ) {
+#ifdef DEBUGGING
+                std::cerr << "Crossing over same sequence" << std::endl;
+#endif  // DEBUGGING
                 return row_vector(a);
             }
 
@@ -180,7 +183,7 @@ public:
 
 #ifdef DEBUGGING
                     if( idx >= m_count ) {
-                        std::cerr << "Index out of range: " << idx << "; " << std::hex << first << "; " << second << std::dec << "; A size: " << N << "; B size: " << M << "; C size: " << c.m_size << std::endl;
+                        std::cerr << "Index out of range: " << idx << "; " << std::hex << first << "; " << second << std::dec << "; A size: " << N << "; B size: " << M << "; C size: " << m_size << std::endl;
                         assert( false );
                     }
 #endif  // DEBUGGING
@@ -200,10 +203,20 @@ public:
             }
 
             if( match_first ) {
+#ifdef DEBUGGING
+                std::cerr << "Crossover resulted in match of first sequence therefore cloning it: " << std::endl;
+#endif  //DEBUGGING
                 return row_vector(a);
             } else if( match_second ) {
+#ifdef DEBUGGING
+                std::cerr << "Crossover resulted in match of second sequence therefore cloning it: " << std::endl;
+#endif  // DEBUGGING
                 return row_vector(b);
             } else {
+#ifdef DEBUGGING
+                std::cerr << "Crossover results in new sequence: " << std::endl;
+#endif  // DEBUGGING
+
                 row_vector c( m_size, m_buffer );
                 m_buffer = NULL;
                 return c;
