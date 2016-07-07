@@ -62,7 +62,7 @@ public:
     typedef std::shared_ptr< ipopulation_growth_generator >                                         population_growth_generator_type;
     typedef std::shared_ptr< ipopulation_growth >                                                   population_growth_type;
 
-    friend class clotho::utility::state_getter< self_type >;
+    friend struct clotho::utility::state_getter< self_type >;
 
     Engine( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rand( rng )
