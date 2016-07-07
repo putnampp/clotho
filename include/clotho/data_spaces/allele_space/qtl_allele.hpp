@@ -37,7 +37,7 @@ public:
 
     typedef weight_type *               weight_pointer;
 
-    friend class clotho::utility::state_getter< self_type >;
+    friend struct clotho::utility::state_getter< self_type >;
 
     class weight_iterator {
     public:
