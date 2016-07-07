@@ -54,8 +54,8 @@ public:
         m_pairs.clear();
 
         while( count-- ) {
-            individual_id_type  id0 = m_dist( *m_rand );
-            individual_id_type  id1 = m_dist( *m_rand );
+            individual_id_type  id0 = dist( *m_rand );
+            individual_id_type  id1 = dist( *m_rand );
 
             m_pairs.push_back( std::make_pair( id0, id1 ) );
         }   
