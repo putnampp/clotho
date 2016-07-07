@@ -251,22 +251,16 @@ public:
         ASSERT_VALID_RANGE( row, 0, m_rows )
         ASSERT_VALID_RANGE( col, 0, m_columns )
 
-        if( m_data[ row ].m_readonly ) {
+        size_t offset = block_column_offset(col);
+        if( m_data[ row ].m_readonly || offset >= m_data[row].m_size ) {
             row_vector a( m_bpr );
-
             a.copy( m_data[row] );
-
             m_data[ row ] = a;
         }
 
-        size_t offset = block_column_offset(col);
 #ifdef DEBUGGING
         assert( !m_data[ row ].m_readonly );
         assert( offset < m_data[ row ].m_size );
-
-        if( col == 5593 ) {
-            std::cerr << "Setting column: " << col << "; row: " << row << std::endl;
-        }
 #endif  // DEBUGGING
 
         m_data[ row ].get()[ offset ]  ^= bit_helper_type::bit_offset( col );
