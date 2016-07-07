@@ -29,7 +29,8 @@ struct neutral_parameter {
 
     distribution_type   m_dist;
 
-    static constexpr RealType DEFAULT_NEUTRALITY = 0.5;
+//    static constexpr RealType DEFAULT_NEUTRALITY = 0.5;
+#define DEFAULT_NEUTRALITY 0.5
 
     neutral_parameter( RealType m = DEFAULT_NEUTRALITY ) :
         m_dist( m )
@@ -57,6 +58,8 @@ struct neutral_parameter {
 
     virtual ~neutral_parameter() {}
 };
+
+#undef DEFAULT_NEUTRALITY
 
 }   // namespace genetics
 }   // namespace clotho
