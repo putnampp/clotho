@@ -31,8 +31,8 @@ namespace genetics {
 template < class BlockType >
 class association_matrix< BlockType, row_vector > : public growable2D {
 public:
-    typedef BlockType                                   block_type;
-    typedef row_grouped< 1 >                            alignment_type;
+    typedef BlockType                             block_type;
+    typedef row_vector                            alignment_type;
 
     typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
