@@ -48,9 +48,6 @@ public:
             child->getSequenceSpace().flip( seq_idx, all_idx );
             m_allele_gen( child->getAlleleSpace(), all_idx );
         }
-
-        // this will cause compilation error if association matrix is not row_grouped< 1 > organized
-        child->getSequenceSpace().finalize();
     }
 
     virtual ~MutationGenerator() {}
