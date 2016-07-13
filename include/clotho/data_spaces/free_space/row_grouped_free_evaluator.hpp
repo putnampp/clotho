@@ -147,10 +147,11 @@ public:
         while( k < row_count ) {
 
             block_pointer start = ss.begin_block_row( k );
-//            block_pointer end = ss.end_block_row( k );
 
             for( size_t i = 0; i < W; ++i ) {
-                block_type b = start[i];
+                block_type b = *start;
+                ++start;
+
                 tmp[ 2 * i ] &= b;
                 tmp[ 2 * i + 1 ] |= b;
             }
@@ -160,11 +161,6 @@ public:
 
         size_t j = 0;
         
-//        fx_ptr = tmp;
-//        var_ptr = tmp + W;
-//        while( fx_ptr != tmp + W ) {
-//            block_type fx = *fx_ptr++;
-//            block_type var = *var_ptr++;
         for( unsigned int i = 0; i < W; ++i ) {
             block_type fx = tmp[ 2 *i ];
             block_type var = tmp[2 * i + 1];
