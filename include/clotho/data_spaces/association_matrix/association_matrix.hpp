@@ -17,5 +17,6 @@
 #include "clotho/data_spaces/association_matrix/association_matrix_def.hpp"
 #include "clotho/data_spaces/association_matrix/column_aligned_association_matrix.hpp"
 #include "clotho/data_spaces/association_matrix/row_grouped_association_matrix.hpp"
+#include "clotho/data_spaces/association_matrix/row_vector_association_matrix.hpp"
 
 #endif  // CLOTHO_ASSOCIATION_MATRIX_GUARD_HPP_
