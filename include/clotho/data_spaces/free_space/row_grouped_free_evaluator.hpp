@@ -17,7 +17,7 @@
 #include "clotho/data_spaces/association_matrix/row_grouped_association_matrix.hpp"
 #include "clotho/utility/bit_helper.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
-
+#include <map>
 #include <set>
 
 namespace clotho {
@@ -115,7 +115,7 @@ public:
         delete [] tmp;
     }
 };
-
+/*
 template < class BlockType >
 class free_space_evaluator< association_matrix< BlockType, row_grouped< 1 > > > {
 public:
@@ -247,7 +247,126 @@ protected:
     }
     block_type * tmp;
     size_t m_alloc_size;
+};*/
+
+/// this approach eliminates writing to the heap
+/// utilizes stack buffers to write temporary data
+template < class BlockType >
+class free_space_evaluator< association_matrix< BlockType, row_grouped< 1 > > > {
+public:
+    typedef association_matrix< BlockType, row_grouped< 1 > > space_type;
+    typedef typename space_type::row_vector                 row_vector;
+    typedef typename row_vector::block_type                 block_type;
+    typedef size_t *                                        result_type;
+
+    typedef typename row_vector::raw_pointer                raw_pointer;
+
+    typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
+    typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
+
+    free_space_evaluator() {}
+
+    void operator()( space_type & ss, result_type res, size_t & fixed_offset, size_t & lost_offset, size_t & free_count, size_t M ) {
+
+        size_t W = ss.hard_block_count();
+
+        std::map< raw_pointer, size_t > analyzed;
+        typedef typename std::map< raw_pointer, size_t >::iterator iterator;
+
+        const size_t row_count = ss.row_count();
+
+        size_t fo = fixed_offset;
+        size_t lo = lost_offset;
+        size_t fr = free_count;
+        
+        // pre-scan population for all unique sequences
+        size_t k = 0;
+        while( k < row_count ) {
+            raw_pointer start = ss.getRow( k ).get();
+            size_t s = ss.getRow( k ).m_size;
+
+            if( analyzed.find( start ) == analyzed.end() ) {
+                analyzed[ start ] = s;
+            }
+            ++k;
+        }
+
+#ifdef DEBUGGING
+        std::cerr << "Free Space analyzing: " << analyzed.size() << std::endl;
+#endif  // DEBUGGING
+
+        const size_t BUFFER_SIZE = 8;
+        k = 0;
+        while( k < W ) {
+//            // 16 * sizeof(block_type) * 2 == 16 * 8 * 2 == 256 byte buffer
+            block_type fx_buffer[ BUFFER_SIZE ];
+            block_type var_buffer[ BUFFER_SIZE ];
+
+            // initialize buffers
+            for( int x = 0; x < BUFFER_SIZE; ++x ) {
+                fx_buffer[ x ] = bit_helper_type::ALL_SET;
+                var_buffer[ x ] = bit_helper_type::ALL_UNSET;
+            }
+
+            // analyze block columns
+            for( iterator it = analyzed.begin(); it != analyzed.end(); it++ ) {
+                size_t S = it->second;
+                size_t N = ((k >= S)? 0 : (( k + BUFFER_SIZE <= S ) ? BUFFER_SIZE : (S - k)));
+                size_t x = 0;
+                raw_pointer r = it->first;
+                while( x < N ) {
+                    block_type b = r[ k + x ];
+                    fx_buffer[ x ] &= b;
+                    var_buffer[ x ] |= b;
+                    ++x;
+                }
+
+                while( x < BUFFER_SIZE ) {
+                    fx_buffer[ x ] = bit_helper_type::ALL_UNSET;
+                    ++x;
+                }
+            }
+
+
+            // write results
+            size_t j = k * bit_helper_type::BITS_PER_BLOCK;
+
+            for( unsigned int i = 0; i < BUFFER_SIZE; ++i ) {
+                block_type fx = fx_buffer[ i ];
+                block_type var = var_buffer[ i ];
+
+                block_type ls = ~(fx | var);
+
+                while( fx ) {
+                    size_t b_idx = bit_walker_type::unset_next_index( fx ) + j;
+                    if( b_idx < M ) {
+                        res[ fr++ ] = b_idx;
+                        res[ fo++ ] = b_idx;
+                    }
+                }
+
+                while( ls ) {
+                    size_t idx = bit_walker_type::unset_next_index( ls ) + j;
+                    if( idx < M ) {
+                        res[ fr++ ] = idx;
+                        res[ lo++ ] = idx;
+                    }
+                }
+
+                j += bit_helper_type::BITS_PER_BLOCK;
+            }
+            
+            k += BUFFER_SIZE;
+        }
+
+        fixed_offset = fo;
+        lost_offset = lo;
+        free_count = fr;
+    }
+
+    virtual ~free_space_evaluator() { }
 };
+
 }   // namespace genetics
 }   // namespace clotho
 
