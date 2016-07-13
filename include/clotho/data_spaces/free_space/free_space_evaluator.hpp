@@ -17,5 +17,6 @@
 #include "clotho/data_spaces/free_space/free_space_evaluator_def.hpp"
 #include "clotho/data_spaces/free_space/column_aligned_free_evaluator.hpp"
 #include "clotho/data_spaces/free_space/row_grouped_free_evaluator.hpp"
+#include "clotho/data_spaces/free_space/row_vector_free_evaluator.hpp"
 
 #endif  // CLOTHO_FREE_SPACE_EVALUATOR_GUARD_HPP_
