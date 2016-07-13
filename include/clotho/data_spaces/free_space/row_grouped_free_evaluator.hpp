@@ -295,7 +295,7 @@ public:
         std::cerr << "Free Space analyzing: " << analyzed.size() << std::endl;
 #endif  // DEBUGGING
 
-        const size_t BUFFER_SIZE = 8;
+        const size_t BUFFER_SIZE = 128;
         k = 0;
         while( k < W ) {
 //            // 16 * sizeof(block_type) * 2 == 16 * 8 * 2 == 256 byte buffer
