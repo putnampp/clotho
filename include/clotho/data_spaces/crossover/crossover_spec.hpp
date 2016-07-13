@@ -23,15 +23,15 @@
 
 #include "clotho/data_spaces/crossover/crossover.hpp"
 #include "clotho/data_spaces/population_space/genetic_space.hpp"
-#include "clotho/data_spaces/association_matrix/row_grouped_association_matrix.hpp"
+#include "clotho/data_spaces/association_matrix/row_vector_association_matrix.hpp"
 
 namespace clotho {
 namespace genetics {
 
 template < class RNG, class AlleleSpaceType, class BlockType >
-class Crossover< RNG, genetic_space< AlleleSpaceType, BlockType, row_grouped< 1 > > > {
+class Crossover< RNG, genetic_space< AlleleSpaceType, BlockType, row_vector > > {
 public:
-    typedef genetic_space< AlleleSpaceType, BlockType, row_grouped< 1 > > genetic_space_type;
+    typedef genetic_space< AlleleSpaceType, BlockType, row_vector > genetic_space_type;
 
     typedef typename genetic_space_type::allele_type        allele_type;
     typedef typename genetic_space_type::association_type   association_type;
