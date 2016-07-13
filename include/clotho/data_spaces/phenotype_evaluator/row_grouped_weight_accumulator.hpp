@@ -19,8 +19,6 @@
 
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
-#include <unordered_map>
-
 namespace clotho {
 namespace genetics {
 
@@ -40,48 +38,32 @@ public:
 
     void operator()( allele_type & alls, association_type & seqs, weight_pointer res, size_t trait_count ) {
         size_t  M = seqs.row_count();
-
-        std::unordered_map< block_pointer, size_t > analyzed;
         
         size_t i = 0;
         while( i < M ) {
 
             block_pointer start = seqs.begin_row( i );
+            block_pointer end = seqs.end_row(i);
 
-            if( analyzed.find( start ) == analyzed.end() ) {
-                analyzed[ start ] = i;
-                block_pointer end = seqs.end_row(i);
+            size_t j = 0;
+            while( start != end ) {
 
-                size_t j = 0;
-                while( start != end ) {
+                block_type b = *start;
 
-                    block_type b = *start;
+                while( b ) {
+                    size_t b_idx = j + bit_walker_type::unset_next_index( b );
 
-                    while( b ) {
-                        size_t b_idx = j + bit_walker_type::unset_next_index( b );
+                    weight_pointer t_start = alls.begin_trait_weight( b_idx );
+                    weight_pointer t_end = alls.end_trait_weight( b_idx );
 
-                        weight_pointer t_start = alls.begin_trait_weight( b_idx );
-                        weight_pointer t_end = alls.end_trait_weight( b_idx );
-
-                        size_t a = i * trait_count;
-                        while( t_start != t_end ) {
-                            res[ a++ ] += *t_start++;
-                        }
+                    size_t a = i * trait_count;
+                    while( t_start != t_end ) {
+                        res[ a++ ] += *t_start++;
                     }
-                    start += row_grouped< P >::GROUP_SIZE;
-                    
-                    j += association_type::bit_helper_type::BITS_PER_BLOCK;
                 }
-
-            } else {
-                size_t src = analyzed[ start ] * trait_count;
-                size_t a = i * trait_count;
-
-                size_t x = 0;
-                while( x < trait_count ) {
-                    res[ a + x ] = res[ src + x ];
-                    ++x;
-                }
+                start += row_grouped< P >::GROUP_SIZE;
+                
+                j += association_type::bit_helper_type::BITS_PER_BLOCK;
             }
 
             ++i;
@@ -99,64 +81,43 @@ public:
     typedef typename allele_type::weight_type                   weight_type;
     typedef typename allele_type::weight_pointer                weight_pointer;
 
-    typedef typename association_type::row_vector               row_vector;
-    typedef typename row_vector::block_type                     block_type;
+    typedef typename association_type::block_type               block_type;
     typedef typename association_type::raw_block_pointer        block_pointer;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
-    
 
     void operator()( allele_type & alls, association_type & seqs, weight_pointer res, size_t trait_count ) {
         size_t  M = seqs.row_count();
-
-        std::unordered_map< block_pointer, size_t > analyzed;
         
         size_t i = 0;
         while( i < M ) {
 
             block_pointer start = seqs.begin_row( i );
+            block_pointer end = seqs.end_row(i);
 
-            if( analyzed.find( start ) == analyzed.end() ) {
-                analyzed[ start ] = i;
+            size_t j = 0;
+            while( start != end ) {
+                block_type b = *start++;
 
-                block_pointer end = seqs.end_row(i);
+                while( b ) {
+                    size_t b_idx = j + bit_walker_type::unset_next_index( b );
 
-                size_t j = 0;
-                while( start != end ) {
-                    block_type b = *start++;
+                    weight_pointer t_start = alls.begin_trait_weight( b_idx );
+                    weight_pointer t_end = alls.end_trait_weight( b_idx );
 
-                    while( b ) {
-                        size_t b_idx = j + bit_walker_type::unset_next_index( b );
-
-                        weight_pointer t_start = alls.begin_trait_weight( b_idx );
-                        weight_pointer t_end = alls.end_trait_weight( b_idx );
-
-                        size_t a = i * trait_count;
-                        while( t_start != t_end ) {
-                            res[ a++ ] += *t_start++;
-                        }
+                    size_t a = i * trait_count;
+                    while( t_start != t_end ) {
+                        res[ a++ ] += *t_start++;
                     }
-                    
-                    j += association_type::bit_helper_type::BITS_PER_BLOCK;
                 }
-
-            } else {
-                size_t src = analyzed[ start ] * trait_count;
-                size_t a = i * trait_count;
-
-                size_t x = 0;
-                while( x < trait_count ) {
-                    res[ a + x ] = res[ src + x ];
-                    ++x;
-                }
+                
+                j += association_type::bit_helper_type::BITS_PER_BLOCK;
             }
+
             ++i;
         }
-
-#ifdef DEBUGGING
-        std::cerr << "Weights accumulated for: " << analyzed.size() << std::endl;
-#endif  // DEBUGGING
     }
+
 };
 }   // namespace genetics
 }   // namespace clotho
