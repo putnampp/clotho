@@ -17,5 +17,6 @@
 #include "clotho/data_spaces/phenotype_evaluator/weight_accumulator_def.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/column_aligned_weight_accumulator.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/row_grouped_weight_accumulator.hpp"
+#include "clotho/data_spaces/phenotype_evaluator/row_vector_weight_accumulator.hpp"
 
 #endif  // CLOTHO_WEIGHT_ACCUMULATOR_GUARD_HPP_
