@@ -20,15 +20,15 @@
 #include "clotho/data_spaces/allele_space/allele_generator.hpp"
 
 #include "clotho/data_spaces/population_space/genetic_space.hpp"
-#include "clotho/data_spaces/association_matrix/row_grouped_association_matrix.hpp"
+#include "clotho/data_spaces/association_matrix/row_vector_association_matrix.hpp"
 
 namespace clotho {
 namespace genetics {
 
 template < class RNG, class AlleleSpaceType, class BlockType >
-class MutationGenerator< RNG, clotho::genetics::genetic_space< AlleleSpaceType, BlockType, clotho::genetics::row_grouped< 1 > > > {
+class MutationGenerator< RNG, clotho::genetics::genetic_space< AlleleSpaceType, BlockType, clotho::genetics::row_vector > > {
 public:
-    typedef clotho::genetics::genetic_space< AlleleSpaceType, BlockType, clotho::genetics::row_grouped< 1 > >  genetic_space_type;
+    typedef clotho::genetics::genetic_space< AlleleSpaceType, BlockType, clotho::genetics::row_vector >  genetic_space_type;
     typedef typename genetic_space_type::allele_type    allele_type;
 
     typedef RNG                                 random_engine_type;
