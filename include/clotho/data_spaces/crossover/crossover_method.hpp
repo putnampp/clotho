@@ -17,5 +17,6 @@
 #include "clotho/data_spaces/crossover/crossover_method_def.hpp"
 #include "clotho/data_spaces/crossover/column_aligned_crossover_method.hpp"
 #include "clotho/data_spaces/crossover/row_grouped_crossover_method.hpp"
+#include "clotho/data_spaces/crossover/row_vector_crossover_method.hpp"
 
 #endif  // CLOTHO_CROSSOVER_METHOD_GUARD_HPP_
