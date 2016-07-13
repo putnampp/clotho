@@ -14,7 +14,9 @@
 #ifndef CLOTHO_SIM_ENGINE_HPP_
 #define CLOTHO_SIM_ENGINE_HPP_
 
-//#define DEBUGGING 0
+#ifdef DEBUG_MODE
+#define DEBUGGING 0
+#endif  // DEBUG_MODE
 
 #include <boost/property_tree/ptree.hpp>
 
