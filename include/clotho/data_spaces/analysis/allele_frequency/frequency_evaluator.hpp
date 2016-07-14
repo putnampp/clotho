@@ -17,6 +17,7 @@
 #include "clotho/data_spaces/analysis/allele_frequency/frequency_evaluator_def.hpp"
 #include "clotho/data_spaces/analysis/allele_frequency/column_aligned_frequency_evaluator.hpp"
 #include "clotho/data_spaces/analysis/allele_frequency/row_grouped_frequency_evaluator.hpp"
+#include "clotho/data_spaces/analysis/allele_frequency/row_vector_frequency_evaluator.hpp"
 
 #endif  // FREQUENCY_EVALUATOR_HPP_
 
