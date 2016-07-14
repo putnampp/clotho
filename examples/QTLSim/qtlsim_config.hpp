@@ -48,6 +48,8 @@ typedef clotho::utility::timer                              timer_type;
 
 #ifdef USE_ROW_ALIGNMENT
 #define __ALIGNMENT_TYPE__ clotho::genetics::row_grouped< 1 >
+#elif USE_ROW_VECTOR
+#define __ALIGNMENT_TYPE__ clotho::genetics::row_vector
 #else
 #define __ALIGNMENT_TYPE__ clotho::genetics::column_aligned
 #endif  // USE_ROW_ALIGNMENT
