@@ -112,9 +112,10 @@ public:
 
         m_pop1.grow( pN, aN );
 
+#ifdef USE_ROW_VECTOR
         m_pop1.getSequenceSpace().fill_empty();
-
         m_pop1.getSequenceSpace().finalize();
+#endif // USE_ROW_VECTOR
     }
 
     void simulate( ) {
