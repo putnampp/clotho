@@ -102,6 +102,20 @@ protected:
     event_generator_type m_event_gen;
 };
 
+template < class BlockType >
+struct base_crossover_method {
+    inline BlockType operator()( const BlockType & a, const BlockType & b, const BlockType & c) const {
+        return ((a & ~c) | (b & c));
+    }
+};
+
+template < class BlockType >
+struct alt_crossover_method {
+    inline BlockType operator()( const BlockType & a, const BlockType & b, const BlockType & c) const {
+        return ((a & c) | (b & ~c));
+    }
+};
+
 template < class RNG, class AlleleSpaceType, class BlockType >
 class crossover_method< RNG, AlleleSpaceType, association_matrix< BlockType, row_grouped< 1 > > > {
 public:
@@ -120,6 +134,9 @@ public:
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
 
+    typedef base_crossover_method< block_type >                 base_method;
+    typedef alt_crossover_method< block_type >                  alt_method;
+
     crossover_method( RNG * rng, boost::property_tree::ptree & config ) :
         m_event_gen( rng, config )
     {}
@@ -130,61 +147,81 @@ public:
 
     void crossover( genome_iterator start, genome_iterator end, sequence_iterator s, size_t p_step, size_t s_step ) {
 
-        size_t N = m_event_gen.generate();
-
         genome_iterator sec_ptr = end;
-        if( N != 0 ) {
-            size_t j = 0;
-            while( start != end ) {
-                block_type first = *start++;
-                block_type second = *sec_ptr++;
-
-                block_type hets = first ^ second;
-                block_type sec  = bit_helper_type::ALL_UNSET;   // mask state from second strand
-
-                while( hets ) {
-                    size_t idx = bit_walker_type::unset_next_index( hets ) + j;
-
-                    if( m_event_gen( idx ) ) {
-                        sec |= bit_helper_type::bit_offset( idx );
-                    }
-                }
-
-                *s++ = ((first & ~sec) | (second & sec));
-
-                j += bit_helper_type::BITS_PER_BLOCK;
+        if( m_event_gen.generate() != 0 ) {
+            if( m_event_gen.getBaseSequence() == 0 ) {
+                base_method met;
+                build_sequence( s, start, end, met );
+            } else {
+                alt_method met;
+                build_sequence(s, start, end, met );
             }
         } else {
-            size_t N = (end - start);
+            const size_t W = (end - start);
 
             if( m_event_gen.getBaseSequence() != 0 ) {
                 // use second strand
-                start = end;
+                copy_sequence( s, end, W );
+            } else {
+                copy_sequence( s, start, W );
             }
-
-            for( size_t i = 0; i < N; ++i )
-                s[i] = start[i];
-//            size_t i = 0;
-//            size_t M = N % 4;
-//            while( i < M ) {
-//                s[i] = start[i];
-//                ++i;
-//            }
-//
-//            while( i < N ) {
-//                s[ i ] = start[ i ];
-//                s[ i + 1 ] = start[i + 1];
-//                s[ i + 2 ] = start[i + 2 ];
-//                s[ i + 3 ] = start[i + 3 ];
-//                i += 4;
-//            }
-//
         }
     }
 
     virtual ~crossover_method() {}
 
 protected:
+
+    template < class Method >
+    void build_sequence( sequence_iterator s, genome_iterator start, genome_iterator end, const Method & m ) {
+        size_t j = 0;
+        genome_iterator sec_ptr = end;
+        while( start != end ) {
+            block_type first = *start++;
+            block_type second = *sec_ptr++;
+
+            block_type hets = first ^ second;
+            block_type sec  = bit_helper_type::ALL_UNSET;   // mask state from second strand
+
+            while( hets ) {
+                size_t idx = bit_walker_type::unset_next_index( hets );
+
+                if( m_event_gen( idx + j ) ) {
+                    sec |= clotho::utility::bit_masks[ idx ];
+                }
+            }
+
+            *s++ = m(first, second, sec);
+
+            j += bit_helper_type::BITS_PER_BLOCK;
+        }
+    }
+
+    void copy_sequence( sequence_iterator s, genome_iterator start, const size_t W ) {
+        size_t i = 0;
+        switch( W % 4 ) {
+            case 3:
+                s[i] = start[i];
+                ++i;
+            case 2:
+                s[i] = start[i];
+                ++i;
+            case 1:
+                s[i] = start[i];
+                ++i;
+            default:
+                break;
+        }
+
+        while( i < W ) {
+            s[ i ] = start[i];
+            s[ i + 1 ] = start[i + 1];
+            s[ i + 2 ] = start[i + 2];
+            s[ i + 3 ] = start[i + 3];
+            i += 4;
+        }
+    }
+
     event_generator_type m_event_gen;
 };
 }   // namespace genetics
