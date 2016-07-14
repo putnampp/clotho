@@ -108,7 +108,7 @@ public:
 
     // test whether the genetic position at the given index
     // 
-    bool operator()( size_t index ) {
+    inline bool operator()( const size_t index ) const {
 #ifdef DEBUGGING
         if( index >= m_pos_size ) {
             std::cerr << "Crossover: " << index << " < " << m_pos_size << std::endl;
@@ -117,19 +117,28 @@ public:
 #endif
 
         position_type p = m_pos[ index ];
+        return eval( p );
+    }
 
-        size_t lo = 0, hi = m_events_size;
+    inline bool eval( position_type p ) const {
 
-        while( lo < hi && m_events[lo] < p ){ ++lo; }
+        bool res = false;
+        if( m_events_size == 1 ) {
+            res = ( m_events[0] < p );
+        } else {
+            size_t lo = 0;
+            while( lo < m_events_size && m_events[lo] < p ){ ++lo; }
+            res = ((lo & 1) ? true : false); // % 2
+        }
 
-        return (m_base_seq ^ (lo & 1));    // % 2
+        return res;
     }
 
     void setBaseSequence( bool is_base ) {
         m_base_seq = ((is_base) ? 0 : 1);
     }
 
-    size_t getBaseSequence() {
+    size_t getBaseSequence() const {
         return m_base_seq;
     }
 
