@@ -23,16 +23,16 @@
 namespace clotho {
 namespace genetics {
 
-/*
+
 template < class BlockType >
 class free_space_evaluator< association_matrix< BlockType, row_vector > > {
 public:
-    typedef association_matrix< BlockType, row_vector > space_type;
-    typedef typename space_type::row_vector                 row_vector;
-    typedef typename row_vector::block_type                 block_type;
+    typedef association_matrix< BlockType, row_vector >     space_type;
+    typedef typename space_type::raw_vector                 raw_vector;
+    typedef typename raw_vector::block_type                 block_type;
     typedef size_t *                                        result_type;
 
-    typedef typename row_vector::raw_pointer                raw_pointer;
+    typedef typename raw_vector::raw_pointer                raw_pointer;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
@@ -44,7 +44,6 @@ public:
 
     void operator()( space_type & ss, result_type res, size_t & fixed_offset, size_t & lost_offset, size_t & free_count, size_t M ) {
 
-//        size_t W = bit_helper_type::padded_block_count( M );
         size_t W = ss.hard_block_count();
 
         resize( W );
@@ -75,19 +74,12 @@ public:
                 assert( N <= W );
 #endif // DEBUGGING
 
-//                size_t i = 0;
-//                while( i < N ) {
-//                    block_type b = start[i];
-//                    tmp[ 2 * i ] &= b;
-//                    tmp[ 2 * i + 1 ] |= b;
-//                    ++i;
-//                }
-
                 raw_pointer end = start + N;
                 block_type * t = tmp;
                 while( start != end ) {
-                    *t++ &= *start;
-                    *t++ |= *start++;
+                    block_type b = *start++;
+                    *t++ &= b;
+                    *t++ |= b;
                 }
 
                 size_t i = N;
@@ -155,18 +147,20 @@ protected:
     }
     block_type * tmp;
     size_t m_alloc_size;
-};*/
+};
+
+/*
 /// this approach eliminates writing to the heap
 /// utilizes stack buffers to write temporary data
 template < class BlockType >
 class free_space_evaluator< association_matrix< BlockType, row_vector > > {
 public:
     typedef association_matrix< BlockType, row_vector > space_type;
-    typedef typename space_type::row_vector                 row_vector;
-    typedef typename row_vector::block_type                 block_type;
+    typedef typename space_type::raw_vector                 raw_vector;
+    typedef typename raw_vector::block_type                 block_type;
     typedef size_t *                                        result_type;
 
-    typedef typename row_vector::raw_pointer                raw_pointer;
+    typedef typename raw_vector::raw_pointer                raw_pointer;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
@@ -273,6 +267,7 @@ public:
 
     virtual ~free_space_evaluator() { }
 };
+*/
 }   // namespace genetics
 }   // namespace clotho
 #endif  // CLOTHO_ROW_VECTOR_FREE_SPACE_EVALUATOR_HPP_
