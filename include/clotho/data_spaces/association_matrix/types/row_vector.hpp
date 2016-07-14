@@ -14,7 +14,6 @@
 #ifndef CLOTHO_ASSOCIATION_MATRIX_TYPE_ROW_VECTOR_HPP_
 #define CLOTHO_ASSOCIATION_MATRIX_TYPE_ROW_VECTOR_HPP_
 
-
 namespace clotho {
 namespace genetics {
 
