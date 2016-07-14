@@ -33,8 +33,8 @@ public:
     typedef typename allele_type::weight_type                   weight_type;
     typedef typename allele_type::weight_pointer                weight_pointer;
 
-    typedef typename association_type::row_vector               row_vector;
-    typedef typename row_vector::block_type                     block_type;
+    typedef typename association_type::raw_vector               raw_vector;
+    typedef typename raw_vector::block_type                     block_type;
     typedef typename association_type::raw_block_pointer        block_pointer;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
