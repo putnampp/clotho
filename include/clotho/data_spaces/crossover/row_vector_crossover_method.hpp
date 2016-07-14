@@ -32,8 +32,8 @@ public:
     typedef AlleleSpaceType                                     allele_type;
     typedef association_matrix< BlockType, row_vector >   sequence_space_type;
 
-    typedef typename sequence_space_type::row_vector            row_vector;
-    typedef typename row_vector::raw_pointer                    raw_pointer;
+    typedef typename sequence_space_type::raw_vector            raw_vector;
+    typedef typename raw_vector::raw_pointer                    raw_pointer;
 
     typedef typename allele_type::position_type                 position_type;
 
@@ -65,7 +65,7 @@ public:
         }
     }
 
-    row_vector crossover( row_vector & a, row_vector & b ) {
+    raw_vector crossover( raw_vector & a, raw_vector & b ) {
 
         size_t N = m_event_gen.generate();
 
@@ -74,7 +74,7 @@ public:
 #ifdef DEBUGGING
                 std::cerr << "Crossing over same sequence" << std::endl;
 #endif  // DEBUGGING
-                return row_vector(a);
+                return raw_vector(a);
             }
 
             if( m_buffer == NULL ) {
@@ -129,25 +129,25 @@ public:
 #ifdef DEBUGGING
                 std::cerr << "Crossover resulted in match of first sequence therefore cloning it: " << std::endl;
 #endif  //DEBUGGING
-                return row_vector(a);
+                return raw_vector(a);
             } else if( match_second ) {
 #ifdef DEBUGGING
                 std::cerr << "Crossover resulted in match of second sequence therefore cloning it: " << std::endl;
 #endif  // DEBUGGING
-                return row_vector(b);
+                return raw_vector(b);
             } else {
 #ifdef DEBUGGING
                 std::cerr << "Crossover results in new sequence: " << std::endl;
 #endif  // DEBUGGING
 
-                row_vector c( m_size, m_buffer );
+                raw_vector c( m_size, m_buffer );
                 m_buffer = NULL;
                 return c;
             }
         } else if( m_event_gen.getBaseSequence() != 0 ) {
-            return row_vector( b );
+            return raw_vector( b );
         } else {
-            return row_vector( a );
+            return raw_vector( a );
         }
     }
 
