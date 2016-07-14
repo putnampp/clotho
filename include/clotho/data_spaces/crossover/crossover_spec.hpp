@@ -38,7 +38,7 @@ public:
 
     typedef crossover_method< RNG, allele_type, association_type >  method_type;
 
-    typedef typename method_type::row_vector                    row_vector;
+    typedef typename method_type::raw_vector                    raw_vector;
     
     typedef typename genetic_space_type::individual_id_type     individual_id_type;
 
@@ -60,15 +60,15 @@ public:
 
         while( mate_it != mate_end ) {
 
-            row_vector a = parental_genomes->getSequenceSpace().getRow( 2 * mate_it->first );
-            row_vector b = parental_genomes->getSequenceSpace().getRow( 2 * mate_it->first + 1 );
-            row_vector c = m_method.crossover( a, b );
+            raw_vector a = parental_genomes->getSequenceSpace().getRow( 2 * mate_it->first );
+            raw_vector b = parental_genomes->getSequenceSpace().getRow( 2 * mate_it->first + 1 );
+            raw_vector c = m_method.crossover( a, b );
 
             offspring_genomes->getSequenceSpace().push_back( c );
             
-            row_vector d = parental_genomes->getSequenceSpace().getRow( 2 * mate_it->second );
-            row_vector e = parental_genomes->getSequenceSpace().getRow( 2 * mate_it->second + 1 );
-            row_vector f = m_method.crossover( d, e );
+            raw_vector d = parental_genomes->getSequenceSpace().getRow( 2 * mate_it->second );
+            raw_vector e = parental_genomes->getSequenceSpace().getRow( 2 * mate_it->second + 1 );
+            raw_vector f = m_method.crossover( d, e );
 
             offspring_genomes->getSequenceSpace().push_back( f );
 
