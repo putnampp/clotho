@@ -15,6 +15,7 @@
 #define CLOTHO_ROW_VECTOR_ASSOCIATION_MATRIX_HPP_
 
 #include "clotho/data_spaces/association_matrix/association_matrix_def.hpp"
+#include "clotho/data_spaces/association_matrix/types/row_vector.hpp"
 #include "clotho/data_spaces/growable2D.hpp"
 #include "clotho/utility/bit_helper.hpp"
 #include "clotho/data_spaces/association_matrix/association_vector.hpp"
@@ -36,12 +37,12 @@ public:
 
     typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
-    typedef association_vector< BlockType >             row_vector;
-    typedef std::vector< row_vector >                   data_vector;
+    typedef association_vector< BlockType >             raw_vector;
+    typedef std::vector< raw_vector >                   data_vector;
 
     typedef typename data_vector::iterator              row_iterator;
 
-    typedef typename row_vector::const_raw_pointer      raw_block_pointer;
+    typedef typename raw_vector::const_raw_pointer      raw_block_pointer;
 
     association_matrix( size_t rows = 1, size_t columns = 1 ) : 
 //        m_data( NULL )
@@ -74,7 +75,7 @@ public:
 
         size_t offset = block_column_offset(col);
         if( m_data[ row ].m_readonly || offset >= m_data[row].m_size ) {
-            row_vector a( m_bpr );
+            raw_vector a( m_bpr );
             a.copy( m_data[row] );
             m_data[ row ] = a;
         }
@@ -131,17 +132,17 @@ public:
     }
 
     void fill_empty() {
-        row_vector a( m_bpr ); // create an empty row vector of desired size
+        raw_vector a( m_bpr ); // create an empty row vector of desired size
 
         a.finalize();
 
         for( size_t i = m_data.size(); i < m_rows; ++i ) {
-            m_data.push_back( row_vector( a ) ); // fill the space with copies of the empty vector
+            m_data.push_back( raw_vector( a ) ); // fill the space with copies of the empty vector
 
         }
     }
 
-    void push_back( row_vector & r ) {
+    void push_back( raw_vector & r ) {
         m_data.push_back( r );
     }
 
@@ -177,7 +178,7 @@ public:
         return this->size();
     }
 
-    row_vector & getRow( size_t idx ) {
+    raw_vector & getRow( size_t idx ) {
 #ifdef DEBUGGING
         assert( idx < m_rows );
 #endif  // DEBUGGING
