@@ -147,13 +147,18 @@ public:
         while( k < row_count ) {
 
             block_pointer start = ss.begin_block_row( k );
+            unsigned int soft = ss.getSoftSize( k );
 
-            for( size_t i = 0; i < W; ++i ) {
-                block_type b = *start;
-                ++start;
+            for( unsigned int i = 0; i < soft; ++i ) {
+                block_type b = start[i];
 
                 tmp[ 2 * i ] &= b;
                 tmp[ 2 * i + 1 ] |= b;
+            }
+
+            while( soft < W ) {
+                tmp[ 2 * soft ] = bit_helper_type::ALL_UNSET;
+                ++soft;
             }
 
             ++k;
@@ -162,7 +167,7 @@ public:
         size_t j = 0;
         
         for( unsigned int i = 0; i < W; ++i ) {
-            block_type fx = tmp[ 2 *i ];
+            block_type fx = tmp[ 2 * i ];
             block_type var = tmp[2 * i + 1];
 
             block_type ls = ~(fx | var);

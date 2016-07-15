@@ -34,19 +34,9 @@ public:
 
     typedef crossover_method< RNG, allele_type, association_type >  method_type;
 
-//    typedef typename genetic_space_type::block_type         block_type;
-//    typedef typename allele_type::position_type             position_type;
-
-//    typedef typename genetic_space_type::sequence_iterator      sequence_iterator;
-//    typedef typename genetic_space_type::genome_iterator        genome_iterator;
     typedef typename method_type::sequence_iterator             sequence_iterator;
     typedef typename method_type::genome_iterator               genome_iterator;
     typedef typename genetic_space_type::individual_id_type     individual_id_type;
-
-//    typedef crossover_event_generator< RNG, position_type >     event_generator_type;
-//
-//    typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
-//    typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
 
     typedef std::vector< std::pair< individual_id_type, individual_id_type > >  mate_pair_type;
     typedef typename mate_pair_type::iterator                                   iterator;
@@ -60,8 +50,6 @@ public:
 
         m_method.initAlleles( parental_genomes->getAlleleSpace() );
 
-//        m_event_gen.update( parental_genomes->getAlleleSpace().position_begin(), parental_genomes->getAlleleSpace().position_end() );
-//
         offspring_genomes->getSequenceSpace().clear();
 
         size_t i = 0;
@@ -94,6 +82,7 @@ protected:
 }   // namespace genetics
 }   // namespace clotho
 
+#include "clotho/data_spaces/crossover/row_grouped_crossover.hpp"
 #include "clotho/data_spaces/crossover/crossover_spec.hpp"
 
 #endif  // CLOTHO_CROSSOVER_GENERATOR_HPP_

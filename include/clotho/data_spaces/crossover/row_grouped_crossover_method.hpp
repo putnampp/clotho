@@ -145,27 +145,26 @@ public:
         m_event_gen.update( alls.getPositions(), alls.size() );
     }
 
-    void crossover( genome_iterator start, genome_iterator end, sequence_iterator s, size_t p_step, size_t s_step ) {
-
-        genome_iterator sec_ptr = end;
+    unsigned int crossover( sequence_iterator first, unsigned int N, sequence_iterator second, unsigned int M, sequence_iterator s ) {
+        unsigned int res = 0;
         if( m_event_gen.generate() != 0 ) {
             if( m_event_gen.getBaseSequence() == 0 ) {
                 base_method met;
-                build_sequence( s, start, end, met );
+                res = build_sequence( s, first, N, second, M, met );
             } else {
                 alt_method met;
-                build_sequence(s, start, end, met );
+                res = build_sequence(s, first, N, second, M, met );
             }
         } else {
-            const size_t W = (end - start);
-
             if( m_event_gen.getBaseSequence() != 0 ) {
                 // use second strand
-                copy_sequence( s, end, W );
+                res = copy_sequence( s, second, M );
             } else {
-                copy_sequence( s, start, W );
+                res = copy_sequence( s, first, N );
             }
         }
+
+        return res;
     }
 
     virtual ~crossover_method() {}
@@ -197,6 +196,41 @@ protected:
         }
     }
 
+    template < class Method >
+    unsigned int build_sequence( sequence_iterator res, sequence_iterator first, unsigned int N, sequence_iterator second, unsigned int M, const Method & m ) {
+        size_t j = 0;
+
+        unsigned int W = (( N > M )? N : M );
+        unsigned int i = 0;
+        unsigned int last_block = 0;
+        while( i < W ) {
+            block_type a = first[i];
+            block_type b = second[i];
+
+            block_type hets = a ^ b;
+            block_type sec  = bit_helper_type::ALL_UNSET;   // mask state from second strand
+
+            while( hets ) {
+                size_t idx = bit_walker_type::unset_next_index( hets );
+
+                if( m_event_gen( idx + j ) ) {
+                    sec |= clotho::utility::bit_masks[ idx ];
+                }
+            }
+
+            hets = m( a, b, sec );
+            res[ i ] = hets;
+
+            if( hets ) {
+                last_block = i;
+            }
+            ++i;
+        }
+
+        return last_block + 1;
+    }
+
+/*
     void copy_sequence( sequence_iterator s, genome_iterator start, const size_t W ) {
         size_t i = 0;
         switch( W % 4 ) {
@@ -220,6 +254,14 @@ protected:
             s[ i + 3 ] = start[i + 3];
             i += 4;
         }
+    }
+*/
+
+    unsigned int copy_sequence( sequence_iterator s, sequence_iterator start, const size_t W ) {
+        for( size_t i = 0; i < W; ++i ) {
+            s[ i ] = start[ i ];
+        }
+        return W;
     }
 
     event_generator_type m_event_gen;

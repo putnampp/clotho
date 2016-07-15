@@ -79,6 +79,7 @@ public:
 #endif  // DEBUGGING
 
         m_data[ idx ] ^= bit_helper_type::bit_offset( col );
+
     }
 
     bool freeColumn( size_t fr_idx ) {
@@ -222,10 +223,12 @@ public:
 
     association_matrix( size_t rows = 1, size_t columns = 1 ) : 
         m_data( NULL )
+        , m_soft_size( NULL )
         , m_rows( 0 )
         , m_columns( 0 )
         , m_allocated_size( 0 )
         , m_bpr(0)
+        , m_soft_alloc(0)
     {
         this->resize( rows, columns );
     }
@@ -238,7 +241,7 @@ public:
         return m_columns;
     }
 
-    bool operator()( size_t row, size_t col ) {
+    bool operator()( const size_t & row, const size_t & col ) {
         ASSERT_VALID_RANGE( row, 0, m_rows )
         ASSERT_VALID_RANGE( col, 0, m_columns )
 
@@ -246,19 +249,24 @@ public:
         return ((m_data[ idx ] & bit_helper_type::bit_offset( col )) != 0);
     }
 
-    void flip( size_t row, size_t col ) {
+    void flip( const size_t & row, const size_t & col ) {
         ASSERT_VALID_RANGE( row, 0, m_rows )
         ASSERT_VALID_RANGE( col, 0, m_columns )
 
         size_t idx = block_index( row, col, m_bpr );
+        size_t bc = block_column_offset( col ) + 1;
 #ifdef DEBUGGING
         assert( (m_data[ idx ] & bit_helper_type::bit_offset( col )) == 0 );
 #endif  // DEBUGGING
 
         m_data[ idx ] ^= bit_helper_type::bit_offset( col );
+
+        if( bc >= m_soft_size[ row ] ) {
+            updateSoftSize( row, bc );
+        }
     }
 
-    bool freeColumn( size_t fr_idx ) {
+    bool freeColumn( const size_t & fr_idx ) {
         block_type mask = bit_helper_type::bit_offset( fr_idx );
 
         size_t i = 0;
@@ -272,7 +280,7 @@ public:
         return is_free;
     }
 
-    void flipColumn( size_t fixed_index ) {
+    void flipColumn( const size_t & fixed_index ) {
         block_type mask = bit_helper_type::bit_offset( fixed_index );
 
         size_t i = 0;
@@ -281,7 +289,7 @@ public:
 
 #ifdef DEBUGGING
             assert( (m_data[idx] & mask) != 0 );
-#endif  // DEBUGGING
+#endif // DEBUGGING
             m_data[ idx ] ^= mask;
         }
     }
@@ -298,6 +306,23 @@ public:
         return m_columns * m_rows;
     }
 
+    unsigned int getSoftSize( const size_t & idx ) const {
+#ifdef DEBUGGING
+        assert( idx < m_rows );
+#endif  // DEBUGGING
+
+        return m_soft_size[ idx ];
+    }
+
+    void updateSoftSize( const size_t & idx, unsigned int s ) {
+#ifdef DEBUGGING
+//        std::cerr << "Updating soft size of " << idx << " to " << s << " [<= " << m_bpr << " ]" << std::endl;
+        assert( idx < m_rows );
+        assert( s <= m_bpr );
+#endif  // DEBUGGING
+        m_soft_size[idx] = s;
+    }
+
     size_t allocated_size() const {
         return m_allocated_size;
     }
@@ -310,20 +335,18 @@ public:
         return m_data + offset;
     }
 
-    raw_block_pointer end_row( size_t idx ) const {
-        ASSERT_VALID_RANGE( idx, 0, row_count() )
-        return m_data + block_row_offset( idx + 1, m_bpr );
+    raw_block_pointer end_row( const size_t & idx ) const {
+        return begin_row( idx ) + getSoftSize( idx );
     }
 
-    raw_block_pointer begin_block_row( size_t idx ) const {
+    raw_block_pointer begin_block_row( const size_t & idx ) const {
         ASSERT_VALID_RANGE( idx, 0, block_row_count() )
 
         return m_data + block_row_offset( idx, m_bpr);
     }
 
-    raw_block_pointer end_block_row( size_t idx ) const {
-        ASSERT_VALID_RANGE( idx, 0, block_row_count() )
-        return m_data + block_row_offset( idx + 1, m_bpr );
+    raw_block_pointer end_block_row( const size_t & idx ) const {
+        return begin_block_row( idx ) + getSoftSize( idx );
     }
 
     virtual size_t grow( size_t rows, size_t cols ) {
@@ -333,11 +356,15 @@ public:
 
     void clear( ) {
         memset( m_data, 0, sizeof( block_type ) * m_allocated_size );
+        memset( m_soft_size, 0, sizeof( unsigned int ) * m_soft_alloc );
     }
 
     virtual ~association_matrix() {
         if( m_data != NULL ) {
             delete [] m_data;
+        }
+        if( m_soft_size != NULL ) {
+            delete [] m_soft_size;
         }
     }
 
@@ -346,15 +373,15 @@ protected:
 /**
  * bpr - blocks_per_row
  */
-    inline size_t block_index( size_t row, size_t col, size_t bpr ) const {
+    inline size_t block_index( const size_t & row, const size_t & col, const size_t & bpr ) const {
         return row * bpr + col / clotho::utility::BitHelper< BlockType >::BITS_PER_BLOCK;
     }
 
-    inline size_t block_row_offset( size_t row, size_t bpr ) const {
+    inline size_t block_row_offset( const size_t & row, const size_t & bpr ) const {
         return row * bpr;
     }
 
-    inline size_t block_column_offset( size_t col ) const {
+    inline size_t block_column_offset( const size_t & col ) const {
         return col / clotho::utility::BitHelper< BlockType >::BITS_PER_BLOCK;
     }
 
@@ -375,17 +402,32 @@ protected:
             assert( m_data != NULL );
         }
 
-        memset( m_data, 0, new_size * sizeof(block_type));
+        if( r > m_soft_alloc ) {
+            if( m_soft_size != NULL ) {
+                delete [] m_soft_size;
+            }
+
+            m_soft_size = new unsigned int[ r ];
+
+            m_soft_alloc = r;
+        }
 
         m_rows = r;
         m_columns = c;
         m_bpr = blocks_per_row;
+
+
+        clear();
     }
 
     raw_block_pointer   m_data;
 
+    unsigned int *  m_soft_size;
+
     size_t m_rows, m_columns, m_allocated_size;
     size_t m_bpr;
+
+    size_t m_soft_alloc;
 };
 
 }   // namespace genetics
