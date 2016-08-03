@@ -314,9 +314,8 @@ void simulate( config_wrapper & cfg, population_type & pop, population_type & bu
         add_node( _log, oss.str() + ".stats", stat_log );
     }
 
-    const double h = timer_type::hertz;
     const string sim_path = "simulation.performance.data";
-    _log.put( sim_path + ".runtime.scale", h );
+    _log.put( sim_path + ".runtime.scale", timer_type::hertz());
     _log.add_child( sim_path + ".generations", l_gen );
     _log.add_child( sim_path + ".runtime.total", perf_run );
     _log.add_child( sim_path + ".runtime.fitness", perf_fit );
