@@ -85,7 +85,9 @@ public:
 //        return all_neutral;
 //    }
     bool isAllNeutral() const {
-        for( size_t i = 0; i < m_block_size - 1; ++i ) {
+        size_t N = (this->m_pos_size - 1) / bit_helper_type::BITS_PER_BLOCK;
+        assert( N < m_block_size );
+        for( size_t i = 0; i < N; ++i ) {
             if( m_neutral[i] != bit_helper_type::ALL_SET )
                 return false;
         }
@@ -96,7 +98,7 @@ public:
 
 //        std::cerr << "Checking: " << (m_block_size - 1) << std::endl;
 
-        return m_neutral[m_block_size - 1] == mask;
+        return m_neutral[N] == mask;
     }
 
     void inherit( self_type & parent ) {
