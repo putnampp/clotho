@@ -32,5 +32,5 @@ SET_TARGET_PROPERTIES(benchmark_all_neutral PROPERTIES LINK_FLAGS "-Wl,--no-as-n
 TARGET_LINK_LIBRARIES(benchmark_all_neutral ${LOCAL_LIBS})
 
 ADD_EXECUTABLE( benchmark_selected benchmark.cpp )
-SET_TARGET_PROPERTIES(benchmark_all_selected PROPERTIES COMPILE_DEFINITIONS "ALL_SELECTED_ALLELES" LINK_FLAGS "-Wl,--no-as-needed")
+SET_TARGET_PROPERTIES(benchmark_selected PROPERTIES COMPILE_DEFINITIONS "ALL_SELECTED_ALLELES" LINK_FLAGS "-Wl,--no-as-needed")
 TARGET_LINK_LIBRARIES(benchmark_selected ${LOCAL_LIBS})
