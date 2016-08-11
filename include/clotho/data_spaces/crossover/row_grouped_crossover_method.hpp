@@ -18,6 +18,7 @@
 #include "clotho/data_spaces/association_matrix/row_grouped_association_matrix.hpp"
 
 #include "clotho/data_spaces/generators/small_crossover_event_generator.hpp"
+#include "clotho/data_spaces/generators/buffered_small_crossover_event_generator.hpp"
 #include "clotho/utility/bit_helper.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
@@ -36,7 +37,7 @@ public:
 
     typedef typename allele_type::position_type                 position_type;
 
-    typedef crossover_event_generator< RNG, position_type >     event_generator_type;
+    typedef small_crossover_event_generator< RNG, position_type >     event_generator_type;
 
     typedef typename sequence_space_type::block_type            block_type;
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
@@ -128,7 +129,7 @@ public:
 
     typedef typename allele_type::position_type                 position_type;
 
-    typedef small_crossover_event_generator< RNG, position_type >     event_generator_type;
+    typedef buffered_small_crossover_event_generator< RNG, position_type >     event_generator_type;
 
     typedef typename sequence_space_type::block_type            block_type;
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
@@ -145,23 +146,25 @@ public:
         m_event_gen.update( alls.getPositions(), alls.size() );
     }
 
+/**
+ *
+ * @return soft max of result sequence
+ */
     unsigned int crossover( sequence_iterator first, unsigned int N, sequence_iterator second, unsigned int M, sequence_iterator s ) {
         unsigned int res = 0;
         if( m_event_gen.generate() != 0 ) {
             if( m_event_gen.getBaseSequence() == 0 ) {
                 base_method met;
-                res = build_sequence( s, first, N, second, M, met );
+                res = buffered_write_build_sequence( s, first, N, second, M, met );
             } else {
                 alt_method met;
-                res = build_sequence(s, first, N, second, M, met );
+                res = buffered_write_build_sequence(s, first, N, second, M, met );
             }
+        } else if( m_event_gen.getBaseSequence() != 0 ) {
+            // use second strand
+            res = copy_sequence( s, second, M );
         } else {
-            if( m_event_gen.getBaseSequence() != 0 ) {
-                // use second strand
-                res = copy_sequence( s, second, M );
-            } else {
-                res = copy_sequence( s, first, N );
-            }
+            res = copy_sequence( s, first, N );
         }
 
         return res;
@@ -171,6 +174,116 @@ public:
 
 protected:
 
+/**
+ *
+ * Copies global sequence data to local stack buffers
+ * Operates on stack buffers writing back to stack
+ * Copies stack to final output vector
+ *
+ * Is read and write buffering beneficial?
+ *
+ * @return soft max of result sequence
+ */
+    template < class Method >
+    unsigned int buffered_build_sequence( sequence_iterator res, sequence_iterator first, const unsigned int soft_N, sequence_iterator second, const unsigned int soft_M, const Method & m ) {
+        const unsigned int N = 16;
+        block_type first_buffer[ N ];   // 16 * 8 == 128 byte buffer
+        block_type second_buffer[ N ];
+
+        const unsigned int soft_max = (( soft_N > soft_M )? soft_N : soft_M );   // soft maximum length
+        unsigned int last_block = 0;
+
+        unsigned int l = 0;
+        while( l < soft_max ) {
+            unsigned int j = (soft_max - l);
+            j = ((j > N) ? N : j);
+
+            // read global data to local buffers
+            memcpy( first_buffer, first + l, j * sizeof( block_type ) );
+            memcpy( second_buffer, second + l, j * sizeof( block_type ) );
+
+            unsigned int i = 0;
+            while( i < j ) {
+                const unsigned int offset = l + i;
+                block_type first = ((offset < soft_N ) ? first_buffer[ i ] : bit_helper_type::ALL_UNSET);
+                block_type second = ((offset < soft_M ) ? second_buffer[ i ] : bit_helper_type::ALL_UNSET);
+
+                block_type mask = buffered_build_mask( first, second, offset * bit_helper_type::BITS_PER_BLOCK );
+
+                mask = m( first, second, mask );
+                second_buffer[ i ] = mask;
+                ++i;
+                if( mask ) {
+                    last_block = offset + 1;
+                }
+            }
+
+            // write to result sequence
+            memcpy( res + l, second_buffer, j * sizeof(block_type) );
+            l += j;
+        }
+
+        return last_block;
+    }
+
+/**
+ * Unraveled the set bit decoding
+ */
+    block_type buffered_build_mask( block_type first, block_type second, unsigned int offset ) {
+        block_type hets = first ^ second;
+        block_type mask  = bit_helper_type::ALL_UNSET;   // mask state from second strand
+
+        unsigned int het_buffer[ bit_helper_type::BITS_PER_BLOCK ]; // i.e. buffer_size = 64 * 4 = 256 bytes buffer
+
+        if( hets ) {
+            m_event_gen.update_buffer( offset );
+
+            // decode set indices
+            unsigned int j = 0;
+            do {
+                het_buffer[ j ] = bit_walker_type::unset_next_index( hets );
+                ++j;
+            } while( hets );
+
+            // evaluate positions at relative indices
+            unsigned int i = 0;
+            while( i < j ) {
+                unsigned int idx = het_buffer[ i ];
+                if( m_event_gen( idx ) ) {
+                    mask |= clotho::utility::bit_masks[ idx ];
+                }
+                ++i;
+            }
+        }
+
+        return mask;
+    }
+
+/**
+ *
+ * Initial technique for building a crossover mask
+ *
+ *
+ */
+    block_type build_mask( block_type first, block_type second, unsigned int offset ) {
+        block_type hets = first ^ second;
+        block_type mask = bit_helper_type::ALL_UNSET;   // mask state from second strand
+
+        if( hets ) {
+            m_event_gen.update_buffer( offset );
+
+            do {
+                unsigned int idx = bit_walker_type::unset_next_index( hets );
+
+                if( m_event_gen( idx ) ) {
+                    mask |= clotho::utility::bit_masks[ idx ];
+                }
+            } while( hets );
+        }
+
+        return mask;
+    }
+
     template < class Method >
     void build_sequence( sequence_iterator s, genome_iterator start, genome_iterator end, const Method & m ) {
         size_t j = 0;
@@ -179,83 +292,91 @@ protected:
             block_type first = *start++;
             block_type second = *sec_ptr++;
 
-            block_type hets = first ^ second;
-            block_type sec  = bit_helper_type::ALL_UNSET;   // mask state from second strand
+            block_type mask = build_mask( first, second, j );
 
-            while( hets ) {
-                size_t idx = bit_walker_type::unset_next_index( hets );
-
-                if( m_event_gen( idx + j ) ) {
-                    sec |= clotho::utility::bit_masks[ idx ];
-                }
-            }
-
-            *s++ = m(first, second, sec);
+            *s++ = m(first, second, mask);
 
             j += bit_helper_type::BITS_PER_BLOCK;
         }
     }
 
+/**
+ *
+ * Uses soft max of both sequence
+ *
+ * Is write buffer beneficial?
+ *
+ * @return soft max of result sequence
+ */
     template < class Method >
-    unsigned int build_sequence( sequence_iterator res, sequence_iterator first, unsigned int N, sequence_iterator second, unsigned int M, const Method & m ) {
-        size_t j = 0;
+    unsigned int buffered_write_build_sequence( sequence_iterator res, sequence_iterator first, const unsigned int soft_N, sequence_iterator second, const unsigned int soft_M, const Method & m ) {
 
-        unsigned int W = (( N > M )? N : M );
+        const unsigned int N = 32;
+        block_type  _buffer[ N ];   // 256 byte buffer
+
+        const unsigned int soft_max = (( soft_N > soft_M )? soft_N : soft_M );   // soft maximum length
+        unsigned int last_block = 0;
+
+        unsigned int i = 0, j = 0;
+
+        while( j < soft_max ) {
+            block_type a = ((j < soft_N ) ? first[ j ] : bit_helper_type::ALL_UNSET);
+            block_type b = ((j < soft_M ) ? second[ j ] : bit_helper_type::ALL_UNSET);
+
+            block_type mask = build_mask( a, b, j * bit_helper_type::BITS_PER_BLOCK );
+
+            mask = m( a, b, mask );
+            _buffer[ i++ ] = mask;
+            ++j;
+
+            if( mask ) {
+                last_block = j;
+            }
+
+            if( i >= N ) {
+                // buffer is full
+                memcpy( res, _buffer, N * sizeof(block_type) );
+                res += N;
+                i = 0;
+            }
+        }
+
+        // write final buffer
+        if( i ) {
+            memcpy( res, _buffer, i * sizeof( block_type ) );
+        }
+
+        return last_block;
+    }
+
+/**
+ *
+ *
+ * @return soft max of result sequence
+ */
+    template < class Method >
+    unsigned int build_sequence( sequence_iterator res, sequence_iterator first, const unsigned int N, sequence_iterator second, const unsigned int M, const Method & m ) {
+
+        const unsigned int W = (( N > M )? N : M );
         unsigned int i = 0;
         unsigned int last_block = 0;
         while( i < W ) {
-            block_type a = first[i];
-            block_type b = second[i];
+            block_type a = ((i < N ) ? first[ i ] : bit_helper_type::ALL_UNSET);
+            block_type b = ((i < M ) ? second[ i ] : bit_helper_type::ALL_UNSET);
 
-            block_type hets = a ^ b;
-            block_type sec  = bit_helper_type::ALL_UNSET;   // mask state from second strand
+            block_type mask = build_mask( a, b, i * bit_helper_type::BITS_PER_BLOCK );
 
-            while( hets ) {
-                size_t idx = bit_walker_type::unset_next_index( hets );
+            mask = m(a, b, mask );
+            res[ i ] = mask;
+            ++i;
 
-                if( m_event_gen( idx + j ) ) {
-                    sec |= clotho::utility::bit_masks[ idx ];
-                }
-            }
-
-            hets = m( a, b, sec );
-            res[ i ] = hets;
-
-            if( hets ) {
+            if( mask ) {
                 last_block = i;
             }
-            ++i;
         }
 
-        return last_block + 1;
+        return last_block;
     }
-
-/*
-    void copy_sequence( sequence_iterator s, genome_iterator start, const size_t W ) {
-        size_t i = 0;
-        switch( W % 4 ) {
-            case 3:
-                s[i] = start[i];
-                ++i;
-            case 2:
-                s[i] = start[i];
-                ++i;
-            case 1:
-                s[i] = start[i];
-                ++i;
-            default:
-                break;
-        }
-
-        while( i < W ) {
-            s[ i ] = start[i];
-            s[ i + 1 ] = start[i + 1];
-            s[ i + 2 ] = start[i + 2];
-            s[ i + 3 ] = start[i + 3];
-            i += 4;
-        }
-    }
-*/
 
     unsigned int copy_sequence( sequence_iterator s, sequence_iterator start, const size_t W ) {
         memcpy( s, start, W * sizeof(block_type));
@@ -264,6 +385,7 @@ protected:
 
     event_generator_type m_event_gen;
 };
+
 }   // namespace genetics
 }   // namespace clotho
 
