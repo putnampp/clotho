@@ -315,12 +315,15 @@ public:
     }
 
     void updateSoftSize( const size_t & idx, unsigned int s ) {
+        unsigned int pad = s + (bit_helper_type::BLOCKS_PER_SSE - (s % bit_helper_type::BLOCKS_PER_SSE));
+        pad = ((pad > m_bpr) ? m_bpr : pad);
 #ifdef DEBUGGING
-//        std::cerr << "Updating soft size of " << idx << " to " << s << " [<= " << m_bpr << " ]" << std::endl;
+//        std::cerr << "Updating soft size of " << idx << " to " << s << " : " << pad << " [<= " << m_bpr << " ]" << std::endl;
         assert( idx < m_rows );
         assert( s <= m_bpr );
+        assert( pad <= m_bpr );
 #endif  // DEBUGGING
-        m_soft_size[idx] = s;
+        m_soft_size[idx] = pad;
     }
 
     size_t allocated_size() const {
@@ -387,6 +390,9 @@ protected:
 
     void resize( size_t r, size_t c ) {
         size_t blocks_per_row =  bit_helper_type::padded_block_count( c );
+#ifdef DEBUGGING
+        std::cerr << "Blocks per row: " << blocks_per_row << " = " << c << " / " << bit_helper_type::BITS_PER_BLOCK << std::endl;
+#endif  //DEBUGGING
 
         size_t new_size = r * blocks_per_row;
 

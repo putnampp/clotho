@@ -58,6 +58,8 @@ template < class T >
 struct BitHelper : public bit_helper< sizeof(T) > {
     typedef T block_type;
     typedef bit_helper< sizeof(T) > base_type;
+    static const unsigned int   SSE_ALIGNED_SIZE = 128;
+    static const unsigned int   BLOCKS_PER_SSE = (SSE_ALIGNED_SIZE / base_type::BITS_PER_BLOCK);
 
 #define MOD_POW2( x ) x & base_type::POW2_MOD
 
@@ -70,7 +72,7 @@ struct BitHelper : public bit_helper< sizeof(T) > {
     }
 
     static size_t   padded_block_count( size_t s ) {
-        return (s / base_type::BITS_PER_BLOCK ) + ((MOD_POW2( s )) ? 1 : 0);
+        return (BLOCKS_PER_SSE * ((s / SSE_ALIGNED_SIZE) + ( (s % SSE_ALIGNED_SIZE) ? 1 : 0)));
     }
 
 #undef MOD_POW2

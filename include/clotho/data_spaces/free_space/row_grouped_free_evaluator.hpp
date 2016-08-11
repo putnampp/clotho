@@ -18,6 +18,8 @@
 #include "clotho/utility/bit_helper.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
+#include <algorithm>
+
 namespace clotho {
 namespace genetics {
 
@@ -129,46 +131,42 @@ public:
     void operator()( space_type & ss, result_type res, size_t & fixed_offset, size_t & lost_offset, size_t & free_count, size_t M ) {
 
         size_t W = bit_helper_type::padded_block_count( M );
+#ifdef  DEBUGGING
+        std::cerr << "Free Space Padded size: " << W << std::endl;
+#endif  // DEBUGGING
 
         resize( W );
 
-        for( size_t i = 0; i < W; ++i ) {
-            tmp[ 2 * i ] = bit_helper_type::ALL_SET;
-            tmp[ 2 * i + 1 ] = bit_helper_type::ALL_UNSET;
-        }
+        memset( tmp, 255, sizeof(block_type) * W );
+        memset( tmp + W, 0, sizeof(block_type) * W );
 
         const size_t row_count = ss.block_row_count();
 
         size_t fo = fixed_offset;
         size_t lo = lost_offset;
         size_t fr = free_count;
-        
+
         size_t k = 0;
         while( k < row_count ) {
 
             block_pointer start = ss.begin_block_row( k );
-            unsigned int soft = ss.getSoftSize( k );
-
-            for( unsigned int i = 0; i < soft; ++i ) {
-                block_type b = start[i];
-
-                tmp[ 2 * i ] &= b;
-                tmp[ 2 * i + 1 ] |= b;
+            unsigned int N = ss.getSoftSize(k);
+            if( N ) {
+//                updateFixed( start, tmp, N );
+//                updateVariable( start, tmp + W , N );
+                updateFixedVariable( start, tmp, tmp + W, N );
             }
 
-            while( soft < W ) {
-                tmp[ 2 * soft ] = bit_helper_type::ALL_UNSET;
-                ++soft;
-            }
-
+            for( ; N < W; ++N )
+                tmp[ N ] = bit_helper_type::ALL_UNSET;
             ++k;
         }
 
         size_t j = 0;
         
         for( unsigned int i = 0; i < W; ++i ) {
-            block_type fx = tmp[ 2 * i ];
-            block_type var = tmp[2 * i + 1];
+            block_type fx = tmp[ i ];
+            block_type var = tmp[ W + i ];
 
             block_type ls = ~(fx | var);
 
@@ -203,6 +201,48 @@ public:
     }
 
 protected:
+
+    void updateFixedVariable( block_type * start, block_type * fx_out, block_type * var_out, unsigned int N ) {
+        assert( (N % bit_helper_type::BLOCKS_PER_SSE) == 0 );
+
+        __m128i * s = reinterpret_cast< __m128i * >( start );
+        __m128i * o = reinterpret_cast< __m128i * >( fx_out );
+        __m128i * vo = reinterpret_cast< __m128i * >( var_out );
+
+        unsigned int M = N / bit_helper_type::BLOCKS_PER_SSE;
+        while( M-- ) {
+            __m128i b = *s++;
+            *o = (*o & b);
+            ++o;
+            *vo = (*vo | b);
+            ++vo;
+        }
+    }
+
+    inline void updateFixed( block_type * start, block_type * out, unsigned int N ) {
+        assert( (N % bit_helper_type::BLOCKS_PER_SSE) == 0 );
+        unsigned int i = 0;
+        __m128i * s = reinterpret_cast< __m128i * >( start );
+        __m128i * o = reinterpret_cast< __m128i * >( out );
+        unsigned int M = N / bit_helper_type::BLOCKS_PER_SSE;
+        while( i < M ) {
+            o[ i ] = (o[ i ] & s[ i ]);
+            ++i;
+        }
+    }
+
+    inline void updateVariable( block_type * start, block_type * out, unsigned int N ) {
+        assert( (N % bit_helper_type::BLOCKS_PER_SSE) == 0 );
+        unsigned int i = 0;
+        __m128i * s = reinterpret_cast< __m128i * >( start );
+        __m128i * o = reinterpret_cast< __m128i * >( out );
+        unsigned int M = N / bit_helper_type::BLOCKS_PER_SSE;
+        while( i < M ) {
+            o[ i ] = (o[ i ] | s[i]);
+            ++i;
+        }
+    }
+
     void resize( size_t W ) {
         if( 2 * W > m_alloc_size ) {
             if( tmp != NULL ) {

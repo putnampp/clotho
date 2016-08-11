@@ -258,9 +258,7 @@ protected:
 */
 
     unsigned int copy_sequence( sequence_iterator s, sequence_iterator start, const size_t W ) {
-        for( size_t i = 0; i < W; ++i ) {
-            s[ i ] = start[ i ];
-        }
+        memcpy( s, start, W * sizeof(block_type));
         return W;
     }
 
