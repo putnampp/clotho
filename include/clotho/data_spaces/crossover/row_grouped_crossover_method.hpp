@@ -129,7 +129,7 @@ public:
 
     typedef typename allele_type::position_type                 position_type;
 
-    typedef buffered_small_crossover_event_generator< RNG, position_type >     event_generator_type;
+    typedef small_crossover_event_generator< RNG, position_type >     event_generator_type;
 
     typedef typename sequence_space_type::block_type            block_type;
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
@@ -155,10 +155,10 @@ public:
         if( m_event_gen.generate() != 0 ) {
             if( m_event_gen.getBaseSequence() == 0 ) {
                 base_method met;
-                res = buffered_write_build_sequence( s, first, N, second, M, met );
+                res = build_sequence( s, first, N, second, M, met );
             } else {
                 alt_method met;
-                res = buffered_write_build_sequence(s, first, N, second, M, met );
+                res = build_sequence(s, first, N, second, M, met );
             }
         } else if( m_event_gen.getBaseSequence() != 0 ) {
             // use second strand
@@ -236,7 +236,6 @@ protected:
         unsigned int het_buffer[ bit_helper_type::BITS_PER_BLOCK ]; // i.e. buffer_size = 64 * 4 = 256 bytes buffer
 
         if( hets ) {
-            m_event_gen.update_buffer( offset );
 
             // decode set indices
             unsigned int j = 0;
@@ -249,7 +248,7 @@ protected:
             unsigned int i = 0;
             while( i < j ) {
                 unsigned int idx = het_buffer[ i ];
-                if( m_event_gen( idx ) ) {
+                if( m_event_gen( offset + idx ) ) {
                     mask |= clotho::utility::bit_masks[ idx ];
                 }
                 ++i;
@@ -270,12 +269,10 @@ protected:
         block_type mask = bit_helper_type::ALL_UNSET;   // mask state from second strand
 
         if( hets ) {
-            m_event_gen.update_buffer( offset );
-
             do {
                 unsigned int idx = bit_walker_type::unset_next_index( hets );
 
-                if( m_event_gen( idx ) ) {
+                if( m_event_gen( offset + idx ) ) {
                     mask |= clotho::utility::bit_masks[ idx ];
                 }
             } while( hets );
@@ -361,8 +358,8 @@ protected:
         unsigned int i = 0;
         unsigned int last_block = 0;
         while( i < W ) {
-            block_type a = ((i < N ) ? first[ i ] : bit_helper_type::ALL_UNSET);
-            block_type b = ((i < M ) ? second[ i ] : bit_helper_type::ALL_UNSET);
+            block_type a = first[ i ];
+            block_type b = second[ i ];
 
             block_type mask = build_mask( a, b, i * bit_helper_type::BITS_PER_BLOCK );
 
