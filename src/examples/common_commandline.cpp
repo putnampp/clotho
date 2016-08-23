@@ -1,5 +1,6 @@
 #include "common_commandline.h"
 
+#include <iostream>
 #include <cassert>
 #include <fstream>
 #include <boost/algorithm/string.hpp>
