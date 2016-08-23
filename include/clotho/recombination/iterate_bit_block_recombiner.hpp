@@ -3,6 +3,7 @@
 
 #include "clotho/recombination/bit_block_recombiner_def.hpp"
 #include "clotho/recombination/inspect_methods.hpp"
+#include "clotho/utility/bit_block_iterator.hpp"
 
 namespace clotho {
 namespace recombine {
