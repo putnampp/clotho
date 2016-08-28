@@ -54,7 +54,18 @@ public:
     typedef event_type *                            event_vector;
     typedef bin_type *                              bin_vector;
 
+    typedef small_crossover_event_generator< RNG, PositionType > self_type;
+
     static const unsigned int BUFFER_MAX = 64;
+
+    small_crossover_event_generator( random_engine_type * rng, double rho, double bias, position_vector pos, unsigned int N ) :
+        m_rand( rng )
+        , m_pos( pos )
+        , m_pos_size( N )
+        , m_events_size(0)
+        , m_event_dist( rho )
+        , m_seq_bias( bias )
+    {}
 
     small_crossover_event_generator( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rand( rng )
@@ -70,6 +81,14 @@ public:
         sequence_bias_parameter< double > bias( config );
         m_seq_bias.param( typename sequence_bias_distribution_type::param_type( bias.m_bias ) );
     }
+
+    small_crossover_event_generator( const self_type & other ) :
+        m_rand( other.m_rand )
+        , m_pos( other.m_pos )
+        , m_pos_size( other.m_pos_size )
+        , m_events_size( other.m_events_size )
+        , m_base_seq( other.m_base_seq )
+    {   }
 
     void update( position_vector pos, size_t N ) {
         m_pos = pos;

@@ -16,6 +16,8 @@
 
 #include "../config.h"
 
+#include "qtlsim_logger.hpp"
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 

@@ -87,7 +87,8 @@ LIST(APPEND boost_comps chrono)
 LIST(APPEND boost_comps unit_test_framework)
 
 LIST(APPEND boost_comps python)
-#LIST(APPEND boost_comps thread)
+LIST(APPEND boost_comps thread)
+LIST(APPEND boost_comps log)
 
 
 FIND_PACKAGE( Boost COMPONENTS ${boost_comps} REQUIRED )
