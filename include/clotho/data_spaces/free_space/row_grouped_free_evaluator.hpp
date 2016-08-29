@@ -19,6 +19,7 @@
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
 #include <algorithm>
+#include <emmintrin.h>
 
 namespace clotho {
 namespace genetics {
