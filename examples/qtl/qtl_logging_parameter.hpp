@@ -14,6 +14,7 @@
 #ifndef QTL_LOGGING_PARAMETER_HPP_
 #define QTL_LOGGING_PARAMETER_HPP_
 
+#include <vector>
 #include <boost/property_tree/ptree.hpp>
 //#include "../common_strings.h"
 #include "clotho/utility/clotho_strings.hpp"
