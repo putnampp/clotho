@@ -37,6 +37,9 @@ public:
 
     typedef small_crossover_event_generator< RNG, PositionType > event_generator_type;
 
+    typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
+    typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
+
     typedef base_crossover_method< block_type > base_method;
     typedef alt_crossover_method< block_type > alt_method;
 
@@ -94,13 +97,13 @@ protected:
         unsigned int last_block = 0;
 
         while( i < W ) {
-            block_type a = first[ i ];
-            block_type b = second[ i ];
+            block_type a = m_p0[ i ];
+            block_type b = m_p1[ i ];
 
             block_type mask = build_mask( a, b, i * bit_helper_type::BITS_PER_BLOCK );
 
             mask = m(a, b, mask );
-            offspring[ i ] = mask;
+            m_offspring[ i ] = mask;
             ++i;
 
             if( mask ) {
@@ -109,12 +112,12 @@ protected:
         }
 
         while( i < m_p0_soft_max ) {
-            block_type a = first[i];
+            block_type a = m_p0[i];
 
             block_type mask = build_mask( a, bit_helper_type::ALL_UNSET, i * bit_helper_type::BITS_PER_BLOCK );
 
             mask = m(a, bit_helper_type::ALL_UNSET, mask );
-            offspring[ i ] = mask;
+            m_offspring[ i ] = mask;
             ++i;
 
             if( mask ) {
@@ -123,12 +126,12 @@ protected:
         }
 
         while( i < m_p1_soft_max ) {
-            block_type b = second[i];
+            block_type b = m_p1[i];
 
             block_type mask = build_mask( bit_helper_type::ALL_UNSET, b, i * bit_helper_type::BITS_PER_BLOCK );
 
             mask = m( bit_helper_type::ALL_UNSET, b, mask );
-            offspring[ i ] = mask;
+            m_offspring[ i ] = mask;
             ++i;
 
             if( mask ) {
@@ -146,7 +149,7 @@ protected:
 
     block_type build_mask( block_type first, block_type second, unsigned int offset ) {
         block_type hets = first ^ second;
-        block_type mask = bit_helper_type::ALL_UNSET;   // mask state from second strand
+        block_type mask = bit_helper_type::ALL_UNSET;   // mask state from m_p1 strand
 
         if( hets ) {
             do {
@@ -162,6 +165,7 @@ protected:
     }
 
     random_generator_type m_rng;
+    event_generator_type m_event_gen;
 
     block_type * m_p0;
     unsigned int m_p0_soft_max;
