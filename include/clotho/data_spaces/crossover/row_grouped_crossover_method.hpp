@@ -22,6 +22,8 @@
 #include "clotho/utility/bit_helper.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
+#include "clotho/data_spaces/crossover/crossover_details.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -101,20 +103,6 @@ public:
 
 protected:
     event_generator_type m_event_gen;
-};
-
-template < class BlockType >
-struct base_crossover_method {
-    inline BlockType operator()( const BlockType & a, const BlockType & b, const BlockType & c) const {
-        return ((a & ~c) | (b & c));
-    }
-};
-
-template < class BlockType >
-struct alt_crossover_method {
-    inline BlockType operator()( const BlockType & a, const BlockType & b, const BlockType & c) const {
-        return ((a & c) | (b & ~c));
-    }
 };
 
 template < class RNG, class AlleleSpaceType, class BlockType >

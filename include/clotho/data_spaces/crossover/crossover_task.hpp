@@ -24,6 +24,8 @@
 #include <boost/thread/thread.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include "clotho/data_spaces/crossover/crossover_details.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -32,9 +34,11 @@ class crossover_task : public task {
 public:
     typedef RNG         random_generator_type;
     typedef BlockType   block_type;
-    typedef SeedType    seed_type;
 
     typedef small_crossover_event_generator< RNG, PositionType > event_generator_type;
+
+    typedef base_crossover_method< block_type > base_method;
+    typedef alt_crossover_method< block_type > alt_method;
 
     template < typename SeedSeq >
     crossover_task( SeedSeq & seed
@@ -60,7 +64,7 @@ public:
     {}
 
     void operator()() {
-        BOOST_LOG_SEV(_log, boost::log::trivial::debug) << " - crossover";
+        BOOST_LOG_SEV(_log, boost::log::trivial::debug) << "crossover";
 
         size_t N = m_event_gen.generate();
 
@@ -69,6 +73,7 @@ public:
                 base_method met;
                 build_sequence( met );
             } else {
+                alt_method met;
                 build_sequence( met );
             }
         } else if( m_event_gen.getBaseSequence() == 0 ) {
@@ -84,7 +89,7 @@ protected:
 
     template < class Method >
     void build_sequence( const Method & m ) {
-        const unsigned int W = (( m_p0_soft_max > m_p1_soft_max )? m_p0_soft_max : m_p1_soft_max );
+        const unsigned int W = (( m_p0_soft_max < m_p1_soft_max )? m_p0_soft_max : m_p1_soft_max );
         unsigned int i = 0;
         unsigned int last_block = 0;
 
@@ -95,6 +100,34 @@ protected:
             block_type mask = build_mask( a, b, i * bit_helper_type::BITS_PER_BLOCK );
 
             mask = m(a, b, mask );
+            offspring[ i ] = mask;
+            ++i;
+
+            if( mask ) {
+                last_block = i;
+            }
+        }
+
+        while( i < m_p0_soft_max ) {
+            block_type a = first[i];
+
+            block_type mask = build_mask( a, bit_helper_type::ALL_UNSET, i * bit_helper_type::BITS_PER_BLOCK );
+
+            mask = m(a, bit_helper_type::ALL_UNSET, mask );
+            offspring[ i ] = mask;
+            ++i;
+
+            if( mask ) {
+                last_block = i;
+            }
+        }
+
+        while( i < m_p1_soft_max ) {
+            block_type b = second[i];
+
+            block_type mask = build_mask( bit_helper_type::ALL_UNSET, b, i * bit_helper_type::BITS_PER_BLOCK );
+
+            mask = m( bit_helper_type::ALL_UNSET, b, mask );
             offspring[ i ] = mask;
             ++i;
 
