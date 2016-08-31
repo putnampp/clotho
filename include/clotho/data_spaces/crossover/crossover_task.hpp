@@ -32,6 +32,8 @@ namespace genetics {
 template < class RNG, class PositionType, class BlockType >
 class crossover_task : public task {
 public:
+    typedef crossover_task< RNG, PositionType, BlockType > self_type;
+
     typedef RNG         random_generator_type;
     typedef BlockType   block_type;
 
@@ -64,6 +66,17 @@ public:
         , m_p1_soft_max( p1_soft_max )
         , m_offspring( offspring )
         , m_offspring_soft_max( offspring_soft_max )
+    {}
+
+    crossover_task( const self_type & other ) :
+        m_rng( other.m_rng )
+        , m_event_gen( other.m_event_gen )
+        , m_p0( other.m_p0 )
+        , m_p0_soft_max( other.m_p0_soft_max )
+        , m_p1( other.m_p1 )
+        , m_p1_soft_max( other.m_p1_soft_max )
+        , m_offspring( other.m_offspring )
+        , m_offspring_soft_max( other.m_offspring_soft_max )
     {}
 
     void operator()() {
