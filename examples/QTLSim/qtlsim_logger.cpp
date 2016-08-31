@@ -21,7 +21,7 @@ void init_logger( std::string & path, logging::trivial::severity_level level ) {
 
     sink->locked_backend()->add_stream( boost::make_shared< std::ofstream >( path ) );
 
-   logging::core::get()->add_sink(sink);
+    logging::core::get()->add_sink(sink);
 
     auto fmtThreadID = expr::attr< attributes::current_thread_id::value_type >("ThreadID");
     auto fmtSeverity = expr::attr< logging::trivial::severity_level >("Severity");
