@@ -21,19 +21,13 @@
 #include <boost/thread/thread.hpp>
 
 #include "clotho/data_spaces/crossover/crossover_task.hpp"
+#include <boost/random/mersenne_twister.hpp>
+
+typedef boost::random::mt19937          random_engine_type;
 
 boost::mutex mio;
 
-typedef clotho::genetics::crossover_task< unsigned long > xover_type;
-
-void local_task( int N ) {
-    {
-        boost::lock_guard< boost::mutex > lock( mio );
-        std::cout << boost::this_thread::get_id() << " - Printing: " << N << std::endl;
-    }
-
-    boost::this_thread::sleep_for( boost::chrono::seconds(1));
-}
+typedef clotho::genetics::crossover_task< random_engine_type, unsigned long long, double > xover_type;
 
 int main( int argc, char ** argv ) {
 
