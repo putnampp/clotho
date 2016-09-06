@@ -20,16 +20,16 @@
 namespace clotho {
 namespace genetics {
 
-template < class EventList, class BlockType >
+template < class Classifier, class BlockType >
 class block_crossover {
 public:
     typedef BlockType block_type;
-    typedef EventList event_list_type;
+    typedef Classifier classifier_type;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
 
-    block_crossover( event_list_type * events ) : m_events( events ) {}
+    block_crossover( const classifier_type & events ) : m_events( events ) {}
 
 /**
  *
@@ -47,7 +47,7 @@ public:
             do {
                 unsigned int idx = bit_walker_type::unset_next_index( hets );
 
-                if( (*m_events)( offset + idx ) ) {
+                if( m_events( offset + idx ) ) {
                     mask |= clotho::utility::bit_masks[ idx ];
                 }
             } while( hets );
@@ -59,7 +59,7 @@ public:
     virtual ~block_crossover() { }
 
 protected:
-    event_list_type * m_events;
+    classifier_type m_events;
 };
 
 }   // namespace genetics

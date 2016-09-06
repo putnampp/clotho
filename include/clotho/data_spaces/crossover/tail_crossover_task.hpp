@@ -14,17 +14,18 @@
 #ifndef CLOTHO_TAIL_CROSSOVER_TASK_HPP_
 #define CLOTHO_TAIL_CROSSOVER_TASK_HPP_
 
+#include "clotho/data_spaces/task/task.hpp"
 #include "clotho/data_spaces/crossover/tail_crossover.hpp"
 
 namespace clotho {
 namespace genetics {
 
-template < class EventList, class BlockType, class StrandTail >
-class tail_crossover_task : public tail_crossover< EventList, BlockType, StrandTail >, public task {
+template < class Classifier, class BlockType, class StrandTail >
+class tail_crossover_task : public tail_crossover< Classifier, BlockType, StrandTail >, public task {
 public:
-    typedef tail_crossover< EventList, BlockType, StrandTail > crossover_type;
+    typedef tail_crossover< Classifier, BlockType, StrandTail > crossover_type;
 
-    tail_crossover_task( EventList * events, block_type * strand, block_type * offspring, unsigned int offset, unsigned int len ) :
+    tail_crossover_task( const Classifier & events, block_type * strand, block_type * offspring, unsigned int offset, unsigned int len ) :
         crossover_type( events )
         , m_strand( strand )
         , m_offspring( offspring )

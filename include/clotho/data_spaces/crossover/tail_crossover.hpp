@@ -19,18 +19,18 @@
 namespace clotho {
 namespace genetics {
 
-template < class EventList, class BlockType, class StrandType >
+template < class Classifier, class BlockType, class StrandType >
 class tail_crossover;
 
 struct top_strand_tail {};
 struct bottom_strand_tail {};
 
-template < class EventList, class BlockType >
-class tail_crossover< EventList, BlockType, top_strand_tail > : public block_crossover< EventList, BlockType > {
+template < class Classifier, class BlockType >
+class tail_crossover< Classifier, BlockType, top_strand_tail > : public block_crossover< Classifier, BlockType > {
 public:
-    typedef block_crossover< EventList, BlockType > crossover_type;
+    typedef block_crossover< Classifier, BlockType > crossover_type;
 
-    tail_crossover( EventList * events ) : crossover_type( events ) {}
+    tail_crossover( const Classifier & events ) : crossover_type( events ) {}
 
     void evaluate( block_type b, unsigned int offset ) {
         evaluate( b, crossover_type::bit_helper_type::ALL_UNSET, offset );
@@ -40,12 +40,12 @@ public:
 };
 
 
-template < class EventList, class BlockType >
-class tail_crossover< EventList, BlockType, bottom_strand_tail > : public block_crossover< EventList, BlockType > {
+template < class Classifier, class BlockType >
+class tail_crossover< Classifier, BlockType, bottom_strand_tail > : public block_crossover< Classifier, BlockType > {
 public:
-    typedef block_crossover< EventList, BlockType > crossover_type;
+    typedef block_crossover< Classifier, BlockType > crossover_type;
 
-    tail_crossover( EventList * events ) : crossover_type( events ) {}
+    tail_crossover( const Classifier & events ) : crossover_type( events ) {}
 
     void evaluate( block_type b, unsigned int offset ) {
         evaluate(crossover_type::bit_helper_type::ALL_UNSET, b, offset );

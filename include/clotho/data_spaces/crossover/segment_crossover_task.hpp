@@ -14,19 +14,20 @@
 #ifndef CLOTHO_SEGMENT_CROSSOVER_TASK_HPP_
 #define CLOTHO_SEGMENT_CROSSOVER_TASK_HPP_
 
+#include "clotho/data_spaces/task/task.hpp"
 #include "clotho/data_spaces/crossover/block_crossover.hpp"
 
 namespace clotho {
 namespace genetics {
 
-template < class EventList, class BlockType >
-class segment_crossover_task : public block_crossover< EventList, BlockType >, public task {
+template < class Classifier, class BlockType >
+class segment_crossover_task : public block_crossover< Classifier, BlockType >, public task {
 public:
 
-    typedef block_crossover< EventList, BlockType > crossover_type;
+    typedef block_crossover< Classifier, BlockType > crossover_type;
     typedef BlockType block_type;
 
-    segment_crossover_task( event_list_type * events, block_type * top, block_type * bottom, block_type * o, unsigned int offset, unsigned int len ) :
+    segment_crossover_task( const Classifier & events, block_type * top, block_type * bottom, block_type * o, unsigned int offset, unsigned int len ) :
         crossover_type( events )
         , m_top_strand( top )
         , m_bottom_strand( bottom )
