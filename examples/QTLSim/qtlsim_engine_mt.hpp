@@ -34,7 +34,9 @@
 #include "clotho/data_spaces/selection/selection.hpp"
 #include "clotho/data_spaces/mutation/mutation_generator.hpp"
 #include "clotho/data_spaces/mutation/mutation_allocator.hpp"
-#include "clotho/data_spaces/crossover/crossover.hpp"
+
+#include "clotho/data_spaces/crossover/crossover_task_list.hpp"
+
 #include "clotho/data_spaces/phenotype_evaluator/evaluator.hpp"
 #include "clotho/data_spaces/fitness/fitness.hpp"
 
@@ -42,17 +44,17 @@
 
 #include "thread_count_parameter.hpp"
 
-template < class RNG >
+template < class RNG, class RealType = double, class BlockType = unsigned long long >
 class EngineMT {
 public:
-    typedef EngineMT< RNG >               self_type;
+    typedef EngineMT< RNG >             self_type;
 
-    typedef double                      position_type;
-    typedef double                      weight_type;
+    typedef RealType                    position_type;
+    typedef RealType                    weight_type;
     typedef weight_type *               phenotype_type;
-    typedef unsigned long long          block_type;
+    typedef BlockType                   block_type;
 
-    typedef RNG                                                                                     random_engine_type;
+    typedef RNG                         random_engine_type;
 
     typedef clotho::genetics::qtl_allele_vectorized< position_type, weight_type >                   allele_type;
 
@@ -63,7 +65,7 @@ public:
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >                          trait_accumulator_type;
     typedef clotho::genetics::FreeSpaceAnalyzer< genetic_space_type >                               free_space_type;
     typedef clotho::genetics::SelectionGenerator< random_engine_type, clotho::genetics::fitness_selection< genetic_space_type > >          selection_type;
-    typedef clotho::genetics::Crossover< random_engine_type, genetic_space_type >                   crossover_type;
+//    typedef clotho::genetics::Crossover< random_engine_type, genetic_space_type >                   crossover_type;
     typedef clotho::genetics::linear_combination< trait_accumulator_type, phenotype_type >          trait_reduction_type;
     typedef clotho::genetics::phenotype_evaluator< trait_reduction_type >                           phenotype_eval_type;
     typedef clotho::genetics::Fitness< phenotype_eval_type >                                        fitness_type;
@@ -84,7 +86,6 @@ public:
         , m_generation( 0 )
         , m_pop_growth()
         , m_mut_alloc( rng, config )
-        , m_multi( config )
     {
         population_growth_generator_type tmp  = population_growth_toolkit::getInstance()->get_tool( config );
         if( tmp ) {
@@ -104,14 +105,15 @@ public:
         m_pop0.getAlleleSpace().grow(acount, 1);
         m_pop1.getAlleleSpace().grow(acount, 1);
 
-        init(acount);
+        thread_count_parameter tc_param( config );
+        init(acount, tc_param.m_tc);
     }
 
     size_t getGeneration() const {
         return m_generation;
     }
 
-    void init( size_t aN ) {
+    void init( size_t aN, int tc ) {
         size_t generation = m_generation++;
         size_t pN = m_parent->individual_count();
         if( m_pop_growth ) {
@@ -124,6 +126,10 @@ public:
         m_pop1.getSequenceSpace().fill_empty();
         m_pop1.getSequenceSpace().finalize();
 #endif // USE_ROW_VECTOR
+
+        while( tc-- ) {
+            threads.create_thread( boost::bind( &boost::asio::io_service::run, &m_service ) );
+        }   
     }
 
     void simulate( ) {
@@ -140,23 +146,21 @@ public:
         }
 
         size_t pM = m_mut_alloc.allocate( 2 * pN );        // generate the number of new mutations
-#ifdef DEBUGGING
-        std::cerr << "Generation " << generation << ": " << pN << " individuals; " << pM << " new alleles" << std::endl;
-#endif  // DEBUGGING
+
+        BOOST_LOG_SEV( _log, boost::log::trivial::debug ) << "Generation " << generation << ": " << pN << " individuals; " << pM << " new alleles" << std::endl;
 
         select_gen.update( m_parent, pN );
 
         updateFixedAlleles( m_parent );                 // update the fixed alleles with those of parent population
 
         size_t all_size = child_max_alleles( m_parent->allele_count(), m_free_space.free_size(), pM );   // rescale allele space for child population given free space from parent population and new allele count (pM)
-#ifdef DEBUGGING
-        std::cerr << "Rescaling child population to be: " << pN << " individuals x " << all_size << " alleles" << std::endl;
-#endif  // DEBUGGING
+        BOOST_LOG_SEV( _log, boost::log::trivial::debug ) << "Rescaling child population to be: " << pN << " individuals x " << all_size << " alleles" << std::endl;
+
         m_child->grow( pN, all_size );                        // grow the child population accordingly
 
         m_child->inherit_alleles( m_parent, m_free_space.free_begin(), m_free_space.free_end() );
 
-        cross_gen.update( m_parent, select_gen.getMatePairs(), m_child );
+//        cross_gen.update( m_parent, select_gen.getMatePairs(), m_child );
 
         mutate_gen( m_child, pM );
 
@@ -200,7 +204,11 @@ public:
         return m_parent;
     }
 
-    virtual ~EngineMT() {}
+    virtual ~EngineMT() {
+        m_service.stop();
+
+        m_threads.join_all();
+    }
 
 protected:
 
@@ -278,14 +286,17 @@ protected:
 
     // configuration parameter controlling the number of worker threads
     thread_count_parameter  m_multi;
+
+    boost::asio::io_service m_service;
+    boost::thread_grroup    m_threads;
 };
 
 namespace clotho {
 namespace utility {
 
-template < class RNG >
-struct state_getter< EngineMT< RNG > > {
-    typedef EngineMT< RNG >           object_type;
+template < class RNG, class RealType, class BlockType >
+struct state_getter< EngineMT< RNG, RealType, BlockType > > {
+    typedef EngineMT< RNG, RealType, BlockType >           object_type;
 
     void operator()( boost::property_tree::ptree & s, object_type & obj ) {
         boost::property_tree::ptree tr;
