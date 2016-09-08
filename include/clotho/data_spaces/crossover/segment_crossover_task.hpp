@@ -43,7 +43,7 @@ public:
             block_type t = m_top_strand[ i ];
             block_type b = m_bottom_strand[ i ];
 
-            block_type o = evaluate( t, b, i );
+            block_type o = crossover( t, b, i );
 
             m_offspring[ i ] = o;
         }

@@ -32,8 +32,8 @@ public:
 
     tail_crossover( const Classifier & events ) : crossover_type( events ) {}
 
-    void evaluate( block_type b, unsigned int offset ) {
-        evaluate( b, crossover_type::bit_helper_type::ALL_UNSET, offset );
+    void crossover( block_type b, unsigned int offset ) {
+        crossover( b, crossover_type::bit_helper_type::ALL_UNSET, offset );
     }
 
     virtual ~tail_crossover() {}
@@ -47,8 +47,8 @@ public:
 
     tail_crossover( const Classifier & events ) : crossover_type( events ) {}
 
-    void evaluate( block_type b, unsigned int offset ) {
-        evaluate(crossover_type::bit_helper_type::ALL_UNSET, b, offset );
+    void crossover( block_type b, unsigned int offset ) {
+        crossover(crossover_type::bit_helper_type::ALL_UNSET, b, offset );
     }
 
     virtual ~tail_crossover() {}

@@ -39,7 +39,7 @@ public:
         for( unsigned int i = m_offset; i < end; ++i ) {
             block_type b = m_strand[ i ];
 
-            block_type o = evaluate( b, i );
+            block_type o = crossover( b, i );
 
             m_offspring[ i ] = o;
         }
