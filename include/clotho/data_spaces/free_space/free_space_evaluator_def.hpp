@@ -17,7 +17,7 @@
 namespace clotho {
 namespace genetics {
 
-template < class SpaceType >
+template < class SpaceType, class SizeType >
 class free_space_evaluator;
 
 }   // namespace genetics

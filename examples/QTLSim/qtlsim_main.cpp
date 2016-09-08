@@ -36,7 +36,7 @@ typedef Engine< random_engine_type >    simulate_engine_type;
 typedef typename simulate_engine_type::genetic_space_type   genetic_space_type;
 
 typedef clotho::genetics::random_sample_generator< random_engine_type, genetic_space_type >  random_sample_type;
-typedef clotho::genetics::allele_frequency< genetic_space_type > allele_freq_type;
+typedef clotho::genetics::allele_frequency< genetic_space_type, unsigned int > allele_freq_type;
 typedef clotho::genetics::pairwise_difference< genetic_space_type > pairwise_diff_type;
 
 typedef clotho::utility::state_getter< simulate_engine_type >   engine_logger_type;

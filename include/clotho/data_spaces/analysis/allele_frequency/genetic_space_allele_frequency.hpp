@@ -20,11 +20,11 @@
 namespace clotho {
 namespace genetics {
 
-template < class AlleleType, class BlockType, class AlignmentType >
-class allele_frequency< genetic_space< AlleleType, BlockType, AlignmentType > > : public allele_frequency< typename genetic_space< AlleleType, BlockType, AlignmentType >::association_type > {
+template < class AlleleType, class BlockType, class AlignmentType, class SizeType >
+class allele_frequency< genetic_space< AlleleType, BlockType, AlignmentType >, SizeType > : public allele_frequency< typename genetic_space< AlleleType, BlockType, AlignmentType >::association_type, SizeType > {
 public:
     typedef genetic_space< AlleleType, BlockType, AlignmentType >  genetic_space_type;
-    typedef allele_frequency< typename genetic_space< AlleleType, BlockType, AlignmentType >::association_type > base_type;
+    typedef allele_frequency< typename genetic_space< AlleleType, BlockType, AlignmentType >::association_type, SizeType > base_type;
 
     void evaluate( genetic_space_type & gs ) {
         base_type::evaluate( gs.getSequenceSpace() );

@@ -19,11 +19,12 @@
 namespace clotho {
 namespace genetics {
 
-template < class SequenceSpace >
+template < class SequenceSpace, class SizeType >
 class allele_frequency {
 public:
     typedef SequenceSpace           space_type;
-    typedef std::vector< size_t >   result_type;
+    typedef SizeType                size_type;
+    typedef std::vector< size_type >   result_type;
 
     void evaluate( space_type & ss );
     result_type & getResults();

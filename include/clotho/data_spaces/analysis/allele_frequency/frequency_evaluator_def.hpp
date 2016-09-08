@@ -17,7 +17,7 @@
 namespace clotho {
 namespace genetics {
 
-template < class SpaceType >
+template < class SpaceType, class ResultType >
 struct frequency_evaluator;
 
 }   // namespace genetics
