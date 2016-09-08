@@ -302,6 +302,7 @@ struct state_getter< Engine< RNG > > {
         s.put_child( "phenotypes", ph );
         s.put_child( "free_space", fr );
         s.put_child( "fixed_alleles", fx );
+        s.add( "fixed_count", obj.m_fixed.size() );
 
         //s.put_child( "parent", p_pop );
         s.put_child( "child", c_pop );

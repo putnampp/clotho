@@ -35,20 +35,24 @@ namespace ac = boost::accumulators;
 namespace clotho {
 namespace genetics {
 
-template < class BlockType, class AlignmentType >
-class allele_frequency< association_matrix< BlockType, AlignmentType > > {
+template < class BlockType, class AlignmentType, class SizeType >
+class allele_frequency< association_matrix< BlockType, AlignmentType >, SizeType > {
 public:
     typedef association_matrix< BlockType, AlignmentType >             space_type;
 
-    typedef clotho::genetics::frequency_evaluator< space_type >         evaluator_type;
+    typedef SizeType                                                      size_type;
+    typedef size_type *                                                   result_type;
+    typedef clotho::genetics::frequency_evaluator< space_type, size_type >        evaluator_type;
 
-    typedef size_t *                                                    result_type;
-    typedef boost::dynamic_bitset<>                                     analyzed_set_type;
+    typedef boost::dynamic_bitset<>                                     row_subset_type;
 
     allele_frequency() :
-        m_results( NULL )
-        , m_size(0)
-        , m_allocated_size(0)
+        m_column_margin( NULL )
+        , m_row_margin( NULL )
+        , m_column_margin_size(0)
+        , m_column_allocated_size(0)
+        , m_row_margin_size(0)
+        , m_row_allocated_size(0)
     {}
 
     void evaluate( space_type & ss ) {
@@ -59,7 +63,7 @@ public:
 
         evaluator_type eval;
 
-        eval( ss, m_indices, m_results );
+        eval( ss, m_indices, m_column_margin, m_row_margin );
     }
 
 /**
@@ -71,84 +75,102 @@ public:
 
         m_indices.reset();
 
-        size_t N = 0;
+        size_type N = 0;
         while( first != last ) {
-            size_t i = *first++;
+            size_type i = *first++;
             m_indices[i] = true;
             ++N;
         }
 
         evaluator_type eval;
 
-        eval( ss, m_indices, m_results );
+        eval( ss, m_indices, m_column_margin, m_row_margin );
     }
 
-    std::shared_ptr< std::vector< size_t > > getResults() {
-        if( m_results == NULL || m_size == 0 ) {
-            return std::shared_ptr< std::vector< size_t > >();
+    std::shared_ptr< std::vector< size_type > > getResults() {
+        if( m_column_margin == NULL || m_column_margin_size == 0 ) {
+            return std::shared_ptr< std::vector< size_type > >();
         }
-        std::shared_ptr< std::vector< size_t > > t( new std::vector< size_t >( m_results, m_results + m_size) );
+        std::shared_ptr< std::vector< size_type > > t( new std::vector< size_type >( m_column_margin, m_column_margin + m_column_margin_size) );
         return t;
     }
 
     void recordResults( boost::property_tree::ptree & log ) {
-                    
-        result_type b = m_results, e = m_results + m_size;
  
-        typedef ac::accumulator_set< size_t, ac::stats< ac::tag::min, ac::tag::mean, ac::tag::max, ac::tag::variance, ac::tag::median, ac::tag::count > > accumulator_t;
+        typedef ac::accumulator_set< size_type, ac::stats< ac::tag::min, ac::tag::mean, ac::tag::max, ac::tag::variance, ac::tag::median, ac::tag::count > > accumulator_t;
 
-        accumulator_t   accum;       
+        accumulator_t   col_accum, row_accum;
 
         boost::property_tree::ptree dist, lfreq;
 
-        std::vector< size_t > freq( m_indices.size(), 0 );
-        
-        while( b != e ) {
-            size_t v = *b++;
+        // maximum frequency for an allele is bounded by the number of sequences (rows) in the population
+        std::vector< size_type > freq( m_indices.size(), 0 );
+
+        // evaluate allele (column) statistics
+        size_type i = 0;
+        while( i < m_column_margin_size ) {
+            size_type v = m_column_margin[i++];
             clotho::utility::add_value_array( dist, v );
-            accum( v );
+            col_accum( v );
             freq[v]++;
         }
+
 
         clotho::utility::add_value_array(lfreq, freq.begin(), freq.end() );
 
         log.put_child( "distribution", dist );
         log.put_child( "frequency_distribution", lfreq );
 
-        log.put( "min", ac::min( accum ) );
-        log.put( "max", ac::max( accum ) );
-        log.put( "mean", ac::mean( accum ) );
-        log.put( "median", ac::median( accum ) );
-        log.put( "variance", ac::variance( accum ) );
-        log.put( "total", ac::count(accum) );
+        log.put( "stats.sequences_per_allele.min", ac::min( col_accum ) );
+        log.put( "stats.sequences_per_allele.max", ac::max( col_accum ) );
+        log.put( "stats.sequences_per_allele.mean", ac::mean( col_accum ) );
+        log.put( "stats.sequences_per_allele.median", ac::median( col_accum ) );
+        log.put( "stats.sequences_per_allele.variance", ac::variance( col_accum ) );
+        log.put( "stats.sequences_per_allele.total", ac::count(col_accum) );
+
+        // evaluate sequence (row) statistics
+        i = 0;
+        while( i < m_row_margin_size ) {
+            if( m_indices.test(i) ) {
+                row_accum( m_row_margin[ i ] );
+            }
+            ++i;
+        }
+
+        log.put( "stats.alleles_per_sequence.min", ac::min( row_accum ) );
+        log.put( "stats.alleles_per_sequence.max", ac::max( row_accum ) );
+        log.put( "stats.alleles_per_sequence.mean", ac::mean( row_accum ) );
+        log.put( "stats.alleles_per_sequence.median", ac::median( row_accum ) );
+        log.put( "stats.alleles_per_sequence.variance", ac::variance( row_accum ) );
+        log.put( "stats.alleles_per_sequence.total", ac::count(row_accum) );
     }
 
     virtual ~allele_frequency() {
-        if( m_results != NULL ) {
-            delete [] m_results;
+        if( m_column_margin != NULL ) {
+            delete [] m_column_margin;
         }
     }
 
 protected:
 
 //    void eval( space_type & ss ) {
-//        m_results.clear();
+//        m_column_margin.clear();
 //
-//        size_t M = ss.column_count();
-//        size_t N = ss.block_column_count();
-//        m_results.resize( M );
+//        size_type M = ss.column_count();
+//        size_type N = ss.block_column_count();
+//        m_column_margin.resize( M );
 //
-//        size_t buffer[ bit_helper_type::BITS_PER_BLOCK ];
-//        memset( buffer, 0, bit_helper_type::BITS_PER_BLOCK * sizeof( size_t ) );
+//        size_type buffer[ bit_helper_type::BITS_PER_BLOCK ];
+//        memset( buffer, 0, bit_helper_type::BITS_PER_BLOCK * sizeof( size_type ) );
 //
 //        typedef typename space_type::raw_block_pointer iterator;
 //
-//        size_t i = 0, j = M;
+//        size_type i = 0, j = M;
 //        while( M ) {
 //            iterator first = ss.begin_block_row( i );
 //            iterator last = ss.end_block_row( i );
 //
-//            size_t k = 0;
+//            size_type k = 0;
 //            while( first != last ) {
 //                block_type b = *first++;
 //                if( m_indices.test(k++) ) {
@@ -159,41 +181,60 @@ protected:
 //                }
 //            }
 //
-//            size_t l = (( j < bit_helper_type::BITS_PER_BLOCK) ? j : bit_helper_type::BITS_PER_BLOCK);
+//            size_type l = (( j < bit_helper_type::BITS_PER_BLOCK) ? j : bit_helper_type::BITS_PER_BLOCK);
 //
-//            memcpy( m_results + i * bit_helper_type::BITS_PER_BLOCK, buffer, sizeof( size_t ) * l );
-//            memset( buffer, 0, bit_helper_type::BITS_PER_BLOCK * sizeof( size_t ) );
+//            memcpy( m_column_margin + i * bit_helper_type::BITS_PER_BLOCK, buffer, sizeof( size_type ) * l );
+//            memset( buffer, 0, bit_helper_type::BITS_PER_BLOCK * sizeof( size_type ) );
 //
 //            j -= l;
 //            ++i;
 //        }
 //    }
 
+/**
+ *
+ * Grows vectors if necessary
+ * Always clears the count vectors to be all zeros
+ *
+ */
     void resize( space_type & ss ) {
-        size_t M = ss.column_count();
+        size_type M = ss.column_count();
 
-        if( M > m_allocated_size ) {
-            if( m_results != NULL ) {
-                delete [] m_results;
+        if( M > m_column_allocated_size ) {
+            if( m_column_margin != NULL ) {
+                delete [] m_column_margin;
             }
 
-            m_results = new size_t[ M ];
+            m_column_margin = new size_type[ M ];
 
-            m_allocated_size = M;
+            m_column_allocated_size = M;
         }
 
-        m_size = M;
+        m_column_margin_size = M;
 
-        memset( m_results, 0, sizeof(size_t) * m_allocated_size );
+        memset( m_column_margin, 0, sizeof(size_type) * m_column_allocated_size );
 
         m_indices.resize( ss.row_count() );
+        if( ss.row_count() > m_row_allocated_size ) {
+            if( m_row_margin != NULL ) {
+                delete [] m_row_margin;
+            }
 
+            m_row_margin = new size_type[ ss.row_count() ];
+            m_row_allocated_size = ss.row_count();
+        }
+
+        m_row_margin_size = ss.row_count();
+
+        memset( m_row_margin, 0, sizeof(size_type) * m_row_allocated_size );
     }
 
-    result_type         m_results;
-    analyzed_set_type   m_indices;
+    result_type         m_column_margin;
+    result_type         m_row_margin;
+    row_subset_type     m_indices;
 
-    size_t              m_size, m_allocated_size;
+    size_type              m_column_margin_size, m_column_allocated_size;
+    size_type              m_row_margin_size, m_row_allocated_size;
 };
 
 }   // namespace genetics

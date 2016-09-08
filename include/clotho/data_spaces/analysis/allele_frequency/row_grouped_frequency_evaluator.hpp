@@ -8,7 +8,7 @@
 //
 //   Unless required by applicable law or agreed to in writing, software
 //   distributed under the License is distributed on an "AS IS" BASIS,
-//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expcolumn_margins or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 #ifndef CLOTHO_ROW_GROUPED_FREQUENCY_EVALUATOR_HPP_
@@ -22,20 +22,21 @@
 namespace clotho {
 namespace genetics {
 
-template < class BlockType, unsigned char P >
-struct frequency_evaluator< association_matrix< BlockType, row_grouped< P > > > {
+template < class BlockType, class SizeType, unsigned char P >
+struct frequency_evaluator< association_matrix< BlockType, row_grouped< P > >, SizeType > {
     typedef association_matrix< BlockType, row_grouped< P > > space_type;
     typedef typename space_type::block_type                 block_type;
-    typedef size_t *                                        result_type;
+    typedef SizeType                                        size_type;
+    typedef size_type *                                        result_type;
 
     typedef typename space_type::bit_helper_type                        bit_helper_type;
     typedef typename clotho::utility::debruijn_bit_walker< block_type > bit_walker_type;
 
-    void operator()( space_type & ss, boost::dynamic_bitset<> & indices, result_type res ) {
+    void operator()( space_type & ss, boost::dynamic_bitset<> & indices, result_type column_margin, result_type row_margin ) {
         typedef typename space_type::raw_block_pointer iterator;
 
-        size_t N = ss.row_count();
-        size_t i = 0;
+        size_type N = ss.row_count();
+        size_type i = 0;
         while ( i < N ) {
             if( !indices.test(i) ) {
                 ++i;
@@ -45,37 +46,40 @@ struct frequency_evaluator< association_matrix< BlockType, row_grouped< P > > > 
             iterator start = ss.begin_row(i);
             iterator end = ss.end_row(i);
 
-            size_t j = 0;
+            size_type j = 0, M = 0;
             while( start != end ) {
                 block_type b = *start;
 
                 while( b ) {
                     unsigned int b_idx = bit_walker_type::unset_next_index( b ) + j;
-                    res[ b_idx ] += 1;
+                    column_margin[ b_idx ] += 1;
+                    ++M;
                 }
                 
                 start += row_grouped< P >::GROUP_SIZE;
                 j += bit_helper_type::BITS_PER_BLOCK;
             }
+            row_margin[ i ] = M;
             ++i;
         }
     }
 };
 
-template < class BlockType >
-struct frequency_evaluator< association_matrix< BlockType, row_grouped< 1 > > > {
+template < class BlockType, class SizeType >
+struct frequency_evaluator< association_matrix< BlockType, row_grouped< 1 > >, SizeType > {
     typedef association_matrix< BlockType, row_grouped< 1 > > space_type;
     typedef typename space_type::block_type                 block_type;
-    typedef size_t *                                        result_type;
+    typedef SizeType                                        size_type;
+    typedef size_type *                                     result_type;
 
     typedef typename space_type::bit_helper_type                        bit_helper_type;
     typedef typename clotho::utility::debruijn_bit_walker< block_type > bit_walker_type;
 
-    void operator()( space_type & ss, boost::dynamic_bitset<> & indices, result_type res ) {
+    void operator()( space_type & ss, boost::dynamic_bitset<> & indices, result_type column_margin, result_type row_margin ) {
         typedef typename space_type::raw_block_pointer iterator;
 
-        size_t N = ss.row_count();
-        size_t i = 0;
+        size_type N = ss.row_count();
+        size_type i = 0;
         while ( i < N ) {
             if( !indices.test(i) ) {
                 ++i;
@@ -85,17 +89,19 @@ struct frequency_evaluator< association_matrix< BlockType, row_grouped< 1 > > > 
             iterator start = ss.begin_row(i);
             iterator end = ss.end_row(i);
 
-            size_t j = 0;
+            size_type j = 0, M = 0;
             while( start != end ) {
                 block_type b = *start++;
 
                 while( b ) {
                     unsigned int b_idx = bit_walker_type::unset_next_index( b ) + j;
-                    res[ b_idx ] += 1;
+                    column_margin[ b_idx ] += 1;
+                    ++M;
                 }
                 
                 j += bit_helper_type::BITS_PER_BLOCK;
             }
+            row_margin[ i ] = M;
             ++i;
         }
     }

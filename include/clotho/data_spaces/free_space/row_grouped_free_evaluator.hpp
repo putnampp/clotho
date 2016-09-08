@@ -24,37 +24,38 @@
 namespace clotho {
 namespace genetics {
 
-template < class BlockType, unsigned char P >
-class free_space_evaluator< association_matrix< BlockType, row_grouped< P > > > {
+template < class BlockType, class SizeType, unsigned char P >
+class free_space_evaluator< association_matrix< BlockType, row_grouped< P > >, SizeType > {
 public:
     typedef association_matrix< BlockType, row_grouped< P > > space_type;
     typedef typename space_type::block_type                 block_type;
-    typedef size_t *                                        result_type;
+    typedef SizeType                                        size_type;
+    typedef size_type *                                        result_type;
 
     typedef typename space_type::raw_block_pointer    block_pointer;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
 
-    void operator()( space_type & ss, result_type res, size_t & fixed_offset, size_t & lost_offset, size_t & free_count, size_t M ) {
+    void operator()( space_type & ss, result_type res, size_type & fixed_offset, size_type & lost_offset, size_type & free_count, size_type M ) {
 
-        size_t W = bit_helper_type::padded_block_count( M );
+        size_type W = bit_helper_type::padded_block_count( M );
 
         block_type * tmp = new block_type[ 2 * W ];
 
         memset( tmp, 255, sizeof(block_type) * W );
         memset( tmp + W, 0, sizeof(block_type) * W );
 
-        const size_t row_count = ss.block_row_count();
+        const size_type row_count = ss.block_row_count();
 
-        size_t fo = fixed_offset;
-        size_t lo = lost_offset;
-        size_t fr = free_count;
+        size_type fo = fixed_offset;
+        size_type lo = lost_offset;
+        size_type fr = free_count;
         
         block_type * fx_ptr = tmp;
         block_type * var_ptr = tmp + W;
 
-        size_t k = 0;
+        size_type k = 0;
         while( k < row_count ) {
 
             block_pointer start = ss.begin_block_row( k );
@@ -63,7 +64,7 @@ public:
             fx_ptr = tmp;
             var_ptr = tmp + W;
 
-            size_t i = 0; 
+            size_type i = 0; 
             while( start != end ) {
                 block_type b = *start++;
                 *fx_ptr &= b;
@@ -80,7 +81,7 @@ public:
             k += row_grouped< P >::GROUP_SIZE;
         }
 
-        size_t j = 0;
+        size_type j = 0;
         
         fx_ptr = tmp;
         var_ptr = tmp + W;
@@ -91,7 +92,7 @@ public:
             block_type ls = ~(fx | var);
 
             while( fx ) {
-                size_t b_idx = bit_walker_type::unset_next_index( fx ) + j;
+                size_type b_idx = bit_walker_type::unset_next_index( fx ) + j;
                 if( b_idx < M ) {
                     res[ fr++ ] = b_idx;
                     res[ fo++ ] = b_idx;
@@ -99,7 +100,7 @@ public:
             }
 
             while( ls ) {
-                size_t idx = bit_walker_type::unset_next_index( ls ) + j;
+                size_type idx = bit_walker_type::unset_next_index( ls ) + j;
                 if( idx < M ) {
                     res[ fr++ ] = idx;
                     res[ lo++ ] = idx;
@@ -117,21 +118,23 @@ public:
     }
 };
 
-template < class BlockType >
-class free_space_evaluator< association_matrix< BlockType, row_grouped< 1 > > > {
+template < class BlockType, class SizeType >
+class free_space_evaluator< association_matrix< BlockType, row_grouped< 1 > >, SizeType > {
 public:
-    typedef association_matrix< BlockType, row_grouped< 1 > > space_type;
-    typedef typename space_type::block_type                 block_type;
-    typedef size_t *                                        result_type;
+    typedef association_matrix< BlockType, row_grouped< 1 > >   space_type;
+    typedef typename space_type::block_type                     block_type;
+
+    typedef SizeType                                            size_type;
+    typedef size_type *                                         result_type;
 
     typedef typename space_type::raw_block_pointer    block_pointer;
 
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
 
-    void operator()( space_type & ss, result_type res, size_t & fixed_offset, size_t & lost_offset, size_t & free_count, size_t M ) {
+    void operator()( space_type & ss, result_type res, size_type & fixed_offset, size_type & lost_offset, size_type & free_count, size_type M ) {
 
-        size_t W = bit_helper_type::padded_block_count( M );
+        size_type W = bit_helper_type::padded_block_count( M );
 #ifdef  DEBUGGING
         std::cerr << "Free Space Padded size: " << W << std::endl;
 #endif  // DEBUGGING
@@ -141,13 +144,13 @@ public:
         memset( tmp, 255, sizeof(block_type) * W );
         memset( tmp + W, 0, sizeof(block_type) * W );
 
-        const size_t row_count = ss.block_row_count();
+        const size_type row_count = ss.block_row_count();
 
-        size_t fo = fixed_offset;
-        size_t lo = lost_offset;
-        size_t fr = free_count;
+        size_type fo = fixed_offset;
+        size_type lo = lost_offset;
+        size_type fr = free_count;
 
-        size_t k = 0;
+        size_type k = 0;
         while( k < row_count ) {
 
             block_pointer start = ss.begin_block_row( k );
@@ -163,7 +166,7 @@ public:
             ++k;
         }
 
-        size_t j = 0;
+        size_type j = 0;
         
         for( unsigned int i = 0; i < W; ++i ) {
             block_type fx = tmp[ i ];
@@ -172,7 +175,7 @@ public:
             block_type ls = ~(fx | var);
 
             while( fx ) {
-                size_t b_idx = bit_walker_type::unset_next_index( fx ) + j;
+                size_type b_idx = bit_walker_type::unset_next_index( fx ) + j;
                 if( b_idx < M ) {
                     res[ fr++ ] = b_idx;
                     res[ fo++ ] = b_idx;
@@ -180,7 +183,7 @@ public:
             }
 
             while( ls ) {
-                size_t idx = bit_walker_type::unset_next_index( ls ) + j;
+                size_type idx = bit_walker_type::unset_next_index( ls ) + j;
                 if( idx < M ) {
                     res[ fr++ ] = idx;
                     res[ lo++ ] = idx;
@@ -244,7 +247,7 @@ protected:
         }
     }
 
-    void resize( size_t W ) {
+    void resize( size_type W ) {
         if( 2 * W > m_alloc_size ) {
             if( tmp != NULL ) {
                 delete [] tmp;
@@ -255,7 +258,7 @@ protected:
         }
     }
     block_type * tmp;
-    size_t m_alloc_size;
+    size_type m_alloc_size;
 };
 }   // namespace genetics
 }   // namespace clotho
