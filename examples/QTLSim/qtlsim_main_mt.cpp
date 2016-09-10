@@ -20,14 +20,41 @@
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
 
-#include "clotho/data_spaces/crossover/crossover_task.hpp"
+//#include "clotho/data_spaces/crossover/crossover_task.hpp"
 #include <boost/random/mersenne_twister.hpp>
 
 typedef boost::random::mt19937          random_engine_type;
 
 boost::mutex mio;
 
-typedef clotho::genetics::crossover_task< random_engine_type, unsigned long long, double > xover_type;
+//typedef clotho::genetics::crossover_task< random_engine_type, unsigned long long, double > xover_type;
+//
+void my_task( int val ) {
+    boost::lock_guard< boost::mutex > guard( mio );
+    std::cout << "Val: " << val << std::endl;
+}
+
+void run_tasks( int start, int end, int tc = 6 ) {
+    boost::asio::io_service service;
+    boost::thread_group threads;
+
+    {
+        std::auto_ptr< boost::asio::io_service::work > work(new boost::asio::io_service::work( service));
+
+        // two worker threads
+        for( int i = 0; i < tc; ++i )
+            threads.create_thread( boost::bind( &boost::asio::io_service::run, &service) );
+
+        for ( int i = start; i < end; ++i ) {
+            service.post( boost::bind( my_task, i ) );
+        }
+
+//        boost::this_thread::sleep_for( boost::chrono::seconds(2));
+//        service.stop();
+    }
+
+    threads.join_all();
+}
 
 int main( int argc, char ** argv ) {
 
@@ -38,25 +65,9 @@ int main( int argc, char ** argv ) {
     std::string path = "sample.log";
     init_logger( path, logging::trivial::info );
 
-    boost::asio::io_service service;
-    boost::thread_group threads;
+    run_tasks( 0, 200 );
 
-    {
-        std::auto_ptr< boost::asio::io_service::work > work(new boost::asio::io_service::work( service));
-
-        // two worker threads
-        for( int i = 0; i < 6; ++i )
-            threads.create_thread( boost::bind( &boost::asio::io_service::run, &service) );
-
-        for ( int i = 0; i < 200; ++i ) {
-            service.post( xover_type() );
-        }
-
-        boost::this_thread::sleep_for( boost::chrono::seconds(2));
-        service.stop();
-    }
-
-    threads.join_all();
+    run_tasks( 2000, 2600 );
 
     return 0;
 }
