@@ -91,7 +91,8 @@ public:
             size_t idx = block_index( i++, fr_idx, m_bpr );
 
             is_free = ((m_data[idx] & mask) == 0);
-            if( !is_free) std::cerr << "Row " << (i - 1) << " at " << idx << " [" << (m_data + idx) << "] -> " << std::hex << (m_data[idx] & mask) << std::dec << std::endl;
+            if( !is_free)
+                BOOST_LOG_TRIVIAL(info) << "Row " << (i - 1) << " at " << idx << " [" << (m_data + idx) << "] -> " << std::hex << (m_data[idx] & mask) << std::dec;
         }
         return is_free;
     }
@@ -275,7 +276,8 @@ public:
             size_t idx = block_index( i++, fr_idx, m_bpr );
 
             is_free = ((m_data[idx] & mask) == 0);
-            if( !is_free) std::cerr << "Row " << (i - 1) << " at " << idx << " [" << (m_data + idx) << "] -> " << std::hex << (m_data[idx] & mask) << std::dec << std::endl;
+            if( !is_free)
+                BOOST_LOG_TRIVIAL(info) << "Row " << (i - 1) << " at " << idx << " [" << (m_data + idx) << "] -> " << std::hex << (m_data[idx] & mask) << std::dec;
         }
         return is_free;
     }
@@ -390,9 +392,8 @@ protected:
 
     void resize( size_t r, size_t c ) {
         size_t blocks_per_row =  bit_helper_type::padded_block_count( c );
-#ifdef DEBUGGING
-        std::cerr << "Blocks per row: " << blocks_per_row << " = " << c << " / " << bit_helper_type::BITS_PER_BLOCK << std::endl;
-#endif  //DEBUGGING
+
+        BOOST_LOG_TRIVIAL(debug) << "Blocks per row: " << blocks_per_row << " = " << c << " / " << bit_helper_type::BITS_PER_BLOCK;
 
         size_t new_size = r * blocks_per_row;
 
