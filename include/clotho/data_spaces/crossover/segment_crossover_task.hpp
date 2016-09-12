@@ -34,22 +34,29 @@ public:
         , m_offspring( o )
         , m_offset( offset )
         , m_length( len )
-    {}
+    {
+        // if triggered then
+        // unnecessary object created
+        // fix upstream logic
+        assert( m_length > 0 );
+    }
 
     void operator()() {
         const unsigned int end = m_offset + m_length;
+
+        BOOST_LOG_TRIVIAL(debug) << "Segment crossover: " << m_top_strand << " X " << m_bottom_strand << " [" << m_offset << ", " << end << ")";
 
         for( unsigned int i = m_offset; i < end; ++i ) {
             block_type t = m_top_strand[ i ];
             block_type b = m_bottom_strand[ i ];
 
-            block_type o = crossover( t, b, i );
+            block_type o = this->crossover( t, b, i );
 
             m_offspring[ i ] = o;
         }
     }
 
-    virtual segment_crossover_task() {}
+    virtual ~segment_crossover_task() {}
 
 protected:
     block_type      * m_top_strand, * m_bottom_strand, * m_offspring;

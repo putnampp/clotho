@@ -30,9 +30,15 @@ public:
         m_strand( strand )
         , m_offspring( offspring )
         , m_length( len )
-    {}
+    {
+        // if triggered then
+        // unnecessary object created
+        // fix upstream logic
+        assert( m_length > 0);
+    }
 
     void operator()() {
+        BOOST_LOG_TRIVIAL(debug) << "Copy crossover: " << m_strand << " [0, " << m_length << ")";
         memcpy( m_offspring, m_strand, m_length * sizeof( block_type ) );
     }
 

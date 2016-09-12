@@ -23,16 +23,22 @@
 
 #include <boost/random/mersenne_twister.hpp>
 
+#ifndef USE_MT
 #include "qtlsim_engine.hpp"
-#include "clotho/random/seed_parameter.hpp"
-#include "../qtl/qtl_logging_parameter.hpp"
+#define ENGINE Engine
+#else   // USE_MT
+#include "qtlsim_engine_mt.hpp"
+#define ENGINE EngineMT
+#endif  // USE_MT
+
+#include "qtlsim_parameters.hpp"
 
 #include "clotho/data_spaces/generators/random_sample_generator.hpp"
 #include "clotho/data_spaces/analysis/allele_frequency/allele_frequency.hpp"
 #include "clotho/data_spaces/analysis/pairwise_difference/pairwise_difference.hpp"
 
 typedef boost::random::mt19937          random_engine_type;
-typedef Engine< random_engine_type >    simulate_engine_type;
+typedef ENGINE< random_engine_type >    simulate_engine_type;
 typedef typename simulate_engine_type::genetic_space_type   genetic_space_type;
 
 typedef clotho::genetics::random_sample_generator< random_engine_type, genetic_space_type >  random_sample_type;
@@ -65,6 +71,11 @@ protected:
     random_sample_type * m_samp;
 };
 
+void writeLog( boost::property_tree::ptree & l, std::string path, std::string _type ) {
+    std::shared_ptr< log_writer > tmp = makeLogWriter( path, _type );
+    tmp->write( l );
+}
+
 int main( int argc, char ** argv ) {
 
     po::variables_map vm;
@@ -83,8 +94,13 @@ int main( int argc, char ** argv ) {
         out_path = vm[ log_prefix_option::PREFIX_K ].as< std::string >();
     }
 
-    std::shared_ptr< log_writer > config_logger = makeLogWriter( out_path, ".config" );
-    std::shared_ptr< log_writer > performance_logger = makeLogWriter( out_path, ".performance" );
+    std::string log_path = out_path + ".log";
+#ifdef DEBUG_MODE
+    init_logger( log_path, logging::trivial::debug );
+#else
+    init_logger( log_path, logging::trivial::info );
+#endif  // DEBUG_MODE
+
     std::shared_ptr< log_writer > stat_logger = makeLogWriter( out_path, ".status" );
 
     boost::property_tree::ptree conf_block = config.get_child( CONFIG_BLOCK_K, config );
@@ -98,7 +114,7 @@ int main( int argc, char ** argv ) {
     simulate_engine_type sim_engine( &rand_engine, conf_block );
 
     config.put_child( CONFIG_BLOCK_K, conf_block );
-    config_logger->write( config );
+    writeLog( config, out_path, ".config");
 
     if( !print_config_only ) {
         unsigned int log_period = (( gen_param.m_size < log_param.m_period ) ? gen_param.m_size : log_param.m_period);
@@ -161,7 +177,7 @@ int main( int argc, char ** argv ) {
         perform_log.put_child( "performance.simulate", sim_times );
         perform_log.put_child( "performance.stats", stat_times );
 
-        performance_logger->write( perform_log );
+        writeLog( perform_log, out_path, ".performance" );
     }
 
     return 0;

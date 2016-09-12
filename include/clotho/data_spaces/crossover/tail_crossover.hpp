@@ -28,12 +28,13 @@ struct bottom_strand_tail {};
 template < class Classifier, class BlockType >
 class tail_crossover< Classifier, BlockType, top_strand_tail > : public block_crossover< Classifier, BlockType > {
 public:
-    typedef block_crossover< Classifier, BlockType > crossover_type;
+    typedef block_crossover< Classifier, BlockType >    crossover_type;
+    typedef BlockType                                   block_type;
 
     tail_crossover( const Classifier & events ) : crossover_type( events ) {}
 
-    void crossover( block_type b, unsigned int offset ) {
-        crossover( b, crossover_type::bit_helper_type::ALL_UNSET, offset );
+    block_type crossover( block_type b, unsigned int offset ) {
+        return crossover_type::crossover( b, crossover_type::bit_helper_type::ALL_UNSET, offset );
     }
 
     virtual ~tail_crossover() {}
@@ -43,12 +44,13 @@ public:
 template < class Classifier, class BlockType >
 class tail_crossover< Classifier, BlockType, bottom_strand_tail > : public block_crossover< Classifier, BlockType > {
 public:
-    typedef block_crossover< Classifier, BlockType > crossover_type;
+    typedef block_crossover< Classifier, BlockType >    crossover_type;
+    typedef BlockType                                   block_type;
 
     tail_crossover( const Classifier & events ) : crossover_type( events ) {}
 
-    void crossover( block_type b, unsigned int offset ) {
-        crossover(crossover_type::bit_helper_type::ALL_UNSET, b, offset );
+    block_type crossover( block_type b, unsigned int offset ) {
+        return crossover_type::crossover(crossover_type::bit_helper_type::ALL_UNSET, b, offset );
     }
 
     virtual ~tail_crossover() {}

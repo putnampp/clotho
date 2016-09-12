@@ -43,6 +43,10 @@ public:
         return operator()( *(first + offset) );
     }
 
+    size_t event_count() const {
+        return m_cfier.event_count();
+    }
+
     virtual ~binary_classifier() {}
 
 protected:

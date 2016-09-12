@@ -55,7 +55,7 @@ public:
 
         {
             // lock destination
-            boost::lock_guard< boost::mutex >( *flock );
+            boost::unique_lock< boost::mutex > l( *flock );
 
             for( unsigned int i = 0; i < m_block_columns; ++i ) {
                 m_fixed_dest[ i ] &= tempF[ i ];
@@ -64,7 +64,7 @@ public:
 
         {
             // lock destination
-            boost::lock_guard< boost::mutex >( *vlock );
+            boost::unique_lock< boost::mutex > l( *vlock );
             for( unsigned int i = 0; i < m_block_columns; ++i ) {
                 m_variable_dest[ i ] |= tempV[ i ];
             }

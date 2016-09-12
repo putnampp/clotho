@@ -29,7 +29,7 @@ public:
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
 
-    block_crossover( const classifier_type & events ) : m_events( events ) {}
+    block_crossover( const classifier_type & events ) : m_cfier( events ) {}
 
 /**
  *
@@ -47,7 +47,8 @@ public:
             do {
                 unsigned int idx = bit_walker_type::unset_next_index( hets );
 
-                if( m_events( offset + idx ) ) {
+                if( m_cfier( offset + idx ) ) {
+                    // the state of the corresponding allele is defined by the bottom strand
                     mask |= clotho::utility::bit_masks[ idx ];
                 }
             } while( hets );
@@ -59,7 +60,7 @@ public:
     virtual ~block_crossover() { }
 
 protected:
-    classifier_type m_events;
+    classifier_type m_cfier;
 };
 
 }   // namespace genetics

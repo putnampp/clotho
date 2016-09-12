@@ -16,6 +16,7 @@
 
 #include "clotho/data_spaces/crossover/block_crossover.hpp"
 #include "clotho/data_spaces/mutation/block_mutate.hpp"
+#include "clotho/data_spaces/task/task.hpp"
 
 namespace clotho {
 namespace genetics {
@@ -26,6 +27,24 @@ public:
     typedef block_crossover< Classifier, BlockType >    crossover_type;
     typedef block_mutate< BlockType >                   mutate_type;
     typedef BlockType                                   block_type;
+
+    block_crossover_and_mutate_task( const crossover_type & xover, block_type top, block_type bottom, block_type * o, unsigned int index, const mutate_type & mut ) :
+        crossover_type( xover )
+        , mutate_type( mut )
+        , m_top_strand( top )
+        , m_bottom_strand( bottom )
+        , m_offspring( o )
+        , m_index( index )
+    {}
+
+    block_crossover_and_mutate_task( const Classifier & events, block_type top, block_type bottom, block_type * o, unsigned int index, const mutate_type & mut ) :
+        crossover_type( events )
+        , mutate_type ( mut )
+        , m_top_strand( top )
+        , m_bottom_strand( bottom )
+        , m_offspring( o )
+        , m_index( index )
+    {}
 
     template < class OffsetIterator >
     block_crossover_and_mutate_task( const Classifier & events, block_type top, block_type bottom, block_type * o, unsigned int index, OffsetIterator first, OffsetIterator last ) :
@@ -38,18 +57,20 @@ public:
     {}
 
     void operator()() {
-        block_type o = crossover( m_top_strand, m_bottom_strand, m_index );
+        block_type o = this->crossover( m_top_strand, m_bottom_strand, m_index );
 
-        o = mutate( o );
+        o = this->mutate( o );
 
         m_offspring[ m_index ] = o; 
     }
 
-    virtual block_crossover_and_mutate_task() {}
+    virtual ~block_crossover_and_mutate_task() {}
 
 protected:
     block_type m_top_strand, m_bottom_strand;
     block_type * m_offspring;
+
+    // block index is necessary for the crossover algorithm
     unsigned int m_index;
 };
 

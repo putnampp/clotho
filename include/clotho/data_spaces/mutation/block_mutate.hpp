@@ -23,8 +23,9 @@ template < class BlockType >
 class block_mutate {
 public:
 
-    typedef BlockType block_type;
+    typedef block_mutate< BlockType > self_type;
 
+    typedef BlockType block_type;
     typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
     block_mutate( unsigned int offset ) :
@@ -32,6 +33,10 @@ public:
     {
         m_mask = bit_helper_type::bit_offset( offset );
     }
+
+    block_mutate( const self_type & other ) :
+        m_mask( other.m_mask ) 
+    {}
 
     template < class OffsetIterator >
     block_mutate( OffsetIterator first, OffsetIterator last ) :

@@ -24,6 +24,7 @@ template < class Classifier, class BlockType, class StrandTail >
 class tail_crossover_task : public tail_crossover< Classifier, BlockType, StrandTail >, public task {
 public:
     typedef tail_crossover< Classifier, BlockType, StrandTail > crossover_type;
+    typedef BlockType                                           block_type;
 
     tail_crossover_task( const Classifier & events, block_type * strand, block_type * offspring, unsigned int offset, unsigned int len ) :
         crossover_type( events )
@@ -31,15 +32,23 @@ public:
         , m_offspring( offspring )
         , m_offset( offset )
         , m_length( len )
-    {}
+    {
+        // should be able to correct upstream logic
+        // to prevent 0 length crossover tasks from being created
+        // waste of time and memory
+        assert( m_length > 0 );
+        
+    }
  
     void operator()() {
         const unsigned int end = m_offset + m_length;
 
+        BOOST_LOG_TRIVIAL(debug) << "Tail crossover: " << m_strand  << " [" << m_offset << ", " << end << ")";
+
         for( unsigned int i = m_offset; i < end; ++i ) {
             block_type b = m_strand[ i ];
 
-            block_type o = crossover( b, i );
+            block_type o = this->crossover( b, i );
 
             m_offspring[ i ] = o;
         }

@@ -159,6 +159,7 @@ protected:
 
             j += bit_helper_type::BITS_PER_BLOCK;
         }
+        BOOST_LOG_TRIVIAL(info) << "Free count: " << m_free_count << "; Fixed count: " << m_fixed_count << "; Lost count: " << m_lost_count;
     }
 
     size_type  * m_indices;

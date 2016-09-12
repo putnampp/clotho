@@ -59,7 +59,9 @@ public:
 //
 
     /// Assumes that input bounds are sorted
-    region_classifier( const param_type & bounds ) : m_ubounds( bounds ) { }
+    region_classifier( const param_type & bounds ) : m_ubounds( bounds ) { 
+        std::sort( m_ubounds.begin(), m_ubounds.end() );
+    }
 
     region_classifier( const self_type & rhs ) :
         m_ubounds( rhs.m_ubounds ) {
@@ -90,6 +92,10 @@ public:
             std::sort( tmp.begin(), tmp.end() );
             std::unique_copy( tmp.begin(), tmp.end(), std::back_inserter( m_ubounds ) );
         }
+    }
+
+    size_t  event_count() const {
+        return m_ubounds.size();
     }
 
     size_t  region_count() const {

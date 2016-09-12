@@ -54,9 +54,8 @@ public:
 
         if( N == 0 )    return;
 
-#ifdef DEBUGGING
-        std::cerr << N << " == " << pop->individual_count() << " [ " << pop->sequence_count() << " ]"  << std::endl;
-#endif // DEBUGGING
+        BOOST_LOG_TRIVIAL(debug) << N << " == " << pop->individual_count() << " [ " << pop->sequence_count() << " ]";
+
         assert( N == pop->individual_count() );
         fitness_operator op = m_fit_gen->generate( N );
 

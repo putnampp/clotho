@@ -220,7 +220,9 @@ public:
 
     typedef clotho::utility::BitHelper< block_type >    bit_helper_type;
 
-    typedef block_type *                                raw_block_pointer;
+    typedef block_type *                                    raw_block_pointer;
+
+    typedef std::pair< raw_block_pointer, unsigned int >    sequence_vector;
 
     association_matrix( size_t rows = 1, size_t columns = 1 ) : 
         m_data( NULL )
@@ -330,6 +332,10 @@ public:
 
     size_t allocated_size() const {
         return m_allocated_size;
+    }
+
+    sequence_vector getSequence( unsigned int offset ) const {
+        return std::make_pair( begin_row(offset), m_bpr );
     }
 
     raw_block_pointer begin_row( size_t idx ) const {

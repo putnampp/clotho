@@ -32,12 +32,10 @@ public:
 
     typedef SizeType            size_type;
 
-    FreeSpaceAnalyzerMT( size_type tc ) :
-        m_thread_count( tc )
-    { }
+    FreeSpaceAnalyzerMT( ) { }
 
     template < class SequenceSpaceType >
-    void operator()( SequenceSpaceType & ss ) {
+    void operator()( SequenceSpaceType & ss, unsigned int tc ) {
         typedef typename SequenceSpaceType::block_type block_type;
 
         this->resize( ss.column_count() );
@@ -45,7 +43,9 @@ public:
         block_type * destF = new block_type[ 2 * ss.block_column_count() ];
         block_type * destV = destF + ss.block_column_count();
 
-        process_space( ss.begin_row(0), destF, destV, ss.block_row_count(), ss.block_column_count() );
+        memset( destF, 0, 2 * ss.block_column_count() * sizeof(block_type) );
+
+        process_space( ss.begin_row(0), destF, destV, ss.block_row_count(), ss.block_column_count(), tc );
 
         this->analyze_free_indices( destF, destV, ss.block_column_count(), ss.column_count() );
 
@@ -57,10 +57,10 @@ public:
 protected:
 
     template < class BlockType >
-    void process_space( BlockType * source, BlockType * destF, BlockType * destV, unsigned int block_rows, unsigned int block_columns ) {
+    void process_space( BlockType * source, BlockType * destF, BlockType * destV, unsigned int block_rows, unsigned int block_columns, unsigned int tc ) {
         typedef free_space_task< BlockType > task_type;
 
-        if( m_thread_count <= 1 ) {
+        if( tc <= 1 ) {
             task_type task( source, destF, destV, block_rows, block_columns );
             task();
         } else {
@@ -70,11 +70,15 @@ protected:
 
             {
                 std::unique_ptr< boost::asio::io_service::work > work( new boost::asio::io_service::work( service ) );
-                for( size_type i = 0; i < m_thread_count; ++i )
+                if( tc > block_rows ) {
+                    tc = block_rows;
+                }
+
+                for( size_type i = 0; i < tc; ++i )
                     threads.create_thread( boost::bind( &boost::asio::io_service::run, &service ) );
 
-                unsigned int rpb = block_rows / m_thread_count;
-                rpb += ((block_rows % m_thread_count > 0) ? 1 : 0);
+                unsigned int rpb = block_rows / tc;
+                rpb += ((block_rows % tc > 0) ? 1 : 0);
 
                 while( block_rows ) {
                     unsigned int rows = (( rpb < block_rows ) ? rpb : block_rows );
@@ -89,8 +93,6 @@ protected:
             threads.join_all();
         }
     }
-
-    size_type  m_thread_count;
 };
 
 }   // namespace genetics

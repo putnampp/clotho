@@ -22,7 +22,7 @@ namespace clotho {
 namespace genetics {
 
 struct task {
-    boost::log::sources::severity_logger< boost::log::trivial::severity_level > _log;
+//    boost::log::sources::severity_logger< boost::log::trivial::severity_level > _log;
 
     virtual void operator()() = 0;
 };
