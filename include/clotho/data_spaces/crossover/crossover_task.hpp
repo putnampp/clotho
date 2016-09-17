@@ -80,8 +80,6 @@ public:
     {}
 
     void operator()() {
-        BOOST_LOG_TRIVIAL(debug) << "crossover";
-
         size_t N = m_event_gen.generate();
 
         if( N != 0 ) {

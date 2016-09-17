@@ -59,7 +59,7 @@ public:
 //
 
     /// Assumes that input bounds are sorted
-    region_classifier( const param_type & bounds ) : m_ubounds( bounds ) { 
+    region_classifier( const param_type & bounds ) : m_ubounds( bounds ) {
         std::sort( m_ubounds.begin(), m_ubounds.end() );
     }
 

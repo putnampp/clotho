@@ -29,7 +29,9 @@ public:
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
 
-    block_crossover( const classifier_type & events ) : m_cfier( events ) {}
+    block_crossover( const classifier_type & events ) :
+        m_cfier( events ) 
+    { }
 
 /**
  *

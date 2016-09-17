@@ -28,20 +28,44 @@ namespace genetics {
  *
  * Initial object construction from: http://stackoverflow.com/questions/12215395/thread-pool-using-boost-asio
  */
+template < class RNG >
 class thread_pool {
 public:
 
-    thread_pool( boost::property_tree::ptree & config ) :
+    typedef RNG     random_engine_type;
+
+    thread_pool( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_available( 0 )
         , m_pool_size( 0 )
         , m_running( true )
+        , m_thread_engines( NULL )
     {
         thread_count_parameter tc_param( config );
         m_pool_size = tc_param.m_tc;
 
+        
+        m_thread_engines = new random_engine_type[ m_pool_size + 1];
+
         for( size_t i = 0; i < m_pool_size; ++i ) {
             m_threads.create_thread( boost::bind( &thread_pool::thread_loop, this ) );
+
+            // seed each engine with a random number from the parent random number generator
+            unsigned long long seed = (*rng)();
+
+            BOOST_LOG_TRIVIAL(info) << "Thread " << i << " seed value: " << seed;
+            m_thread_engines[ i ] = random_engine_type( seed );
         }
+    }
+
+    random_engine_type * getRNG( unsigned int index ) {
+#ifdef DEBUGGING
+        assert( index < m_pool_size );
+#endif  // DEBUGGING
+        return &m_thread_engines[ index ];
+    }
+
+    size_t pool_size() const {
+        return m_pool_size;
     }
 
     template < class Task >
@@ -70,6 +94,8 @@ public:
         }
 
         m_threads.join_all();
+
+        delete [] m_thread_engines;
     }
 
 protected:
@@ -103,6 +129,9 @@ protected:
     boost::mutex                            m_mutex;
     boost::condition_variable             m_condition, m_sync_cond;
     bool                                    m_running;
+
+    // one random number generator per thread
+    random_engine_type                      * m_thread_engines;
 };
 
 }   // namespace genetics

@@ -34,7 +34,6 @@ public:
 
     result_type operator()( element_type const& elem ) {
         typename classifier_type::result_type res = m_cfier( elem );
-
         return Tag::eval( res );
     }
 

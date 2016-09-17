@@ -28,6 +28,7 @@
 #include "clotho/data_spaces/population_space/genetic_space.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/trait_accumulator.hpp"
 #include "clotho/data_spaces/free_space/free_space_mt.hpp"
+//#include "clotho/data_spaces/crossover/batch_crossover_mt.hpp"
 #include "clotho/data_spaces/crossover/crossover_mt.hpp"
 
 #include "clotho/data_spaces/selection/selection.hpp"
@@ -41,7 +42,7 @@
 
 #include "clotho/utility/state_object.hpp"
 
-#include "clotho/data_spaces/task/thread_count_parameter.hpp"
+#include "clotho/data_spaces/task/thread_pool.hpp"
 
 template < class RNG, class RealType = double, class BlockType = unsigned long long >
 class EngineMT {
@@ -55,6 +56,7 @@ public:
 
     typedef RNG                         random_engine_type;
 
+    typedef clotho::genetics::thread_pool< RNG >                                                    thread_pool_type;
     typedef clotho::genetics::qtl_allele_vectorized< position_type, weight_type >                   allele_type;
 
     typedef clotho::genetics::genetic_space< allele_type, block_type, __ALIGNMENT_TYPE__ > genetic_space_type;
@@ -64,7 +66,11 @@ public:
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >                          trait_accumulator_type;
     typedef clotho::genetics::FreeSpaceAnalyzerMT<>                                                 free_space_type;
     typedef clotho::genetics::SelectionGenerator< random_engine_type, clotho::genetics::fitness_selection< genetic_space_type > >          selection_type;
-    typedef clotho::genetics::CrossoverMT< random_engine_type, genetic_space_type >                 crossover_type;
+#ifdef USE_BATCH_JOBS
+    typedef clotho::genetics::BatchCrossoverMT< random_engine_type, genetic_space_type >            crossover_type;
+#else
+    typedef clotho::genetics::CrossoverMT< random_engine_type, genetic_space_type >            crossover_type;
+#endif  // USE_BATCH_JOBS
     typedef clotho::genetics::linear_combination< trait_accumulator_type, phenotype_type >          trait_reduction_type;
     typedef clotho::genetics::phenotype_evaluator< trait_reduction_type >                           phenotype_eval_type;
     typedef clotho::genetics::Fitness< phenotype_eval_type >                                        fitness_type;
@@ -78,7 +84,7 @@ public:
         m_rand( rng )
         , m_parent( &m_pop0 )
         , m_child( &m_pop1 )
-        , m_tc_param( config )
+        , m_thread_pool( rng, config )
         , m_free_space( )
         , select_gen( rng, config )
         , mutate_gen( rng, config )
@@ -148,12 +154,12 @@ public:
 
         size_t all_size = child_max_alleles( m_parent->allele_count(), free_count, pM );   // rescale allele space for child population given free space from parent population and new allele count (pM)
 
-        BOOST_LOG_TRIVIAL( debug ) << "Rescaling child population to be: " << pN << " individuals x " << all_size << " alleles";
+        BOOST_LOG_TRIVIAL( info ) << "Rescaling child population to be: " << pN << " individuals x " << all_size << " alleles";
 
         m_child->grow( pN, all_size );                        // grow the child population accordingly
         m_child->inherit_alleles( m_parent, m_free_space.free_begin(), m_free_space.free_end() );
 
-        cross_gen( m_parent, select_gen.getMatePairs(), m_child, m_tc_param.m_tc );
+        cross_gen( m_parent, select_gen.getMatePairs(), m_child, m_thread_pool );
 
         mutate_gen( m_child, pM );
 
@@ -211,7 +217,7 @@ protected:
  * M_child  - number of new alleles to be added the child population
  */
     size_t child_max_alleles( size_t N_parent, size_t F_parent, size_t M_child ) const {
-//        std::cerr << "Parent alleles: " << N_parent << "; Free: " << F_parent << "; New Alleles: " << M_child << std::endl;
+        BOOST_LOG_TRIVIAL(info) << "Parent alleles: " << N_parent << "; Free: " << F_parent << "; New Alleles: " << M_child;
 
         if( F_parent >= M_child ) {
             // if there are more free alleles in the parent generation
@@ -224,7 +230,7 @@ protected:
     }
 
     size_t updateFixedAlleles( genetic_space_type * gs ) {
-        m_free_space( gs->getSequenceSpace(), m_tc_param.m_tc );               // analyze the parent population sequence space
+        m_free_space( gs->getSequenceSpace(), m_thread_pool );               // analyze the parent population sequence space
 
         typedef typename free_space_type::iterator  fixed_iterator;
 
@@ -263,7 +269,7 @@ protected:
 
     allele_type             m_fixed;
 
-    thread_count_parameter  m_tc_param;
+    thread_pool_type         m_thread_pool;
     trait_accumulator_type  m_trait_accum;
     phenotype_eval_type     m_pheno;
     free_space_type         m_free_space;

@@ -55,7 +55,7 @@ public:
 
         {
             // lock destination
-            boost::unique_lock< boost::mutex > l( *flock );
+            boost::lock_guard< boost::mutex > l( *flock );
 
             for( unsigned int i = 0; i < m_block_columns; ++i ) {
                 m_fixed_dest[ i ] &= tempF[ i ];
@@ -64,7 +64,7 @@ public:
 
         {
             // lock destination
-            boost::unique_lock< boost::mutex > l( *vlock );
+            boost::lock_guard< boost::mutex > l( *vlock );
             for( unsigned int i = 0; i < m_block_columns; ++i ) {
                 m_variable_dest[ i ] |= tempV[ i ];
             }
@@ -78,7 +78,10 @@ public:
     }
 
     void evaluate( block_type * tempF, block_type * tempV ) {
+#ifdef DEBUGGING
         BOOST_LOG_TRIVIAL(debug) << "Evaluating Free Space: " << m_block_rows << " x " << m_block_columns;
+#endif  // DEBUGGING
+
         block_type * src = m_source;
         for( unsigned int i = 0; i < m_block_rows; ++i ) {
             for( unsigned int j = 0; j < m_block_columns; ++j ) {

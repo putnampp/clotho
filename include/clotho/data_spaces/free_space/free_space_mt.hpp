@@ -23,6 +23,8 @@
 #include "clotho/data_spaces/free_space/free_space_details.hpp"
 #include "clotho/data_spaces/free_space/free_space_task.hpp"
 
+#include "clotho/data_spaces/task/thread_pool.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -34,8 +36,8 @@ public:
 
     FreeSpaceAnalyzerMT( ) { }
 
-    template < class SequenceSpaceType >
-    void operator()( SequenceSpaceType & ss, unsigned int tc ) {
+    template < class SequenceSpaceType, class PoolType >
+    void operator()( SequenceSpaceType & ss, PoolType & pool ) {
         typedef typename SequenceSpaceType::block_type block_type;
 
         this->resize( ss.column_count() );
@@ -45,7 +47,7 @@ public:
 
         memset( destF, 0, 2 * ss.block_column_count() * sizeof(block_type) );
 
-        process_space( ss.begin_row(0), destF, destV, ss.block_row_count(), ss.block_column_count(), tc );
+        process_space( ss.begin_row(0), destF, destV, ss.block_row_count(), ss.block_column_count(), pool );
 
         this->analyze_free_indices( destF, destV, ss.block_column_count(), ss.column_count() );
 
@@ -56,41 +58,34 @@ public:
 
 protected:
 
-    template < class BlockType >
-    void process_space( BlockType * source, BlockType * destF, BlockType * destV, unsigned int block_rows, unsigned int block_columns, unsigned int tc ) {
+    template < class BlockType, class PoolType >
+    void process_space( BlockType * source, BlockType * destF, BlockType * destV, unsigned int block_rows, unsigned int block_columns, PoolType & pool ) {
         typedef free_space_task< BlockType > task_type;
 
-        if( tc <= 1 ) {
+        if( pool.pool_size() <= 1 ) {
             task_type task( source, destF, destV, block_rows, block_columns );
             task();
         } else {
-            boost::asio::io_service service;
-            boost::thread_group threads;
             boost::mutex mutef, mutev;
+            unsigned int tc = pool.pool_size();
 
-            {
-                std::unique_ptr< boost::asio::io_service::work > work( new boost::asio::io_service::work( service ) );
-                if( tc > block_rows ) {
-                    tc = block_rows;
-                }
-
-                for( size_type i = 0; i < tc; ++i )
-                    threads.create_thread( boost::bind( &boost::asio::io_service::run, &service ) );
-
-                unsigned int rpb = block_rows / tc;
-                rpb += ((block_rows % tc > 0) ? 1 : 0);
-
-                while( block_rows ) {
-                    unsigned int rows = (( rpb < block_rows ) ? rpb : block_rows );
-                    std::shared_ptr< task_type > t( new task_type( source, destF, destV, rows, block_columns ) );
-                    
-                    service.post( boost::bind( &task_type::evaluate_ts, t, &mutef, &mutev) );
-                    block_rows -= rows;
-                    source += rows * block_columns;
-                }
+            if( tc > block_rows ) {
+                tc = block_rows;
             }
 
-            threads.join_all();
+            unsigned int rpb = block_rows / tc;
+            rpb += ((block_rows % tc > 0) ? 1 : 0);
+
+            while( block_rows ) {
+                unsigned int rows = (( rpb < block_rows ) ? rpb : block_rows );
+                std::shared_ptr< task_type > t( new task_type( source, destF, destV, rows, block_columns ) );
+                
+                pool.post( boost::bind( &task_type::evaluate_ts, t, &mutef, &mutev) );
+                block_rows -= rows;
+                source += rows * block_columns;
+            }
+
+            pool.sync();
         }
     }
 };

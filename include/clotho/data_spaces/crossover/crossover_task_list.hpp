@@ -22,9 +22,6 @@
 
 #include <boost/random/bernoulli_distribution.hpp>
 
-#include <boost/asio/io_service.hpp>
-#include <boost/bind.hpp>
-
 namespace clotho {
 namespace genetics {
 
@@ -59,11 +56,12 @@ static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsign
     } else {
         // both strands are equal in length
         segment_type s( cls, s0, s1, res, 0, s0_len );
+        s();
     }
 }
 
-template < class Classifier, class BlockType >
-static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, boost::asio::io_service & service ) {
+template < class Classifier, class BlockType, class PoolType >
+static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, PoolType & service ) {
     typedef copy_crossover_task< BlockType > copy_type;
     typedef segment_crossover_task< Classifier, BlockType > segment_type;
     typedef tail_crossover_task< Classifier, BlockType, top_strand_tail > top_tail_type;
@@ -89,8 +87,8 @@ static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsign
     }
 }
 
-template < class Classifier, class BlockType >
-static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, boost::asio::io_service & service, unsigned int start_idx, unsigned int end_idx ) {
+template < class Classifier, class BlockType, class PoolType >
+static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, PoolType & service, unsigned int start_idx, unsigned int end_idx ) {
     typedef copy_crossover_task< BlockType > copy_type;
     typedef segment_crossover_task< Classifier, BlockType > segment_type;
     typedef tail_crossover_task< Classifier, BlockType, top_strand_tail > top_tail_type;
@@ -165,8 +163,8 @@ static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsign
     }
 }
 
-template < class Classifier, class BlockType, class RNG >
-static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, boost::asio::io_service & service, double strand_bias, RNG & rng ) {
+template < class Classifier, class BlockType, class PoolType, class RNG >
+static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, PoolType & service, double strand_bias, RNG & rng ) {
     boost::random::bernoulli_distribution< double > dist( strand_bias );
 
     if( dist(rand) ) {
@@ -177,8 +175,8 @@ static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsign
     }
 }
 
-template < class Classifier, class BlockType >
-static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, boost::asio::io_service & service, bool should_swap_strands ) {
+template < class Classifier, class BlockType, class PoolType >
+static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, PoolType & service, bool should_swap_strands ) {
 
     if( should_swap_strands ) {
         // consider s1 as top strand, s0 as bottom strand
@@ -209,8 +207,8 @@ static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsign
         make_crossover_tasks( cls, s0, s0_len, s1, s1_len, res );
     }
 }
-template < class Classifier, class BlockType >
-static void make_crossover_and_mutate_task( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, boost::asio::io_service & service, const block_mutate< BlockType > & mut, unsigned int idx ) {
+template < class Classifier, class BlockType, class PoolType >
+static void make_crossover_and_mutate_task( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, PoolType & service, const block_mutate< BlockType > & mut, unsigned int idx ) {
     typedef clotho::utility::BitHelper< BlockType > bit_helper_type;
     typedef block_crossover_and_mutate_task< Classifier, BlockType > task_type;
     typedef block_mutate_task< BlockType > mutate_task_type;
@@ -227,8 +225,8 @@ static void make_crossover_and_mutate_task( const Classifier & cls, BlockType * 
     }
 }
 
-template < class Classifier, class BlockType, class FreeIterator >
-static void make_reproduction_tasks( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, boost::asio::io_service & service, FreeIterator first, FreeIterator last ) {
+template < class Classifier, class BlockType, class PoolType, class FreeIterator >
+static void make_reproduction_tasks( const Classifier & cls, BlockType * s0, unsigned int s0_len, BlockType * s1, unsigned int s1_len, BlockType * res, PoolType & service, FreeIterator first, FreeIterator last ) {
 
     if( first == last ) {
         // no mutations

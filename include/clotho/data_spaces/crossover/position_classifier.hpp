@@ -44,7 +44,10 @@ public:
     {}
 
     bool operator()( unsigned int offset ) {
-        BOOST_LOG_TRIVIAL( debug ) << "Comparing offset: " << offset << " (" << m_positions[offset] << ")";
+//#ifdef DEBUGGING
+//        BOOST_LOG_TRIVIAL( debug ) << "Comparing offset: " << offset << " (" << m_positions[offset] << ")";
+//#endif  // DEBUGGING
+
         return m_cfier( m_positions[ offset ] );
     }
 

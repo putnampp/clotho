@@ -14,9 +14,9 @@
 #ifndef CLOTHO_CROSSOVER_MT_GENERATOR_HPP_
 #define CLOTHO_CROSSOVER_MT_GENERATOR_HPP_
 
-#include <boost/asio/io_service.hpp>
-#include <boost/bind.hpp>
-#include <boost/thread/thread.hpp>
+//#include <boost/asio/io_service.hpp>
+//#include <boost/bind.hpp>
+//#include <boost/thread/thread.hpp>
 
 #include <boost/random/bernoulli_distribution.hpp>
 
@@ -30,6 +30,8 @@
 
 #include "clotho/recombination/recombination_rate_parameter.hpp"
 
+#include "clotho/data_spaces/task/thread_pool.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -40,7 +42,6 @@ public:
 
     typedef typename genetic_space_type::allele_type        allele_type;
     typedef typename genetic_space_type::association_type   association_type;
-
 
     typedef typename association_type::sequence_vector      sequence_vector;
     typedef typename association_type::raw_block_pointer    sequence_iterator;
@@ -65,12 +66,13 @@ public:
         m_event_dist.param( typename event_distribution_type::param_type( rho.m_rho ) );
     }
 
-    void operator()( genetic_space_type * parental, mate_pair_type & parents, genetic_space_type * offspring, unsigned int tc ) {
+    template < class PoolType >
+    void operator()( genetic_space_type * parental, mate_pair_type & parents, genetic_space_type * offspring, PoolType & pool ) {
         offspring->getSequenceSpace().clear();
-        if( tc <= 1 ) {
+        if( pool.pool_size() <= 1 ) {
             generate( parental, parents, offspring );
         } else {
-            generate( parental, parents, offspring, tc );
+            generate( parental, parents, offspring, pool );
         }
     }
 
@@ -110,47 +112,40 @@ protected:
         }
     }
 
-    void generate( genetic_space_type * parental, mate_pair_type & parents, genetic_space_type * offspring, unsigned int tc ) {
-        boost::asio::io_service service;
-        boost::thread_group threads;
-        boost::mutex mutef, mutev;
+    template < class PoolType >
+    void generate( genetic_space_type * parental, mate_pair_type & parents, genetic_space_type * offspring, PoolType & pool ) {
         
-        {
-            std::unique_ptr< boost::asio::io_service::work > work( new boost::asio::io_service::work( service ) );
-            for( unsigned int i = 0; i < tc; ++i )
-                threads.create_thread( boost::bind( &boost::asio::io_service::run, &service ) );
+        iterator mate_it = parents.begin(), mate_end = parents.end();
 
-            iterator mate_it = parents.begin(), mate_end = parents.end();
+        size_t i = 0;
+        while( mate_it != mate_end ) {
 
-            size_t i = 0;
-            while( mate_it != mate_end ) {
+            unsigned int idx = 2 * mate_it->first;
+            sequence_vector s0 = parental->getSequenceSpace().getSequence( idx++ );
+            sequence_vector s1 = parental->getSequenceSpace().getSequence( idx );
 
-                unsigned int idx = 2 * mate_it->first;
-                sequence_vector s0 = parental->getSequenceSpace().getSequence( idx++ );
-                sequence_vector s1 = parental->getSequenceSpace().getSequence( idx );
+            sequence_iterator c = offspring->begin_sequence( i++ );
 
-                sequence_iterator c = offspring->begin_sequence( i++ );
+            event_type evts = make_events( );
+            classifier_type cfier0( parental->getAlleleSpace().getPositions(), evts );
+            bool _swap = m_bias_dist( *m_rng );
+            make_crossover_tasks( cfier0, s0.first, s0.second, s1.first, s1.second, c, pool, _swap );
+            
+            idx = 2 * mate_it->second;
+            s0 = parental->getSequenceSpace().getSequence( idx++ );
+            s1 = parental->getSequenceSpace().getSequence( idx );
 
-                event_type evts = make_events( );
-                classifier_type cfier0( parental->getAlleleSpace().getPositions(), evts );
-                bool _swap = m_bias_dist( *m_rng );
-                make_crossover_tasks( cfier0, s0.first, s0.second, s1.first, s1.second, c, service, _swap );
-                
-                idx = 2 * mate_it->second;
-                s0 = parental->getSequenceSpace().getSequence( idx++ );
-                s1 = parental->getSequenceSpace().getSequence( idx );
+            c = offspring->begin_sequence( i++ );
 
-                c = offspring->begin_sequence( i++ );
+            event_type evts1 = make_events( );
+            classifier_type cfier1( parental->getAlleleSpace().getPositions(), evts1 );
+            _swap = m_bias_dist( *m_rng );
+            make_crossover_tasks( cfier1, s0.first, s0.second, s1.first, s1.second, c, pool, _swap );
 
-                event_type evts1 = make_events( );
-                classifier_type cfier1( parental->getAlleleSpace().getPositions(), evts1 );
-                _swap = m_bias_dist( *m_rng );
-                make_crossover_tasks( cfier1, s0.first, s0.second, s1.first, s1.second, c, service, _swap );
-
-                ++mate_it;
-            }
+            ++mate_it;
         }
-        threads.join_all();
+
+        pool.sync();
     }
 
     event_type make_events( ) {
@@ -176,4 +171,3 @@ protected:
 }   // namespace clotho
 
 #endif  // CLOTHO_CROSSOVER_MT_GENERATOR_HPP_
-

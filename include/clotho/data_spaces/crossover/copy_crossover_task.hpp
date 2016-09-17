@@ -38,7 +38,6 @@ public:
     }
 
     void operator()() {
-        BOOST_LOG_TRIVIAL(debug) << "Copy crossover: " << m_strand << " [0, " << m_length << ")";
         memcpy( m_offspring, m_strand, m_length * sizeof( block_type ) );
     }
 

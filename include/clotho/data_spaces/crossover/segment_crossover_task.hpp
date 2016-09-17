@@ -43,8 +43,9 @@ public:
 
     void operator()() {
         const unsigned int end = m_offset + m_length;
-
-        BOOST_LOG_TRIVIAL(debug) << "Segment crossover: " << m_top_strand << " X " << m_bottom_strand << " [" << m_offset << ", " << end << ")";
+#ifdef DEBUGGING
+        BOOST_LOG_TRIVIAL(debug) << "Segment crossover: " << m_top_strand << " X " << m_bottom_strand << " [" << m_offset << ", " << end << "); " << this->m_cfier.event_count();
+#endif  // DEBUGGING
 
         for( unsigned int i = m_offset; i < end; ++i ) {
             block_type t = m_top_strand[ i ];

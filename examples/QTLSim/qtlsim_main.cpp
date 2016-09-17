@@ -82,7 +82,6 @@ int main( int argc, char ** argv ) {
     int ret = config_manager_type::getInstance()->parse_commandline( argc, argv, vm );
     if( ret ) return ret;
 
-    random_engine_type  rand;
     boost::property_tree::ptree config;
 
     getSimConfiguration( vm, config );
