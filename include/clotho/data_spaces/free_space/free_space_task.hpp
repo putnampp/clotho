@@ -28,13 +28,15 @@ public:
 
     typedef free_space_task< BlockType > self_type;
 
-    free_space_task( block_type * src, block_type * fixed_dest, block_type * var_dest, unsigned int block_rows, unsigned int block_cols ) :
+    free_space_task( block_type * src, block_type * fixed_dest, block_type * var_dest, unsigned int block_rows, unsigned int block_cols, unsigned int row_width ) :
         m_source( src )
         , m_fixed_dest( fixed_dest )
         , m_variable_dest( var_dest )
         , m_block_rows( block_rows )
         , m_block_columns( block_cols )
+        , m_row_width( row_width )
     {}
+
 
     free_space_task( const self_type & other ) :
         m_source( other.m_source )
@@ -42,6 +44,7 @@ public:
         , m_variable_dest( other.m_variable_dest )
         , m_block_rows( other.m_block_rows )
         , m_block_columns( other.m_block_columns )
+        , m_row_width( other.m_row_width )
     {}
 
     void evaluate_ts( boost::mutex * flock, boost::mutex * vlock) {
@@ -83,13 +86,14 @@ public:
 #endif  // DEBUGGING
 
         block_type * src = m_source;
+        unsigned int offset = 0;
         for( unsigned int i = 0; i < m_block_rows; ++i ) {
             for( unsigned int j = 0; j < m_block_columns; ++j ) {
-                block_type b = src[ j ];
+                block_type b = src[ offset + j ];
                 tempF[ j ] &= b;
                 tempV[ j ] |= b;
             }
-            src += m_block_columns;
+            offset += m_row_width;
         }
     }
 
@@ -97,7 +101,7 @@ public:
 
 protected:
     block_type * m_source, * m_fixed_dest, * m_variable_dest;
-    unsigned int m_block_rows, m_block_columns;
+    unsigned int m_block_rows, m_block_columns, m_row_width;
 };
 
 }   // namespace genetics

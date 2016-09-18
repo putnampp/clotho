@@ -28,8 +28,14 @@
 #include "clotho/data_spaces/population_space/genetic_space.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/trait_accumulator.hpp"
 #include "clotho/data_spaces/free_space/free_space_mt.hpp"
-//#include "clotho/data_spaces/crossover/batch_crossover_mt.hpp"
+
+#ifdef USE_BATCH_JOBS
+#include "clotho/data_spaces/crossover/batch_crossover_mt.hpp"
+#define CROSSOVER_TYPE clotho::genetics::BatchCrossoverMT
+#else
 #include "clotho/data_spaces/crossover/crossover_mt.hpp"
+#define CROSSOVER_TYPE clotho::genetics::CrossoverMT
+#endif  // USE_BATCH_JOBS
 
 #include "clotho/data_spaces/selection/selection.hpp"
 #include "clotho/data_spaces/mutation/mutation_generator.hpp"
@@ -66,11 +72,7 @@ public:
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >                          trait_accumulator_type;
     typedef clotho::genetics::FreeSpaceAnalyzerMT<>                                                 free_space_type;
     typedef clotho::genetics::SelectionGenerator< random_engine_type, clotho::genetics::fitness_selection< genetic_space_type > >          selection_type;
-#ifdef USE_BATCH_JOBS
-    typedef clotho::genetics::BatchCrossoverMT< random_engine_type, genetic_space_type >            crossover_type;
-#else
-    typedef clotho::genetics::CrossoverMT< random_engine_type, genetic_space_type >            crossover_type;
-#endif  // USE_BATCH_JOBS
+    typedef CROSSOVER_TYPE< random_engine_type, genetic_space_type >            crossover_type;
     typedef clotho::genetics::linear_combination< trait_accumulator_type, phenotype_type >          trait_reduction_type;
     typedef clotho::genetics::phenotype_evaluator< trait_reduction_type >                           phenotype_eval_type;
     typedef clotho::genetics::Fitness< phenotype_eval_type >                                        fitness_type;

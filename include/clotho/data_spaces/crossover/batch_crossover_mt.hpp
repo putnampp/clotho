@@ -53,37 +53,30 @@ public:
 protected:
     
     void batch_generate( genetic_space_type * parental, mate_pair_type & parents, genetic_space_type * offspring, pool_type & pool ) {
-
-        if( pool.pool_size() <= 1 ) {
-            crossover_task_type t( m_rng, parental, offspring, 0, parents.begin(), parents.end(), m_recomb_rate.m_rho, m_seq_bias.m_bias);
-
-            t();
-
-        } else {
-#ifdef DEBUGGING
-            BOOST_LOG_TRIVIAL(debug) << "Launching crossover batch jobs";
+#ifdef  DEBUGGING
+        BOOST_LOG_TRIVIAL(debug) << "Launching crossover batch jobs";
 #endif  // DEBUGGING
-            size_t  batch_size = parents.size() / pool.pool_size();
-            batch_size += ((parents.size() % pool.pool_size() > 0)? 1 : 0);
+        size_t tc = pool.pool_size() + 1;   // + 1 for master thread
 
-            unsigned int off_idx = 0, j = 0;
-            while( off_idx < parents.size() ) {
-                unsigned int off_end = off_idx + batch_size;
-                if(off_end > parents.size() ) {
-                    off_end = parents.size();
-                }
+        size_t  batch_size = parents.size() / tc;
+        batch_size += ((parents.size() % tc > 0)? 1 : 0);
 
+        unsigned int off_idx = 0, j = 0;
+        while( off_idx + batch_size < parents.size() ) {
+            unsigned int off_end = off_idx + batch_size;
 
-                pool.post( crossover_task_type( pool.getRNG(++j), parental, offspring, off_idx, parents.begin() + off_idx, parents.begin() + off_end, m_recomb_rate.m_rho, m_seq_bias.m_bias ));
+            pool.post( crossover_task_type( pool.getRNG(++j), parental, offspring, off_idx, parents.begin() + off_idx, parents.begin() + off_end, m_recomb_rate.m_rho, m_seq_bias.m_bias ));
 
-                off_idx = off_end;
-            }
-
-            pool.sync();
-#ifdef DEBUGGING
-            BOOST_LOG_TRIVIAL(debug) << "Thread pool synced";
-#endif // DEBUGGING
+            off_idx = off_end;
         }
+
+        crossover_task_type t( m_rng, parental, offspring, off_idx, parents.begin() + off_idx, parents.end(), m_recomb_rate.m_rho, m_seq_bias.m_bias);
+        t();
+
+        pool.sync();
+#ifdef DEBUGGING
+        BOOST_LOG_TRIVIAL(debug) << "Thread pool synced";
+#endif // DEBUGGING
     }
 
     RNG * m_rng;

@@ -62,31 +62,28 @@ protected:
     void process_space( BlockType * source, BlockType * destF, BlockType * destV, unsigned int block_rows, unsigned int block_columns, PoolType & pool ) {
         typedef free_space_task< BlockType > task_type;
 
-        if( pool.pool_size() <= 1 ) {
-            task_type task( source, destF, destV, block_rows, block_columns );
-            task();
-        } else {
-            boost::mutex mutef, mutev;
-            unsigned int tc = pool.pool_size();
+        unsigned int tc = pool.pool_size() + 1; // + 1 for master thread
 
-            if( tc > block_rows ) {
-                tc = block_rows;
-            }
+        // batching by columns allows this algorithm to elimnate the need for mutex locks
+        unsigned int cpb = block_columns / tc;
+        cpb += ((block_columns % tc > 0) ? 1 : 0);
 
-            unsigned int rpb = block_rows / tc;
-            rpb += ((block_rows % tc > 0) ? 1 : 0);
+        // cols will be decremented to cpb
+        unsigned int cols = block_columns;
+        while( cpb < cols ) {
+            pool.post( task_type( source, destF, destV, block_rows, cpb, block_columns ));
 
-            while( block_rows ) {
-                unsigned int rows = (( rpb < block_rows ) ? rpb : block_rows );
-                std::shared_ptr< task_type > t( new task_type( source, destF, destV, rows, block_columns ) );
-                
-                pool.post( boost::bind( &task_type::evaluate_ts, t, &mutef, &mutev) );
-                block_rows -= rows;
-                source += rows * block_columns;
-            }
-
-            pool.sync();
+            source += cpb;
+            destF += cpb;
+            destV += cpb;
+            cols -= cpb;
         }
+
+        // last block being run on master thread
+        task_type t(source, destF, destV, block_rows, cols, block_columns );
+        t();
+
+        pool.sync();
     }
 };
 
