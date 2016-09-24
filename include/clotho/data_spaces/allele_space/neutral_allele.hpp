@@ -45,7 +45,9 @@ public:
     }
 
     bool getNeutralAt( size_t index ) const {
+#ifdef DEBUGGING
         assert( 0 <= index && index < this->m_pos_size );
+#endif  // DEBUGGING
 
         size_t bidx = index / bit_helper_type::BITS_PER_BLOCK;
         block_type bmask = bit_helper_type::bit_offset(index);
@@ -54,7 +56,9 @@ public:
     }
 
     void setNeutralAt( size_t index, bool neu ) {
+#ifdef DEBUGGING
         assert( 0 <= index && index < this->m_pos_size );
+#endif  // DEBUGGING
 
         size_t bidx = index / bit_helper_type::BITS_PER_BLOCK;
         block_type mask = bit_helper_type::bit_offset(index);
@@ -86,7 +90,9 @@ public:
 //    }
     bool isAllNeutral() const {
         size_t N = (this->m_pos_size - 1) / bit_helper_type::BITS_PER_BLOCK;
+#ifdef DEBUGGING
         assert( N < m_block_size );
+#endif  // DEBUGGING
         for( size_t i = 0; i < N; ++i ) {
             if( m_neutral[i] != bit_helper_type::ALL_SET )
                 return false;
@@ -99,11 +105,17 @@ public:
 
     void inherit( self_type & parent ) {
         // inherit positions
+#ifdef DEBUGGING
         assert( parent.size() <= this->size() );
+#endif  // DEBUGGING
+
         memcpy( this->m_positions, parent.m_positions, parent.size() * sizeof(typename base_type::base_type::position_type) );
 
         // inherit neutral
+#ifdef DEBUGGING
         assert( parent.m_block_size < this->m_block_alloc );
+#endif  // DEBUGGING
+
         std::copy( parent.m_neutral, parent.m_neutral + parent.m_block_size, this->m_neutral );
     }
 
