@@ -55,7 +55,9 @@ public:
         }
         
         weight_type next() {
+#ifdef DEBUGGING
             assert( m_size > 0 );
+#endif  // DEBUGGING
             weight_type w = *m_ptr++;
             --m_size;
 
@@ -80,13 +82,17 @@ public:
     }
  
     trait_iterator getTraitIterator( size_t allele_idx ) const {
+#ifdef DEBUGGING
         assert( 0 <= allele_idx && allele_idx < m_rows );
+#endif  // DEBUGGING
         return trait_iterator( m_weights + allele_idx * m_columns, m_columns );
     }
 
     void updateTraitWeight( size_t allele_idx, size_t trait_idx, weight_type w ) {
+#ifdef DEBUGGING
         assert( 0 <= allele_idx && allele_idx < m_rows );
         assert( 0 <= trait_idx && trait_idx < m_columns );
+#endif  // DEBUGGING
 
         m_weights[ allele_idx * m_columns + trait_idx ] = w;
     }
@@ -125,7 +131,10 @@ public:
 
     void inherit( self_type & parent ) {
         // inherit positions
+#ifdef DEBUGGING
         assert( parent.size() <= this->size() );
+#endif  // DEBUGGING
+
         memcpy( this->m_positions, parent.m_positions, parent.size() * sizeof( typename base_type::base_type::position_type) );
 
         // inherit neutral
@@ -140,8 +149,9 @@ public:
         size_t a = allele_count();
         size_t oa = parent.allele_count();
 
+#ifdef DEBUGGING
         assert( oa <= a );
-
+#endif  // DEBUGGING
         size_t i = 0, T = ((t < ot) ? t : ot );
         while( i < T ) {
             memcpy( this->m_weights + i * a, parent.m_weights + i * oa, oa * sizeof( weight_type ) );
@@ -151,13 +161,17 @@ public:
     }
 
     weight_pointer begin_trait_weight( size_t idx ) {
+#ifdef DEBUGGING
         assert( 0 <= idx && idx < this->m_pos_size );
+#endif  // DEBUGGING
 
         return m_weights + idx * trait_count();
     }
 
     weight_pointer end_trait_weight( size_t idx ) {
+#ifdef DEBUGGING
         assert( 0 <= idx && idx < this->m_pos_size );
+#endif  // DEBUGGING
 
         return m_weights + (idx + 1) * trait_count();
     }
@@ -200,7 +214,9 @@ protected:
 
         size_t new_size = rows * columns;
 
+#ifdef DEBUGGING
         assert( 0 <= new_size );
+#endif  // DEBUGGING
 
         if( m_size < new_size ) {
             // growing trait space
