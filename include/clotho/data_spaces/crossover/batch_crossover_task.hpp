@@ -88,7 +88,9 @@ public:
 
             sequence_iterator c = m_offspring->begin_sequence( i++ );
 
-            event_type evts = make_events( event_dist( *m_rng ) );
+            event_type evts, evts1;
+
+            fill_events( evts, event_dist( *m_rng ) );
             classifier_type cfier0( m_parental->getAlleleSpace().getPositions(), evts );
             bool _swap = bias_dist( *m_rng );
             run_crossover_task( cfier0, s0.first, s0.second, s1.first, s1.second, c, _swap ); 
@@ -99,7 +101,8 @@ public:
 
             c = m_offspring->begin_sequence( i++ );
 
-            event_type evts1 = make_events( event_dist( *m_rng ) );
+            fill_events( evts1, event_dist( *m_rng ) );
+
             classifier_type cfier1( m_parental->getAlleleSpace().getPositions(), evts1 );
             _swap = bias_dist( *m_rng );
             run_crossover_task( cfier1, s0.first, s0.second, s1.first, s1.second, c, _swap);
@@ -115,6 +118,12 @@ public:
     virtual ~batch_crossover_task() {}
 
 protected:
+
+    inline void fill_events( event_type & evt, unsigned int N ) {
+        while( N-- ) {
+            evt.push_back( m_pos_dist( *m_rng ) );
+        }
+    }
 
     event_type make_events( unsigned int N ) {
         event_type res;
