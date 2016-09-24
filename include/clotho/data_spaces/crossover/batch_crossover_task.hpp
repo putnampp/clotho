@@ -56,8 +56,8 @@ public:
         , m_offspring( offspring )
         , m_parents(first, last )
         , m_offspring_index(off_idx)
-        , m_event_dist( recomb_rate )
-        , m_bias_dist( seq_bias )
+        , m_recomb_rate(recomb_rate)
+        , m_seq_bias( seq_bias )
     { }
 
     batch_crossover_task( const self_type & other ) :
@@ -66,12 +66,16 @@ public:
         , m_offspring( other.m_offspring )
         , m_parents( other.m_parents )
         , m_offspring_index( other.m_offspring_index )
-        , m_event_dist( other.m_event_dist )
-        , m_bias_dist( other.m_bias_dist )
+        , m_recomb_rate( other.m_recomb_rate )
+        , m_seq_bias( other.m_seq_bias )
     {    }
 
     void operator()() {
+        event_distribution_type     event_dist( m_recomb_rate);
+        boost::random::bernoulli_distribution< double > bias_dist( m_seq_bias);
+
         iterator mate_it = m_parents.begin(), mate_end = m_parents.end();
+
 #ifdef DEBUGGING
         BOOST_LOG_TRIVIAL(debug) << "Starting batch crossover task";
 #endif // DEBUGGING
@@ -84,9 +88,9 @@ public:
 
             sequence_iterator c = m_offspring->begin_sequence( i++ );
 
-            event_type evts = make_events( );
+            event_type evts = make_events( event_dist( *m_rng ) );
             classifier_type cfier0( m_parental->getAlleleSpace().getPositions(), evts );
-            bool _swap = m_bias_dist( *m_rng );
+            bool _swap = bias_dist( *m_rng );
             run_crossover_task( cfier0, s0.first, s0.second, s1.first, s1.second, c, _swap ); 
             
             idx = 2 * mate_it->second;
@@ -95,9 +99,9 @@ public:
 
             c = m_offspring->begin_sequence( i++ );
 
-            event_type evts1 = make_events( );
+            event_type evts1 = make_events( event_dist( *m_rng ) );
             classifier_type cfier1( m_parental->getAlleleSpace().getPositions(), evts1 );
-            _swap = m_bias_dist( *m_rng );
+            _swap = bias_dist( *m_rng );
             run_crossover_task( cfier1, s0.first, s0.second, s1.first, s1.second, c, _swap);
 
             ++mate_it;
@@ -112,10 +116,8 @@ public:
 
 protected:
 
-    event_type make_events( ) {
+    event_type make_events( unsigned int N ) {
         event_type res;
-
-        unsigned int N = m_event_dist( *m_rng );
 
         while( N-- ) {
             res.push_back( m_pos_dist( *m_rng ) );
@@ -175,9 +177,9 @@ protected:
 
     unsigned int m_offspring_index;
 
-    event_distribution_type     m_event_dist;
+    double m_recomb_rate, m_seq_bias;
+
     position_distribution_type  m_pos_dist;
-    boost::random::bernoulli_distribution< double > m_bias_dist;
 };
 
 }   // namespace genetics

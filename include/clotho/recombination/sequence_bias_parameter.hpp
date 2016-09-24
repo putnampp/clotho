@@ -23,10 +23,12 @@ struct sequence_bias_parameter {
     static constexpr RealType DEFAULT_BIAS = 0.5;
 
     sequence_bias_parameter( RealType b = DEFAULT_BIAS ) : 
-        m_bias( b ) {}
+        m_bias( b ) 
+    {}
 
     sequence_bias_parameter( boost::property_tree::ptree & config ) : 
-        m_bias( DEFAULT_BIAS ) {
+        m_bias( DEFAULT_BIAS ) 
+    {
 
         boost::property_tree::ptree lconfig, bblock;
 
@@ -39,6 +41,8 @@ struct sequence_bias_parameter {
         lconfig.put_child( SEQUENCE_BIAS_BLOCK_K, bblock);
         config.put_child( REC_BLOCK_K, lconfig );
     }
+
+    virtual ~sequence_bias_parameter() {}
 };
 
 #endif  // SEQUENCE_BIAS_PARAMETER_HPP_

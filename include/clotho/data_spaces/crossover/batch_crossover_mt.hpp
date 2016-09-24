@@ -19,7 +19,7 @@
 #include "clotho/recombination/recombination_rate_parameter.hpp"
 #include "clotho/data_spaces/task/thread_pool.hpp"
 
-#include "clotho/data_spaces/crossover/crossover_task_list.hpp"
+//#include "clotho/data_spaces/crossover/crossover_task_list.hpp"
 
 namespace clotho {
 namespace genetics {
@@ -65,13 +65,19 @@ protected:
         while( off_idx + batch_size < parents.size() ) {
             unsigned int off_end = off_idx + batch_size;
 
-            pool.post( crossover_task_type( pool.getRNG(++j), parental, offspring, off_idx, parents.begin() + off_idx, parents.begin() + off_end, m_recomb_rate.m_rho, m_seq_bias.m_bias ));
+            BOOST_LOG_TRIVIAL(info) << "Batch Crossover: [" << off_idx << ", " << off_end << ");";
+
+            crossover_task_type x( pool.getRNG(j++), parental, offspring, off_idx, parents.begin() + off_idx, parents.begin() + off_end, m_recomb_rate.m_rho, m_seq_bias.m_bias );
+            pool.post( x );
 
             off_idx = off_end;
         }
 
-        crossover_task_type t( m_rng, parental, offspring, off_idx, parents.begin() + off_idx, parents.end(), m_recomb_rate.m_rho, m_seq_bias.m_bias);
-        t();
+        if( off_idx < parents.size() ){
+            BOOST_LOG_TRIVIAL(info) << "Batch Crossover: [" << off_idx << ", " << parents.size() << ");";
+            crossover_task_type t( m_rng, parental, offspring, off_idx, parents.begin() + off_idx, parents.end(), m_recomb_rate.m_rho, m_seq_bias.m_bias);
+            t();
+        }
 
         pool.sync();
 #ifdef DEBUGGING

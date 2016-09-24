@@ -181,6 +181,10 @@ public:
         memcpy( s, t, tcount * sizeof(weight_type) );
     }
 
+    weight_pointer getWeights() const {
+        return m_weights;
+    }
+
     virtual ~qtl_allele_vectorized() {
         if( m_weights != NULL ) {
             delete [] m_weights;

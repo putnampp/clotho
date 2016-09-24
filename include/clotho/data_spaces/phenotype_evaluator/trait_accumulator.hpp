@@ -74,7 +74,7 @@ public:
             return;
 #ifdef DEBUGGING
         } else {
-            std::cerr << "Not all alleles are neutral!" << std::endl;
+            BOOST_LOG_TRIVIAL(debug) << "Not all alleles are neutral!";
 #endif // DEBUGGING
         }
 

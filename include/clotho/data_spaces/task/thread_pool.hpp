@@ -69,7 +69,7 @@ public:
     }
 
     template < class Task >
-    void post( Task t ) {
+    void post( Task & t ) {
         boost::unique_lock< boost::mutex > lock( m_mutex );
 
         m_tasks.push( boost::function< void() >( t ) );

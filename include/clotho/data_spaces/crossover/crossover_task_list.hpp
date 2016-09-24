@@ -72,18 +72,26 @@ static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsign
     if( cls.event_count() == 0 ) {
         // there are no crossover cls
         // therefore, offspring strand will be a copy of the top strand
-        service.post( copy_type( s0, res, s0_len ) );
+        copy_type c( s0, res, s0_len );
+        service.post( c );
     } else if( s0_len < s1_len ) {
         // top strand is shorter than bottom strand
-        service.post( segment_type( cls, s0, s1, res, 0, s0_len ) );
-        service.post( bottom_tail_type( cls, s1, res, s0_len, s1_len ) );
+        segment_type s( cls, s0, s1, res, 0, s0_len );
+        service.post( s );
+
+        bottom_tail_type b( cls, s1, res, s0_len, s1_len );
+        service.post( b );
     } else if( s1_len < s0_len ) {
         // bottom strand is shorter than top strand
-        service.post( segment_type( cls, s0, s1, res, 0, s1_len ) );
-        service.post( top_tail_type( cls, s0, res, s1_len, s0_len ) );
+        segment_type s( cls, s0, s1, res, 0, s1_len );
+        service.post( s );
+
+        top_tail_type t( cls, s0, res, s1_len, s0_len );
+        service.post( t );
     } else {
         // both strands are equal in length
-        service.post( segment_type( cls, s0, s1, res, 0, s0_len ) );
+        segment_type s( cls, s0, s1, res, 0, s0_len );
+        service.post( s );
     }
 }
 
@@ -110,7 +118,8 @@ static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsign
 
         len -= start_idx;
 
-        service.post( copy_type( s0 + start_idx, res + start_idx, len ) );
+        copy_type c( s0 + start_idx, res + start_idx, len );
+        service.post( c );
     } else if( start_idx < s0_len ) {
         if( start_idx < s1_len ) {
             // start_idx < s0_len && start_idx < s1_len
@@ -118,48 +127,64 @@ static void make_crossover_tasks( const Classifier & cls, BlockType * s0, unsign
                 if ( end_idx <= s1_len ) {
                     // end_idx <= s0_len && end_idx <= s1_len
                     // end_idx - start_idx > 0 results from start_idx < end_idx
-                    service.post( segment_type( cls, s0, s1, res, start_idx, (end_idx - start_idx) ) );
+                    segment_type s( cls, s0, s1, res, start_idx, (end_idx - start_idx) );
+                    service.post( s );
                 } else {
                     // s1_len < end_idx <= s0_len
                     // s1_len - start_idx > 0 results from start_idx < s1_len
                     // end_idx - s1_len > 0 results from s1_len < end_idx
-                    service.post( segment_type( cls, s0, s1, res, start_idx, (s1_len - start_idx) ) );
-                    service.post( top_tail_type( cls, s0, res, s1_len, (end_idx - s1_len)) );
+                    segment_type s( cls, s0, s1, res, start_idx, (s1_len - start_idx) );
+                    service.post( s );
+
+                    top_tail_type t( cls, s0, res, s1_len, (end_idx - s1_len));
+                    service.post( t );
                 }
             } else if( end_idx <= s1_len ) {
                 // s0_len < end_idx <= s1_len
                 // s0_len - start_idx > 0 results from start_idx < s0_len
                 // end_idx - s0_len > 0 results from !(end_idx <= s0_len)
-                service.post( segment_type( cls, s0, s1, res, start_idx, (s0_len - start_idx) ) );
-                service.post( bottom_tail_type( cls, s1, res, s0_len, (end_idx - s0_len)) );
+                segment_type s( cls, s0, s1, res, start_idx, (s0_len - start_idx) );
+                service.post( s );
+
+                bottom_tail_type b( cls, s1, res, s0_len, (end_idx - s0_len));
+                service.post( b );
             } else if( s1_len < s0_len ) {
                 // end_idx > s0_len && end_idx > s1_len && s0_len < s1_len
                 // s0_len - start_idx > 0 results from (start_idx < s0_len)
                 // s1_len - s0_len > 0 results from (s1_len < s0_len)
-                service.post( segment_type( cls, s0, s1, res, start_idx, (s0_len - start_idx) ) );
-                service.post( bottom_tail_type( cls, s1, res, s0_len, ( s1_len - s0_len ) ) );
+                segment_type s( cls, s0, s1, res, start_idx, (s0_len - start_idx) );
+                service.post( s );
+
+                bottom_tail_type b( cls, s1, res, s0_len, ( s1_len - s0_len ) );
+                service.post( b );
             } else if( s0_len < s1_len ) {
                 // end_idx > s0_len && end_idx > s1_len && s1_len < s0_len
                 // s1_len - start_idx > 0 results from (start_idx < s1_len)
                 // s0_len - s1_len > 0 results from (s1_len >= s0_len) && (s0_len < s1_len)
-                service.post( segment_type( cls, s0, s1, res, start_idx, (s1_len - start_idx) ) );
-                service.post( top_tail_type( cls, s1, res, s1_len, ( s0_len - s1_len ) ) );
+                segment_type s( cls, s0, s1, res, start_idx, (s1_len - start_idx) );
+                service.post( s );
+
+                top_tail_type t( cls, s1, res, s1_len, ( s0_len - s1_len ) );
+                service.post( t );
             } else {
                 // end_idx > s0_len && end_idx > s1_len && s1_len == s0_len
                 // s1_len - start_idx > 0 results from (start_idx < s1_len)
-                service.post( segment_type( cls, s0, s1, res, start_idx, (s1_len - start_idx) ) );
+                segment_type s( cls, s0, s1, res, start_idx, (s1_len - start_idx) );
+                service.post( s );
             }
         } else  {
             // s1_len <= start_idx < s0_len
             unsigned int e = ((end_idx < s0_len) ? end_idx : s0_len );
-            service.post( top_tail_type( cls, s0, res, start_idx, (e - start_idx) ) ); 
+            top_tail_type t( cls, s0, res, start_idx, (e - start_idx) );
+            service.post( t ); 
         }
     } else if( start_idx < s1_len ) {
         // s0_len <= start_idx < s1_len
         unsigned int e = ((end_idx < s1_len ) ? end_idx : s1_len );
 
         // e -start_idx > 0 results from (start_idx < end_idx) && (start_idx < s1_len)
-        service.post( bottom_tail_type( cls, s1, res, start_idx, (e - start_idx) ) );
+        bottom_tail_type b( cls, s1, res, start_idx, (e - start_idx) );
+        service.post( b );
     }
 }
 
@@ -218,10 +243,13 @@ static void make_crossover_and_mutate_task( const Classifier & cls, BlockType * 
     if( cls.event_count() == 0 ) {
         // no crossover events
         // therefore copy and mutate the top strand
-        service.post( mutate_task_type( top, res + idx, mut ) );
+        mutate_task_type m( top, res + idx, mut );
+        service.post( m );
     } else {
         BlockType bottom = ((idx < s1_len ) ? s1[ idx ] : bit_helper_type::ALL_UNSET );
-        service.post( task_type( cls, top, bottom, res, idx, mut ) );
+        task_type t( cls, top, bottom, res, idx, mut );
+
+        service.post( t );
     }
 }
 

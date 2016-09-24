@@ -71,7 +71,10 @@ protected:
         // cols will be decremented to cpb
         unsigned int cols = block_columns;
         while( cpb < cols ) {
-            pool.post( task_type( source, destF, destV, block_rows, cpb, block_columns ));
+            
+            task_type t( source, destF, destV, block_rows, cpb, block_columns );
+
+            pool.post( t );
 
             source += cpb;
             destF += cpb;

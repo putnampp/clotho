@@ -94,10 +94,6 @@ public:
 
         block_type mask = bit_helper_type::low_bit_mask( this->m_pos_size - 1 );
 
-//        std::cerr << "Comparing: " << std::hex << m_neutral[m_block_size - 1] << " to " << mask << std::dec << std::endl;
-
-//        std::cerr << "Checking: " << (m_block_size - 1) << std::endl;
-
         return m_neutral[N] == mask;
     }
 

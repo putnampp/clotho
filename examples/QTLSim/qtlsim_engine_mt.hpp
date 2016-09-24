@@ -32,19 +32,26 @@
 #ifdef USE_BATCH_JOBS
 #include "clotho/data_spaces/crossover/batch_crossover_mt.hpp"
 #define CROSSOVER_TYPE clotho::genetics::BatchCrossoverMT
+
+#include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_mt.hpp"
+#define PHENOTYPE_TYPE clotho::genetics::BatchPhenotypeMT
+
 #else
 #include "clotho/data_spaces/crossover/crossover_mt.hpp"
 #define CROSSOVER_TYPE clotho::genetics::CrossoverMT
+
+#include "clotho/data_spaces/phenotype_evaluator/phenotype_mt.hpp"
+#define PHENOTYPE_TYPE clotho::genetics::PhenotypeMT
 #endif  // USE_BATCH_JOBS
 
 #include "clotho/data_spaces/selection/selection.hpp"
 #include "clotho/data_spaces/mutation/mutation_generator.hpp"
 #include "clotho/data_spaces/mutation/mutation_allocator.hpp"
 
-#include "clotho/data_spaces/crossover/crossover_task_list.hpp"
+//#include "clotho/data_spaces/crossover/crossover_task_list.hpp"
 
-#include "clotho/data_spaces/phenotype_evaluator/evaluator.hpp"
-#include "clotho/data_spaces/fitness/fitness.hpp"
+//#include "clotho/data_spaces/phenotype_evaluator/evaluator.hpp"
+#include "clotho/data_spaces/fitness/general_fitness.hpp"
 
 #include "clotho/utility/state_object.hpp"
 
@@ -72,10 +79,12 @@ public:
     typedef clotho::genetics::TraitWeightAccumulator< genetic_space_type >                          trait_accumulator_type;
     typedef clotho::genetics::FreeSpaceAnalyzerMT<>                                                 free_space_type;
     typedef clotho::genetics::SelectionGenerator< random_engine_type, clotho::genetics::fitness_selection< genetic_space_type > >          selection_type;
-    typedef CROSSOVER_TYPE< random_engine_type, genetic_space_type >            crossover_type;
-    typedef clotho::genetics::linear_combination< trait_accumulator_type, phenotype_type >          trait_reduction_type;
-    typedef clotho::genetics::phenotype_evaluator< trait_reduction_type >                           phenotype_eval_type;
-    typedef clotho::genetics::Fitness< phenotype_eval_type >                                        fitness_type;
+    typedef CROSSOVER_TYPE< random_engine_type, genetic_space_type >                                crossover_type;
+//    typedef clotho::genetics::linear_combination< trait_accumulator_type, phenotype_type >          trait_reduction_type;
+//    typedef clotho::genetics::phenotype_evaluator< trait_reduction_type >                           phenotype_eval_type;
+//
+    typedef PHENOTYPE_TYPE< genetic_space_type >                                                    phenotype_eval_type;
+    typedef clotho::genetics::GeneralFitness                                                        fitness_type;
 
     typedef std::shared_ptr< ipopulation_growth_generator >                                         population_growth_generator_type;
     typedef std::shared_ptr< ipopulation_growth >                                                   population_growth_type;
@@ -87,6 +96,7 @@ public:
         , m_parent( &m_pop0 )
         , m_child( &m_pop1 )
         , m_thread_pool( rng, config )
+        , m_pheno( config )
         , m_free_space( )
         , select_gen( rng, config )
         , mutate_gen( rng, config )
@@ -111,8 +121,8 @@ public:
         m_pop1.getSequenceSpace().clear();
 
         size_t acount = m_pop0.getAlleleSpace().allele_count();
-        m_pop0.getAlleleSpace().grow(acount, 1);
-        m_pop1.getAlleleSpace().grow(acount, 1);
+        m_pop0.getAlleleSpace().grow(acount, m_pheno.trait_count());
+        m_pop1.getAlleleSpace().grow(acount, m_pheno.trait_count());
 
         init(acount);
     }
@@ -165,9 +175,11 @@ public:
 
         mutate_gen( m_child, pM );
 
-        m_trait_accum.update( *m_child );
-        m_pheno.update( m_child, m_trait_accum );
-        m_fit.update( m_child, m_pheno );
+//        m_trait_accum.update( *m_child );
+//        m_pheno.update( m_child, m_trait_accum );
+
+        m_pheno( m_child, m_thread_pool );
+        m_fit( m_child, m_pheno );
 
         ++m_generation;
     }
@@ -272,7 +284,7 @@ protected:
     allele_type             m_fixed;
 
     thread_pool_type         m_thread_pool;
-    trait_accumulator_type  m_trait_accum;
+//    trait_accumulator_type  m_trait_accum;
     phenotype_eval_type     m_pheno;
     free_space_type         m_free_space;
 
@@ -295,9 +307,9 @@ struct state_getter< EngineMT< RNG, RealType, BlockType > > {
     typedef EngineMT< RNG, RealType, BlockType >           object_type;
 
     void operator()( boost::property_tree::ptree & s, object_type & obj ) {
-        boost::property_tree::ptree tr;
-        state_getter< typename object_type::trait_accumulator_type > tr_logger;
-        tr_logger( tr, obj.m_trait_accum );
+//        boost::property_tree::ptree tr;
+//        state_getter< typename object_type::trait_accumulator_type > tr_logger;
+//        tr_logger( tr, obj.m_trait_accum );
 
         boost::property_tree::ptree ph;
         state_getter< typename object_type::phenotype_eval_type > pheno_logger;
@@ -313,10 +325,10 @@ struct state_getter< EngineMT< RNG, RealType, BlockType > > {
 
         boost::property_tree::ptree c_pop, p_pop;
         state_getter< typename object_type::genetic_space_type > pop_logger;
-        pop_logger( p_pop, *(obj.m_parent) );
+//        pop_logger( p_pop, *(obj.m_parent) );
         pop_logger( c_pop, *(obj.m_child) );
 
-        s.put_child( "traits", tr );
+//        s.put_child( "traits", tr );
         s.put_child( "phenotypes", ph );
         s.put_child( "free_space", fr );
         s.put_child( "fixed_alleles", fx );
