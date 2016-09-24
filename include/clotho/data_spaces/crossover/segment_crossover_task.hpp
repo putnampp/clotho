@@ -38,7 +38,9 @@ public:
         // if triggered then
         // unnecessary object created
         // fix upstream logic
+#ifdef DEBUGGING
         assert( m_length > 0 );
+#endif  // DEBUGGING
     }
 
     void operator()() {

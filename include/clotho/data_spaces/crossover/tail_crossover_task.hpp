@@ -36,7 +36,9 @@ public:
         // should be able to correct upstream logic
         // to prevent 0 length crossover tasks from being created
         // waste of time and memory
+#ifdef DEBUGGING
         assert( m_length > 0 );
+#endif  // DEBUGGING
         
     }
  

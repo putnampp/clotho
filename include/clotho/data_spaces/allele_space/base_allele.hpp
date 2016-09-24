@@ -72,7 +72,9 @@ public:
     }
 
     void inherit( self_type & parent ) {
+#ifdef DEBUGGING
         assert( parent.size() <= size() );
+#endif  // DEBUGGING
 
         memcpy( m_positions, parent.m_positions, parent.size() * sizeof(position_type) );
     }
