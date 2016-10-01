@@ -27,8 +27,8 @@
 #include "qtlsim_engine.hpp"
 #define ENGINE Engine
 #else   // USE_MT
-#include "qtlsim_engine_mt.hpp"
-#define ENGINE EngineMT
+#include "qtlsim_engine_mt2.hpp"
+#define ENGINE EngineMT2
 #endif  // USE_MT
 
 #include "qtlsim_parameters.hpp"
@@ -39,11 +39,13 @@
 
 typedef boost::random::mt19937          random_engine_type;
 typedef ENGINE< random_engine_type >    simulate_engine_type;
-typedef typename simulate_engine_type::genetic_space_type   genetic_space_type;
+//typedef typename simulate_engine_type::genetic_space_type   genetic_space_type;
+typedef typename simulate_engine_type::sequence_space_type      sequence_space_type;
+typedef typename simulate_engine_type::allele_type              allele_space_type;
 
-typedef clotho::genetics::random_sample_generator< random_engine_type, genetic_space_type >  random_sample_type;
-typedef clotho::genetics::allele_frequency< genetic_space_type, unsigned int > allele_freq_type;
-typedef clotho::genetics::pairwise_difference< genetic_space_type > pairwise_diff_type;
+typedef clotho::genetics::random_sample_generator< random_engine_type >  random_sample_type;
+typedef clotho::genetics::allele_frequency< sequence_space_type, unsigned int > allele_freq_type;
+typedef clotho::genetics::pairwise_difference< sequence_space_type > pairwise_diff_type;
 
 typedef clotho::utility::state_getter< simulate_engine_type >   engine_logger_type;
 
@@ -59,15 +61,15 @@ typedef clotho::utility::state_getter< simulate_engine_type >   engine_logger_ty
 
 class population_analyzer {
 public:
-    population_analyzer( genetic_space_type * p );
-    population_analyzer( random_sample_type * s );
+    population_analyzer( random_sample_type * s, sequence_space_type * ss, allele_space_type * alls );
 
     void operator()( boost::property_tree::ptree & log );
 
     virtual ~population_analyzer() {}
 
 protected:
-    genetic_space_type * m_pop;
+    sequence_space_type * m_seqs;
+    allele_space_type   * m_alleles;
     random_sample_type * m_samp;
 };
 
@@ -132,7 +134,8 @@ int main( int argc, char ** argv ) {
             if( !( --log_period ) ) {
                 boost::property_tree::ptree stat_log;
                 timer_type stat_time;
-                population_analyzer an( sim_engine.getChildPopulation() );
+                random_sample_type ss( &rand_engine, sim_engine.getChildPopulation()->row_count(), sim_engine.getChildPopulation()->row_count() );
+                population_analyzer an( &ss, sim_engine.getChildPopulation(), sim_engine.getAlleleSpace() );
                 an( stat_log );
 
                 size_t samp_idx = 0;
@@ -145,9 +148,9 @@ int main( int argc, char ** argv ) {
                     std::ostringstream oss;
                     oss << "sample." << samp_idx++;
 
-                    random_sample_type samp( &rand_engine, sim_engine.getChildPopulation(), v.sample_size );
+                    random_sample_type samp( &rand_engine, sim_engine.getChildPopulation()->row_count(), v.sample_size );
 
-                    population_analyzer _an( &samp );
+                    population_analyzer _an( &samp, sim_engine.getChildPopulation(), sim_engine.getAlleleSpace() );
 
                     boost::property_tree::ptree samp_log;
                     _an( samp_log );
@@ -182,25 +185,18 @@ int main( int argc, char ** argv ) {
     return 0;
 }
 
-population_analyzer::population_analyzer( genetic_space_type * pop ) : 
-    m_pop( pop )
-    , m_samp( NULL )
-{}
-
-population_analyzer::population_analyzer( random_sample_type * samp ) :
-    m_pop( NULL )
-    , m_samp( samp )
+population_analyzer::population_analyzer( random_sample_type * s, sequence_space_type * ss, allele_space_type * alls ) :
+    m_seqs(ss)
+    , m_alleles( alls )
+    , m_samp( s )
 {}
 
 void population_analyzer::operator()( boost::property_tree::ptree & log ) {
     allele_freq_type af;
     pairwise_diff_type pd;
 
-    if( m_pop ) {
-        af.evaluate( *m_pop );
-//        pd.evaluate( *m_pop );
-    } else if( m_samp ) {
-        af.evaluate( *m_samp->getPopulation(), m_samp->begin(), m_samp->end() );
+    if( m_samp ) {
+        af.evaluate( *m_seqs, m_samp->begin(), m_samp->end() );
 //        pd.evaluate( *m_samp->getPopulation(), m_samp->begin(), m_samp->end() );
     } else {
         assert( false );

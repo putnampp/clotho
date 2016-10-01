@@ -18,6 +18,8 @@
 
 #include "clotho/fitness/fitness_toolkit.hpp"
 
+#include <vector>
+
 namespace clotho {
 namespace genetics {
 
@@ -25,6 +27,14 @@ class GeneralFitness {
 public:
     typedef std::shared_ptr< ifitness_generator >           fitness_generator;
     typedef std::shared_ptr< ifitness >                     fitness_operator;
+
+    typedef unsigned int                                    individual_id_type;
+
+    typedef typename ifitness::result_type                  fitness_type;
+    typedef std::vector< fitness_type >                     fitness_vector;
+
+    typedef typename fitness_vector::iterator               iterator;
+    typedef typename fitness_vector::const_iterator         const_iterator;
 
     GeneralFitness( boost::property_tree::ptree & config ) :
         m_fit_gen()
@@ -37,12 +47,11 @@ public:
         }
     }
 
-    template < class PopulationSpaceType, class PhenotypeSpaceType >
-    void operator()( PopulationSpaceType * pop, const PhenotypeSpaceType & phenos ) {
+    template < class PhenotypeSpaceType >
+    void operator()( const PhenotypeSpaceType & phenos ) {
         typedef typename PhenotypeSpaceType::phenotype_type         weight_type;
-        typedef typename PopulationSpaceType::fitness_score_type    fitness_score;
 
-        size_t N = pop->individual_count();
+        unsigned int N = phenos.individual_count();
 
         if( N == 0 ) return;
 
@@ -53,19 +62,58 @@ public:
 
         unsigned int i = 0;
         while( i < N ) {
-            fitness_score score = (*op)(tmp, tmp + traits);
+            fitness_type score = (*op)(tmp, tmp + traits);
 
-            pop->setFitnessAt( i, score );
+            setFitness( i, score );
 
             tmp += traits;
             ++i;
         }
     }
 
+    unsigned int individual_count() const {
+        return m_fitness.size();
+    }
+
+    void setFitness( unsigned int i, fitness_type score ) {
+        if( i < m_fitness.size() ) {
+            m_fitness[ i ] = score;
+        } else {
+            do {
+                m_fitness.push_back( score );
+            } while( m_fitness.size() <= i );
+        }
+    }
+
+    fitness_type getFitness( unsigned int idx ) {
+#ifdef DEBUGGING
+        assert( idx < m_fitness.size() ) ;
+#endif  // DEBUGGING
+        return m_fitness[ idx ];
+    }
+
+    iterator begin() {
+        return m_fitness.begin();
+    }
+
+    iterator end() {
+        return m_fitness.end();
+    }
+
+    const_iterator begin() const {
+        return m_fitness.begin();
+    }
+
+    const_iterator end() const {
+        return m_fitness.end();
+    }
+
     virtual ~GeneralFitness() {}
 
 protected:
     fitness_generator   m_fit_gen;
+
+    fitness_vector      m_fitness;
 };
 
 }   // namespace genetics

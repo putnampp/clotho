@@ -24,7 +24,7 @@
 
 #include <boost/random/mersenne_twister.hpp>
 
-#include "qtlsim_engine_mt.hpp"
+#include "qtlsim_engine_mt2.hpp"
 
 typedef boost::random::mt19937          random_engine_type;
 typedef EngineMT< random_engine_type, real_type >  engine_type;

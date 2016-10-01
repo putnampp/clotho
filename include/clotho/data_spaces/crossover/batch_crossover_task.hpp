@@ -26,34 +26,35 @@
 namespace clotho {
 namespace genetics {
 
-template < class RNG, class GeneticSpaceType >
+template < class RNG, class MatePairType, class SequenceSpaceType, class AlleleSpaceType >
 class batch_crossover_task : public task {
 public:
-    typedef batch_crossover_task< RNG, GeneticSpaceType >   self_type;
+    typedef batch_crossover_task< RNG, MatePairType, SequenceSpaceType, AlleleSpaceType >   self_type;
 
-    typedef GeneticSpaceType                                genetic_space_type;
+    typedef SequenceSpaceType                               sequence_space_type;
+    typedef AlleleSpaceType                                 allele_type;
     typedef RNG                                             random_engine_type;
 
-    typedef typename genetic_space_type::allele_type        allele_type;
-    typedef typename genetic_space_type::association_type   association_type;
+    typedef typename sequence_space_type::sequence_vector      sequence_vector;
+    typedef typename sequence_space_type::raw_block_pointer    sequence_iterator;
+//    typedef typename sequence_space_type::individual_id_type   individual_id_type;
 
-    typedef typename association_type::sequence_vector      sequence_vector;
-    typedef typename association_type::raw_block_pointer    sequence_iterator;
-    typedef typename genetic_space_type::individual_id_type individual_id_type;
+//    typedef std::vector< std::pair< individual_id_type, individual_id_type > >  mate_pair_type;
+    typedef MatePairType                                        mate_pair_type;
+    typedef typename mate_pair_type::iterator                   iterator;
+    typedef typename mate_pair_type::const_iterator             const_iterator;
 
-    typedef std::vector< std::pair< individual_id_type, individual_id_type > >  mate_pair_type;
-    typedef typename mate_pair_type::iterator                                   iterator;
-
-    typedef PositionClassifier< typename allele_type::position_type >          classifier_type;
+    typedef PositionClassifier< typename allele_type::position_vector >          classifier_type;
     typedef typename classifier_type::event_type                                event_type;
 
     typedef typename position_distribution_helper< typename allele_type::position_type >::type position_distribution_type;
     typedef typename crossover_event_distribution_helper< double >::type event_distribution_type;
 
-    batch_crossover_task ( random_engine_type * rng, genetic_space_type * parent, genetic_space_type * offspring, unsigned int off_idx, iterator first, iterator last, double recomb_rate, double seq_bias) :
+    batch_crossover_task ( random_engine_type * rng, sequence_space_type * parent, sequence_space_type * offspring, allele_type * alleles, unsigned int off_idx, const_iterator first, const_iterator last, double recomb_rate, double seq_bias) :
         m_rng(rng)
         , m_parental( parent )
         , m_offspring( offspring )
+        , m_alleles( alleles )
         , m_parents(first, last )
         , m_offspring_index(off_idx)
         , m_recomb_rate(recomb_rate)
@@ -64,11 +65,12 @@ public:
         m_rng( other.m_rng )
         , m_parental( other.m_parental )
         , m_offspring( other.m_offspring )
+        , m_alleles( other.m_alleles )
         , m_parents( other.m_parents )
         , m_offspring_index( other.m_offspring_index )
         , m_recomb_rate( other.m_recomb_rate )
         , m_seq_bias( other.m_seq_bias )
-    {    }
+    { }
 
     void operator()() {
         event_distribution_type     event_dist( m_recomb_rate);
@@ -83,29 +85,41 @@ public:
         while( mate_it != mate_end ) {
 
             unsigned int idx = 2 * mate_it->first;
-            sequence_vector s0 = m_parental->getSequenceSpace().getSequence( idx++ );
-            sequence_vector s1 = m_parental->getSequenceSpace().getSequence( idx );
 
-            sequence_iterator c = m_offspring->begin_sequence( i++ );
+            assert( idx < m_parental->row_count() );
+
+            sequence_vector s0 = m_parental->getSequence( idx++ );
+            sequence_vector s1 = m_parental->getSequence( idx );
+
+            sequence_vector c = m_offspring->getSequence( i++ );
 
             event_type evts, evts1;
 
             fill_events( evts, event_dist( *m_rng ) );
-            classifier_type cfier0( m_parental->getAlleleSpace().getPositions(), evts );
+            classifier_type cfier0( &m_alleles->getPositions(), evts );
             bool _swap = bias_dist( *m_rng );
-            run_crossover_task( cfier0, s0.first, s0.second, s1.first, s1.second, c, _swap ); 
+
+#ifdef DEBUGGING
+            BOOST_LOG_TRIVIAL(debug) << mate_it->first << "; Crossover s0: " << s0.first << " - " << s0.second << "; s1: " << s1.first << " - " << s1.second << "; child: " << c.first << "; event size: " << evts.size();
+#endif  // DEBUGGING
+            run_crossover_task( cfier0, s0.first, s0.second, s1.first, s1.second, c.first, _swap ); 
             
             idx = 2 * mate_it->second;
-            s0 = m_parental->getSequenceSpace().getSequence( idx++ );
-            s1 = m_parental->getSequenceSpace().getSequence( idx );
+            assert( idx < m_parental->row_count() );
 
-            c = m_offspring->begin_sequence( i++ );
+            s0 = m_parental->getSequence( idx++ );
+            s1 = m_parental->getSequence( idx );
+
+            c = m_offspring->getSequence( i++ );
+#ifdef DEBUGGING
+            BOOST_LOG_TRIVIAL(debug) << mate_it->second << "; Crossover s0: " << s0.first << " - " << s0.second << "; s1: " << s1.first << " - " << s1.second << "; child: " << c.first << "; event size: " << evts.size();
+#endif  // DEBUGGING
 
             fill_events( evts1, event_dist( *m_rng ) );
 
-            classifier_type cfier1( m_parental->getAlleleSpace().getPositions(), evts1 );
+            classifier_type cfier1( &m_alleles->getPositions(), evts1 );
             _swap = bias_dist( *m_rng );
-            run_crossover_task( cfier1, s0.first, s0.second, s1.first, s1.second, c, _swap);
+            run_crossover_task( cfier1, s0.first, s0.second, s1.first, s1.second, c.first, _swap);
 
             ++mate_it;
         }
@@ -180,8 +194,10 @@ protected:
         }
     }
 
-    random_engine_type * m_rng;
-    genetic_space_type * m_parental, * m_offspring;
+    random_engine_type  * m_rng;
+    sequence_space_type * m_parental, * m_offspring;
+    allele_type         * m_alleles;
+
     mate_pair_type m_parents;
 
     unsigned int m_offspring_index;

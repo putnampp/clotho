@@ -22,62 +22,65 @@
 namespace clotho {
 namespace genetics {
 
-template < class GeneticSpaceType >
+template < class SequenceSpaceType, class TraitSpaceType >
 class batch_phenotype_task : public task {
 public:
 
-    typedef batch_phenotype_task< GeneticSpaceType >    self_type;
+    typedef batch_phenotype_task< SequenceSpaceType, TraitSpaceType >   self_type;
 
-    typedef GeneticSpaceType                                genetic_space_type;
+    typedef SequenceSpaceType                                           sequence_space_type;
+    typedef TraitSpaceType                                              trait_space_type;
 
-    typedef typename genetic_space_type::block_type                 block_type;
-    typedef typename genetic_space_type::allele_type::weight_type   weight_type;
-    typedef phenotype_accumulator< weight_type >                    accumulator_type;
+    typedef typename sequence_space_type::block_type                    block_type;
+    typedef typename trait_space_type::weight_type                      weight_type;
+    typedef phenotype_accumulator< trait_space_type >                   accumulator_type;
 
-    typedef phenotype_task< block_type, accumulator_type >                  task_type;
+    typedef phenotype_task< block_type, accumulator_type >              task_type;
 
-    typedef typename genetic_space_type::association_type::sequence_vector  sequence_vector;
+    typedef typename sequence_space_type::sequence_vector  sequence_vector;
 
-    batch_phenotype_task( genetic_space_type * pop, unsigned int start, unsigned int end, unsigned int traits, weight_type * weights  ) :
+    batch_phenotype_task( sequence_space_type * pop, trait_space_type * traits, unsigned int start, unsigned int end, weight_type * phenos ) :
         m_pop( pop )
+        , m_traits( traits )
         , m_start( start )
         , m_end( end )
-        , m_trait_count( traits )
-        , m_weights( weights )
+        , m_phenos( phenos )
     {    }
 
     batch_phenotype_task( const self_type & other ) :
         m_pop( other.m_pop )
+        , m_traits( other.m_traits )
         , m_start( other.m_start )
         , m_end( other.m_end )
-        , m_trait_count( other.m_trait_count )
-        , m_weights( other.m_weights )
+        , m_phenos( other.m_phenos )
     {}
 
     void operator()() {
 
-        weight_type * tmp = m_weights;
+        weight_type * tmp = m_phenos;
 
         for( unsigned int i = m_start; i < m_end; ++i ) {
-            accumulator_type acc( m_pop->getAlleleSpace().getWeights(), m_pop->getAlleleSpace().allele_count(), m_trait_count, tmp );
+            accumulator_type acc( m_traits, tmp );
 
-            sequence_vector s = m_pop->getSequenceSpace().getSequence( i );
+            sequence_vector s = m_pop->getSequence( i );
 
             task_type t( s.first, s.second, acc );
 
             t();
 
-            tmp += m_trait_count;
+            tmp += m_traits->trait_count();
         }
     }
 
     virtual ~batch_phenotype_task() {}
 
 protected:
-    genetic_space_type  * m_pop;
-    unsigned int m_start, m_end, m_trait_count;
+    sequence_space_type     * m_pop;
+    trait_space_type        * m_traits;
 
-    weight_type         * m_weights;
+    unsigned int m_start, m_end;
+
+    weight_type             * m_phenos;
 };
 
 }   // namespace genetics

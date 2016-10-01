@@ -24,14 +24,13 @@ namespace genetics {
 template < class PositionType >
 class PositionClassifier {
 public:
+    typedef PositionClassifier< PositionType >  self_type;
     typedef PositionType    position_type;
 
     typedef clotho::classifiers::region_classifier< PositionType > base_classifier_type;
     typedef clotho::classifiers::binary_classifier< base_classifier_type, clotho::classifiers::tags::is_odd_tag > classifier_type;
 
     typedef typename base_classifier_type::param_type event_type;
-
-    typedef PositionClassifier< PositionType >  self_type;
 
     PositionClassifier( position_type * pos, const event_type & events ) :
         m_positions( pos )
@@ -44,10 +43,6 @@ public:
     {}
 
     bool operator()( unsigned int offset ) {
-//#ifdef DEBUGGING
-//        BOOST_LOG_TRIVIAL( debug ) << "Comparing offset: " << offset << " (" << m_positions[offset] << ")";
-//#endif  // DEBUGGING
-
         return m_cfier( m_positions[ offset ] );
     }
 
@@ -59,6 +54,42 @@ public:
 protected:
     position_type   * m_positions;
     classifier_type m_cfier;
+};
+
+template < class PositionType >
+class PositionClassifier< std::vector< PositionType > > {
+public:
+    typedef PositionClassifier< std::vector< PositionType > >   self_type;
+    typedef PositionType                                        position_type;
+    typedef std::vector< position_type >                        position_vector;
+
+    typedef clotho::classifiers::region_classifier< PositionType > base_classifier_type;
+    typedef clotho::classifiers::binary_classifier< base_classifier_type, clotho::classifiers::tags::is_odd_tag > classifier_type;
+
+    typedef typename base_classifier_type::param_type event_type;
+
+    PositionClassifier( position_vector * pos, const event_type & events ) :
+        m_positions( pos )
+        , m_cfier( events )
+    {}
+
+    PositionClassifier( const self_type & other ) : 
+        m_positions( other.m_positions )
+        , m_cfier( other.m_cfier )
+    {}
+
+    bool operator()( unsigned int offset ) {
+        return m_cfier( m_positions->at( offset ) );
+    }
+
+    size_t event_count() const {
+        return m_cfier.event_count();
+    }
+
+    virtual ~PositionClassifier() {}
+protected:
+    position_vector     * m_positions;
+    classifier_type     m_cfier;
 };
 
 }   // namespace genetics

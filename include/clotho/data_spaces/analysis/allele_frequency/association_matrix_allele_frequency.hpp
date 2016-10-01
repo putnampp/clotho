@@ -38,7 +38,7 @@ namespace genetics {
 template < class BlockType, class AlignmentType, class SizeType >
 class allele_frequency< association_matrix< BlockType, AlignmentType >, SizeType > {
 public:
-    typedef association_matrix< BlockType, AlignmentType >             space_type;
+    typedef association_matrix< BlockType, AlignmentType >                  space_type;
 
     typedef SizeType                                                      size_type;
     typedef size_type *                                                   result_type;

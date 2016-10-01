@@ -21,6 +21,7 @@
 namespace clotho {
 namespace genetics {
 
+/*
 template < class RNG, class GeneticSpaceType >
 class random_sample_generator {
 public:
@@ -91,7 +92,76 @@ protected:
     genetic_space_type  * m_pop;
     sample_set_type     m_sample;
 };
+*/
 
+template < class RNG >
+class random_sample_generator {
+public:
+    typedef RNG                                 random_engine_type;
+    typedef std::vector< size_t >                  sample_set_type;
+
+    typedef typename sample_set_type::iterator iterator;
+    typedef typename sample_set_type::const_iterator const_iterator;
+
+    random_sample_generator( random_engine_type * rng, size_t space_size , size_t samp_size, bool with_replacement = false ) {
+        generate( rng, space_size , samp_size, with_replacement );
+    }
+
+    iterator begin() {
+        return m_sample.begin();
+    }
+
+    iterator end() {
+        return m_sample.end();
+    }
+
+    const_iterator begin() const {
+        return m_sample.begin();
+    }
+
+    const_iterator end() const {
+        return m_sample.end();
+    }
+
+    size_t getSampleAt( size_t idx ) {
+        assert( 0 <= idx && idx < m_sample.size() );
+
+        return m_sample[idx];
+    }
+
+    virtual ~random_sample_generator() {}
+protected:
+    void generate( random_engine_type * rng, size_t pop_size, size_t target_size, bool with_replacement ) {
+        boost::random::uniform_int_distribution< size_t > dist( 0, pop_size - 1 );
+        m_sample.reserve( target_size );
+
+        if( with_replacement ) {
+            while( m_sample.size() < target_size ) {
+                size_t t = dist( *rng );
+                m_sample.push_back( t );
+            }
+        } else if( target_size >= pop_size ) { // all samples should be unique
+            size_t i = 0;
+            while( i < target_size ) {
+                m_sample.push_back( i++ );
+            }
+        } else {
+            boost::dynamic_bitset< unsigned int >    indices( pop_size, false );
+
+            while( m_sample.size() < target_size ) {
+                size_t t = dist( *rng );
+                while( indices[ t ] ) {
+                    t = dist( *rng );
+                }
+
+                indices[ t ] = true;
+                m_sample.push_back( t );
+            }
+        }
+    }
+
+    sample_set_type     m_sample;
+};
 }   // namespace genetics
 }   // namespace clotho
 

@@ -35,25 +35,23 @@
 namespace clotho {
 namespace genetics {
 
-template < class RNG, class GeneticSpaceType >
+template < class RNG, class SequenceSpaceType, class AlleleSpaceType >
 class CrossoverMT {
 public:
-    typedef GeneticSpaceType    genetic_space_type;
+    typedef SequenceSpaceType   sequence_space_type;
+    typedef AlleleSpaceType     allele_space_type;
 
-    typedef typename genetic_space_type::allele_type        allele_type;
-    typedef typename genetic_space_type::association_type   association_type;
+    typedef typename sequence_space_type::sequence_vector      sequence_vector;
+    typedef typename sequence_space_type::raw_block_pointer    sequence_iterator;
+//    typedef typename sequence_space_type::individual_id_type individual_id_type;
+//
+//    typedef std::vector< std::pair< individual_id_type, individual_id_type > >  mate_pair_type;
+//    typedef typename mate_pair_type::iterator                                   iterator;
 
-    typedef typename association_type::sequence_vector      sequence_vector;
-    typedef typename association_type::raw_block_pointer    sequence_iterator;
-    typedef typename genetic_space_type::individual_id_type individual_id_type;
-
-    typedef std::vector< std::pair< individual_id_type, individual_id_type > >  mate_pair_type;
-    typedef typename mate_pair_type::iterator                                   iterator;
-
-    typedef PositionClassifier< typename allele_type::position_type >          classifier_type;
+    typedef PositionClassifier< typename allele_space_type::position_vector >   classifier_type;
     typedef typename classifier_type::event_type                                event_type;
 
-    typedef typename position_distribution_helper< typename allele_type::position_type >::type position_distribution_type;
+    typedef typename position_distribution_helper< typename allele_space_type::position_type >::type position_distribution_type;
     typedef typename crossover_event_distribution_helper< double >::type event_distribution_type;
 
     CrossoverMT( RNG * rng, boost::property_tree::ptree & config ) :
@@ -66,13 +64,13 @@ public:
         m_event_dist.param( typename event_distribution_type::param_type( rho.m_rho ) );
     }
 
-    template < class PoolType >
-    void operator()( genetic_space_type * parental, mate_pair_type & parents, genetic_space_type * offspring, PoolType & pool ) {
-        offspring->getSequenceSpace().clear();
+    template < class SelectionType, class PoolType >
+    void operator()( const SelectionType & parents, sequence_space_type * parental, sequence_space_type * offspring, allele_space_type * alleles, PoolType & pool ) {
+        offspring->clear();
         if( pool.pool_size() <= 1 ) {
-            generate( parental, parents, offspring );
+            generate( parents, parental, offspring, alleles );
         } else {
-            generate( parental, parents, offspring, pool );
+            generate( parents, parental, offspring, alleles, pool );
         }
     }
 
@@ -80,40 +78,43 @@ public:
 
 protected:
     
-    void generate( genetic_space_type * parental, mate_pair_type & parents, genetic_space_type * offspring ) {
+    template < class SelectionType >
+    void generate( const SelectionType & parents, sequence_space_type * parental, sequence_space_type * offspring, allele_space_type * alleles ) {
+        typedef typename SelectionType::const_iterator iterator;
         iterator mate_it = parents.begin(), mate_end = parents.end();
 
         size_t i = 0;
         while( mate_it != mate_end ) {
 
             unsigned int idx = 2 * mate_it->first;
-            sequence_vector s0 = parental->getSequenceSpace().getSequence( idx++ );
-            sequence_vector s1 = parental->getSequenceSpace().getSequence( idx );
+            sequence_vector s0 = parental->getSequence( idx++ );
+            sequence_vector s1 = parental->getSequence( idx );
 
-            sequence_iterator c = offspring->begin_sequence( i++ );
+            sequence_vector c = offspring->getSequence( i++ );
 
             event_type evts = make_events( );
-            classifier_type cfier0( parental->getAlleleSpace().getPositions(), evts );
+            classifier_type cfier0( &alleles->getPositions(), evts );
             bool _swap = m_bias_dist( *m_rng );
-            make_crossover_tasks( cfier0, s0.first, s0.second, s1.first, s1.second, c, _swap ); 
+            make_crossover_tasks( cfier0, s0.first, s0.second, s1.first, s1.second, c.first, _swap ); 
             
             idx = 2 * mate_it->second;
-            s0 = parental->getSequenceSpace().getSequence( idx++ );
-            s1 = parental->getSequenceSpace().getSequence( idx );
+            s0 = parental->getSequence( idx++ );
+            s1 = parental->getSequence( idx );
 
-            c = offspring->begin_sequence( i++ );
+            c = offspring->getSequence( i++ );
 
             event_type evts1 = make_events( );
-            classifier_type cfier1( parental->getAlleleSpace().getPositions(), evts1 );
+            classifier_type cfier1( &alleles->getPositions(), evts1 );
             _swap = m_bias_dist( *m_rng );
-            make_crossover_tasks( cfier1, s0.first, s0.second, s1.first, s1.second, c, _swap);
+            make_crossover_tasks( cfier1, s0.first, s0.second, s1.first, s1.second, c.first, _swap);
 
             ++mate_it;
         }
     }
 
-    template < class PoolType >
-    void generate( genetic_space_type * parental, mate_pair_type & parents, genetic_space_type * offspring, PoolType & pool ) {
+    template < class SelectionType, class PoolType >
+    void generate( const SelectionType & parents, sequence_space_type * parental, sequence_space_type * offspring, allele_space_type * alleles, PoolType & pool ) {
+        typedef typename SelectionType::const_iterator iterator;
         
         iterator mate_it = parents.begin(), mate_end = parents.end();
 
@@ -121,26 +122,26 @@ protected:
         while( mate_it != mate_end ) {
 
             unsigned int idx = 2 * mate_it->first;
-            sequence_vector s0 = parental->getSequenceSpace().getSequence( idx++ );
-            sequence_vector s1 = parental->getSequenceSpace().getSequence( idx );
+            sequence_vector s0 = parental->getSequence( idx++ );
+            sequence_vector s1 = parental->getSequence( idx );
 
-            sequence_iterator c = offspring->begin_sequence( i++ );
+            sequence_vector c = offspring->getSequence( i++ );
 
             event_type evts = make_events( );
-            classifier_type cfier0( parental->getAlleleSpace().getPositions(), evts );
+            classifier_type cfier0( &alleles->getPositions(), evts );
             bool _swap = m_bias_dist( *m_rng );
-            make_crossover_tasks( cfier0, s0.first, s0.second, s1.first, s1.second, c, pool, _swap );
+            make_crossover_tasks( cfier0, s0.first, s0.second, s1.first, s1.second, c.first, pool, _swap );
             
             idx = 2 * mate_it->second;
-            s0 = parental->getSequenceSpace().getSequence( idx++ );
-            s1 = parental->getSequenceSpace().getSequence( idx );
+            s0 = parental->getSequence( idx++ );
+            s1 = parental->getSequence( idx );
 
-            c = offspring->begin_sequence( i++ );
+            c = offspring->getSequence( i++ );
 
             event_type evts1 = make_events( );
-            classifier_type cfier1( parental->getAlleleSpace().getPositions(), evts1 );
+            classifier_type cfier1( &alleles->getPositions(), evts1 );
             _swap = m_bias_dist( *m_rng );
-            make_crossover_tasks( cfier1, s0.first, s0.second, s1.first, s1.second, c, pool, _swap );
+            make_crossover_tasks( cfier1, s0.first, s0.second, s1.first, s1.second, c.first, pool, _swap );
 
             ++mate_it;
         }
