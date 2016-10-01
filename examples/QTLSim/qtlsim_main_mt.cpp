@@ -27,7 +27,7 @@
 #include "qtlsim_engine_mt.hpp"
 
 typedef boost::random::mt19937          random_engine_type;
-typedef EngineMT< random_engine_type >  engine_type;
+typedef EngineMT< random_engine_type, real_type >  engine_type;
 
 boost::mutex mio;
 

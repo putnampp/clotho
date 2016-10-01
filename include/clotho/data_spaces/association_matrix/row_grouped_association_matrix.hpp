@@ -416,6 +416,9 @@ protected:
                 delete [] m_data;
             }
 
+            // allocate an additional 2 blocks/row
+            new_size = (blocks_per_row+ 2) * r;
+
             m_data = new block_type[ new_size ];
 
             m_allocated_size = new_size;

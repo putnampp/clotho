@@ -85,15 +85,13 @@ public:
         BOOST_LOG_TRIVIAL(debug) << "Evaluating Free Space: " << m_block_rows << " x " << m_block_columns;
 #endif  // DEBUGGING
 
-        block_type * src = m_source;
-        unsigned int offset = 0;
         for( unsigned int i = 0; i < m_block_rows; ++i ) {
+            block_type * tmp = m_source + i * m_row_width;
             for( unsigned int j = 0; j < m_block_columns; ++j ) {
-                block_type b = src[ offset + j ];
+                block_type b = tmp[ j ];
                 tempF[ j ] &= b;
                 tempV[ j ] |= b;
             }
-            offset += m_row_width;
         }
     }
 

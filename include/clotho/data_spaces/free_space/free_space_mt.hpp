@@ -45,7 +45,8 @@ public:
         block_type * destF = new block_type[ 2 * ss.block_column_count() ];
         block_type * destV = destF + ss.block_column_count();
 
-        memset( destF, 0, 2 * ss.block_column_count() * sizeof(block_type) );
+        memset( destF, 255, ss.block_column_count() * sizeof(block_type) );
+        memset( destV, 0, ss.block_column_count() * sizeof(block_type) );
 
         process_space( ss.begin_row(0), destF, destV, ss.block_row_count(), ss.block_column_count(), pool );
 
@@ -82,9 +83,11 @@ protected:
             cols -= cpb;
         }
 
-        // last block being run on master thread
-        task_type t(source, destF, destV, block_rows, cols, block_columns );
-        t();
+        if( 0 < cols ) {
+            // last block being run on master thread
+            task_type t(source, destF, destV, block_rows, cols, block_columns );
+            t();
+        }
 
         pool.sync();
     }
