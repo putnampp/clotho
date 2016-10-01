@@ -21,18 +21,19 @@
 namespace clotho {
 namespace genetics {
 
-template < class GeneticSpaceType >
-class PhenotypeMT : public phenotype_details< GeneticSpaceType > {
+template < class SequenceSpaceType, class TraitSpaceType >
+class PhenotypeMT : public phenotype_details< SequenceSpaceType, TraitSpaceType > {
 public:
 
-    typedef phenotype_details< GeneticSpaceType >   base_type;
-    typedef GeneticSpaceType                        genetic_space_type;
+    typedef phenotype_details< SequenceSpaceType, TraitSpaceType >   base_type;
+    typedef SequenceSpaceType                                       sequence_space_type;
+    typedef TraitSpaceType                                          trait_space_type;
 
     typedef typename base_type::weight_type                         weight_type;
-    typedef typename genetic_space_type::block_type                 block_type;
-    typedef typename genetic_space_type::association_type::sequence_vector  sequence_vector;
+    typedef typename sequence_space_type::block_type                block_type;
+    typedef typename sequence_space_type::sequence_vector           sequence_vector;
 
-    typedef phenotype_accumulator< weight_type >                    accumulator_type;
+    typedef phenotype_accumulator< trait_space_type >               accumulator_type;
     typedef phenotype_task< block_type, accumulator_type >          task_type;
 
     PhenotypeMT( boost::property_tree:: ptree & config ) :
@@ -40,50 +41,48 @@ public:
     {    }
 
     template < class PoolType >
-    void operator()( genetic_space_type * pop, PoolType & pool ) {
-        this->resize( pop->getSequenceSpace().row_count(), this->m_trait_count );
+    void operator()( sequence_space_type * pop, trait_space_type * traits, PoolType & pool ) {
+        this->resize( pop->row_count(), traits->trait_count() );
 
-        if( !pop->getAlleleSpace().isAllNeutral() ) {
-            if( pool.pool_size() < 1 ) {
-                generate( pop );
-            } else {
-                generate( pop, pool );
-            }
-            this->reduce_phenotypes(pop);
+        if( pool.pool_size() < 1 ) {
+            generate( pop, traits );
+        } else {
+            generate( pop, traits, pool );
         }
+        this->reduce_phenotypes();
     }
 
     virtual ~PhenotypeMT() { }
 
 protected:
 
-    void generate( genetic_space_type * pop ) {
+    void generate( sequence_space_type * pop, trait_space_type * traits ) {
         typename base_type::phenotype_type * tmp = this->getPhenotypes();
         for( unsigned int i = 0; i < this->m_seq_count; ++i ) {
-            accumulator_type acc( pop->getAlleleSpace().getWeights(), pop->getAlleleSpace().allele_count(), this->m_trait_count, tmp );
+            accumulator_type acc( traits, tmp );
 
-            sequence_vector seq = pop->getSequenceSpace().getSequence( i );
+            sequence_vector seq = pop->getSequence( i );
 
             task_type t( seq.first, seq.second, acc );
 
             t();
 
-            tmp += this->m_trait_count;
+            tmp += traits->trait_count();
         }
     }
 
     template < class PoolType >
-    void generate( genetic_space_type * pop, PoolType & pool ) {
+    void generate( sequence_space_type * pop, trait_space_type * traits, PoolType & pool ) {
         typename base_type::phenotype_type * tmp = this->getPhenotypes();
         for( unsigned int i = 0; i < this->m_seq_count; ++i ) {
-            accumulator_type acc( pop->getAlleleSpace().getWeights(), pop->getAlleleSpace().allele_count(), this->m_trait_count, tmp );
+            accumulator_type acc( traits, tmp );
 
-            sequence_vector seq = pop->getSequenceSpace().getSequence( i );
+            sequence_vector seq = pop->getSequence( i );
 
             task_type t(seq.first, seq.second, acc );
             pool.post( t );
 
-            tmp += this->m_trait_count;
+            tmp += traits->trait_count();
         }
 
         pool.sync();
@@ -96,9 +95,9 @@ protected:
 namespace clotho {
 namespace utility {
 
-template < class GeneticSpaceType >
-struct state_getter< clotho::genetics::PhenotypeMT< GeneticSpaceType > >  {
-    typedef clotho::genetics::PhenotypeMT< GeneticSpaceType > object_type;
+template < class SequenceSpaceType, class TraitSpaceType >
+struct state_getter< clotho::genetics::PhenotypeMT< SequenceSpaceType, TraitSpaceType > >  {
+    typedef clotho::genetics::PhenotypeMT< SequenceSpaceType, TraitSpaceType > object_type;
 
     void operator()( boost::property_tree::ptree & s, object_type & obj ) {
         typedef typename object_type::weight_type phenotype_type;

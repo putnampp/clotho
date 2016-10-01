@@ -14,35 +14,41 @@
 #ifndef CLOTHO_PHENOTYPE_DETAILS_HPP_
 #define CLOTHO_PHENOTYPE_DETAILS_HPP_
 
-#include "clotho/data_spaces/phenotype_evaluator/trait_count_parameter.hpp"
-
 #include "clotho/data_spaces/phenotype_evaluator/pairwise_phenotype_reducer.hpp"
 
 namespace clotho {
 namespace genetics {
 
-template < class GeneticSpaceType >
+template < class SequenceSpaceType, class TraitSpaceType >
 class phenotype_details {
 public:
+    typedef SequenceSpaceType                                       sequence_space_type;
+    typedef TraitSpaceType                                          trait_space_type;
 
-    typedef GeneticSpaceType    genetic_space_type;
-
-    typedef typename genetic_space_type::allele_type::weight_type   weight_type;
+    typedef typename trait_space_type::weight_type                  weight_type;
     typedef weight_type                                             phenotype_type;
 
-    phenotype_details( boost::property_tree:: ptree & config ) :
+    phenotype_details( ) :
         m_phenos( NULL )
         , m_seq_count( 0 )
         , m_trait_count( 0 )
         , m_alloc_size( 0 ) 
-    {
-        trait_count_parameter tc(config);
+    { }
 
-        m_trait_count = tc.m_trait_count;
+    void constant_phenotype( sequence_space_type * pop, trait_space_type * trait_space ) {
+        resize( pop->row_count(), trait_space->trait_count() );
+
+        for( unsigned int i = 0; i < m_alloc_size; ++i ) {
+            m_phenos[ i ] = 1.0;
+        }
     }
 
     phenotype_type *   getPhenotypes() const {
         return m_phenos;
+    }
+
+    unsigned int individual_count() const {
+        return m_seq_count / 2;
     }
 
     unsigned int sequence_count() const {
@@ -61,12 +67,8 @@ public:
 
 protected:
 
-    void reduce_phenotypes( genetic_space_type * pop ) {
+    void reduce_phenotypes(  ) {
         pairwise_phenotype_reducer red;
-
-        unsigned int N = pop->individual_count();
-
-        assert( N == this->m_seq_count / 2);
 
         unsigned int i = 0;
         phenotype_type * res = this->m_phenos;

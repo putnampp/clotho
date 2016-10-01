@@ -74,6 +74,7 @@ public:
         ASSERT_VALID_RANGE( col, 0, m_columns );
 
         size_t idx = block_index( row, col, m_bpr );
+        std::cerr << "Flipping row: " << row << "; col: " << col << "; bpr: " << m_bpr << std::endl;
 #ifdef DEBUGGING
         assert( (m_data[ idx ] & bit_helper_type::bit_offset( col )) == 0 );
 #endif  // DEBUGGING
@@ -261,6 +262,7 @@ public:
 
         size_t idx = block_index( row, col, m_bpr );
         size_t bc = block_column_offset( col ) + 1;
+        //std::cerr << "Flipping row: " << row << "; col: " << col << "; bpr: " << m_bpr << "; idx: " << idx << std::endl;
 #ifdef DEBUGGING
         assert( (m_data[ idx ] & bit_helper_type::bit_offset( col )) == 0 );
 #endif  // DEBUGGING
@@ -342,7 +344,11 @@ public:
     }
 
     sequence_vector getSequence( unsigned int offset ) const {
-        return std::make_pair( begin_row(offset), m_bpr );
+//        if( row_count() == 0 ) {
+//            return std::make_pair( m_data, 0 );
+//        } else {
+            return std::make_pair( begin_row(offset), m_bpr );
+//        }
     }
 
     raw_block_pointer begin_row( size_t idx ) const {

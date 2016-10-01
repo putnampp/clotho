@@ -17,50 +17,48 @@
 namespace clotho {
 namespace genetics {
 
-template < class WeightType >
+template < class TraitSpaceType >
 class phenotype_accumulator {
 public:
-    typedef phenotype_accumulator< WeightType > self_type;
-    typedef WeightType  weight_type;
+    typedef phenotype_accumulator< TraitSpaceType >     self_type;
+    typedef TraitSpaceType                              trait_space_type;
+    typedef typename trait_space_type::weight_type      weight_type;
 
+    typedef typename trait_space_type::const_iterator   const_iterator;
 /**
  *
  * rows => alleles
  * columns => traits
  */
-    phenotype_accumulator( weight_type * weights, unsigned int rows, unsigned int columns, weight_type * results ) :
-        m_weights( weights )
-        , m_rows(rows)
-        , m_columns( columns )
+    phenotype_accumulator( trait_space_type * traits,  weight_type * results ) :
+        m_traits( traits )
         , m_results( results )
     {}
 
     phenotype_accumulator( const self_type & other ) :
-        m_weights( other.m_weights )
-        , m_rows( other.m_rows )
-        , m_columns( other.m_columns )
+        m_traits( other.m_traits )
         , m_results( other.m_results )
     {}
 
     void operator()( unsigned int row ) {
-#ifdef DEBUGGING
-        assert( row < m_rows );
-#endif  // DEBUGGING
+        const_iterator it = m_traits->begin( row );
+        const_iterator end = m_traits->end( row );
 
-        row *= m_columns;
-        for( unsigned int i = 0; i < m_columns; ++i ) {
-            m_results[ i ] += m_weights[ row + i ];
+        weight_type * tmp = m_results;
+        while( it != end ) {
+            (*tmp++) += (*it++);
         }
+    }
+
+    weight_type * getResults() {
+        return m_results;
     }
 
     virtual ~phenotype_accumulator() {}
 
 protected:
-    weight_type     * m_weights;
-
-    unsigned int    m_rows, m_columns;
-
-    weight_type     * m_results;
+    trait_space_type    * m_traits;
+    weight_type         * m_results;
 };
 
 }   // namespace genetics

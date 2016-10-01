@@ -21,26 +21,23 @@
 namespace clotho {
 namespace genetics {
 
-template < class GeneticSpaceType >
-class BatchPhenotypeMT : public phenotype_details< GeneticSpaceType > {
+template < class SequenceSpaceType, class TraitSpaceType >
+class BatchPhenotypeMT : public phenotype_details< SequenceSpaceType, TraitSpaceType > {
 public:
-    typedef phenotype_details< GeneticSpaceType >           base_type;
-    typedef GeneticSpaceType                                genetic_space_type;
+    typedef phenotype_details< SequenceSpaceType, TraitSpaceType >           base_type;
+    typedef SequenceSpaceType                               sequence_space_type;
+    typedef TraitSpaceType                                  trait_space_type;
 
-    typedef batch_phenotype_task< genetic_space_type >      task_type;
+    typedef batch_phenotype_task< sequence_space_type, trait_space_type >      task_type;
 
-    BatchPhenotypeMT( boost::property_tree::ptree & config ) :
-        base_type( config ) 
-    {}
+    BatchPhenotypeMT( ) {}
 
     template < class PoolType >
-    void operator()( genetic_space_type * pop, PoolType & pool ) {
-        this->resize( pop->getSequenceSpace().row_count(), this->m_trait_count );
+    void operator()( sequence_space_type * pop, trait_space_type * trait_space, PoolType & pool ) {
+        this->resize( pop->row_count(), trait_space->trait_count() );
 
-        if( ! pop->getAlleleSpace().isAllNeutral() ) {
-            generate( pop, pool );
-            this->reduce_phenotypes(pop);
-        }
+        evaluate( pop, trait_space, pool );
+        this->reduce_phenotypes();
     }
 
     virtual ~BatchPhenotypeMT() { }
@@ -48,13 +45,13 @@ public:
 protected:
 
     template < class PoolType >
-    void generate( genetic_space_type * pop, PoolType & pool ) {
+    void evaluate( sequence_space_type * pop, trait_space_type * traits, PoolType & pool ) {
         unsigned int tc = pool.pool_size() + 1; // add one for master thread
 
         unsigned int batch_size = this->m_seq_count / tc;
         batch_size += ((this->m_seq_count % tc > 0) ? 1 : 0);
 
-        unsigned int buffer_offset = batch_size * this->m_trait_count;
+        unsigned int buffer_offset = batch_size * traits->trait_count();
 
         typename base_type::phenotype_type * tmp = this->getPhenotypes();
 
@@ -62,7 +59,7 @@ protected:
         while( i + batch_size < this->m_seq_count ) {
             BOOST_LOG_TRIVIAL(info) << "Phenotype task (worker): [" << i << ", " << i + batch_size << "); Trait_count: " << this->m_trait_count;
 
-            task_type t(pop, i, i + batch_size, this->m_trait_count, tmp );
+            task_type t(pop, traits, i, i + batch_size, tmp );
             pool.post( t );
 
             i += batch_size;
@@ -71,7 +68,7 @@ protected:
 
         if( i < this->m_seq_count ) {
             BOOST_LOG_TRIVIAL(info) << "Phenotype task (master): [" << i << ", " << this->m_seq_count << "); Trait_count: " << this->m_trait_count;
-            task_type t(pop, i, this->m_seq_count, this->m_trait_count, tmp );
+            task_type t(pop, traits, i, this->m_seq_count, tmp );
             t();
         }
 
@@ -86,9 +83,9 @@ protected:
 namespace clotho {
 namespace utility {
 
-template < class GeneticSpaceType >
-struct state_getter< clotho::genetics::BatchPhenotypeMT< GeneticSpaceType > >  {
-    typedef clotho::genetics::BatchPhenotypeMT< GeneticSpaceType > object_type;
+template < class SequenceSpaceType, class TraitSpaceType >
+struct state_getter< clotho::genetics::BatchPhenotypeMT< SequenceSpaceType, TraitSpaceType > >  {
+    typedef clotho::genetics::BatchPhenotypeMT< SequenceSpaceType, TraitSpaceType > object_type;
 
     void operator()( boost::property_tree::ptree & s, object_type & obj ) {
         typedef typename object_type::phenotype_type phenotype_type;

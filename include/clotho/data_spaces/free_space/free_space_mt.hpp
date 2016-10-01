@@ -31,6 +31,7 @@ namespace genetics {
 template < class SizeType = unsigned int >
 class FreeSpaceAnalyzerMT : public free_space_details< SizeType > {
 public:
+    typedef free_space_details< SizeType >  base_type;
 
     typedef SizeType            size_type;
 
@@ -41,11 +42,14 @@ public:
         typedef typename SequenceSpaceType::block_type block_type;
 
         this->resize( ss.column_count() );
+
+        if ( ss.column_count() == 0 )  return;
         
         block_type * destF = new block_type[ 2 * ss.block_column_count() ];
         block_type * destV = destF + ss.block_column_count();
 
-        memset( destF, 0, 2 * ss.block_column_count() * sizeof(block_type) );
+        memset( destF, 255,  ss.block_column_count() * sizeof(block_type) );
+        memset( destV, 0,  ss.block_column_count() * sizeof(block_type) );
 
         process_space( ss.begin_row(0), destF, destV, ss.block_row_count(), ss.block_column_count(), pool );
 

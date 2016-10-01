@@ -17,5 +17,6 @@
 #include "clotho/data_spaces/selection/selection_generator.hpp"
 #include "clotho/data_spaces/selection/fitness_selection_generator.hpp"
 #include "clotho/data_spaces/selection/assortative_selection_generator.hpp"
+#include "clotho/data_spaces/selection/general_fitness_selection_generator.hpp"
 
 #endif  // CLOTHO_SELECTION_GUARD_HPP_
