@@ -14,7 +14,7 @@
 #ifndef CLOTHO_BATCH_CROSSOVER_MT_GENERATOR_HPP_
 #define CLOTHO_BATCH_CROSSOVER_MT_GENERATOR_HPP_
 
-#include "clotho/data_spaces/crossover/batch_crossover_task.hpp"
+#include "clotho/data_spaces/crossover/batch_crossover_tasks.hpp"
 #include "clotho/recombination/sequence_bias_parameter.hpp"
 #include "clotho/recombination/recombination_rate_parameter.hpp"
 #include "clotho/data_spaces/task/thread_pool.hpp"

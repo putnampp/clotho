@@ -17,5 +17,6 @@
 #include "clotho/data_spaces/analysis/allele_frequency/allele_frequency_def.hpp"
 #include "clotho/data_spaces/analysis/allele_frequency/association_matrix_allele_frequency.hpp"
 #include "clotho/data_spaces/analysis/allele_frequency/genetic_space_allele_frequency.hpp"
+#include "clotho/data_spaces/analysis/allele_frequency/population_space_allele_frequency.hpp"
 
 #endif  // ALLELE_FREQUENCY_GUARD_HPP_

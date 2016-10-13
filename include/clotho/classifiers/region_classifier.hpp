@@ -115,9 +115,7 @@ public:
         return os;
     }
 
-    virtual ~region_classifier() {
-        m_ubounds.clear();
-    }
+    virtual ~region_classifier() {}
 
 protected:
 //    inline bool classify_region_index( unsigned int idx, is_even_tag * t ) const {

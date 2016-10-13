@@ -34,26 +34,26 @@ public:
 
     PositionClassifier( position_type * pos, const event_type & events ) :
         m_positions( pos )
-        , m_cfier( events )
+        , m_classifier( events )
     {}
 
     PositionClassifier( const self_type & other ) : 
         m_positions( other.m_positions )
-        , m_cfier( other.m_cfier )
+        , m_classifier( other.m_classifier )
     {}
 
     bool operator()( unsigned int offset ) {
-        return m_cfier( m_positions[ offset ] );
+        return m_classifier( m_positions[ offset ] );
     }
 
     size_t event_count() const {
-        return m_cfier.event_count();
+        return m_classifier.event_count();
     }
 
     virtual ~PositionClassifier() {}
 protected:
     position_type   * m_positions;
-    classifier_type m_cfier;
+    classifier_type m_classifier;
 };
 
 template < class PositionType >
@@ -70,26 +70,26 @@ public:
 
     PositionClassifier( position_vector * pos, const event_type & events ) :
         m_positions( pos )
-        , m_cfier( events )
+        , m_classifier( events )
     {}
 
     PositionClassifier( const self_type & other ) : 
         m_positions( other.m_positions )
-        , m_cfier( other.m_cfier )
+        , m_classifier( other.m_classifier )
     {}
 
     bool operator()( unsigned int offset ) {
-        return m_cfier( m_positions->at( offset ) );
+        return m_classifier( m_positions->at( offset ) );
     }
 
     size_t event_count() const {
-        return m_cfier.event_count();
+        return m_classifier.event_count();
     }
 
     virtual ~PositionClassifier() {}
 protected:
     position_vector     * m_positions;
-    classifier_type     m_cfier;
+    classifier_type     m_classifier;
 };
 
 }   // namespace genetics

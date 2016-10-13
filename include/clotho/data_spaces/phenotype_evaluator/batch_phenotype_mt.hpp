@@ -24,11 +24,11 @@ namespace genetics {
 template < class SequenceSpaceType, class TraitSpaceType >
 class BatchPhenotypeMT : public phenotype_details< SequenceSpaceType, TraitSpaceType > {
 public:
-    typedef phenotype_details< SequenceSpaceType, TraitSpaceType >           base_type;
-    typedef SequenceSpaceType                               sequence_space_type;
-    typedef TraitSpaceType                                  trait_space_type;
+    typedef phenotype_details< SequenceSpaceType, TraitSpaceType >              base_type;
+    typedef SequenceSpaceType                                                   sequence_space_type;
+    typedef TraitSpaceType                                                      trait_space_type;
 
-    typedef batch_phenotype_task< sequence_space_type, trait_space_type >      task_type;
+    typedef batch_phenotype_task< sequence_space_type, trait_space_type >       task_type;
 
     BatchPhenotypeMT( ) {}
 

@@ -11,8 +11,10 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_MUTATION_GENERATOR2_HPP_
-#define CLOTHO_MUTATION_GENERATOR2_HPP_
+#ifndef CLOTHO_MUTATION_GENERATOR2_POPULATION_SPACE_HPP_
+#define CLOTHO_MUTATION_GENERATOR2_POPULATION_SPACE_HPP_
+
+#include "clotho/data_spaces/population_space/population_space.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
@@ -20,12 +22,12 @@
 namespace clotho {
 namespace genetics {
 
-template < class RNG, class SequenceSpaceType >
-class MutationGenerator2 {
+template < class RNG, class BlockType, class WeightType >
+class MutationGenerator2 < RNG, population_space< BlockType, WeightType > > {
 public:
     typedef RNG     random_number_engine;
 
-    typedef SequenceSpaceType   sequence_space_type;
+    typedef population_space< BlockType, WeightType >   sequence_space_type;
 
     typedef boost::random::uniform_int_distribution< unsigned int > sequence_distribution_type;
 
@@ -37,7 +39,7 @@ public:
     void operator()( sequence_space_type * seqs, FreeSpaceType & free_space, unsigned int N  ) {
         assert( N <= free_space.free_size() );
 
-        sequence_distribution_type seq_gen( 0, seqs.row_count() - 1 );
+        sequence_distribution_type seq_gen( 0, seqs->individual_count() - 1 );
 
         typename FreeSpaceType::base_type::iterator it = free_space.free_begin();
 
@@ -49,8 +51,8 @@ public:
         }
     }
 
-    void operator()( sequence_space_type * seqs, unsigned int seq_idx, unsigned int all_idx ) {
-        seqs->flip( seq_idx, all_idx );
+    inline void operator()( sequence_space_type * seqs, unsigned int seq_idx, unsigned int all_idx ) {
+        seqs->mutate( seq_idx, all_idx );
     }
 
     virtual ~MutationGenerator2() {}
@@ -59,8 +61,6 @@ protected:
     random_number_engine * m_rng;
 };
 
-
 }   // namespace genetics
 }   // namespace clotho
-
-#endif  // CLOTHO_MUTATION_GENERATOR2_HPP_
+#endif  // CLOTHO_MUTATION_GENERATOR2_POPULATION_SPACE_HPP_

@@ -51,7 +51,7 @@ public:
     void operator()( const PhenotypeSpaceType & phenos ) {
         typedef typename PhenotypeSpaceType::phenotype_type         weight_type;
 
-        unsigned int N = phenos.individual_count();
+        const unsigned int N = phenos.individual_count();
 
         if( N == 0 ) return;
 
@@ -68,6 +68,21 @@ public:
 
             tmp += traits;
             ++i;
+        }
+    }
+
+    template < class Iterator >
+    void operator()( Iterator first, Iterator last ) {
+        const unsigned int N = last - first;
+
+        fitness_operator op = m_fit_gen->generate( N );
+
+        unsigned int i = 0;
+        while( first != last ) {
+            fitness_type score = (*op)( *first );
+
+            setFitness( i++, score );
+            ++first;
         }
     }
 

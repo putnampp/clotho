@@ -84,6 +84,7 @@ public:
 #ifdef DEBUGGING
         BOOST_LOG_TRIVIAL(debug) << "Evaluating Free Space: " << m_block_rows << " x " << m_block_columns;
 #endif  // DEBUGGING
+        std::cerr << "BlockType FreeSpace" << std::endl;
 
         for( unsigned int i = 0; i < m_block_rows; ++i ) {
             block_type * tmp = m_source + i * m_row_width;

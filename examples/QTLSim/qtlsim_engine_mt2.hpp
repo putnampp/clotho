@@ -31,13 +31,13 @@
 #include "clotho/data_spaces/phenotype_evaluator/trait_space_generator.hpp"
 
 #include "clotho/data_spaces/phenotype_evaluator/trait_accumulator.hpp"
-#include "clotho/data_spaces/free_space/free_space_mt.hpp"
+#include "clotho/data_spaces/free_space/free_space_mts.hpp"
 
 #ifdef USE_BATCH_JOBS
 #include "clotho/data_spaces/crossover/batch_crossover_mt.hpp"
 #define CROSSOVER_TYPE clotho::genetics::BatchCrossoverMT
 
-#include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_mt.hpp"
+#include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_mts.hpp"
 #define PHENOTYPE_TYPE clotho::genetics::BatchPhenotypeMT
 
 #else
@@ -48,9 +48,10 @@
 #define PHENOTYPE_TYPE clotho::genetics::PhenotypeMT
 #endif  // USE_BATCH_JOBS
 
+#include "clotho/data_spaces/population_space/population_space.hpp"
 #include "clotho/data_spaces/selection/selection.hpp"
 
-#include "clotho/data_spaces/mutation/mutation_generator2.hpp"
+#include "clotho/data_spaces/mutation/mutation_generators.hpp"
 #include "clotho/data_spaces/mutation/mutation_allocator.hpp"
 
 #include "clotho/data_spaces/fitness/general_fitness.hpp"
@@ -75,9 +76,10 @@ public:
 
     typedef clotho::genetics::thread_pool< RNG >                                                    thread_pool_type;
     typedef clotho::genetics::AlleleSpace< position_type, size_type >                               allele_type;
-    typedef clotho::genetics::association_matrix< block_type, __ALIGNMENT_TYPE__ >                  sequence_space_type;
+//    typedef clotho::genetics::association_matrix< block_type, __ALIGNMENT_TYPE__ >                  sequence_space_type;
+    typedef clotho::genetics::population_space< block_type, weight_type >                           sequence_space_type;
     typedef clotho::genetics::trait_space_vector< weight_type >                                     trait_space_type;
-    typedef clotho::genetics::FreeSpaceAnalyzerMT< size_type >                                      free_space_type;
+    typedef clotho::genetics::FreeSpaceAnalyzerMT< sequence_space_type, size_type >                 free_space_type;
 
     typedef clotho::genetics::mutation_allocator< random_engine_type, size_type >                 mutation_alloc_type;
 
@@ -190,7 +192,9 @@ public:
         } else {
             m_pheno.constant_phenotype( m_child, &m_trait_space );
         }
-        m_fit( m_pheno );
+        m_fit( m_pheno.begin(), m_pheno.end() );
+
+        m_child->finalize();
 
         ++m_generation;
     }
@@ -212,7 +216,7 @@ public:
 protected:
 
     void generate_child_mutations( unsigned int N ) {
-        typename mutation_type::sequence_distribution_type seq_gen( 0, m_child->row_count() - 1);
+        typename mutation_type::sequence_distribution_type seq_gen( 0, m_child->haploid_genome_count() - 1);
 
         typename free_space_type::base_type::iterator it = m_free_space.free_begin(), end = m_free_space.free_end();
         while( N && it != end ) {
@@ -229,7 +233,7 @@ protected:
             typename free_space_type::size_type all_idx = m_allele_space.size();
             unsigned int seq_idx = seq_gen( *m_rand );
 
-            assert( all_idx < m_child->column_count() );
+            assert( all_idx < m_child->getMaxAlleles() );
 
             mutate_gen( m_child, seq_idx, all_idx );
             allele_gen( m_allele_space, all_idx, m_generation );
@@ -259,7 +263,7 @@ protected:
     }
 
     size_type updateFixedAlleles( sequence_space_type * ss ) {
-        m_free_space( *ss, m_thread_pool );               // analyze the parent population sequence space
+        m_free_space( ss, m_thread_pool );               // analyze the parent population sequence space
 
         typedef typename free_space_type::iterator  fixed_iterator;
         typedef typename trait_space_type::iterator trait_iterator;
@@ -270,7 +274,7 @@ protected:
         while( fix_it != fix_end ) {
             size_type  fixed_index = *fix_it++;
 
-            ss->flipColumn( fixed_index );
+            ss->remove_fixed_allele( fixed_index );
 
             m_fixed.append( m_allele_space, fixed_index );
             

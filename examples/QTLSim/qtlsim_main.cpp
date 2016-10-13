@@ -134,7 +134,7 @@ int main( int argc, char ** argv ) {
             if( !( --log_period ) ) {
                 boost::property_tree::ptree stat_log;
                 timer_type stat_time;
-                random_sample_type ss( &rand_engine, sim_engine.getChildPopulation()->row_count(), sim_engine.getChildPopulation()->row_count() );
+                random_sample_type ss( &rand_engine, sim_engine.getChildPopulation()->haploid_genome_count(), sim_engine.getChildPopulation()->haploid_genome_count() );
                 population_analyzer an( &ss, sim_engine.getChildPopulation(), sim_engine.getAlleleSpace() );
                 an( stat_log );
 
@@ -148,7 +148,7 @@ int main( int argc, char ** argv ) {
                     std::ostringstream oss;
                     oss << "sample." << samp_idx++;
 
-                    random_sample_type samp( &rand_engine, sim_engine.getChildPopulation()->row_count(), v.sample_size );
+                    random_sample_type samp( &rand_engine, sim_engine.getChildPopulation()->haploid_genome_count(), v.sample_size );
 
                     population_analyzer _an( &samp, sim_engine.getChildPopulation(), sim_engine.getAlleleSpace() );
 

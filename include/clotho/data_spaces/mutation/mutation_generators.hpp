@@ -11,14 +11,10 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef FREQUENCY_EVALUATOR_HPP_
-#define FREQUENCY_EVALUATOR_HPP_
+#ifndef CLOTHO_MUTATION_GENERATORS_HPP_
+#define CLOTHO_MUTATION_GENERATORS_HPP_
 
-#include "clotho/data_spaces/analysis/allele_frequency/frequency_evaluator_def.hpp"
-#include "clotho/data_spaces/analysis/allele_frequency/column_aligned_frequency_evaluator.hpp"
-#include "clotho/data_spaces/analysis/allele_frequency/row_grouped_frequency_evaluator.hpp"
-#include "clotho/data_spaces/analysis/allele_frequency/row_vector_frequency_evaluator.hpp"
-#include "clotho/data_spaces/analysis/allele_frequency/population_space_frequency_evaluator.hpp"
+#include "clotho/data_spaces/mutation/mutation_generator2.hpp"
+#include "clotho/data_spaces/mutation/mutation_generator_population_space.hpp"
 
-#endif  // FREQUENCY_EVALUATOR_HPP_
-
+#endif  // CLOTHO_MUTATION_GENERATORS_HPP_

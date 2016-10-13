@@ -159,9 +159,9 @@ protected:
 
             j += bit_helper_type::BITS_PER_BLOCK;
         }
-//#ifdef DEBUGGING
-        BOOST_LOG_TRIVIAL(info) << "Free count: " << m_free_count << "; Fixed count: " << m_fixed_count << "; Lost count: " << m_lost_count;
-//#endif  // DEBUGGING
+#ifdef DEBUGGING
+        BOOST_LOG_TRIVIAL(debug) << "Free count: " << m_free_count << "; Fixed count: " << m_fixed_count << "; Lost count: " << m_lost_count;
+#endif  // DEBUGGING
     }
 
     size_type  * m_indices;

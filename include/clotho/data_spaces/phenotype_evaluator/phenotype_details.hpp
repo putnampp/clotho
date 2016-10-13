@@ -28,6 +28,8 @@ public:
     typedef typename trait_space_type::weight_type                  weight_type;
     typedef weight_type                                             phenotype_type;
 
+    typedef phenotype_type *                                        phenotype_iterator;
+
     phenotype_details( ) :
         m_phenos( NULL )
         , m_seq_count( 0 )
@@ -45,6 +47,14 @@ public:
 
     phenotype_type *   getPhenotypes() const {
         return m_phenos;
+    }
+
+    phenotype_iterator begin() {
+        return m_phenos;
+    }
+
+    phenotype_iterator end() {
+        return m_phenos + m_seq_count * m_trait_count;
     }
 
     unsigned int individual_count() const {

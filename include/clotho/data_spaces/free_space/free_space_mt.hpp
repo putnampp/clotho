@@ -21,14 +21,14 @@
 #include <boost/thread/thread.hpp>
 
 #include "clotho/data_spaces/free_space/free_space_details.hpp"
-#include "clotho/data_spaces/free_space/free_space_task.hpp"
+#include "clotho/data_spaces/free_space/free_space_tasks.hpp"
 
 #include "clotho/data_spaces/task/thread_pool.hpp"
 
 namespace clotho {
 namespace genetics {
 
-template < class SizeType = unsigned int >
+template < class SequenceSpaceType, class SizeType = unsigned int >
 class FreeSpaceAnalyzerMT : public free_space_details< SizeType > {
 public:
     typedef free_space_details< SizeType >  base_type;
@@ -37,7 +37,7 @@ public:
 
     FreeSpaceAnalyzerMT( ) { }
 
-    template < class SequenceSpaceType, class PoolType >
+    template < class PoolType >
     void operator()( SequenceSpaceType & ss, PoolType & pool ) {
         typedef typename SequenceSpaceType::block_type block_type;
 
