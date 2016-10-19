@@ -20,6 +20,7 @@
 namespace clotho {
 namespace genetics {
 
+/*
 template < class SizeType >
 class free_space_details {
 public:
@@ -121,44 +122,46 @@ protected:
             m_width = s;
         }
     }
+
     template < class BlockType >
     void analyze_free_indices( BlockType * fixed, BlockType * variable, unsigned int W, unsigned int M ) {
         typedef BlockType                                           block_type;
         typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
         typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
 
+        size_type * _free = m_indices;
         size_type * _fix = m_indices + m_width;
         size_type * _lost = _fix + m_width; 
 
-        m_free_count = 0;
-        m_lost_count = 0;
-        m_fixed_count = 0;
-
-        unsigned int j = 0;
         for( unsigned int i = 0; i < W; ++i ) {
             block_type fx = fixed[ i ];
             block_type var = variable[ i ];
 
             block_type ls = ~(fx | var);
 
+            size_type idx = i * bit_helper_type::BITS_PER_BLOCK;
             while( fx ) {
-                size_type b_idx = bit_walker_type::unset_next_index( fx ) + j;
-                if( b_idx < M ) {
-                    m_indices[ m_free_count++ ] = b_idx;
-                    _fix[ m_fixed_count++ ] = b_idx;
-                }
-            }
-
-            while( ls ) {
-                size_type idx = bit_walker_type::unset_next_index( ls ) + j;
+                idx += bit_walker_type::next_and_shift( fx );
                 if( idx < M ) {
-                    m_indices[ m_free_count++ ] = idx;
-                    _lost[ m_lost_count++ ] = idx;
+                    *_free++ = idx;
+                    *_fix++ = idx;
                 }
             }
 
-            j += bit_helper_type::BITS_PER_BLOCK;
+            idx = i * bit_helper_type::BITS_PER_BLOCK;
+            while( ls ) {
+                idx += bit_walker_type::next_and_shift( ls );
+                if( idx < M ) {
+                    *_free++ = idx;
+                    *_lost++ = idx;
+                }
+            }
         }
+
+        m_free_count = (_free - m_indices);
+        m_fixed_count = (_fix - (m_indices + m_width));
+        m_lost_count = (_lost - (m_indices + 2 * m_width));
+
 #ifdef DEBUGGING
         BOOST_LOG_TRIVIAL(debug) << "Free count: " << m_free_count << "; Fixed count: " << m_fixed_count << "; Lost count: " << m_lost_count;
 #endif  // DEBUGGING
@@ -167,6 +170,166 @@ protected:
     size_type  * m_indices;
     size_type  m_fixed_count, m_lost_count, m_free_count;
     size_type  m_width, m_size;
+};
+*/
+
+template < class SizeType >
+class free_space_details {
+public:
+    typedef SizeType                                        size_type;
+
+    typedef size_type *                                     index_vector;
+    typedef size_type *                                     iterator;
+    typedef size_type *                                     const_iterator;
+
+    free_space_details( ) :
+        m_indices( NULL )
+        , m_fixed_count(0)
+        , m_lost_count(0)
+        , m_size(0)
+        , m_allocated_size(0)
+    {}
+
+    size_type variable_count() const {
+        return m_size - (m_fixed_count + m_lost_count);
+    }
+
+    size_type free_size() const {
+        return m_fixed_count + m_lost_count;
+    }
+
+    iterator free_begin() {
+        return m_indices;
+    }
+
+    iterator free_end() {
+        return m_indices + m_fixed_count + m_lost_count;
+    }
+
+    const_iterator free_begin() const {
+        return m_indices;
+    }
+
+    const_iterator free_end() const {
+        return m_indices + m_fixed_count + m_lost_count;
+    }
+
+    size_type fixed_size() const {
+        return m_fixed_count;
+    }
+
+    iterator fixed_begin() {
+        return m_indices;
+    }
+
+    iterator fixed_end() {
+        return m_indices + m_fixed_count;
+    }
+
+    const_iterator fixed_begin() const {
+        return m_indices;
+    }
+
+    const_iterator fixed_end() const {
+        return m_indices + m_fixed_count;
+    }
+
+    size_type lost_size() const {
+        return m_lost_count;
+    }
+
+    iterator lost_begin() {
+        return m_indices + m_fixed_count;
+    }
+
+    iterator lost_end() {
+        return m_indices + m_fixed_count + m_lost_count;
+    }
+
+    const_iterator lost_begin() const {
+        return m_indices + m_fixed_count;
+    }
+
+    const_iterator lost_end() const {
+        return m_indices + m_fixed_count + m_lost_count;
+    }
+
+    virtual ~free_space_details() {
+        if( m_indices != NULL ) {
+            delete [] m_indices;
+        }
+    }
+
+protected:
+    
+    void resize( size_type s ) {
+        if( s > m_allocated_size ) {
+            if( m_indices != NULL ) {
+                delete [] m_indices;
+            }
+
+            m_indices = new size_type[ s ];
+            m_allocated_size = s;
+        }
+        m_size = s;
+    }
+
+    template < class BlockType >
+    void analyze_free_indices( BlockType * fixed, BlockType * variable, unsigned int W, unsigned int M ) {
+        typedef BlockType                                           block_type;
+        typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
+        typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
+
+        block_type * first = fixed, * last = fixed + W;
+
+        unsigned int offset = 0;
+
+        unsigned int idx = 0;
+        while( first != last ) {
+            block_type fx = *first++;
+
+            unsigned int b_idx = idx;
+            while( fx ) {
+                b_idx += bit_walker_type::next_and_shift( fx );
+                if( b_idx < M ) {
+                    m_indices[ offset++ ] = b_idx;
+                }
+            }
+            idx += bit_helper_type::BITS_PER_BLOCK;
+        }
+
+        m_fixed_count = offset;
+
+        first = variable;
+        last = variable + W;
+        idx = 0;
+        while( first != last ) {
+            block_type ls = *first++;
+            ls = ~ls;
+
+            unsigned int b_idx = idx;
+            while( ls ) {
+                b_idx += bit_walker_type::next_and_shift( ls );
+                if( b_idx < M ) {
+                    m_indices[ offset++ ] = b_idx;
+                }
+            }
+
+            idx += bit_helper_type::BITS_PER_BLOCK;
+        }
+
+        m_lost_count = offset - m_fixed_count;
+
+#ifdef DEBUGGING
+        std::cerr << "lost_count = " << offset << " - " << m_fixed_count << " = " << m_lost_count << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "Free count: " << free_size() << "; Fixed count: " << fixed_size() << "; Lost count: " << lost_size();
+        std::cerr << "Free count: " << free_size() << "; Fixed count: " << fixed_size() << "; Lost count: " << lost_size() << std::endl;
+#endif  // DEBUGGING
+    }
+
+    size_type  * m_indices;
+    size_type  m_fixed_count, m_lost_count;
+    size_type  m_size, m_allocated_size;
 };
 
 }   // namespace genetics

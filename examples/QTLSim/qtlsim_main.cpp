@@ -27,7 +27,7 @@
 #include "qtlsim_engine.hpp"
 #define ENGINE Engine
 #else   // USE_MT
-#include "qtlsim_engine_mt2.hpp"
+#include "qtlsim_engine_mt3.hpp"
 #define ENGINE EngineMT2
 #endif  // USE_MT
 

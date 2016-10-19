@@ -16,5 +16,7 @@
 
 #include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_mt.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_mt_population_space.hpp"
+#include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_mt_population_space_columnar.hpp"
+#include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_mt_population_space_row.hpp"
 
 #endif  // CLOTHO_BATCH_PHENOTYPE_MTS_HPP_

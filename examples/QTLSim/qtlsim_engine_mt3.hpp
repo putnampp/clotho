@@ -76,9 +76,9 @@ public:
 
     typedef clotho::genetics::thread_pool< RNG >                                                    thread_pool_type;
     typedef clotho::genetics::AlleleSpace< position_type, size_type >                               allele_type;
-//    typedef clotho::genetics::association_matrix< block_type, __ALIGNMENT_TYPE__ >                  sequence_space_type;
-//
-    typedef clotho::genetics::population_space< block_type, weight_type >                           sequence_space_type;
+
+//    typedef clotho::genetics::population_space_columnar< block_type, weight_type >                  sequence_space_type;
+    typedef clotho::genetics::population_space_row< block_type, weight_type >                  sequence_space_type;
     typedef clotho::genetics::trait_space_vector< weight_type >                                     trait_space_type;
     typedef clotho::genetics::FreeSpaceAnalyzerMT< sequence_space_type, size_type >                 free_space_type;
 
@@ -150,7 +150,7 @@ public:
             pN = m_pop_growth->operator()( pN, m_generation );
         }
 
-        m_pop1.grow( pN, aN );
+        m_pop1.grow( pN, aN, m_trait_space.trait_count() );
 
 #ifdef USE_ROW_VECTOR
         m_pop1.getSequenceSpace().fill_empty();
@@ -178,10 +178,11 @@ public:
         BOOST_LOG_TRIVIAL( debug ) << "Generation " << m_generation << ": " << pN << " individuals; " << pM << " new alleles";
         BOOST_LOG_TRIVIAL( debug ) << "Free space: " << free_count << "; alleles: " << m_allele_space.size();
         BOOST_LOG_TRIVIAL( debug ) << "Rescaling child population to be: " << pN << " individuals x " << all_size << " alleles";
+        std::cerr << "Generation " << m_generation << ": " << pN << " individuals; " << pM << " new alleles" << std::endl;
         std::cerr << "Rescaling child population to be: " << pN << " individuals x " << all_size << " alleles" << std::endl;
 #endif // DEBUGGING
 
-        m_child->grow( pN, all_size );                        // grow the child population accordingly
+        m_child->grow( pN, all_size, m_trait_space.trait_count() );               // grow the child population accordingly
 
         select_gen.update( m_fit, pN );
 
@@ -194,9 +195,7 @@ public:
         } else {
             m_pheno.constant_phenotype( m_child, &m_trait_space );
         }
-        m_fit( m_pheno.begin(), m_pheno.end() );
-
-        m_child->finalize();
+        m_fit( m_pheno );
 
         ++m_generation;
     }
@@ -218,7 +217,7 @@ public:
 protected:
 
     void generate_child_mutations( unsigned int N ) {
-        std::cerr << "Child population size: " << m_child->haploid_genome_count() << std::endl;
+//        std::cerr << "Child population size: " << m_child->haploid_genome_count() << std::endl;
         typename mutation_type::sequence_distribution_type seq_gen( 0, m_child->haploid_genome_count() - 1);
 
         typename free_space_type::base_type::iterator it = m_free_space.free_begin(), end = m_free_space.free_end();
@@ -253,7 +252,10 @@ protected:
  * M_child  - number of new alleles to be added the child population
  */
     size_t child_max_alleles( size_t N_parent, size_t F_parent, size_t M_child ) const {
+#ifdef DEBUGGING
         BOOST_LOG_TRIVIAL(info) << "Parent alleles: " << N_parent << "; Free: " << F_parent << "; New Alleles: " << M_child;
+        std::cerr << "Parent alleles: " << N_parent << "; Free: " << F_parent << "; New Alleles: " << M_child << std::endl;
+#endif  // DEBUGGING
 
         if( F_parent >= M_child ) {
             // if there are more free alleles in the parent generation
@@ -272,7 +274,7 @@ protected:
         typedef typename trait_space_type::iterator trait_iterator;
 
 
-        std::cerr << "Fixed count: " << m_free_space.fixed_size() << std::endl;
+//        std::cerr << "Fixed count: " << m_free_space.fixed_size() << std::endl;
 
         fixed_iterator  fix_it = m_free_space.fixed_begin();
         fixed_iterator  fix_end = m_free_space.fixed_end();

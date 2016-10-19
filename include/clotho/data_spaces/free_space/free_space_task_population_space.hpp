@@ -33,7 +33,8 @@ public:
 
     typedef typename space_type::genome_type                genome_type;
 
-    typedef typename space_type::const_genome_iterator      iterator;
+//    typedef typename space_type::base_genome_type *         genome_type;
+    typedef typename space_type::genome_iterator            iterator;
 
     free_space_task( space_type * ss, block_type * fixed_dest, block_type * var_dest, unsigned int block_start, unsigned int block_end ) :
         m_space(ss)
@@ -51,53 +52,133 @@ public:
         , m_end( other.m_end )
     {}
 
+//    void operator()() {
+//        iterator first = m_space->begin_genomes(), last = m_space->end_genomes();
+//        unsigned int N = 0;
+//
+//        unsigned int i = 0;
+//        while( first != last ) {
+//            process( first->first );
+//            N += first->second;
+//
+//            ++i;
+//            ++first;
+//        }
+//
+//#ifdef DEBUGGING
+//        std::cerr << "Scanned " << i << " genomes" << std::endl;
+//        BOOST_LOG_TRIVIAL(debug) << "Processed " << processed.size() << " sequences from " << N << " individuals";
+//#endif  // DEBUGGING
+//
+//        assert( N == m_space->haploid_genome_count() );
+//    }
+
+//    void operator()() {
+//        individual_iterator first = m_space->begin_individual(), last = m_space->end_individual();
+//
+//        std::set< base_genome_type * > processed;
+//
+//        while( first != last ) {
+//            if( processed.find( first->first.get() ) == processed.end() ) {        
+//                process( first->first );
+//                processed.insert( first->first.get() );
+//            }
+//
+//            if( processed.find( first->second.get() ) == processed.end() ) {
+//                process( first->second );
+//               processed.insert( first->second.get() );
+//            }
+//
+//            ++first;
+//        }
+//    }
+//
     void operator()() {
-        std::set< genome_type > processed;
-
-        iterator first = m_space->begin_genomes(), last = m_space->end_genomes();
+        typename space_type::individual_iterator first = m_space->begin_individual(), last = m_space->end_individual();
         unsigned int N = 0;
-
         while( first != last ) {
-            if(processed.find( first->first ) == processed.end() ) {
-                process( first->first );
-                N += first->second;
-                processed.insert( first->first );
-            }
-
+            process( first->first );
+            process( first->second );
             ++first;
+            N += 2;
         }
 
-#ifdef DEBUGGING
-        BOOST_LOG_TRIVIAL(debug) << "Processed " << processed.size() << " sequences from " << N << " individuals";
-#endif  // DEBUGGING
-
-        assert( N == m_space->haploid_genome_count() );
+        std::cerr << "Scanned " << N << " haploid genomes" << std::endl;
     }
 
-    void process( const genome_type & hap ) {
+    void process ( genome_type hap ) {
         typedef typename space_type::base_genome_type::sequence_type::const_sequence_iterator seq_iterator;
 
-        if( !hap || m_start >= hap->sequence_block_length() ) {
-            unsigned int i = m_start;
-            while( i < m_end ) {
-                m_destF[ i++ ] = space_type::base_genome_type::sequence_type::bit_helper_type::ALL_UNSET;
-            }
+        seq_iterator first, last;
+
+        if( !hap ) {
+            first = last;
+        } else if( m_start >= hap->sequence_block_length() ) {
+            first = hap->end_sequence();
+            last = hap->end_sequence();
         } else {
-            seq_iterator first = hap->begin_sequence() + m_start, 
-                last = (( m_end >= hap->sequence_block_length() ) ? hap->end_sequence() : hap->begin_sequence() + m_end);
+            first = hap->begin_sequence() + m_start;
+            last = (( m_end >= hap->sequence_block_length() ) ? hap->end_sequence() : hap->begin_sequence() + m_end);
+        }
 
-            unsigned int i = m_start;
-            while( first != last ) {
-                block_type b = *first++;
-                m_destF[ i ] &= b;
-                m_destV[ i++ ] |= b;
-            }
+        block_type * df = m_destF + m_start, * de = m_destF + m_end;
+        block_type * dv = m_destV + m_start;
 
-            while( i < m_end ) {
-                m_destF[ i++ ] = space_type::base_genome_type::sequence_type::bit_helper_type::ALL_UNSET;
-            }
+        while( first != last ) {
+            assert( df != de );
+
+            const block_type b = *first++;
+            *df++ &= b;
+            *dv++ |= b;
+        }
+
+//        static const block_type ALL_UNSET = space_type::base_genome_type::sequence_type::bit_helper_type::ALL_UNSET;
+//
+        //std::cerr << "zeroing fixed length: " << (de - df) << std::endl;
+        while( df != de ) {
+            *df++ = space_type::base_genome_type::sequence_type::bit_helper_type::ALL_UNSET;
         }
     }
+
+//    void process( const genome_type & hap ) {
+//        typedef typename space_type::base_genome_type::sequence_type::const_sequence_iterator seq_iterator;
+//
+//        block_type * df = m_destF + m_start, * de = m_destF + m_end;
+//        if( !hap || m_start >= hap->sequence_block_length() ) {
+////            unsigned int i = m_start;
+////            while( i < m_end ) {
+////                m_destF[ i++ ] = space_type::base_genome_type::sequence_type::bit_helper_type::ALL_UNSET;
+////            }
+//            while( df != de ) {
+//                *df++ = space_type::base_genome_type::sequence_type::bit_helper_type::ALL_UNSET;
+//            }
+//        } else {
+//            seq_iterator first = hap->begin_sequence() + m_start, 
+//                last = (( m_end >= hap->sequence_block_length() ) ? hap->end_sequence() : hap->begin_sequence() + m_end);
+//
+////            unsigned int i = m_start;
+////            while( first != last ) {
+////                const block_type b = *first++;
+////                m_destF[ i ] &= b;
+////                m_destV[ i++ ] |= b;
+////            }
+////
+////            while( i < m_end ) {
+////                m_destF[ i++ ] = space_type::base_genome_type::sequence_type::bit_helper_type::ALL_UNSET;
+////            }
+//
+//            block_type * dv = m_destV + m_start;
+//            while( first != last ) {
+//                const block_type b = *first++;
+//                *df++ &= b;
+//                *dv++ |= b;
+//            }
+//
+//            while( df != de ) {
+//                *df++ = space_type::base_genome_type::sequence_type::bit_helper_type::ALL_UNSET;
+//            }
+//        }
+//    }
 
     virtual ~free_space_task() {}
 

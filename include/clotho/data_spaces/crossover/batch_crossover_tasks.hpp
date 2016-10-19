@@ -15,6 +15,8 @@
 #define CLOTHO_BATCH_CROSSOVER_TASKS_HPP_
 
 #include "clotho/data_spaces/crossover/batch_crossover_task.hpp"
-#include "clotho/data_spaces/crossover/batch_crossover_vector_task.hpp"
+#include "clotho/data_spaces/crossover/batch_crossover_task_population_space.hpp"
+#include "clotho/data_spaces/crossover/batch_crossover_task_population_space_columnar.hpp"
+#include "clotho/data_spaces/crossover/batch_crossover_task_population_space_row.hpp"
 
 #endif  // CLOTHO_BATCH_CROSSOVER_TASKS_HPP_

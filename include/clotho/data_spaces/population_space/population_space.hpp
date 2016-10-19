@@ -144,6 +144,12 @@ public:
             m_data[ bidx ] &= mask;
     }
 
+    bool isSet( unsigned int idx ) {
+        unsigned int b_idx = idx / bit_helper_type::BITS_PER_BLOCK;
+        block_type mask = ((block_type) 1 << (idx % bit_helper_type::BITS_PER_BLOCK));
+        return (m_data[ b_idx ] & mask );
+    }
+
     bool isEmpty() const {
         return m_data.empty();
     }
@@ -241,6 +247,7 @@ public:
     typedef typename population_type::const_iterator        const_individual_iterator;
 
     typedef std::map< genome_type, unsigned int >           haploid_genomes;
+//    typedef std::map< base_genome_type *, unsigned int >    haploid_genomes;
     typedef typename haploid_genomes::iterator              genome_iterator;
     typedef typename haploid_genomes::const_iterator        const_genome_iterator;
 
@@ -277,6 +284,7 @@ public:
     }
 
     void setIndividual( size_t offset, individual_type & ind ) {
+
         if( offset < m_pop.size() ) {
             m_pop[ offset ] = ind;
         } else {
@@ -359,19 +367,60 @@ public:
         }
     }
 
+    bool freeColumn( unsigned int idx ) {
+        genome_iterator first = m_genomes.begin(), last = m_genomes.end();
+
+        bool res = true;
+        while( res && first != last ) {
+            if( !first->first ) { 
+                res = first->first->isSet( idx );
+            }
+            ++first;
+        }
+
+        return res;
+    }
+
     void grow( unsigned int I, unsigned int A ) {
         clear();
 
+        std::cerr << "Reserving: " << I << std::endl;
         m_pop.reserve( I );
 
         // fill population with empty individuals
         while( m_pop.size() < I ) {
-            m_pop.push_back( std::make_pair( genome_type(), genome_type() ) );
+//            m_pop.push_back( std::make_pair( genome_type(), genome_type() ) );
+            m_pop.push_back( std::make_pair( create_sequence(), create_sequence()) );
         }
 
         setMaxAlleles( A );
     }
+/*
+    void finalize() {
+        individual_iterator it = m_pop.begin();
 
+        while( it != m_pop.end() ) {
+            if( it->first ) it->first->finalize();
+            if( it->second ) it->second->finalize();
+
+            genome_iterator res = m_genomes.find( it->first.get() );
+            if( res == m_genomes.end() ) {
+                m_genomes.insert( std::make_pair( it->first.get(), 1 ) );
+            } else {
+                res->second += 1;
+            }
+
+            res = m_genomes.find( it->second.get() );
+            if( res == m_genomes.end() ) {
+                m_genomes.insert( std::make_pair( it->second.get(), 1 ) );
+            } else {
+                res->second += 1;
+            }
+
+            ++it;
+        }
+    }
+*/
     void finalize() {
         individual_iterator it = m_pop.begin();
 

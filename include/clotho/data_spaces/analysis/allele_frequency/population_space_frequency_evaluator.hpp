@@ -35,7 +35,7 @@ struct frequency_evaluator< population_space< BlockType, WeightType >, SizeType 
     typedef typename space_type::base_genome_type::sequence_type::bit_helper_type   bit_helper_type;
     typedef typename clotho::utility::debruijn_bit_walker< block_type >             bit_walker_type;
 
-    void operator()( const space_type & ss, const boost::dynamic_bitset<> & indices, result_type column_margin, result_type row_margin ) {
+    void operator()( space_type & ss, boost::dynamic_bitset<> & indices, result_type column_margin, result_type row_margin ) {
         haploid_genomes local_genomes;
         buildGenomes( ss, indices, local_genomes );
 
@@ -48,8 +48,9 @@ struct frequency_evaluator< population_space< BlockType, WeightType >, SizeType 
                 typename space_type::const_sequence_iterator first = it->first->begin_sequence(), last = it->first->end_sequence();
                 while( first != last ) {
                     block_type b = *first++;
+                    unsigned int b_idx = j;
                     while( b ) {
-                        unsigned int b_idx = bit_walker_type::unset_next_index( b ) + j;
+                        b_idx += bit_walker_type::next_and_shift( b );
                         column_margin[ b_idx ] += N;
                         ++M;
                     }
@@ -59,23 +60,52 @@ struct frequency_evaluator< population_space< BlockType, WeightType >, SizeType 
             }
         }
     }
-
-    void buildGenomes( const space_type & ss, const boost::dynamic_bitset<> & indices, haploid_genomes & local_genomes ) {
+/*
+    void buildGenomes( space_type & ss, const boost::dynamic_bitset<> & indices, haploid_genomes & local_genomes ) {
         unsigned int idx = 0;
         for( typename space_type::const_individual_iterator it = ss.begin_individual(); it != ss.end_individual(); ++it ) {
             if( indices[ idx++ ] ) {
-                if( local_genomes.find( it->first) == local_genomes.end() ) {
-                    local_genomes.insert( std::make_pair( it->first, 1 ) );
+
+                typename haploid_genomes::iterator tmp = local_genomes.find( it->first.get() );
+                if( tmp == local_genomes.end() ) {
+                    local_genomes.insert( std::make_pair( it->first.get(), 1 ) );
                 } else {
-                    local_genomes[ it->first ] += 1;
+                    tmp->second += 1;
                 }
             }
 
             if( indices[ idx++ ] ) {
-                if( local_genomes.find( it->second) == local_genomes.end() ) {
+                typename haploid_genomes::iterator tmp = local_genomes.find( it->second.get() );
+                if( tmp == local_genomes.end() ) {
+                    local_genomes.insert( std::make_pair( it->second.get(), 1 ) );
+                } else {
+                    tmp->second += 1;
+                }
+
+            }
+        }
+
+    }
+*/
+    void buildGenomes( space_type & ss, const boost::dynamic_bitset<> & indices, haploid_genomes & local_genomes ) {
+        unsigned int idx = 0;
+        for( typename space_type::const_individual_iterator it = ss.begin_individual(); it != ss.end_individual(); ++it ) {
+            if( indices[ idx++ ] ) {
+
+                typename haploid_genomes::iterator tmp = local_genomes.find( it->first );
+                if( tmp == local_genomes.end() ) {
+                    local_genomes.insert( std::make_pair( it->first, 1 ) );
+                } else {
+                    tmp->second += 1;
+                }
+            }
+
+            if( indices[ idx++ ] ) {
+                typename haploid_genomes::iterator tmp = local_genomes.find( it->second );
+                if( tmp == local_genomes.end() ) {
                     local_genomes.insert( std::make_pair( it->second, 1 ) );
                 } else {
-                    local_genomes[ it->second ] += 1;
+                    tmp->second += 1;
                 }
 
             }

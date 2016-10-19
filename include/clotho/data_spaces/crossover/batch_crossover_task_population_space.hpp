@@ -11,8 +11,8 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_BATCH_CROSSOVER_VECTOR_TASK_HPP_
-#define CLOTHO_BATCH_CROSSOVER_VECTOR_TASK_HPP_
+#ifndef CLOTHO_BATCH_CROSSOVER_TASK_POPULATION_SPACE_HPP_
+#define CLOTHO_BATCH_CROSSOVER_TASK_POPULATION_SPACE_HPP_
 
 #include "clotho/data_spaces/population_space/population_space.hpp"
 #include <boost/random/bernoulli_distribution.hpp>
@@ -96,7 +96,7 @@ public:
             bool _swap = bias_dist( *m_rng );
 
 #ifdef DEBUGGING
-            BOOST_LOG_TRIVIAL(debug) << mate_it->first << "; Crossover s0: " << ind.first << " - " << ind.first.size() << "; s1: " << ind.second << " - " << ind.second.size() << "; child: " << c0.first << "; event size: " << evts.size();
+//            BOOST_LOG_TRIVIAL(debug) << mate_it->first << "; Crossover s0: " << ind.first << " - " << ind.first.size() << "; s1: " << ind.second << " - " << ind.second.size() << "; child: " << c0.first << "; event size: " << evts.size();
 #endif  // DEBUGGING
             run_crossover_task( cfier0, ind.first, ind.second, c0, _swap );
 
@@ -105,7 +105,7 @@ public:
             genome_type c1 = m_offspring->create_sequence();
             ind = m_parental->getIndividual( mate_it->second );
 #ifdef DEBUGGING
-            BOOST_LOG_TRIVIAL(debug) << mate_it->second << "; Crossover s0: " << ind.first << " - " << ind.first.size() << "; s1: " << ind.second << " - " << ind.second.size() << "; child: " << c1.first << "; event size: " << evts.size();
+//            BOOST_LOG_TRIVIAL(debug) << mate_it->second << "; Crossover s0: " << ind.first << " - " << ind.first.size() << "; s1: " << ind.second << " - " << ind.second.size() << "; child: " << c1.first << "; event size: " << evts.size();
 #endif  // DEBUGGING
 
             event_type evts1;
@@ -147,72 +147,90 @@ protected:
         return res;
     }
 
-    void run_crossover_task( const classifier_type & cls, genome_type & top, genome_type & bottom, genome_type & res, bool should_swap_strands ) {
+    void run_crossover_task( classifier_type & cls, genome_type & top, genome_type & bottom, genome_type & res, bool should_swap_strands ) {
 
-        if( should_swap_strands ) {
+        if( cls.event_count() == 0 ) {
+            // there are no crossover cls
+            // therefore, offspring strand will be a copy of the top strand
+            res = ((should_swap_strands) ? bottom : top);
+        } else if( should_swap_strands ) {
             run_crossover_task( cls, bottom, top, res );
         } else {
             run_crossover_task( cls, top, bottom, res );
         }
     }
 
-    void run_crossover_task( const classifier_type & cls, const genome_type & top, const genome_type & bottom, genome_type & res ) {
+    void run_crossover_task( classifier_type & cls, genome_type & top, genome_type & bottom, genome_type & res ) {
+        typedef typename space_type::base_genome_type::sequence_type::const_sequence_iterator const_iterator;
+        typedef block_crossover< classifier_type, BlockType >       crossover_type;
+        typedef BlockType                                           block_type;
 
-        if( cls.event_count() == 0 ) {
-            // there are no crossover cls
-            // therefore, offspring strand will be a copy of the top strand
-            res = top;
+        crossover_type xover( cls );
+        
+        const_iterator tb, te, bb, be;
+        if( top ) {
+            tb = top->begin_sequence();
+            te = top->end_sequence();
         } else {
-            typedef typename space_type::base_genome_type::sequence_type::const_sequence_iterator const_iterator;
-            typedef block_crossover< classifier_type, BlockType >       crossover_type;
-            typedef BlockType                                           block_type;
-
-            crossover_type xover( cls );
-            
-            const_iterator tb, te, bb, be;
-            if( top ) {
-                tb = top->begin_sequence();
-                te = top->end_sequence();
-            } else {
-                te = tb;
-            }
-
-            if( bottom ) {
-                bb = bottom->begin_sequence();
-                be = bottom->end_sequence();
-            } else {
-                be = bb;
-            }
-
-            unsigned int i = 0;
-            while( true ) {
-                if( tb == te ) {
-                    while( bb != be ) {
-                        block_type o = xover.crossover( crossover_type::bit_helper_type::ALL_UNSET, *bb++, i++ );
-                        res->append_sequence(o);
-                    }
-                    break;
-                } else if( bb == be ) {
-                    while( tb != te ) {
-                        block_type o = xover.crossover( *tb++, crossover_type::bit_helper_type::ALL_UNSET, i++ );
-                        res->append_sequence(o);
-                    }
-                    break;
-                }
-
-                block_type t = *tb++;
-                block_type b = *bb++;
-
-                block_type o = xover.crossover(t, b, i );
-
-                res->append_sequence( o );
-                ++i;
-            }
+            te = tb;
         }
+
+        if( bottom ) {
+            bb = bottom->begin_sequence();
+            be = bottom->end_sequence();
+        } else {
+            be = bb;
+        }
+
+        unsigned int i = 0;
+//        bool top_equal = true;
+//        bool bottom_equal = true;
+        while( true ) {
+            if( tb == te ) {
+                while( bb != be ) {
+                    const block_type t = crossover_type::bit_helper_type::ALL_UNSET;
+                    const block_type b = *bb++;
+                    const block_type o = xover.crossover( t, b, i );
+//                    top_equal = top_equal && (o == t );
+//                    bottom_equal = bottom_equal && (o == b);
+                    res->append_sequence(o);
+                    i += crossover_type::bit_helper_type::BITS_PER_BLOCK;
+                }
+                break;
+            } else if( bb == be ) {
+                while( tb != te ) {
+                    const block_type t = *tb++;
+                    const block_type b = crossover_type::bit_helper_type::ALL_UNSET;
+                    const block_type o = xover.crossover( t, b, i );
+//                    bottom_equal = bottom_equal && (o == b );
+//                    top_equal = top_equal && (o == t);
+                    res->append_sequence(o);
+                    i += crossover_type::bit_helper_type::BITS_PER_BLOCK;
+                }
+                break;
+            }
+
+            const block_type t = *tb++;
+            const block_type b = *bb++;
+
+            const block_type o = xover.crossover(t, b, i );
+
+//            bottom_equal = bottom_equal && (o == b );
+//            top_equal = top_equal && (o == t);
+
+            res->append_sequence( o );
+            i += crossover_type::bit_helper_type::BITS_PER_BLOCK;
+        }
+
+//        if( top_equal ) {
+//            res = top;
+//        } else if( bottom_equal ) {
+//            res = bottom;
+//        }
     }
 
     random_engine_type  * m_rng;
-    space_type * m_parental, * m_offspring;
+    space_type          * m_parental, * m_offspring;
     allele_type         * m_alleles;
 
     mate_pair_type m_parents;
@@ -227,5 +245,5 @@ protected:
 }   // namespace genetics
 }   // namespace clotho
 
-#endif  // CLOTHO_BATCH_CROSSOVER_VECTOR_TASK_HPP_
+#endif  // CLOTHO_BATCH_CROSSOVER_TASK_POPULATION_SPACE_HPP_
 

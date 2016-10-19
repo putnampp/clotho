@@ -16,6 +16,8 @@
 
 #include "clotho/data_spaces/free_space/free_space_mt.hpp"
 #include "clotho/data_spaces/free_space/free_space_mt_population_space.hpp"
+#include "clotho/data_spaces/free_space/free_space_mt_population_space_columnar.hpp"
+#include "clotho/data_spaces/free_space/free_space_mt_population_space_row.hpp"
 
 #endif  // CLOTHO_FREE_SPACE_MTS_HPP_
 

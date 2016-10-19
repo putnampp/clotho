@@ -71,6 +71,46 @@ public:
         }
     }
 
+    template < class BlockType, class WeightType, class TraitSpaceType >
+    void operator()( BatchPhenotypeMT< population_space_columnar< BlockType, WeightType >, TraitSpaceType > & phenos ) {
+        typedef BatchPhenotypeMT< population_space_columnar< BlockType, WeightType >, TraitSpaceType > phenotype_space_type;
+        const unsigned int N = phenos.individual_count();
+
+        if( N == 0 ) return;
+
+        fitness_operator op = m_fit_gen->generate( N );
+
+        for( unsigned int i = 0; i < N; ++i ) {
+            typename phenotype_space_type::phenotype_iterator first = phenos.begin_individual_phenotype(i), last = phenos.end_individual_phenotype(i);
+
+            typename phenotype_space_type::phenotype_vector w( first, last );
+
+            fitness_type score = (*op)(w);
+
+            setFitness( i, score );
+        }
+    }
+
+    template < class BlockType, class WeightType, class TraitSpaceType >
+    void operator()( BatchPhenotypeMT< population_space_row< BlockType, WeightType >, TraitSpaceType > & phenos ) {
+        typedef BatchPhenotypeMT< population_space_row< BlockType, WeightType >, TraitSpaceType > phenotype_space_type;
+        const unsigned int N = phenos.individual_count();
+
+        if( N == 0 ) return;
+
+        fitness_operator op = m_fit_gen->generate( N );
+
+        for( unsigned int i = 0; i < N; ++i ) {
+            typename phenotype_space_type::phenotype_iterator first = phenos.begin_individual_phenotype(i), last = phenos.end_individual_phenotype(i);
+
+            typename phenotype_space_type::phenotype_vector w( first, last );
+
+            fitness_type score = (*op)(w);
+
+            setFitness( i, score );
+        }
+    }
+
     template < class Iterator >
     void operator()( Iterator first, Iterator last ) {
         const unsigned int N = last - first;

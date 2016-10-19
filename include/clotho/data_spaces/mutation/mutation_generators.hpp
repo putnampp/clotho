@@ -16,5 +16,7 @@
 
 #include "clotho/data_spaces/mutation/mutation_generator2.hpp"
 #include "clotho/data_spaces/mutation/mutation_generator_population_space.hpp"
+#include "clotho/data_spaces/mutation/mutation_generator_population_space_columnar.hpp"
+#include "clotho/data_spaces/mutation/mutation_generator_population_space_row.hpp"
 
 #endif  // CLOTHO_MUTATION_GENERATORS_HPP_

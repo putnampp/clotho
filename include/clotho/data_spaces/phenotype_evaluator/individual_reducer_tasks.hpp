@@ -11,17 +11,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef BIT_BLOCK_ITERATOR_HPP_
-#define BIT_BLOCK_ITERATOR_HPP_
+#ifndef CLOTHO_INDIVIDUAL_REDUCER_TASKS_HPP_
+#define CLOTHO_INDIVIDUAL_REDUCER_TASKS_HPP_
 
-#include <iostream>
-#include <type_traits>
-#include <cstring>
+#include "clotho/data_spaces/phenotype_evaluator/individual_reducer_task.hpp"
+#include "clotho/data_spaces/phenotype_evaluator/individual_reducer_task_population_space_columnar.hpp"
+#include "clotho/data_spaces/phenotype_evaluator/individual_reducer_task_population_space_row.hpp"
 
-#include "clotho/utility/linear_bit_block_iterator.hpp"
-//#include "clotho/utility/walk_bit_block_iterator.hpp"
-//#include "clotho/utility/preprocess_bit_block_iterator.hpp"
-//#include "clotho/utility/debruijn_bit_block_iterator.hpp"
-#include "clotho/utility/debruijn_bit_block_iterator2.hpp"
-
-#endif  // BIT_BLOCK_ITERATOR_HPP_
+#endif  // CLOTHO_INDIVIDUAL_REDUCER_TASKS_HPP_

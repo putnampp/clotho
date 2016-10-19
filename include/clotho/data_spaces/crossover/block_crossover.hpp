@@ -16,6 +16,7 @@
 
 #include "clotho/utility/bit_helper.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
+//#include "clotho/utility/bit_block_iterator.hpp"
 
 namespace clotho {
 namespace genetics {
@@ -29,6 +30,8 @@ public:
     typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
     typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
 
+   // typedef clotho::utility::bit_block_iterator< block_type, clotho::utility::tag::debruijn_iterator_tag2 > bit_iterator;
+
     block_crossover( const classifier_type & events ) :
         m_cfier( events ) 
     { }
@@ -40,20 +43,20 @@ public:
  * @param offset - strand relative block offset
  *
  */
-    block_type crossover( block_type top_strand, block_type bottom_strand, unsigned int offset ) {
+    inline block_type crossover( const block_type & top_strand, const block_type & bottom_strand, const unsigned int OFFSET ) {
         block_type hets = top_strand ^ bottom_strand;
         block_type mask = bit_helper_type::ALL_UNSET;   // mask state from m_p1 strand
-        offset *= bit_helper_type::BITS_PER_BLOCK;      // scale offset to appropriate allele offset
+//        offset *= bit_helper_type::BITS_PER_BLOCK;      // scale offset to appropriate allele offset
 
-        if( hets ) {
-            do {
-                unsigned int idx = bit_walker_type::unset_next_index( hets );
+        unsigned int idx = 0;
+        while( hets ) {
+            idx += bit_walker_type::next_and_shift( hets );
 
-                if( m_cfier( offset + idx ) ) {
-                    // the state of the corresponding allele is defined by the bottom strand
-                    mask |= clotho::utility::bit_masks[ idx ];
-                }
-            } while( hets );
+            if( m_cfier( OFFSET + idx ) ) {
+                // the state of the corresponding allele is defined by the bottom strand
+//                mask |= clotho::utility::bit_masks[ idx ];
+                mask |= (((block_type)1) << idx);
+            }
         }
 
         return  ((top_strand & ~mask) | (bottom_strand & mask));

@@ -38,7 +38,7 @@ public:
 
     template < class SelectionType, class PoolType >
     void operator()( const SelectionType & parents, sequence_space_type * parental, sequence_space_type * offspring, allele_space_type * alleles, PoolType & pool ) {
-        offspring->clear();
+        //offspring->clear();
 
         batch_generate( parents, parental, offspring, alleles, pool );
     }

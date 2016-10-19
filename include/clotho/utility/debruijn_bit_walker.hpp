@@ -78,26 +78,43 @@ struct debruijn_bit_walker_size< T, 64 > {
     //
     // return next set bit index
     // 
-    static unsigned int unset_next_index( T & b ) {
-        if( b == 0 ) return EMPTY;
+//    static unsigned int unset_next_index( T & b ) {
+//        if( b == 0 ) return EMPTY;
+//
+//        unsigned int lsb = (unsigned int) b;
+//
+//        if( lsb == 0 ) {
+//            lsb = (unsigned int)(b >> 32);
+//            lsb = LEAST_SIG_BIT( lsb );
+//            lsb = DEBRUIJNBIT_HASH_LOOKUP_HI( lsb );
+//        } else {
+//            lsb = LEAST_SIG_BIT( lsb );
+//            lsb = DEBRUIJNBIT_HASH_LOOKUP( lsb );
+//        }
+//
+////        b ^= bit_masks[ lsb ];
+//        b &= ~(((T) 1) << lsb);
+//
+//        return lsb;
+//    }
 
-        unsigned int lsb = (unsigned int) b;
+    static unsigned int next_and_shift( T & b ) {
+        unsigned int offset = 0;
+        unsigned int lo = (unsigned int) b;
+        if( !lo ) {
+            offset += 32;
+            b >>= 32;
 
-        if( lsb == 0 ) {
-            lsb = (unsigned int)(b >> 32);
-            lsb = LEAST_SIG_BIT( lsb );
-            lsb = DEBRUIJNBIT_HASH_LOOKUP_HI( lsb );
-        } else {
-            lsb = LEAST_SIG_BIT( lsb );
-            lsb = DEBRUIJNBIT_HASH_LOOKUP( lsb );
+            lo = (unsigned int) b;
         }
+        lo = LEAST_SIG_BIT( lo );
+        unsigned int x = DEBRUIJNBIT_HASH_LOOKUP( lo );
 
-        b ^= bit_masks[ lsb ];
+        b >>= x;
+        b ^= (T)1;
 
-        return lsb;
-        
+        return offset + x;
     }
-
 };
 
 template < class T >

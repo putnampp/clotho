@@ -11,11 +11,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef POPULATION_SPACE_ALLELE_FREQUENCY_HPP_
-#define POPULATION_SPACE_ALLELE_FREQUENCY_HPP_
+#ifndef POPULATION_SPACE_COLUMNAR_ALLELE_FREQUENCY_HPP_
+#define POPULATION_SPACE_COLUMNAR_ALLELE_FREQUENCY_HPP_
 
 #include <boost/property_tree/ptree.hpp>
-#include "clotho/data_spaces/population_space/population_space.hpp"
+#include "clotho/data_spaces/population_space/population_space_columnar.hpp"
 
 #include "clotho/data_spaces/analysis/allele_frequency/margin_details.hpp"
 #include "clotho/data_spaces/analysis/allele_frequency/frequency_evaluator.hpp"
@@ -24,9 +24,9 @@ namespace clotho {
 namespace genetics {
 
 template < class BlockType, class WeightType, class SizeType >
-class allele_frequency< population_space< BlockType, WeightType >, SizeType > : public margin_details< SizeType >  {
+class allele_frequency< population_space_columnar< BlockType, WeightType >, SizeType > : public margin_details< SizeType >  {
 public:
-    typedef population_space< BlockType, WeightType > space_type;
+    typedef population_space_columnar< BlockType, WeightType > space_type;
     typedef typename margin_details< SizeType >::size_type size_type;
     typedef frequency_evaluator< space_type, size_type > evaluator_type;
 
@@ -69,4 +69,4 @@ public:
 
 }   // namespace genetics
 }   // namespace clotho
-#endif  // POPULATION_SPACE_ALLELE_FREQUENCY_HPP_
+#endif  // POPULATION_SPACE_COLUMNAR_ALLELE_FREQUENCY_HPP_
