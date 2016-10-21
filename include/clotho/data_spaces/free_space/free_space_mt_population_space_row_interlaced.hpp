@@ -47,7 +47,6 @@ public:
         this->resize( A );
 
         block_type * destF = new block_type[ 2 * B ];
-        block_type * destV = destF + B;
 
         if( ss->haploid_genome_count() == 0 ) {
             // there are no genomes; so there are no fixed or variable alleles
@@ -58,17 +57,17 @@ public:
             genome_pointer first = ss->begin_genome(0), last = ss->end_genome(0);
             assert( (last - first) == B );
 
-            block_type * df = destF, * dv = destV;
+            block_type * df = destF;
             while( first != last ) {
                 *df++ = *first;
-                *dv++ = *first;
+                *df++ = *first;
                 ++first;
             }
             
-            process_space( ss, destF, destV, B, pool );
+            process_space( ss, destF, B, pool );
         }
 
-        this->analyze_free_indices( destF, destV, B, A );
+        this->analyze_free_indices( destF, destF + 2 * B, A );
 
         delete [] destF;
     }
@@ -78,7 +77,7 @@ public:
 protected:
 
     template < class PoolType >
-    void process_space( space_type * source, block_type * destF, block_type * destV, const unsigned int BLOCK_COLUMNS, PoolType & pool ) {
+    void process_space( space_type * source, block_type * destF, const unsigned int BLOCK_COLUMNS, PoolType & pool ) {
 
         const unsigned int TC = pool.pool_size() + 1; // + 1 for master thread
 
@@ -90,7 +89,7 @@ protected:
         unsigned int cols = 0;
         while( cols + CPB < BLOCK_COLUMNS  ) {
             
-            task_type t( source, destF, destV, cols, cols + CPB );
+            task_type t( source, destF, cols, cols + CPB );
 
             pool.post( t );
             cols += CPB;
@@ -98,7 +97,7 @@ protected:
 
         if( cols < BLOCK_COLUMNS ) {
             // last block being run on master thread
-            task_type t(source, destF, destV,  cols, BLOCK_COLUMNS );
+            task_type t(source, destF,  cols, BLOCK_COLUMNS );
             t();
         }
 

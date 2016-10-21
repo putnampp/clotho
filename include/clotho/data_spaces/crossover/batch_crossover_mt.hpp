@@ -55,14 +55,13 @@ protected:
         typedef typename SelectionType::mate_pair_vector                            mate_pair_type;
         typedef batch_crossover_task< RNG, mate_pair_type, SequenceSpaceType, AlleleSpaceType >     crossover_task_type;
     
-        size_t tc = pool.pool_size() + 1;   // + 1 for master thread
+        const size_t TC = pool.pool_size() + 1;   // + 1 for master thread
 
-        size_t  batch_size = parents.size() / tc;
-        batch_size += ((parents.size() % tc > 0)? 1 : 0);
+        const size_t  BATCH_SIZE = (parents.size() / TC) + ((parents.size() % TC > 0)? 1 : 0);
 
         unsigned int off_idx = 0, j = 0;
-        while( off_idx + batch_size < parents.size() ) {
-            unsigned int off_end = off_idx + batch_size;
+        while( off_idx + BATCH_SIZE < parents.size() ) {
+            unsigned int off_end = off_idx + BATCH_SIZE;
 
             BOOST_LOG_TRIVIAL(info) << "Batch Crossover: [" << off_idx << ", " << off_end << ");";
 

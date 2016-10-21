@@ -95,7 +95,9 @@ public:
 
         m_threads.join_all();
 
-        delete [] m_thread_engines;
+        if( m_thread_engines != NULL ) {
+            delete [] m_thread_engines;
+        }
     }
 
 protected:

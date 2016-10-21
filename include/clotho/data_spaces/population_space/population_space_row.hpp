@@ -69,7 +69,7 @@ public:
 
         resize( );
 
-        clear();
+        //clear();
     }
 
     unsigned int getIndividualCount( ) const {
@@ -238,7 +238,7 @@ protected:
         }
     }
 
-    block_type *    m_genetic_space;
+    block_type      * m_genetic_space;
 
     size_t          m_genetic_space_allocated;
 

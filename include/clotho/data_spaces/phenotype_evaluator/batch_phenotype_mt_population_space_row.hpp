@@ -109,18 +109,18 @@ protected:
 
     template < class PoolType >
     void updateHaploidGenomeWeights( space_type * pop, trait_space_type * traits, PoolType & pool ) {
-        unsigned int tc = pool.pool_size() + 1;
+        const unsigned int TC = pool.pool_size() + 1;
 
         const unsigned int M = pop->haploid_genome_count();
-        unsigned int batch_size = M / tc + ((M % tc > 0) ? 1 : 0);
+        const unsigned int BATCH_SIZE = M / TC + ((M % TC > 0) ? 1 : 0);
 
         unsigned int i = 0;
-        while( i + batch_size < M ) {
+        while( i + BATCH_SIZE < M ) {
 
-            updater_task t( pop, traits, i, i + batch_size );
+            updater_task t( pop, traits, i, i + BATCH_SIZE );
             t();
 
-            i += batch_size;
+            i += BATCH_SIZE;
         }
 
         if( i < M ) {
@@ -133,18 +133,18 @@ protected:
 
     template < class PoolType >
     void updateIndividualPhenotypes( space_type * pop, trait_space_type * traits, PoolType & pool ) {
-        unsigned int tc = pool.pool_size() + 1;
+        const unsigned int TC = pool.pool_size() + 1;
 
         const unsigned int M = pop->getIndividualCount();
-        unsigned int batch_size = M / tc + ((M % tc > 0) ? 1 : 0);
+        const unsigned int BATCH_SIZE = M / TC + ((M % TC > 0) ? 1 : 0);
 
         unsigned int i = 0;
-        while( i + batch_size < M ) {
+        while( i + BATCH_SIZE < M ) {
 
-            reducer_type t( pop, i, i + batch_size, this );
+            reducer_type t( pop, i, i + BATCH_SIZE, this );
             t();
 
-            i += batch_size;
+            i += BATCH_SIZE;
         }
 
         if( i < M ) {

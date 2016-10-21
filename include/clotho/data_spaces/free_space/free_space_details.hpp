@@ -275,6 +275,62 @@ protected:
     }
 
     template < class BlockType >
+    void analyze_free_indices( BlockType * fixed_var, BlockType * end, unsigned int M ) {
+        typedef BlockType                                           block_type;
+        typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;
+        typedef clotho::utility::BitHelper< block_type >            bit_helper_type;
+
+        block_type * tmp = fixed_var;
+        unsigned int idx = 0;
+        size_type offset = 0;
+        while( tmp != end ) {
+            block_type fx = *tmp;
+
+            unsigned int j = idx;
+            while( fx ) {
+                j += bit_walker_type::next_and_shift( fx );
+                // do not push sequence padding bits
+                if( j >= M ) break;
+
+                m_indices[ offset++ ] = j;
+            }
+
+            idx += bit_helper_type::BITS_PER_BLOCK;
+            tmp += 2;
+        }
+
+        m_fixed_count = offset;
+
+        tmp = fixed_var + 1;
+        end += 1;
+        idx = 0;
+        while( tmp != end ) {
+            block_type ls = *tmp;
+
+            ls = ~ls;
+            unsigned int j = idx;
+            while( ls ) {
+                j += bit_walker_type::next_and_shift( ls );
+
+                // do not push sequence padding bits
+                if( j >= M ) break;
+                m_indices[ offset++ ] = j;
+            }
+
+            idx += bit_helper_type::BITS_PER_BLOCK;
+            tmp += 2;
+        }
+
+        m_lost_count = offset - m_fixed_count;
+
+#ifdef DEBUGGING
+        std::cerr << "lost_count = " << offset << " - " << m_fixed_count << " = " << m_lost_count << std::endl;
+        BOOST_LOG_TRIVIAL(debug) << "Free count: " << free_size() << "; Fixed count: " << fixed_size() << "; Lost count: " << lost_size();
+        std::cerr << "Free count: " << free_size() << "; Fixed count: " << fixed_size() << "; Lost count: " << lost_size() << std::endl;
+#endif  // DEBUGGING
+    }
+
+    template < class BlockType >
     void analyze_free_indices( BlockType * fixed, BlockType * variable, unsigned int W, unsigned int M ) {
         typedef BlockType                                           block_type;
         typedef clotho::utility::debruijn_bit_walker< block_type >  bit_walker_type;

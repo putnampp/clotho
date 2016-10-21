@@ -84,7 +84,7 @@ public:
 
         const_iterator mate_it = m_parents.begin(), mate_end = m_parents.end();
 
-        size_t i = m_offspring_index;
+        size_t i = m_offspring_index * 2;
 
         while( mate_it != mate_end ) {
 
@@ -95,14 +95,15 @@ public:
             genome_pointer p0_end = p1_start;
             genome_pointer p1_end = m_parent_pop->end_genome( parent_idx );
 
-            genome_pointer c = m_offspring_pop->begin_genome( i++ );
+            genome_pointer c = m_offspring_pop->begin_genome( i );
+            genome_pointer c_end = m_offspring_pop->end_genome( i++ );
 
             event_type evts;
             fill_events( evts, event_dist( *m_rng ) );
             classifier_type cfier0( &m_alleles->getPositions(), evts );
             bool _swap = bias_dist( *m_rng );
 
-            run_crossover_task( cfier0, p0_start, p0_end, p1_start, p1_end, c, _swap );
+            run_crossover_task( cfier0, p0_start, p0_end, p1_start, p1_end, c, c_end, _swap );
 
             parent_idx = 2 * mate_it->second;
             p0_start = m_parent_pop->begin_genome( parent_idx++ );
@@ -110,14 +111,15 @@ public:
             p0_end = p1_start;
             p1_end = m_parent_pop->end_genome( parent_idx );
 
-            c = m_offspring_pop->begin_genome( i++ );
+            c = m_offspring_pop->begin_genome( i );
+            c_end = m_offspring_pop->end_genome( i++ );
 
             event_type evts1;
             fill_events( evts1, event_dist( *m_rng ) );
             classifier_type cfier1( &m_alleles->getPositions(), evts1 );
             _swap = bias_dist( *m_rng );
 
-            run_crossover_task( cfier1, p0_start, p0_end, p1_start, p1_end, c, _swap );
+            run_crossover_task( cfier1, p0_start, p0_end, p1_start, p1_end, c, c_end, _swap );
 
             ++mate_it;
         }
@@ -143,7 +145,7 @@ protected:
         return res;
     }
 
-    void run_crossover_task( const classifier_type & cls, genome_pointer p0_start, genome_pointer p0_end, genome_pointer p1_start, genome_pointer p1_end, genome_pointer offspring, bool should_swap_strands ) {
+    void run_crossover_task( const classifier_type & cls, genome_pointer p0_start, genome_pointer p0_end, genome_pointer p1_start, genome_pointer p1_end, genome_pointer offspring, genome_pointer offspring_end, bool should_swap_strands ) {
         if( cls.event_count() == 0 ) {
             genome_pointer first = p0_start, last = p0_end;
             if( should_swap_strands ) {
@@ -155,14 +157,17 @@ protected:
                 *offspring++ = *first++;
             }
 
+            while( offspring != offspring_end ) {
+                *offspring++ = bit_helper_type::ALL_UNSET;
+            }
         } else if( should_swap_strands ) {
-            crossover_task( cls, p1_start, p1_end, p0_start, p0_end, offspring);
+            crossover_task( cls, p1_start, p1_end, p0_start, p0_end, offspring, offspring_end);
         } else {
-            crossover_task( cls, p0_start, p0_end, p1_start, p1_end, offspring);
+            crossover_task( cls, p0_start, p0_end, p1_start, p1_end, offspring, offspring_end);
         }
     }
 
-    void crossover_task( const classifier_type & cls, genome_pointer p0_start, genome_pointer p0_end, genome_pointer p1_start, genome_pointer p1_end,  genome_pointer offspring ) {
+    void crossover_task( const classifier_type & cls, genome_pointer p0_start, genome_pointer p0_end, genome_pointer p1_start, genome_pointer p1_end,  genome_pointer offspring, genome_pointer offspring_end ) {
 //        std::cerr << "Parent length: " << (p0_end - p0_start) << " x " << (p1_end - p1_start) << std::endl;
 
 //        std::cerr << "Parent Population Bounds: " << PARENT_ALLELE_COUNT << " alleles x " << PARENT_STEP << " genomes" << std::endl;
@@ -195,6 +200,10 @@ protected:
 
             *offspring++ = xover.crossover( t, b, i );
             i += bit_helper_type::BITS_PER_BLOCK;
+        }
+
+        while( offspring != offspring_end ) {
+            *offspring++ = bit_helper_type::ALL_UNSET;
         }
     }
 

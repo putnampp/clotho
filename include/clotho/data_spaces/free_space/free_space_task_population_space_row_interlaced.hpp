@@ -34,10 +34,9 @@ public:
 
     typedef typename space_type::bit_helper_type                     bit_helper_type;
 
-    free_space_task( space_type * ss, block_type * fixed_dest, block_type * var_dest, unsigned int block_start, unsigned int block_end ) :
+    free_space_task( space_type * ss, block_type * fixed_dest, unsigned int block_start, unsigned int block_end ) :
         m_space(ss)
-        , m_destF( fixed_dest + block_start )
-        , m_destV( var_dest + block_start )
+        , m_destF( fixed_dest + 2 * block_start )
         , m_start( block_start )
         , m_end( block_end )
     {}
@@ -45,7 +44,6 @@ public:
     free_space_task( const self_type & other ) :
         m_space( other.m_space )
         , m_destF( other.m_destF )
-        , m_destV( other.m_destV )
         , m_start( other.m_start )
         , m_end( other.m_end )
     {}
@@ -62,12 +60,12 @@ public:
             first += m_start;
 
             // m_destF and m_destV have already been shifted according to the starting block
-            block_type * df = m_destF, * dv = m_destV;
+            block_type * df = m_destF;
 
             while( first != last ) {
-                const block_type b = *first++;
-                *df++ &= b;
-                *dv++ |= b;
+                *df++ &= *first;
+                *df++ |= *first;
+                ++first;
             }
         }
 
@@ -78,7 +76,7 @@ public:
 protected:
     space_type  * m_space;
 
-    block_type  * m_destF, * m_destV;
+    block_type  * m_destF;
     unsigned int m_start, m_end;
 };
 
