@@ -29,6 +29,7 @@ public:
 
     typedef population_space_row< BlockType, WeightType >   space_type;
     typedef typename space_type::block_type                 block_type;
+    typedef typename space_type::bit_helper_type            bit_helper_type;
 
     typedef typename space_type::genome_pointer             genome_pointer;
 
@@ -62,6 +63,21 @@ public:
                 *df++ = *first;
                 *df++ = *first;
                 ++first;
+            }
+
+            if( (A / bit_helper_type::BITS_PER_BLOCK) != B) {
+                block_type * s = destF +  2 * (A / bit_helper_type::BITS_PER_BLOCK);
+                block_type * e = destF + 2 * B;
+                // account for padding in tail blocks
+                block_type padding_mask = (bit_helper_type::ALL_SET << (A % bit_helper_type::BITS_PER_BLOCK));
+
+                *s++ &= ~padding_mask;
+                *s++ |= padding_mask;
+                
+                while( s != e ) {
+                    *s++ = bit_helper_type::ALL_UNSET;
+                    *s++ = bit_helper_type::ALL_SET;
+                }
             }
             
             process_space( ss, destF, B, pool );

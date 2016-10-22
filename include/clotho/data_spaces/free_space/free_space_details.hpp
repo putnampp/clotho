@@ -289,8 +289,10 @@ protected:
             unsigned int j = idx;
             while( fx ) {
                 j += bit_walker_type::next_and_shift( fx );
+#ifdef DEBUGGING
                 // do not push sequence padding bits
-                if( j >= M ) break;
+                assert( j < M );
+#endif  // DEBUGGING
 
                 m_indices[ offset++ ] = j;
             }
@@ -311,9 +313,11 @@ protected:
             unsigned int j = idx;
             while( ls ) {
                 j += bit_walker_type::next_and_shift( ls );
-
+#ifdef DEBUGGING
                 // do not push sequence padding bits
-                if( j >= M ) break;
+                assert( j < M );
+#endif  // DEBUGGING
+
                 m_indices[ offset++ ] = j;
             }
 
