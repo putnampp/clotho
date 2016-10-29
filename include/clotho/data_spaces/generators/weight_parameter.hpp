@@ -25,6 +25,8 @@ namespace genetics {
 
 template < class WeightType >
 struct weight_parameter {
+    typedef weight_parameter< WeightType >  self_type;
+
     typedef WeightType  weight_type;
     typedef  weight_distribution_helper< weight_type > dist_helper_type;
     typedef typename dist_helper_type::type distribution_type;
@@ -38,6 +40,10 @@ struct weight_parameter {
 
         config.put_child( TRAIT_BLOCK_K, lconfig );
     }
+
+    weight_parameter( const self_type & other ) :
+        m_dist( other.m_dist.param() )
+    {} 
 
     void write_parameter( boost::property_tree::ptree & l ) {
         boost::property_tree::ptree c;

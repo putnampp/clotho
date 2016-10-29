@@ -24,6 +24,8 @@ namespace genetics {
 
 template < class RealType >
 struct neutral_parameter {
+    typedef neutral_parameter< RealType > self_type;
+
     typedef RealType        real_type;
     typedef boost::random::bernoulli_distribution< real_type >   distribution_type;
 
@@ -49,6 +51,10 @@ struct neutral_parameter {
 
         m_dist.param( typename distribution_type::param_type( p ) );
     }
+
+    neutral_parameter( const self_type & other ) :
+        m_dist( other.m_dist.param() )
+    {}
 
     void write_parameter( boost::property_tree::ptree & l ) {
         boost::property_tree::ptree c;

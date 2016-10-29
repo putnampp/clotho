@@ -25,14 +25,25 @@ template < class RNG, class PositionType >
 class position_generator {
 public:
 
+    typedef position_generator< RNG, PositionType > self_type;
+
     typedef RNG                 random_engine_type;
     typedef PositionType        position_type;
 
     typedef typename position_distribution_helper< PositionType >::type distribution_type;
 
+    position_generator( random_engine_type * rng ) :
+        m_rand( rng )
+    {}
+
     position_generator( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rand( rng )
     {  }
+
+    position_generator( const self_type & other ) :
+        m_rand( other.m_rand )
+    {}
+
 
     position_type   operator()() {
         return m_dist( *m_rand );
@@ -41,6 +52,26 @@ public:
     virtual ~position_generator() {}
 protected:
     random_engine_type  * m_rand;
+    distribution_type   m_dist;
+};
+
+template < class PositionType >
+class position_generator2 {
+public:
+    typedef position_generator2< PositionType > self_type;
+    typedef PositionType        position_type;
+    typedef typename position_distribution_helper< PositionType >::type distribution_type;
+
+    position_generator2() {}
+
+    template < class Engine >
+    position_type operator()( Engine & eng ) {
+        return m_dist( eng );
+    }
+
+    virtual ~position_generator2() {}
+
+protected:
     distribution_type   m_dist;
 };
 

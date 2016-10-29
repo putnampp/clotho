@@ -23,6 +23,8 @@ namespace genetics {
 template < class RNG, class TraitSpaceType >
 class TraitSpaceGenerator {
 public:
+    typedef TraitSpaceGenerator< RNG, TraitSpaceType > self_type;
+
     typedef RNG                                     random_engine_type;
     typedef TraitSpaceType                          trait_space_type;
     typedef typename trait_space_type::weight_type  weight_type;
@@ -34,7 +36,16 @@ public:
         , m_weights( config )
     {}
 
-    
+    TraitSpaceGenerator( random_engine_type * rng, const parameter_type & param ) :
+        m_rng( rng )
+        , m_weights( param )
+    {}
+
+    TraitSpaceGenerator( const self_type & other ) :
+        m_rng( other.m_rng )
+        , m_weights( other.m_weights )
+    {}
+
     template < class FreeSpaceType >
     void operator()( trait_space_type & traits, FreeSpaceType & fs, unsigned int N ) {
         generate( traits, fs, N );
@@ -65,6 +76,43 @@ public:
 protected:
     random_engine_type  * m_rng;
     parameter_type      m_weights;
+};
+
+template < class TraitSpaceType >
+class TraitSpaceGenerator2 {
+public:
+
+    typedef TraitSpaceGenerator2< TraitSpaceType >  self_type;
+    typedef TraitSpaceType                          trait_space_type;
+    typedef typename trait_space_type::weight_type  weight_type;
+
+    typedef weight_parameter< weight_type >         parameter_type;
+
+    TraitSpaceGenerator2( boost::property_tree::ptree & config ) :
+        m_weights( config )
+    {}
+
+    TraitSpaceGenerator2( const parameter_type & param ) :
+        m_weights( param )
+    {}
+    
+    TraitSpaceGenerator2( const self_type & other ) :
+        m_weights( other.m_weights )
+    {}
+    
+    template < class Engine >
+    void operator()( Engine & eng, trait_space_type & traits, unsigned int offset ) {
+        unsigned int i = 0;
+        while( i < traits.trait_count() ) {
+            traits.setWeight( m_weights.m_dist( eng ), offset, i );
+            ++i;
+        }
+    }
+
+    virtual ~TraitSpaceGenerator2() {}
+protected:
+
+    parameter_type m_weights;
 };
 
 }   // namespace genetics

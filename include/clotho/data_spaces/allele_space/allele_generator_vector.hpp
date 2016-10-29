@@ -26,18 +26,34 @@ namespace genetics {
 template < class RNG, class PositionType, class SizeType >
 class AlleleGenerator< RNG, AlleleSpace< PositionType, SizeType > > {
 public:
+    typedef AlleleGenerator< RNG, AlleleSpace< PositionType, SizeType > > self_type;
 
     typedef RNG                                     random_engine_type;
 
     typedef AlleleSpace< PositionType, SizeType >   allele_type;
     typedef typename allele_type::position_type     position_type;
 
-    typedef position_generator< RNG, position_type > position_generator_type;
-    typedef neutral_generator< RNG >                 neutrality_generator_type;
+    typedef position_generator2< position_type > position_generator_type;
+    typedef neutral_generator2                   neutrality_generator_type;
+
+    AlleleGenerator( boost::property_tree::ptree & config ) :
+        m_rng( NULL )
+        , m_neut_gen( config )
+    {}
 
     AlleleGenerator( random_engine_type * rng, boost::property_tree::ptree & config ) :
-        m_pos_gen( rng, config )
-        , m_neut_gen(rng, config )
+        m_rng( rng )
+        , m_neut_gen( config )
+    {}
+
+    AlleleGenerator( random_engine_type * rng, const self_type & other ) :
+        m_rng( rng )
+        , m_neut_gen( other.m_neut_gen )
+    {}
+
+    AlleleGenerator( const self_type & other ) :
+        m_rng( other.m_rng )
+        , m_neut_gen( other.m_neut_gen )
     {}
 
     template < class FreeSpaceType >
@@ -58,8 +74,8 @@ public:
     }
 
     void operator()( allele_type & all, unsigned int idx, unsigned int age ) {
-        position_type p = m_pos_gen();
-        bool neu = m_neut_gen();
+        position_type p = m_pos_gen( *m_rng );
+        bool neu = m_neut_gen( *m_rng );
 
         all.setAllele( idx, p, neu, age );
     }
@@ -67,6 +83,7 @@ public:
     virtual ~AlleleGenerator() {}
 
 protected:
+    random_engine_type          * m_rng;
     position_generator_type     m_pos_gen;
     neutrality_generator_type   m_neut_gen;
 };

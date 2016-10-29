@@ -194,6 +194,14 @@ public:
         return m_size - (m_fixed_count + m_lost_count);
     }
 
+    size_type getFree( unsigned int idx ) const {
+#ifdef DEBUGGING
+        assert( idx < free_count() );
+#endif  // DEBUGGING
+
+        return m_indices[ idx ];
+    }
+
     size_type free_size() const {
         return m_fixed_count + m_lost_count;
     }
@@ -214,6 +222,13 @@ public:
         return m_indices + m_fixed_count + m_lost_count;
     }
 
+    size_type getFixed( unsigned int idx ) const {
+#ifdef DEBUGGING
+        assert( idx < m_fixed_count );
+#endif  // DEBUGGING
+        return m_indices[ idx ];
+    }
+
     size_type fixed_size() const {
         return m_fixed_count;
     }
@@ -232,6 +247,13 @@ public:
 
     const_iterator fixed_end() const {
         return m_indices + m_fixed_count;
+    }
+
+    size_type getLost( unsigned int idx ) const {
+#ifdef DEBUGGING
+        assert( idx < m_lost_count );
+#endif  // DEBUGGING
+        return m_indices[ m_fixed_count + idx ];
     }
 
     size_type lost_size() const {

@@ -23,24 +23,62 @@ namespace clotho {
 namespace genetics {
 
 template < class RNG >
-class neutral_generator : public neutral_parameter< double > {
+class neutral_generator {
 public:
-    typedef neutral_parameter< double >     base_type;
+
+    typedef neutral_generator< RNG >        self_type;
+
+    typedef neutral_parameter< double >     parameter_type;
     typedef bool                            result_type;
     typedef RNG                             random_engine_type;
 
+    neutral_generator( RNG * rng, const parameter_type & b ) :
+        m_param( b )
+        , m_rand( rng )
+    {}
+
     neutral_generator( RNG * rng, boost::property_tree::ptree & config ) :
-        base_type( config )
+        m_param( config )
         , m_rand( rng )
     { }
 
+    neutral_generator( const self_type & other ) :
+        m_param( other.m_param )
+        , m_rand( other.m_rand )
+    {}
+
     result_type   operator()() {
-        return this->m_dist( *m_rand );
+        return m_param.m_dist( *m_rand );
     }
 
     virtual ~neutral_generator() {}
 protected:
+    parameter_type      m_param;
     random_engine_type  * m_rand;
+};
+
+class neutral_generator2 {
+public:
+
+    typedef neutral_parameter< double >     parameter_type;
+    typedef bool                            result_type;
+
+    neutral_generator2( boost::property_tree::ptree & config ) :
+        m_param( config )
+    {}
+
+    neutral_generator2( const neutral_generator2 & other ) :
+        m_param( other.m_param )
+    {}
+
+    template < class Engine >
+    result_type operator()( Engine & eng ) {
+        return m_param.m_dist( eng );
+    }
+
+    virtual ~neutral_generator2() {}
+protected:
+    parameter_type      m_param;
 };
 
 }   // namespace genetics

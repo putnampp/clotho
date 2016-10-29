@@ -62,22 +62,32 @@ public:
     }
 
     void setAllele( size_type index, position_type pos, bool is_neutral, unsigned int age ) {
-        if( index < m_positions.size() ) {
-            m_positions[ index ] = pos;
-            m_neutral.set( index, is_neutral );
-            m_age[ index ] = age;
-        } else {
-            do {
-                m_positions.push_back( pos );
-                m_neutral.push_back( is_neutral );
-                m_age.push_back(age);
-            } while( m_positions.size() <= index );
 #ifdef DEBUGGING
-            assert( m_positions.size() == m_neutral.size() );
-            assert( m_positions.size() == m_age.size() );
-#endif  // DEBUGGING
-        }
+        assert( index < m_positions.size() );
+#endif // DEBUGGING
+
+        m_positions[ index ] = pos;
+        m_neutral.set( index, is_neutral );
+        m_age[ index ] = age;
     }
+
+//    void setAllele( size_type index, position_type pos, bool is_neutral, unsigned int age ) {
+//        if( index < m_positions.size() ) {
+//            m_positions[ index ] = pos;
+//            m_neutral.set( index, is_neutral );
+//            m_age[ index ] = age;
+//        } else {
+//            do {
+//                m_positions.push_back( pos );
+//                m_neutral.push_back( is_neutral );
+//                m_age.push_back(age);
+//            } while( m_positions.size() <= index );
+//#ifdef DEBUGGING
+//            assert( m_positions.size() == m_neutral.size() );
+//            assert( m_positions.size() == m_age.size() );
+//#endif  // DEBUGGING
+//        }
+//    }
 
     void append( const self_type & other, unsigned int idx ) {
 #ifdef DEBUGGING
@@ -91,6 +101,16 @@ public:
 
     size_t size() const {
         return m_positions.size();
+    }
+
+    void grow() {
+        m_positions.push_back( 0 );
+        m_neutral.push_back( false );
+        m_age.push_back( 0 );
+#ifdef DEBUGGING
+        assert( m_positions.size() == m_neutral.size() );
+        assert( m_positions.size() == m_age.size() );
+#endif  // DEBUGGING
     }
 
     virtual ~AlleleSpace() {}
