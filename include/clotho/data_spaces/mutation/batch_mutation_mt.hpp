@@ -69,7 +69,7 @@ public:
             }
         }
 
-        batch_generate( pop, alleles, traits, free_indices, N, age, pool );
+        batch_generate_partitions( pop, alleles, traits, free_indices, N, age, pool );
     }
 
     virtual ~BatchMutationMT() {}
@@ -78,6 +78,7 @@ protected:
 
     template < class PoolType >
     void batch_generate( space_type * pop, allele_type * alleles, trait_space_type * traits, const free_vector & free_indices, const unsigned int N, unsigned int age, PoolType & pool ) {
+
         const size_t TC = pool.pool_size() + 1;
         const size_t BATCH_SIZE = ( N / TC) + (( N % TC > 0) ? 1 : 0);
 
@@ -92,6 +93,42 @@ protected:
         }
 
         if( off_idx < N ) {
+            task_type t( m_rng, pop, alleles, traits, free_indices.begin() + off_idx, free_indices.begin() + N, m_base_allele_gen, age, m_weight_param );
+            t();
+        }
+
+        pool.sync();
+    }
+
+    template < class PoolType >
+    void batch_generate_partitions( space_type * pop, allele_type * alleles, trait_space_type * traits, const free_vector & free_indices, const unsigned int N, unsigned int age, PoolType & pool ) {
+
+        const unsigned int TC = pool.pool_size() + 1;
+        const unsigned int BATCH_SIZE = ( N / TC ) + (( N % TC > 0) ? 1 : 0);
+
+        unsigned int off_idx = 0, j = 0;
+        while( off_idx + BATCH_SIZE < N ) {
+            unsigned int off_end = off_idx + BATCH_SIZE;
+
+            // scan forward in free indices
+            // find the last free index in an allele block relative to the intended block
+            // this is to prevent write collisions when setting neutral bit state
+            unsigned int block_idx = free_indices[ off_end ] / allele_type::ALLELES_PER_BLOCK;
+            while( off_end < N ) {
+                unsigned int next_block_idx = free_indices[ off_end + 1 ] / allele_type::ALLELES_PER_BLOCK;
+                if( block_idx != next_block_idx ) {
+                    break;
+                }
+                ++off_end;
+            }
+
+            task_type x( pool.getRNG( j++ ), pop, alleles, traits, free_indices.begin() + off_idx, free_indices.begin() + off_end, m_base_allele_gen, age, m_weight_param );
+            pool.post(x);
+
+            off_idx = off_end;
+        }
+
+        if( off_idx <  N ) {
             task_type t( m_rng, pop, alleles, traits, free_indices.begin() + off_idx, free_indices.begin() + N, m_base_allele_gen, age, m_weight_param );
             t();
         }

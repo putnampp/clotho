@@ -20,6 +20,8 @@
 #include "clotho/utility/state_object.hpp"
 #include "clotho/utility/log_helper.hpp"
 
+#include "clotho/utility/bit_helper.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -38,6 +40,8 @@ public:
     typedef std::vector< age_type >     age_vector;
 
     typedef AlleleSpace< PositionType, SizeType >   self_type;
+
+    static const unsigned int ALLELES_PER_BLOCK = clotho::utility::BitHelper< unsigned int >::BITS_PER_BLOCK; 
 
     AlleleSpace() {}
 
