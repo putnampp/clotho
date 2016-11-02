@@ -170,20 +170,20 @@ struct state_getter< clotho::genetics::BatchPhenotypeMT< clotho::genetics::popul
     typedef clotho::genetics::BatchPhenotypeMT< clotho::genetics::population_space_row<BlockType, WeightType>, TraitSpaceType > object_type;
 
     void operator()( boost::property_tree::ptree & s, object_type & obj ) {
-//        typedef typename object_type::phenotype_type phenotype_type;
-//
-//        size_t i = 0;
-//        phenotype_type  * tmp = obj.getPhenotypes();
-//        while( i < obj.sequence_count() ) {
-//            boost::property_tree::ptree p;
-//            clotho::utility::add_value_array( p, tmp, tmp + obj.trait_count() );
-//
-//            s.push_back( std::make_pair( "", p ) );
-//
-//            ++i;
-//
-//            tmp += obj.trait_count();
-//        }
+        typedef typename object_type::const_phenotype_iterator iterator;
+
+        size_t i = 0;
+        while( i < obj.individual_count() ) {
+
+            iterator first = obj.begin_individual_phenotype( i ), last = obj.end_individual_phenotype( i );
+
+            boost::property_tree::ptree p;
+            clotho::utility::add_value_array( p, first, last );
+
+            s.push_back( std::make_pair( "", p ) );
+
+            ++i;
+        }
     }
 };
 
