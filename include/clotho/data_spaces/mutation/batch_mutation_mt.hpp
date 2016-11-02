@@ -66,6 +66,7 @@ public:
             for( unsigned int b = 0; b < new_alleles; ++b ) {
                 free_indices.push_back( alleles->size() );
                 alleles->grow();
+                traits->grow();
             }
         }
 

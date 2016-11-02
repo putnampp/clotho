@@ -61,28 +61,43 @@ public:
         return m_weights[ row ];
     }
 
+//    void setWeight( weight_type w, unsigned int row, unsigned int col ) {
+//#ifdef DEBUGGING
+//        assert( col < m_trait_count );
+//#endif  // DEBUGGING
+//
+//        unsigned int _offset = row * m_trait_count;
+//
+//        if( _offset < m_weights.size() ) {
+//            m_weights[ _offset + col ] = w;
+//        } else {
+//            do {
+//                for( unsigned int i = 0; i < m_trait_count; ++i ) {
+//                    m_weights.push_back( w );
+//                }
+//            } while( m_weights.size() <= _offset );
+//        }
+//
+//    }
+//
     void setWeight( weight_type w, unsigned int row, unsigned int col ) {
 #ifdef DEBUGGING
         assert( col < m_trait_count );
 #endif  // DEBUGGING
-
         unsigned int _offset = row * m_trait_count;
 
-        if( _offset < m_weights.size() ) {
-            m_weights[ _offset + col ] = w;
-        } else {
-            do {
-                for( unsigned int i = 0; i < m_trait_count; ++i ) {
-                    m_weights.push_back( w );
-                }
-            } while( m_weights.size() <= _offset );
-        }
-
+        m_weights[ _offset + col ] = w;
     }
 
     void append( iterator first, iterator last ) {
         while( first != last ) {
             m_weights.push_back( *first++ );
+        }
+    }
+
+    void grow() {
+        for( unsigned int i = 0; i < m_trait_count; ++i ) {
+            m_weights.push_back( 0.0 );
         }
     }
 
