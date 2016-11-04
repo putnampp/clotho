@@ -65,7 +65,7 @@ public:
         for( unsigned int i = m_start; i < m_end; ++i ) {
             genome_pointer first = m_pop->begin_genome(i), last = m_pop->end_genome(i);
 
-            accumulate_allele_weights( first, last, local_weights );
+            accumulate_allele_weights_alt2( first, last, local_weights );
 
             m_pop->updateGenomeWeights( i, local_weights );
 
@@ -93,6 +93,58 @@ protected:
                 unsigned int k = 0;
                 while( tfirst != tlast ) {
                     weights[ k++ ] += *tfirst++;
+                }
+            }
+
+            j += bit_helper_type::BITS_PER_BLOCK;
+        }
+    }
+
+    void accumulate_allele_weights_alt( genome_pointer first, genome_pointer last, weight_vector & weights ) {
+        const unsigned int TRAIT_COUNT = m_traits->trait_count();
+        unsigned int j = 0;
+
+        trait_iterator tfirst = m_traits->begin(0);
+
+        while( first != last ) {
+            block_type b = *first++;
+
+            unsigned int bidx = j;
+            while( b ) {
+                bidx += bit_walker_type::next_and_shift(b);
+
+                trait_iterator tmp = (tfirst + bidx * TRAIT_COUNT);
+                unsigned int k = 0;
+                while( k < TRAIT_COUNT ) {
+                    weights[ k++ ] += *tmp++;
+                }
+            }
+
+            j += bit_helper_type::BITS_PER_BLOCK;
+        }
+    }
+
+    void accumulate_allele_weights_alt2( genome_pointer first, genome_pointer last, weight_vector & weights ) {
+        const unsigned int TRAIT_COUNT = m_traits->trait_count();
+        unsigned int j = 0;
+
+        unsigned int index_buffer[ bit_helper_type::BITS_PER_BLOCK ];
+
+        while( first != last ) {
+            block_type b = *first++;
+
+            unsigned int offset = 0;
+
+            unsigned int bidx = j;
+            while( b ) {
+                bidx += bit_walker_type::next_and_shift(b);
+                index_buffer[ offset++ ] = bidx;
+            }
+
+            while( offset-- ) {
+                unsigned int k = 0, l = index_buffer[ offset ] * TRAIT_COUNT;
+                while( k < TRAIT_COUNT ) {
+                    weights[ k++ ] += (*m_traits)[ l++ ];
                 }
             }
 

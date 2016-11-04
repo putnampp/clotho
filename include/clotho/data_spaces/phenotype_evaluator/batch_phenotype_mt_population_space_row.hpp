@@ -118,7 +118,7 @@ protected:
         while( i + BATCH_SIZE < M ) {
 
             updater_task t( pop, traits, i, i + BATCH_SIZE );
-            t();
+            pool.post( t );
 
             i += BATCH_SIZE;
         }
@@ -142,7 +142,7 @@ protected:
         while( i + BATCH_SIZE < M ) {
 
             reducer_type t( pop, i, i + BATCH_SIZE, this );
-            t();
+            pool.post(t);
 
             i += BATCH_SIZE;
         }
