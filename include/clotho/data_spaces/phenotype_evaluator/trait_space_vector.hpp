@@ -51,6 +51,13 @@ public:
         return m_weights.size() / m_trait_count;
     }
 
+    weight_type operator[]( unsigned int offset ) const {
+#ifdef DEBUGGING
+        assert( offset < m_weights.size() );
+#endif  // DEBUGGING
+        return m_weights[ offset ];
+    }
+
     weight_type getWeight( unsigned int row, unsigned int col ) const {
         row *= m_trait_count;
         row += col;
