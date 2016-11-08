@@ -16,5 +16,6 @@
 
 #include "clotho/data_spaces/mutation/batch_mutation_task.hpp"
 #include "clotho/data_spaces/mutation/batch_mutation_task_population_space_row.hpp"
+#include "clotho/data_spaces/mutation/batch_mutation_task_population_space_row_modified.hpp"
 
 #endif  // CLOTHO_BATCH_MUTATION_TASKS_HPP_

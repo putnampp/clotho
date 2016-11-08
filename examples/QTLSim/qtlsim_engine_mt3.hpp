@@ -51,9 +51,6 @@
 #include "clotho/data_spaces/population_space/population_spaces.hpp"
 #include "clotho/data_spaces/selection/selection.hpp"
 
-//#include "clotho/data_spaces/mutation/mutation_generators.hpp"
-//#include "clotho/data_spaces/mutation/mutation_allocator.hpp"
-
 #include "clotho/data_spaces/mutation/batch_mutation_mt.hpp"
 
 #include "clotho/data_spaces/fitness/general_fitness.hpp"
@@ -79,18 +76,17 @@ public:
     typedef clotho::genetics::thread_pool< RNG >                                                    thread_pool_type;
     typedef clotho::genetics::AlleleSpace< position_type, size_type >                               allele_type;
 
-//    typedef clotho::genetics::population_space_columnar< block_type, weight_type >                  sequence_space_type;
-    typedef clotho::genetics::population_space_row< block_type, weight_type >                  sequence_space_type;
+#ifdef USE_ROW_MODIFICATION
+    typedef clotho::genetics::population_space_row_modified< block_type, weight_type >                       sequence_space_type;
+#else
+    typedef clotho::genetics::population_space_row< block_type, weight_type >                       sequence_space_type;
+#endif  // USE_ROW_MODIFICATION
     typedef clotho::genetics::trait_space_vector< weight_type >                                     trait_space_type;
     typedef clotho::genetics::FreeSpaceAnalyzerMT< sequence_space_type, size_type >                 free_space_type;
 
     typedef clotho::genetics::mutation_allocator< random_engine_type, size_type >                 mutation_alloc_type;
-//    typedef clotho::genetics::MutationGenerator2< random_engine_type, sequence_space_type >       mutation_type;
 
     typedef clotho::genetics::BatchMutationMT< random_engine_type, sequence_space_type, allele_type, free_space_type, trait_space_type > mutation_type;
-
-//    typedef clotho::genetics::AlleleGenerator< random_engine_type, allele_type >                  allele_generator_type;
-//    typedef clotho::genetics::TraitSpaceGenerator< random_engine_type, trait_space_type >         trait_generator_type;
 
     typedef clotho::genetics::GeneralFitness                                                      fitness_type;
     typedef clotho::genetics::SelectionGenerator< random_engine_type, clotho::genetics::fitness_selection< fitness_type > >          selection_type;
@@ -117,9 +113,6 @@ public:
         , m_fit( config )
         , m_generation( 0 )
         , m_pop_growth()
-//        , m_mut_alloc( rng, config )
-//        , trait_gen( rng, config )
-//        , allele_gen( rng, config )
     {
         population_growth_generator_type tmp  = population_growth_toolkit::getInstance()->get_tool( config );
         if( tmp ) {
@@ -132,13 +125,6 @@ public:
             population_growth_toolkit::getInstance()->tool_configurations( config );
         }
 
-//        m_pop0.getSequenceSpace().clear();
-//        m_pop1.getSequenceSpace().clear();
-
-//        size_t acount = m_pop0.getAlleleSpace().allele_count();
-//        m_pop0.getAlleleSpace().grow(acount, m_pheno.trait_count());
-//        m_pop1.getAlleleSpace().grow(acount, m_pheno.trait_count());
-
         init(0);
     }
 
@@ -147,7 +133,6 @@ public:
     }
 
     void init( size_t aN ) {
-//        size_t pN = m_parent->individual_count();
         size_t pN = 0;
         if( m_pop_growth ) {
             pN = m_pop_growth->operator()( pN, m_generation );
@@ -193,11 +178,10 @@ public:
 
         cross_gen( select_gen, m_parent, m_child, &m_allele_space, m_thread_pool );
 
-//        generate_child_mutations( pM );
         mutate_gen( m_child, &m_allele_space, &m_trait_space, &m_free_space, pM, m_generation, m_thread_pool );
 
         if( !m_allele_space.isAllNeutral() ) {
-            m_pheno( m_child, &m_trait_space, m_thread_pool );
+            m_pheno( m_parent, m_child, &m_trait_space, m_thread_pool );
         } else {
             m_pheno.constant_phenotype( m_child, &m_trait_space );
         }

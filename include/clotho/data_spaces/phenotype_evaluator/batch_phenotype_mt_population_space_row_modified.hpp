@@ -14,20 +14,20 @@
 #ifndef CLOTHO_BATCH_PHENOTYPE_MT_POPULATION_SPACE_ROW_HPP_
 #define CLOTHO_BATCH_PHENOTYPE_MT_POPULATION_SPACE_ROW_HPP_
 
-#include "clotho/data_spaces/population_space/population_space_row.hpp"
+#include "clotho/data_spaces/population_space/population_space_row_modified.hpp"
 
-#include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_task_population_space_row.hpp"
+#include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_tasks.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/individual_reducer_tasks.hpp"
 
 namespace clotho {
 namespace genetics {
 
 template < class BlockType, class WeightType, class TraitSpaceType >
-class BatchPhenotypeMT< population_space_row< BlockType, WeightType >, TraitSpaceType > {
+class BatchPhenotypeMT< population_space_row_modified< BlockType, WeightType >, TraitSpaceType > {
 public:
 
-    typedef BatchPhenotypeMT< population_space_row< BlockType, WeightType >, TraitSpaceType > self_type;
-    typedef population_space_row< BlockType, WeightType >                      space_type;
+    typedef BatchPhenotypeMT< population_space_row_modified< BlockType, WeightType >, TraitSpaceType > self_type;
+    typedef population_space_row_modified< BlockType, WeightType >                      space_type;
     typedef TraitSpaceType                                                          trait_space_type;
 
     typedef typename space_type::weight_type                                        phenotype_type;
@@ -59,7 +59,20 @@ public:
     }
 
     template < class PoolType >
-    void operator()( space_type * parent_pop, space_type * pop, trait_space_type * traits, PoolType & pool ) {
+    void operator()( space_type * parent_pop, space_type * child_pop, trait_space_type * traits, PoolType & pool ) {
+        m_trait_count = child_pop->getTraitCount();
+
+        const unsigned int N = child_pop->getTraitCount() * child_pop->getIndividualCount();
+        while( m_phenos.size() < N ) {
+            m_phenos.push_back(0.0);
+        }
+
+        updateHaploidGenomeWeights( parent_pop, child_pop, traits, pool );
+        updateIndividualPhenotypes( child_pop, traits, pool );
+    }
+
+    template < class PoolType >
+    void operator()( space_type * pop, trait_space_type * traits, PoolType & pool ) {
         m_trait_count = pop->getTraitCount();
 
         const unsigned int N = pop->getTraitCount() * pop->getIndividualCount();
@@ -106,6 +119,30 @@ public:
     virtual ~BatchPhenotypeMT() {}
 
 protected:
+
+    template < class PoolType >
+    void updateHaploidGenomeWeights( space_type * parent_pop, space_type * child_pop, trait_space_type * traits, PoolType & pool ) {
+        const unsigned int TC = pool.pool_size() + 1;
+
+        const unsigned int M = child_pop->haploid_genome_count();
+        const unsigned int BATCH_SIZE = M / TC + ((M % TC > 0) ? 1 : 0);
+
+        unsigned int i = 0;
+        while( i + BATCH_SIZE < M ) {
+
+            updater_task t( parent_pop, child_pop, traits, i, i + BATCH_SIZE );
+            pool.post( t );
+
+            i += BATCH_SIZE;
+        }
+
+        if( i < M ) {
+            updater_task t( parent_pop, child_pop, traits, i, M );
+            t();
+        }
+
+        pool.sync();
+    }
 
     template < class PoolType >
     void updateHaploidGenomeWeights( space_type * pop, trait_space_type * traits, PoolType & pool ) {
@@ -166,8 +203,8 @@ namespace clotho {
 namespace utility {
 
 template < class BlockType, class WeightType, class TraitSpaceType >
-struct state_getter< clotho::genetics::BatchPhenotypeMT< clotho::genetics::population_space_row<BlockType, WeightType>, TraitSpaceType > >  {
-    typedef clotho::genetics::BatchPhenotypeMT< clotho::genetics::population_space_row<BlockType, WeightType>, TraitSpaceType > object_type;
+struct state_getter< clotho::genetics::BatchPhenotypeMT< clotho::genetics::population_space_row_modified<BlockType, WeightType>, TraitSpaceType > >  {
+    typedef clotho::genetics::BatchPhenotypeMT< clotho::genetics::population_space_row_modified<BlockType, WeightType>, TraitSpaceType > object_type;
 
     void operator()( boost::property_tree::ptree & s, object_type & obj ) {
         typedef typename object_type::const_phenotype_iterator iterator;
