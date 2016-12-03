@@ -151,7 +151,7 @@ public:
 
         bool is_free = true;
         for( unsigned int i = 0; i < m_genome_rows; ++i ) {
-            is_free = ((*first & mask) == (block_type)0);
+            is_free = is_free && ((*first & mask) == (block_type)0);
             if( !is_free ) {
                 std::cerr << "Non-free space detected at index: " << idx << " in sequence " << i << std::endl;
                 assert(false);

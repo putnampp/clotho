@@ -14,26 +14,11 @@
 #ifndef CLOTHO_POPULATION_SPACE_ROW_HPP_
 #define CLOTHO_POPULATION_SPACE_ROW_HPP_
 
-#include "clotho/data_spaces/phenotype_evaluator/trait_space_vector.hpp"
-
-#include "clotho/utility/bit_helper.hpp"
-#include <vector>
-
-namespace clotho {
-namespace genetics {
-
-
 #ifndef USE_VECTOR_ARRAY
-
 #include "clotho/data_spaces/population_space/population_space_row_block.hpp"
-
 #else // USE_VECTOR_ARRAY
 #include "clotho/data_spaces/population_space/population_space_row_vector_array.hpp"
 #endif  // USE_VECTOR_ARRAY
-
-
-}   // namespace genetics
-}   // namespace clotho
 
 #endif  // CLOTHO_POPULATION_SPACE_ROW_HPP_
 

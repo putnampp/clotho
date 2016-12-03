@@ -11,8 +11,8 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_POPULATION_SPACE_ROW_VECTOR_ARRYA_HPP_
-#define CLOTHO_POPULATION_SPACE_ROW_VECTOR_ARRYA_HPP_
+#ifndef CLOTHO_POPULATION_SPACE_ROW_VECTOR_ARRAY_HPP_
+#define CLOTHO_POPULATION_SPACE_ROW_VECTOR_ARRAY_HPP_
 
 #include "clotho/data_spaces/phenotype_evaluator/trait_space_vector.hpp"
 
@@ -45,21 +45,21 @@ public:
 
     population_space_row() :
         m_genetic_space( NULL )
-        , m_genetic_space_allocated(0)
         , m_genome_rows(0)
         , m_allele_block_columns(0)
         , m_allele_count(0)
         , m_trait_count(0)
+        , m_max_rows(0)
+        , m_max_cols(0)
     {}
 
     genome_pointer getHaploidGenome( unsigned int offset ) {
-        assert( offset < m_genome_rows );
-        return m_genetic_space + offset * m_allele_block_columns;;
+        return begin_genome( offset );
     }
 
-    individual_pointer getIndividual( unsigned int offset ) {
-        return getHaploidGenome( 2 * offset );
-    }
+//    individual_pointer getIndividual( unsigned int offset ) {
+//        return getHaploidGenome( 2 * offset );
+//    }
 
     void grow( unsigned int I, unsigned int A, unsigned int T ) {
         setIndividualCount( I );
@@ -67,8 +67,6 @@ public:
         setTraitCount( T );
 
         resize( );
-
-        //clear();
     }
 
     unsigned int getIndividualCount( ) const {
@@ -115,10 +113,10 @@ public:
         assert( seq_idx < m_genome_rows );
         assert( all_idx < m_allele_count);
 
-        assert( (m_genetic_space[ block_offset + seq_idx * m_allele_block_columns ] & mask) == (block_type)0);
+        assert( (m_genetic_space[ seq_idx ][ block_offset ] & mask) == (block_type)0);
 #endif  // DEBUGGING
 
-        m_genetic_space[ block_offset + seq_idx * m_allele_block_columns ] ^= mask;
+        m_genetic_space[ seq_idx ][ block_offset ] ^= mask;
     }
 
     void remove_fixed_allele( unsigned int all_idx ) {
@@ -129,17 +127,14 @@ public:
         unsigned int block_offset = (all_idx / bit_helper_type::BITS_PER_BLOCK );
         block_type mask = ~((block_type) 1 << (all_idx % bit_helper_type::BITS_PER_BLOCK ) );
 
-        const unsigned int STEP = getMaxBlocks();
         
-        block_type * first = m_genetic_space + block_offset;
 
         for( unsigned int i = 0; i < m_genome_rows; ++i ) {
 #ifdef DEBUGGING
-            assert( (*first & ~mask) );
+            assert( (m_genetic_space[ i ][ block_offset ] & ~mask) );
 #endif  // DEBUGGING
-            *first &= mask;
+            m_genetic_space[i][ block_offset ] &= mask;
 
-            first += STEP;
         }
     }
 
@@ -147,11 +142,9 @@ public:
         unsigned int block_offset = ( idx / bit_helper_type::BITS_PER_BLOCK );
         block_type mask = ((block_type) 1 << (idx % bit_helper_type::BITS_PER_BLOCK ));
 
-        block_type * first = m_genetic_space + block_offset;
-
         bool is_free = true;
         for( unsigned int i = 0; i < m_genome_rows; ++i ) {
-            is_free = ((*first & mask) == (block_type)0);
+            is_free = is_free && ((m_genetic_space[ i ][ block_offset ] & mask) == (block_type)0);
             if( !is_free ) {
                 std::cerr << "Non-free space detected at index: " << idx << " in sequence " << i << std::endl;
                 assert(false);
@@ -162,23 +155,22 @@ public:
     }
 
     row_pointer begin_block_row( unsigned int idx ) {
-        return m_genetic_space + idx * m_allele_block_columns;
+        return begin_genome(idx);
     }
 
     row_pointer end_block_row( unsigned int idx ) {
-
-        return m_genetic_space + (idx + 1) * m_allele_block_columns;
+        return end_genome(idx);
     }
 
     genome_pointer begin_genome( unsigned int idx ) {
         assert( idx < m_genome_rows );
-        return m_genetic_space + idx * m_allele_block_columns;
+        return m_genetic_space[ idx ];
     }
 
     genome_pointer end_genome( unsigned int idx ) {
         assert( idx < m_genome_rows );
 
-        return m_genetic_space + (idx + 1) * m_allele_block_columns;
+        return m_genetic_space[ idx ] + m_allele_block_columns;
     }
 
     void updateGenomeWeights( unsigned int genome_index, weight_vector & weights ) {
@@ -206,6 +198,9 @@ public:
 
     virtual ~population_space_row() {
         if( m_genetic_space != NULL ) {
+            for( unsigned int i = 0; i < m_max_rows; ++i )
+                delete [] m_genetic_space[ i ];
+
             delete [] m_genetic_space;
         }
     }
@@ -213,39 +208,74 @@ public:
 protected:
 
     void clear() {
-        memset( m_genetic_space, 0, sizeof(block_type) * m_genetic_space_allocated );
+        for( unsigned int i = 0; i < m_max_rows; ++i )
+            memset( m_genetic_space[i], 0, sizeof(block_type) * m_allele_block_columns );
     }
 
     void resize( ) {
 
-        size_t  new_total = m_genome_rows * m_allele_block_columns;
-        if( new_total > m_genetic_space_allocated ) {
+        if( m_allele_block_columns > m_max_cols ) {
+            // if genome_rows == max_rows && block_columns > max_cols then re-allocate all rows
+            // if genome_rows < max_rows && block_columns > max_cols then re-allocate all rows
+            // if genome_rows > max_rows && block_columns > max_cols then re-allocate all rows
+            if( m_genetic_space != NULL ) {
+                for( unsigned int i = 0; i < m_max_rows; ++i )
+                    delete [] m_genetic_space[ i ];
+
+                delete [] m_genetic_space;
+            }
+
+            m_allele_block_columns += 100;  // add 100 blocks/row in an attempt to reduce malloc calls (6400 bits)
+
+            m_genetic_space = new block_type*[ m_genome_rows ];
+            for( unsigned int i = 0; i < m_genome_rows; ++i )
+                m_genetic_space[ i ] = new block_type[ m_allele_block_columns ];
+
+            m_max_cols = m_allele_block_columns;
+            m_max_rows = m_genome_rows;
+        } else if( m_genome_rows > m_max_rows ) {
+            // if genome_rows > max_rows && block_columns == max_cols then append new rows ( copy and extend )
+            // if genome_rows > max_rows && block_columns < max_cols then append new rows ( copy and extend using current max_cols )
+            //
+            block_type ** tmp = new block_type*[ m_genome_rows ];
+
+            for( unsigned int i = 0; i < m_max_rows; ++i )
+                tmp[ i ] = m_genetic_space[ i ];
+
+            for( unsigned int i = m_max_rows; i < m_genome_rows; ++i )
+                tmp[ i ] = new block_type[ m_max_cols ];
+
             if( m_genetic_space != NULL ) {
                 delete [] m_genetic_space;
             }
 
-            new_total += 10 * m_genome_rows;  // pad each allocation by an additional 10 rows
-            m_genetic_space = new block_type[ new_total ];
-
-            m_genetic_space_allocated = new_total;
+            m_genetic_space = tmp;
+            m_max_rows = m_genome_rows;
         }
+        // else {
+        // if genome_rows == max_rows && block_columns == max_cols then do nothing
+        // if genome_rows < max_rows && block_columns == max_cols then do nothing ( leave existing max rows allocated )
+        // if genome_rows == max_rows && block_columns < max_cols then do nothing ( leave existing max columns allocated )
+        // if genome_rows < max_rows && block_columns < max_cols then do nothing ( leave existing maxs allocated )
+        // }
 
-        new_total = m_trait_count * m_genome_rows;
+        unsigned int new_total = m_trait_count * m_genome_rows;
 
         while( m_genome_traits.size() < new_total ) {
             m_genome_traits.push_back(0);
         }
     }
 
-    block_type      * m_genetic_space;
-
-    size_t          m_genetic_space_allocated;
+    block_type      ** m_genetic_space;
 
     unsigned int    m_genome_rows, m_allele_block_columns, m_allele_count, m_trait_count;
+
+    unsigned int    m_max_rows, m_max_cols;
 
     weight_vector   m_genome_traits;
 };
 
 }   // namespace genetics
 }   // namespace clotho
-#define CLOTHO_POPULATION_SPACE_ROW_VECTOR_ARRYA_HPP_
+
+#endif  // CLOTHO_POPULATION_SPACE_ROW_VECTOR_ARRAY_HPP_
