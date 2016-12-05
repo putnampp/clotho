@@ -58,6 +58,11 @@ public:
 
     template < class PoolType >
     void operator()( space_type * pop, allele_type * alleles, trait_space_type * traits, free_space_type * free_space, const unsigned int N, unsigned int age,  PoolType & pool ) {
+        operator()( pop, alleles, traits, free_space, N, age, pool, pool.pool_size() + 1 );
+    }
+
+    template < class PoolType >
+    void operator()( space_type * pop, allele_type * alleles, trait_space_type * traits, free_space_type * free_space, const unsigned int N, unsigned int age,  PoolType & pool, const unsigned int TC ) {
 
         free_vector free_indices( free_space->free_begin(), free_space->free_end() );
         if( N > free_space->free_size() ) {
@@ -70,19 +75,18 @@ public:
             }
         }
 
-        batch_generate_partitions( pop, alleles, traits, free_indices, N, age, pool );
+        batch_generate_partitions( pop, alleles, traits, free_indices, N, age, pool, TC );
     }
-
     virtual ~BatchMutationMT() {}
 
 protected:
 
     template < class PoolType >
-    void batch_generate( space_type * pop, allele_type * alleles, trait_space_type * traits, const free_vector & free_indices, const unsigned int N, unsigned int age, PoolType & pool ) {
+    void batch_generate( space_type * pop, allele_type * alleles, trait_space_type * traits, const free_vector & free_indices, const unsigned int N, unsigned int age, PoolType & pool, const unsigned int TC ) {
 
         // remove batch parallelism because of a write collision
         // that occurs when updating the modified status of mutated sequences
-        const size_t TC = pool.pool_size() + 1;
+        //const size_t TC = pool.pool_size() + 1;
         //const size_t TC = 1;
         const size_t BATCH_SIZE = (N / TC) + (( N % TC > 0) ? 1 : 0);
 
@@ -105,11 +109,11 @@ protected:
     }
 
     template < class PoolType >
-    void batch_generate_partitions( space_type * pop, allele_type * alleles, trait_space_type * traits, const free_vector & free_indices, const unsigned int N, unsigned int age, PoolType & pool ) {
+    void batch_generate_partitions( space_type * pop, allele_type * alleles, trait_space_type * traits, const free_vector & free_indices, const unsigned int N, unsigned int age, PoolType & pool, const unsigned int TC ) {
 
         // remove batch parallelism because of a write collision
         // that occurs when updating the modified status of mutated sequences
-        const unsigned int TC = pool.pool_size() + 1;
+        //const unsigned int TC = pool.pool_size() + 1;
         //const unsigned int TC = 1;
         const unsigned int BATCH_SIZE = ( N / TC ) + (( N % TC > 0) ? 1 : 0);
 

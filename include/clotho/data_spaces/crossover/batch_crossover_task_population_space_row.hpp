@@ -90,9 +90,10 @@ public:
 
             unsigned int parent_idx = 2 * mate_it->first;
 
-            genome_pointer p0_start = m_parent_pop->begin_genome( parent_idx++ );
+            genome_pointer p0_start = m_parent_pop->begin_genome( parent_idx );
+            genome_pointer p0_end = m_parent_pop->end_genome( parent_idx++ );
+
             genome_pointer p1_start = m_parent_pop->begin_genome( parent_idx );
-            genome_pointer p0_end = p1_start;
             genome_pointer p1_end = m_parent_pop->end_genome( parent_idx );
 
             genome_pointer c = m_offspring_pop->begin_genome( i );
@@ -106,9 +107,9 @@ public:
             run_crossover_task( cfier0, p0_start, p0_end, p1_start, p1_end, c, c_end, _swap );
 
             parent_idx = 2 * mate_it->second;
-            p0_start = m_parent_pop->begin_genome( parent_idx++ );
+            p0_start = m_parent_pop->begin_genome( parent_idx );
+            p0_end = m_parent_pop->end_genome( parent_idx++ );
             p1_start = m_parent_pop->begin_genome( parent_idx );
-            p0_end = p1_start;
             p1_end = m_parent_pop->end_genome( parent_idx );
 
             c = m_offspring_pop->begin_genome( i );

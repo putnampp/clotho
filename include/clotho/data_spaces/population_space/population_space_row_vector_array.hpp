@@ -205,12 +205,12 @@ public:
         }
     }
 
-protected:
-
     void clear() {
         for( unsigned int i = 0; i < m_max_rows; ++i )
             memset( m_genetic_space[i], 0, sizeof(block_type) * m_allele_block_columns );
     }
+
+protected:
 
     void resize( ) {
 
@@ -225,14 +225,14 @@ protected:
                 delete [] m_genetic_space;
             }
 
-            m_allele_block_columns += 100;  // add 100 blocks/row in an attempt to reduce malloc calls (6400 bits)
+            m_max_cols = m_allele_block_columns + 100;  // add 100 blocks/row in an attempt to reduce malloc calls (6400 bits)
 
-            m_genetic_space = new block_type*[ m_genome_rows ];
-            for( unsigned int i = 0; i < m_genome_rows; ++i )
-                m_genetic_space[ i ] = new block_type[ m_allele_block_columns ];
-
-            m_max_cols = m_allele_block_columns;
             m_max_rows = m_genome_rows;
+
+            m_genetic_space = new block_type*[ m_max_rows ];
+            for( unsigned int i = 0; i < m_max_rows; ++i )
+                m_genetic_space[ i ] = new block_type[ m_max_cols ];
+
         } else if( m_genome_rows > m_max_rows ) {
             // if genome_rows > max_rows && block_columns == max_cols then append new rows ( copy and extend )
             // if genome_rows > max_rows && block_columns < max_cols then append new rows ( copy and extend using current max_cols )
@@ -259,7 +259,7 @@ protected:
         // if genome_rows < max_rows && block_columns < max_cols then do nothing ( leave existing maxs allocated )
         // }
 
-        unsigned int new_total = m_trait_count * m_genome_rows;
+        unsigned int new_total = m_trait_count * m_max_rows;
 
         while( m_genome_traits.size() < new_total ) {
             m_genome_traits.push_back(0);

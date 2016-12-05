@@ -139,6 +139,8 @@ public:
         }
 
         m_pop1.grow( pN, aN, m_trait_space.trait_count() );
+        m_pop1.clear();
+        m_pop0.clear();
 
 #ifdef USE_ROW_VECTOR
         m_pop1.getSequenceSpace().fill_empty();
@@ -178,7 +180,7 @@ public:
 
         cross_gen( select_gen, m_parent, m_child, &m_allele_space, m_thread_pool );
 
-        mutate_gen( m_child, &m_allele_space, &m_trait_space, &m_free_space, pM, m_generation, m_thread_pool );
+        mutate_gen( m_child, &m_allele_space, &m_trait_space, &m_free_space, pM, m_generation, m_thread_pool, 1 );
 
         if( !m_allele_space.isAllNeutral() ) {
             m_pheno( m_parent, m_child, &m_trait_space, m_thread_pool );

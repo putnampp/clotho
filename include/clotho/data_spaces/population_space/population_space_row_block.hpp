@@ -210,11 +210,11 @@ public:
         }
     }
 
-protected:
-
     void clear() {
         memset( m_genetic_space, 0, sizeof(block_type) * m_genetic_space_allocated );
     }
+
+protected:
 
     void resize( ) {
 
