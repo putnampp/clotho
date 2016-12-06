@@ -179,6 +179,8 @@ int main( int argc, char ** argv ) {
         perform_log.put_child( "performance.simulate", sim_times );
         perform_log.put_child( "performance.stats", stat_times );
 
+        sim_engine.getPerformanceResults( perform_log );
+
         writeLog( perform_log, out_path, ".performance" );
     }
 

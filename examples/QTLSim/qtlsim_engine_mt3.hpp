@@ -163,7 +163,11 @@ public:
 //        size_type pM = m_mut_alloc.allocate( 2 * pN );        // generate the number of new mutations
         size_type pM = mutate_gen.generateNewMutation( 2 * pN );
 
+        timer_type fix_time;
         size_type free_count = updateFixedAlleles( m_parent );    // update the fixed alleles with those of parent population
+        fix_time.stop();
+
+
         size_t all_size = child_max_alleles( m_allele_space.size(), free_count, pM );   // rescale allele space for child population given free space from parent population and new allele count (pM)
 
 #ifdef DEBUGGING 
@@ -178,17 +182,29 @@ public:
 
         select_gen.update( m_fit, pN );
 
+        timer_type xover_time;
         cross_gen( select_gen, m_parent, m_child, &m_allele_space, m_thread_pool );
+        xover_time.stop();
 
+        timer_type mutate_time;
         mutate_gen( m_child, &m_allele_space, &m_trait_space, &m_free_space, pM, m_generation, m_thread_pool, 1 );
+        mutate_time.stop();
 
+        timer_type pheno_time;
         if( !m_allele_space.isAllNeutral() ) {
             m_pheno( m_parent, m_child, &m_trait_space, m_thread_pool );
         } else {
             m_pheno.constant_phenotype( m_child, &m_trait_space );
         }
+        pheno_time.stop();
         m_fit( m_pheno );
 
+        clotho::utility::add_value_array( fix_times, fix_time );
+        clotho::utility::add_value_array( xover_times, xover_time );
+        clotho::utility::add_value_array( mutate_times, mutate_time );
+        clotho::utility::add_value_array( pheno_times, pheno_time );
+        clotho::utility::add_value_array( free_sizes, free_count );
+        clotho::utility::add_value_array( var_sizes, m_free_space.variable_count() );
         ++m_generation;
     }
 
@@ -198,6 +214,16 @@ public:
 
     sequence_space_type * getParentPopulation() const {
         return m_parent;
+    }
+
+    void getPerformanceResults( boost::property_tree::ptree & log ) {
+        log.put_child( "performance.mutate", mutate_times );
+        log.put_child( "performance.crossover", xover_times );
+        log.put_child( "performance.fixed", fix_times );
+        log.put_child( "performance.phenotypes", pheno_times );
+
+        log.put_child( "memory.free_count", free_sizes );
+        log.put_child( "memory.variable_count", var_sizes );
     }
 
     allele_type * getAlleleSpace() {
@@ -326,6 +352,9 @@ protected:
 //    mutation_alloc_type     m_mut_alloc;
 //    trait_generator_type    trait_gen;
 //    allele_generator_type   allele_gen;
+//
+    boost::property_tree::ptree fix_times, mutate_times, xover_times, pheno_times;
+    boost::property_tree::ptree free_sizes, var_sizes;
 };
 
 namespace clotho {
