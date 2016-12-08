@@ -85,7 +85,7 @@ protected:
             BOOST_LOG_TRIVIAL(info) << "Batch Crossover: [" << off_idx << ", " << off_end << ");";
 #endif  // DEBUGGING
 
-            crossover_task_type x( parental, offspring, alleles, ep, off_idx, parents.begin() + off_idx, parents.begin() + off_end, el.begin() + 2 * off_idx, el.begin() + 2 * off_end + 1,  bp.begin() + 2 * off_idx, bp.begin() + 2 * off_end );
+            crossover_task_type x( parental, offspring, alleles, ep, off_idx, parents.begin() + off_idx, parents.begin() + off_end, el.begin() + 2 * off_idx, el.begin() + 2 * off_end,  bp.begin() + 2 * off_idx, bp.begin() + 2 * off_end );
             pool.post( x );
 
             off_idx = off_end;
@@ -120,6 +120,8 @@ protected:
         }
 
         lookup.push_back( events->size() );
+
+        BOOST_LOG_TRIVIAL( info ) << "Events Count: " << events->size() << "; Lookup size: " << lookup.size();
     }
 
     template < class BiasPool >

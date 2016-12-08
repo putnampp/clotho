@@ -50,7 +50,9 @@ public:
             m_threads.create_thread( boost::bind( &thread_pool::thread_loop, this ) );
 
             // seed each engine with a random number from the parent random number generator
-            unsigned long long seed = (*rng)();
+//            unsigned long long seed = (*rng)();
+
+            unsigned long long seed = 0;
 
             BOOST_LOG_TRIVIAL(info) << "Thread " << i << " seed value: " << seed;
             m_thread_engines[ i ] = random_engine_type( seed );

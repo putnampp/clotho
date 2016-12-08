@@ -89,7 +89,10 @@ public:
 
         const_iterator mate_it = m_parents.begin(), mate_end = m_parents.end();
 
-        size_t i = m_offspring_index * 2, j = 0;
+        size_t i = m_offspring_index * 2;
+
+        lookup_iterator lit = m_event_lookup.begin();
+        bias_iterator bit = m_bias_pool.begin();
 
         while( mate_it != mate_end ) {
 
@@ -105,9 +108,9 @@ public:
             genome_pointer c_end = m_offspring_pop->end_genome( i++ );
 
             event_type evts;
-            bool _swap = m_bias_pool[ j ];
-            unsigned int look_start = m_event_lookup[ j++ ];
-            unsigned int look_end = m_event_lookup[ j ];
+            bool _swap = *bit++;
+            unsigned int look_start = *lit++;
+            unsigned int look_end = *lit;
 
             fill_events( evts, look_start, look_end );
             classifier_type cfier0( &m_alleles->getPositions(), evts );
@@ -124,10 +127,14 @@ public:
             c = m_offspring_pop->begin_genome( i );
             c_end = m_offspring_pop->end_genome( i++ );
 
-            _swap = m_bias_pool[ j++ ];
+            assert( bit != m_bias_pool.end() );
+            assert( lit != m_event_lookup.end() );
+
+            _swap = *bit++;
+            look_start = *lit++;
 
             event_type evts1;
-            fill_events( evts1, look_end, m_event_lookup[ j ] );
+            fill_events( evts1, look_end, look_start );
             classifier_type cfier1( &m_alleles->getPositions(), evts1 );
 
             run_crossover_task( cfier1, p0_start, p0_end, p1_start, p1_end, c, c_end, _swap );
