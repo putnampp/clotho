@@ -22,6 +22,8 @@
 
 #include "clotho/utility/bit_helper.hpp"
 
+#include <map>
+
 namespace clotho {
 namespace genetics {
 
@@ -65,12 +67,32 @@ public:
         return m_neutral.all();
     }
 
+    bool hasAllelePosition( position_type pos ) const {
+        return m_position_lookup.find( pos ) != m_position_lookup.end();
+    }
+
     void setAllele( size_type index, position_type pos, bool is_neutral, unsigned int age ) {
 #ifdef DEBUGGING
         assert( index < m_positions.size() );
 #endif // DEBUGGING
 
+        position_type p = m_positions[ index ];
         m_positions[ index ] = pos;
+
+        if( hasAllelePosition( p ) ) {
+            if( m_position_lookup[ p ] == 1 ) {
+                m_position_lookup.erase( p );
+            } else {
+                m_position_lookup[ p ] -= 1;
+            }
+        }
+
+        if( !hasAllelePosition( pos ) ) {
+            m_position_lookup.insert(  std::make_pair( pos, 1) );
+        } else {
+            m_position_lookup[ pos ] += 1;
+        }
+
         m_neutral.set( index, is_neutral );
         m_age[ index ] = age;
     }
@@ -98,7 +120,16 @@ public:
         assert( idx < other.size() );
 #endif  // DEBUGGING
 
-        m_positions.push_back( other.m_positions[ idx ] );
+        position_type p = other.m_positions[ idx ];
+
+        m_positions.push_back( p );
+
+        if( !hasAllelePosition( p ) ) {
+            m_position_lookup.insert( std::make_pair( p, 1 ) );
+        } else {
+            m_position_lookup[ p ] += 1;
+        }
+
         m_neutral.push_back( other.m_neutral[ idx ] );
         m_age.push_back( other.m_age[ idx ] );
     }
@@ -123,6 +154,8 @@ protected:
     position_vector m_positions;
     neutral_vector  m_neutral;
     age_vector      m_age;
+
+    std::map< position_type, unsigned int  > m_position_lookup;
 };
 
 }   // namespace genetics

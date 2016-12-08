@@ -20,4 +20,7 @@
 #include "clotho/data_spaces/crossover/batch_crossover_task_population_space_row.hpp"
 #include "clotho/data_spaces/crossover/batch_crossover_task_population_space_row_modified.hpp"
 
+#include "clotho/data_spaces/crossover/batch_crossover_taskwe.hpp"
+#include "clotho/data_spaces/crossover/batch_crossover_taskwe_population_space_row.hpp"
+
 #endif  // CLOTHO_BATCH_CROSSOVER_TASKS_HPP_

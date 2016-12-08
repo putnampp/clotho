@@ -75,6 +75,7 @@ public:
 
     void operator()( allele_type & all, unsigned int idx, unsigned int age ) {
         position_type p = m_pos_gen( *m_rng );
+
         bool neu = m_neut_gen( *m_rng );
 
         all.setAllele( idx, p, neu, age );

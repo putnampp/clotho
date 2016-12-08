@@ -34,8 +34,8 @@
 #include "clotho/data_spaces/free_space/free_space_mts.hpp"
 
 #ifdef USE_BATCH_JOBS
-#include "clotho/data_spaces/crossover/batch_crossover_mt.hpp"
-#define CROSSOVER_TYPE clotho::genetics::BatchCrossoverMT
+#include "clotho/data_spaces/crossover/batch_crossover_mtwe.hpp"
+#define CROSSOVER_TYPE clotho::genetics::BatchCrossoverMTWE
 
 #include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_mts.hpp"
 #define PHENOTYPE_TYPE clotho::genetics::BatchPhenotypeMT
