@@ -39,7 +39,6 @@
 
 typedef boost::random::mt19937          random_engine_type;
 typedef ENGINE< random_engine_type >    simulate_engine_type;
-//typedef typename simulate_engine_type::genetic_space_type   genetic_space_type;
 typedef typename simulate_engine_type::sequence_space_type      sequence_space_type;
 typedef typename simulate_engine_type::allele_type              allele_space_type;
 
@@ -49,16 +48,18 @@ typedef clotho::genetics::pairwise_difference< sequence_space_type > pairwise_di
 
 typedef clotho::utility::state_getter< simulate_engine_type >   engine_logger_type;
 
-//#define XSTR( x ) #x
-//#define STR( x )  XSTR( x )
-//
-//const std::string ENGINE_BLOCK_K = "engine";
-//const std::string POWERSET_BLOCK_K = "powerset";
-//const std::string SUBSET_BLOCK_K = "subset";
-//const std::string CLASSIFIER_BLOCK_K = "classifier";
-//void write_engine_config( boost::property_tree::ptree & elog );
-//
+#ifdef DEBUG_MODE
+#define CLOTHO_LOG_LEVEL logging::trivial::debug
+#else
+#define CLOTHO_LOG_LEVEL logging::trivial::info
+#endif  // DEBUG_MODE
 
+/**
+ * Population Analyzer
+ *
+ * Helper object to group the population statistics to be periodically evaluated
+ *
+ */
 class population_analyzer {
 public:
     population_analyzer( random_sample_type * s, sequence_space_type * ss, allele_space_type * alls );
@@ -78,6 +79,18 @@ void writeLog( boost::property_tree::ptree & l, std::string path, std::string _t
     tmp->write( l );
 }
 
+
+/**
+ * QTLSimMT
+ *
+ * An example application built using the Clotho API.  
+ *
+ * The main application performs the following steps:
+ *
+ *   - Parse the input commandline arguments; use -h to retrieve a listing of the available options
+ *   - Setup basic simulation configuration (ie. logging paths; simulation engine;)
+ *   - 
+ */
 int main( int argc, char ** argv ) {
 
     po::variables_map vm;
@@ -96,11 +109,7 @@ int main( int argc, char ** argv ) {
     }
 
     std::string log_path = out_path + ".log";
-#ifdef DEBUG_MODE
-    init_logger( log_path, logging::trivial::debug );
-#else
-    init_logger( log_path, logging::trivial::info );
-#endif  // DEBUG_MODE
+    init_logger( log_path, CLOTHO_LOG_LEVEL );
 
     std::shared_ptr< log_writer > stat_logger = makeLogWriter( out_path, ".status" );
 
@@ -195,7 +204,7 @@ population_analyzer::population_analyzer( random_sample_type * s, sequence_space
 
 void population_analyzer::operator()( boost::property_tree::ptree & log ) {
     allele_freq_type af;
-    pairwise_diff_type pd;
+//    pairwise_diff_type pd;
 
     if( m_samp ) {
         af.evaluate( *m_seqs, m_samp->begin(), m_samp->end() );
@@ -211,33 +220,3 @@ void population_analyzer::operator()( boost::property_tree::ptree & log ) {
     log.add_child( "allele_frequency", af_log );
 //    log.add_child( "pairwise_difference", pd_log );
 }
-
-//void write_engine_config( boost::property_tree::ptree & elog ) {
-//    boost::property_tree::ptree sset, recomb, pset;
-//    recomb.put( "tag0", STR( RECOMBINE_INSPECT_METHOD ) );
-//    recomb.put( "tag1", STR( BIT_WALK_METHOD ) );
-//    sset.put_child( "recombine", recomb );
-//    sset.put( TYPE_K, STR( SUBSETTYPE ) );
-//
-//    pset.put_child( SUBSET_BLOCK_K, sset );
-////    pset.put( "block_size", BLOCK_UNIT_SIZE );
-////    compile_log.put(ENGINE_BLOCK_K + "." + REC_BLOCK_K + "." + TYPE_K, STR( (RECOMBTYPE) ) );
-////    compile_log.put(ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K +"." + SIZE_K, BLOCK_UNIT_SIZE );
-//
-////    compile_log.put(ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K  +"." + TYPE_K, STR( SUBSETTYPE ) );
-////    compile_log.put( ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K + "." + REC_BLOCK_K + ".tag0", STR( RECOMBINE_INSPECT_METHOD ) );
-////    compile_log.put( ENGINE_BLOCK_K + "." + POWERSET_BLOCK_K + "." + SUBSET_BLOCK_K + "." + REC_BLOCK_K + ".tag1", STR( BIT_WALK_METHOD ) );
-//
-////    compile_log.put( ENGINE_BLOCK_K + ".reproduction_method.type", STR(REPRODUCTION_METHOD_TAG));
-////
-////    compile_log.put( ENGINE_BLOCK_K + ".individual_selector.type", STR(IND_SELECT) );
-//
-//    boost::property_tree::ptree eng;
-//    eng.put_child( POWERSET_BLOCK_K, pset );
-//    eng.put( REC_BLOCK_K + ".type", STR( (RECOMBTYPE) ) );
-//    eng.put( "reproduction_method.type", STR(REPRODUCTION_METHOD_TAG));
-//    eng.put( "individual_selector.type", STR(IND_SELECT) );
-//    eng.put( "description", "Simulator compiled objects; READ ONLY");
-//
-//    elog.put_child( ENGINE_BLOCK_K, eng );
-//}

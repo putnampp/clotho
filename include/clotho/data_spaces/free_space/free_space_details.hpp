@@ -196,7 +196,7 @@ public:
 
     size_type getFree( unsigned int idx ) const {
 #ifdef DEBUGGING
-        assert( idx < free_count() );
+        assert( idx < free_size() );
 #endif  // DEBUGGING
 
         return m_indices[ idx ];

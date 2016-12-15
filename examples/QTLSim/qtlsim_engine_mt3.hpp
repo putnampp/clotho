@@ -34,13 +34,19 @@
 #include "clotho/data_spaces/free_space/free_space_mts.hpp"
 
 #ifdef USE_BATCH_JOBS
-#include "clotho/data_spaces/crossover/batch_crossover_mtwe.hpp"
+#include "clotho/data_spaces/crossover/batch_crossover_mts.hpp"
+
+#ifdef USE_CROSSOVER_EVENT_POOLING
 #define CROSSOVER_TYPE clotho::genetics::BatchCrossoverMTWE
+#else
+#define CROSSOVER_TYPE clotho::genetics::BatchCrossoverMT
+#endif  // USE_CROSSOVER_EVENT_POOLING
 
 #include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_mts.hpp"
 #define PHENOTYPE_TYPE clotho::genetics::BatchPhenotypeMT
 
 #else
+
 #include "clotho/data_spaces/crossover/crossover_mt.hpp"
 #define CROSSOVER_TYPE clotho::genetics::CrossoverMT
 

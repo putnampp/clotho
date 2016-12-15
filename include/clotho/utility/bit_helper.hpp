@@ -61,6 +61,9 @@ struct BitHelper : public bit_helper< sizeof(T) > {
     static const unsigned int   SSE_ALIGNED_SIZE = 128;
     static const unsigned int   BLOCKS_PER_SSE = (SSE_ALIGNED_SIZE / base_type::BITS_PER_BLOCK);
 
+    static const unsigned int   BITS_PER_CACHE_LINE = 512;
+    static const unsigned int   BLOCKS_PER_CACHE_LINE = (BITS_PER_CACHE_LINE / base_type::BITS_PER_BLOCK);
+
 #define MOD_POW2( x ) x & base_type::POW2_MOD
 
     static block_type bit_offset( size_t idx ) {

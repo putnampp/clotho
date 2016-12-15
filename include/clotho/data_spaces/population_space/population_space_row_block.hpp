@@ -94,7 +94,10 @@ public:
     void setMaxAlleles( unsigned int A ) {
         m_allele_count = A;
 
-        m_allele_block_columns = (m_allele_count / bit_helper_type::BITS_PER_BLOCK) + ((m_allele_count % bit_helper_type::BITS_PER_BLOCK > 0) ? 1 : 0);
+//        m_allele_block_columns = (m_allele_count / bit_helper_type::BITS_PER_BLOCK) + ((m_allele_count % bit_helper_type::BITS_PER_BLOCK > 0) ? 1 : 0);
+        unsigned int allele_cache_lines = (m_allele_count / bit_helper_type::BITS_PER_CACHE_LINE) + ((m_allele_count % bit_helper_type::BITS_PER_CACHE_LINE > 0) ? 1 : 0);
+
+        m_allele_block_columns = allele_cache_lines * bit_helper_type::BLOCKS_PER_CACHE_LINE;
     }
 
     unsigned int getTraitCount() const {
@@ -219,12 +222,13 @@ protected:
     void resize( ) {
 
         size_t  new_total = m_genome_rows * m_allele_block_columns;
+
         if( new_total > m_genetic_space_allocated ) {
             if( m_genetic_space != NULL ) {
                 delete [] m_genetic_space;
             }
 
-            new_total += 10 * m_genome_rows;  // pad each allocation by an additional 10 rows
+            //new_total += 10 * m_genome_rows;  // pad each allocation by an additional 10 rows
             m_genetic_space = new block_type[ new_total ];
 
             m_genetic_space_allocated = new_total;
