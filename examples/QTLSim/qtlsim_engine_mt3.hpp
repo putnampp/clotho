@@ -211,6 +211,7 @@ public:
         clotho::utility::add_value_array( pheno_times, pheno_time );
         clotho::utility::add_value_array( free_sizes, free_count );
         clotho::utility::add_value_array( var_sizes, m_free_space.variable_count() );
+        clotho::utility::add_value_array( fixed_sizes, m_free_space.fixed_count() );
         ++m_generation;
     }
 
@@ -230,6 +231,7 @@ public:
 
         log.put_child( "memory.free_count", free_sizes );
         log.put_child( "memory.variable_count", var_sizes );
+        log.put_child( "memory.fixed_count", fixed_sizes );
     }
 
     allele_type * getAlleleSpace() {
@@ -360,7 +362,7 @@ protected:
 //    allele_generator_type   allele_gen;
 //
     boost::property_tree::ptree fix_times, mutate_times, xover_times, pheno_times;
-    boost::property_tree::ptree free_sizes, var_sizes;
+    boost::property_tree::ptree free_sizes, var_sizes, fixed_sizes;
 };
 
 namespace clotho {
