@@ -208,6 +208,80 @@ protected:
         }
     }
 
+//    void crossover_task2( const classifier_type & cls, genome_pointer p0_start, genome_pointer p0_end, genome_pointer p1_start, genome_pointer p1_end,  genome_pointer offspring, genome_pointer offspring_end ) {
+////        std::cerr << "Parent length: " << (p0_end - p0_start) << " x " << (p1_end - p1_start) << std::endl;
+//
+////        std::cerr << "Parent Population Bounds: " << PARENT_ALLELE_COUNT << " alleles x " << PARENT_STEP << " genomes" << std::endl;
+////        std::cerr << "Offspring Population Bounds: " << OFFSPRING_ALLELE_COUNT << " alleles x " << OFFSPRING_STEP << " genomes" << std::endl;
+//        crossover_type xover( cls );
+//
+//        block_type  buffer[ bit_helper_type::BLOCKS_PER_CACHE_LINE ];
+//        unsigned int het_buffer[ bit_helper_type::BITS_PER_CACHE_LINE ];
+//
+//        assert( (p0_end - p0_start) % bit_helper_type::BLOCKS_PER_CACHE_LINE == 0);
+//        assert( (p1_end - p1_start) % bit_helper_type::BLOCKS_PER_CACHE_LINE == 0);
+//        assert( (p0_end - p0_start) == (p1_end - p1_start) );
+//
+//        const unsigned int CACHE_LINES = (p0_end - p0_start) / bit_helper_type::BLOCKS_PER_CACHE_LINE;
+//
+//        for( unsigned int i = 0; i < CACHE_LINES; ++i ) {
+//            unsigned int nHets = 0;
+//            for( unsigned int j = 0; j < bit_helper_type::BLOCKS_PER_CACHE_LINE; ++j ) {
+//                block_type t = *p0_start++;
+//                block_type b = *p1_start++;
+//
+//                buffer[ j ] = a & b;
+//                block_type hets = a ^ b;
+//
+//                unsigned int idx = j * bit_helper_type::BITS_PER_BLOCK;
+//                while( hets ) {
+//                    idx += bit_walker_type::next_and_shift(hets );
+//                    het_buffer[ nHets++ ] = idx;
+//                }
+//            }
+//
+//            unsigned int offset = bit_helper_type::BITS_PER_CACHE_LINE * i;
+//            for( unsigned int j = 0; j < nHets; ++j ) {
+//                
+//            }
+//
+//            for( unsigned int j = 0; j < bit_helper_type::BLOCKS_PER_CACHE_LINE; ++j ) {
+//                *offspring++ = buffer[ j ];
+//            }
+//        }
+//
+//        unsigned int i = 0;
+//        while( true ) {
+//            if( p0_start == p0_end ) {
+//                while( p1_start != p1_end ) {
+//                    const block_type t = bit_helper_type::ALL_UNSET;
+//                    const block_type b = *p1_start++;
+//                    *offspring++ = xover.crossover( t, b, i );
+//
+//                    i += bit_helper_type::BITS_PER_BLOCK;
+//                }
+//                break;
+//            } else if( p1_start == p1_end ) {
+//                while( p0_start != p0_end ) {
+//                    const block_type t = *p0_start++;
+//                    const block_type b = bit_helper_type::ALL_UNSET;
+//                    *offspring++ = xover.crossover( t, b, i );
+//                    i += bit_helper_type::BITS_PER_BLOCK;
+//                }
+//                break;
+//            }
+//
+//            const block_type t = *p0_start++;
+//            const block_type b = *p1_start++;
+//
+//            *offspring++ = xover.crossover( t, b, i );
+//            i += bit_helper_type::BITS_PER_BLOCK;
+//        }
+//
+//        while( offspring != offspring_end ) {
+//            *offspring++ = bit_helper_type::ALL_UNSET;
+//        }
+//    }
     random_engine_type  * m_rng;
     space_type * m_parent_pop, * m_offspring_pop;
     allele_type         * m_alleles;
