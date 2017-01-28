@@ -211,7 +211,7 @@ public:
         clotho::utility::add_value_array( pheno_times, pheno_time );
         clotho::utility::add_value_array( free_sizes, free_count );
         clotho::utility::add_value_array( var_sizes, m_free_space.variable_count() );
-        clotho::utility::add_value_array( fixed_sizes, m_free_space.fixed_count() );
+        clotho::utility::add_value_array( fixed_sizes, m_free_space.fixed_size() );
         ++m_generation;
     }
 
