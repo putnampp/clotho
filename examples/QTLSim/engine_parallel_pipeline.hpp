@@ -79,7 +79,8 @@ public:
 #endif  // USE_ROW_MODIFICATION
     typedef clotho::genetics::trait_space_vector< weight_type >                                     trait_space_type;
 
-    typedef clotho::genetics::free_space_accumulator< block_type, size_type >                     free_space_type;
+    typedef clotho::genetics::free_space_accumulator_mt< block_type, size_type >                    free_space_type;
+    typedef typename free_space_type::buffer_type                                                   free_buffer_type;
 
     typedef clotho::genetics::mutation_allocator< random_engine_type, size_type >                 mutation_alloc_type;
 
@@ -93,7 +94,7 @@ public:
     typedef std::shared_ptr< ipopulation_growth_generator >                                         population_growth_generator_type;
     typedef std::shared_ptr< ipopulation_growth >                                                   population_growth_type;
 
-    typedef clotho::genetics::offspring_generator< random_engine_type, sequence_space_type, allele_type, selection_type, trait_space_type >           offspring_generator_type;
+    typedef clotho::genetics::offspring_generator< random_engine_type, sequence_space_type, allele_type, selection_type, trait_space_type, free_buffer_type >           offspring_generator_type;
 
     typedef typename offspring_generator_type::mutation_pool_type                               mutation_pool_type;
     typedef typename offspring_generator_type::mutation_distribution_type                       mutation_distribution_type;
@@ -107,12 +108,12 @@ public:
         , m_child( &m_pop1 )
         , m_trait_space( config )
         , m_fixed_traits( config )
-        , m_free_space( )
         , select_gen( rng, config )
         , m_fit( config )
         , m_generation( 0 )
         , m_pop_growth()
         , m_thread_count( config )
+        , m_free_space( m_thread_count.m_tc + 1 )
         , m_worker_rng( NULL )
         , m_mut_alloc( rng, config )
         , trait_gen( config )
@@ -190,10 +191,10 @@ public:
 
         select_gen.update( m_fit, pN );
 
-        mutation_pool_type  mut_pool;
-        mutation_distribution_type  mut_dist;
+        m_mut_pool.clear();
+        m_mut_dist.clear();
 
-        generate_child_mutations( pM, mut_pool, mut_dist );
+        generate_child_mutations( pM );
         thread_pool_type tpool( m_thread_count.m_tc );
 
         block_type * neutrals = new block_type[ m_child->getMaxBlocks() ];
@@ -207,21 +208,25 @@ public:
         std::vector< offspring_generator_type * > task_list;
         task_list.reserve( TC );
 
+        m_free_space.resetBuffers( m_child->getMaxBlocks() );
+
         unsigned int off_idx = 0, j = 0;
         while( off_idx + BATCH_SIZE < pN ) {
-            offspring_generator_type * ogen = new offspring_generator_type( m_worker_rng[ j++ ], m_parent, m_child, &m_allele_space, &mut_pool, &mut_dist, &select_gen, &m_trait_space, neutrals, off_idx, off_idx + BATCH_SIZE, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral);
+            free_buffer_type tbuf = m_free_space.getThreadBuffer( j );
+            offspring_generator_type * ogen = new offspring_generator_type( m_worker_rng[ j ], m_parent, m_child, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, neutrals, tbuf, off_idx, off_idx + BATCH_SIZE, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral);
             task_list.push_back( ogen );
             off_idx += BATCH_SIZE;
+            ++j;
         }
 
         tpool.post_list( task_list );
 
         if( off_idx < pN ) {
-            offspring_generator_type ogen( m_rand, m_parent, m_child, &m_allele_space, &mut_pool, &mut_dist, &select_gen, &m_trait_space, neutrals, off_idx, pN, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral );
+            free_buffer_type tbuf = m_free_space.getThreadBuffer( j );
+            offspring_generator_type ogen( m_rand, m_parent, m_child, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, neutrals, tbuf, off_idx, pN, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral );
             ogen();
 
             // replace Allele space
-            m_free_space.resetBuffers( ogen.getFreeSpaceBuffer() );
             recordTimes( &ogen, "main" );
         }
 
@@ -235,7 +240,6 @@ public:
             offspring_generator_type * tmp = task_list.back();
             task_list.pop_back();
 
-            m_free_space.updateBuffers( tmp->getFreeSpaceBuffer() );
             recordTimes( tmp, oss.str() );
 
             delete tmp;
@@ -333,51 +337,67 @@ public:
 
 protected:
 
-    void generate_child_mutations( unsigned int N, mutation_pool_type & mut_pool, mutation_distribution_type & mut_dist ) {
+    void generate_child_mutations( unsigned int N ) {
 //        std::cerr << "Child population size: " << m_child->haploid_genome_count() << std::endl;
 //        std::cerr << "Mutation count: " << N << std::endl;
 //        std::cerr << "Free space: " << m_free_space.free_size() << std::endl;
+//
+        resetMutationEvents( N );
 
         boost::random::uniform_int_distribution< unsigned int > seq_gen( 0, m_child->haploid_genome_count() - 1);
         typename free_space_type::base_type::iterator it = m_free_space.free_begin(), end = m_free_space.free_end();
 
-        mut_dist.reserve( m_child->haploid_genome_count() + 1 );
-        unsigned int i = m_child->haploid_genome_count() + 1;
-        while( i > 0 ) {
-            mut_dist.push_back(0);
-            --i;
-        }
-
-        while( N && it != end ) {
+        unsigned int i = 0;
+        while( i < N && it != end ) {
             typename free_space_type::size_type all_idx = *it++;
             unsigned int seq_idx = seq_gen( *m_rand );
 
-            mut_dist[ seq_idx + 1 ] += 1;
+            m_mut_pool[ i++ ] = all_idx;
+            m_mut_dist[ seq_idx + 1 ] += 1;
 
             allele_gen( m_allele_space, all_idx, m_generation );
             trait_gen(*m_rand, m_trait_space, all_idx );
-            --N;
-
-            mut_pool.push_back( all_idx );
         }
 
-        while( N ) {
+        while( i < N ) {
             typename free_space_type::size_type all_idx = m_allele_space.size();
             unsigned int seq_idx = seq_gen( *m_rand );
 
-            mut_dist[ seq_idx + 1 ] += 1;
+            m_mut_pool[i++] = all_idx;
+            m_mut_dist[ seq_idx + 1 ] += 1;
 
             assert( all_idx < m_child->getMaxAlleles() );
 
             allele_gen( m_allele_space, all_idx, m_generation );
             trait_gen( *m_rand, m_trait_space, all_idx );
             --N;
-
-            mut_pool.push_back( all_idx );
         }
 
-        for( unsigned int i = 2; i < mut_dist.size(); ++i ) {
-            mut_dist[ i ] += mut_dist[ i - 1 ];
+        // scan right to produce m_mut_pool relative index ranges
+        for( unsigned int i = 2; i < m_mut_dist.size(); ++i ) {
+            m_mut_dist[ i ] += m_mut_dist[ i - 1 ];
+        }
+    }
+
+    void resetMutationEvents( unsigned int N ) {
+        m_mut_pool.clear();
+        m_mut_pool.reserve( N );
+
+        while( m_mut_pool.size() < N ) {
+            m_mut_pool.push_back(0);
+        }
+
+        m_mut_dist.reserve( m_child->haploid_genome_count() + 1 );
+
+        unsigned int i = 0;
+        while( i < m_mut_dist.size() ) {
+            m_mut_dist[ i ] = 0;
+            ++i;
+        }
+
+        while( i < m_child->haploid_genome_count() + 1 ) {
+            m_mut_dist.push_back(0);
+            ++i;
         }
     }
 
@@ -452,7 +472,6 @@ protected:
 
     trait_space_type        m_trait_space, m_fixed_traits;
 
-    free_space_type         m_free_space;
 
     selection_type          select_gen;
     fitness_type            m_fit;
@@ -462,6 +481,8 @@ protected:
     population_growth_type  m_pop_growth;
 
     thread_count_parameter  m_thread_count;
+    free_space_type         m_free_space;
+
     random_engine_type **   m_worker_rng;
     mutation_alloc_type     m_mut_alloc;
     trait_generator_type    trait_gen;
@@ -469,6 +490,9 @@ protected:
 
     recombination_rate_parameter< double > m_recomb_rate;
     sequence_bias_parameter< double > m_bias_rate;
+
+    mutation_pool_type  m_mut_pool;
+    mutation_distribution_type  m_mut_dist;
 //
     boost::property_tree::ptree m_fixed_times, m_mutate_times, m_xover_times, m_pheno_times, m_fitness_times;
     boost::property_tree::ptree free_sizes, var_sizes, fixed_sizes;

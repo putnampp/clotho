@@ -17,7 +17,7 @@
 namespace clotho {
 namespace genetics {
 
-template < class RNG, class PopulationType, class AlleleSpaceType, class SelectionType, class TraitSpaceType >
+template < class RNG, class PopulationType, class AlleleSpaceType, class SelectionType, class TraitSpaceType, class FreeSpaceType >
 class offspring_generator;
 
 }   // namespace genetics

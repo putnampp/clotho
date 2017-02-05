@@ -20,15 +20,13 @@
 #include "clotho/data_spaces/crossover/common_crossover.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/common_phenotype_accumulator.hpp"
 
-#include "clotho/data_spaces/free_space/free_space_buffer.hpp"
-
 namespace clotho {
 namespace genetics {
 
-template < class RNG, class BlockType, class WeightType, class AlleleSpaceType, class SelectionType, class TraitSpaceType >
-class offspring_generator<RNG, population_space_row< BlockType, WeightType >, AlleleSpaceType, SelectionType, TraitSpaceType > {
+template < class RNG, class BlockType, class WeightType, class AlleleSpaceType, class SelectionType, class TraitSpaceType, class FreeBufferType >
+class offspring_generator<RNG, population_space_row< BlockType, WeightType >, AlleleSpaceType, SelectionType, TraitSpaceType, FreeBufferType > {
 public:
-    typedef offspring_generator< RNG, population_space_row< BlockType, WeightType >, AlleleSpaceType, SelectionType, TraitSpaceType > self_type;
+    typedef offspring_generator< RNG, population_space_row< BlockType, WeightType >, AlleleSpaceType, SelectionType, TraitSpaceType, FreeBufferType > self_type;
 
     typedef RNG                                             random_engine_type;
     typedef population_space_row< BlockType, WeightType >   population_type;
@@ -40,7 +38,7 @@ public:
     typedef typename population_type::block_type            block_type;
     typedef typename population_type::genome_pointer        genome_pointer;
 
-    typedef clotho::genetics::free_space_buffer< BlockType > free_space_type;
+    typedef FreeBufferType                                  free_buffer_type;
 
     typedef SelectionType                                   selection_type;
     typedef TraitSpaceType                                  trait_space_type;
@@ -51,7 +49,7 @@ public:
 
     typedef typename phenotype_method::weight_type          weight_type;
 
-    offspring_generator( random_engine_type * rng, population_type * parents, population_type * offspring, allele_type * alleles, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, selection_type * sel, trait_space_type * traits, block_type * neutrals, unsigned int off_idx, unsigned int off_end, double recomb_rate, double bias_rate, bool allNeutral ) :
+    offspring_generator( random_engine_type * rng, population_type * parents, population_type * offspring, allele_type * alleles, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, selection_type * sel, trait_space_type * traits, block_type * neutrals, const free_buffer_type & fbuf, unsigned int off_idx, unsigned int off_end, double recomb_rate, double bias_rate, bool allNeutral ) :
         m_rng( rng )
         , m_parents( parents )
         , m_offspring( offspring )
@@ -64,8 +62,8 @@ public:
         , m_all_neutral( allNeutral )
         , m_crossover_method( rng, alleles, recomb_rate, bias_rate )
         , m_pheno_method( traits, neutrals )
+        , m_free_space( fbuf )
     {
-        m_free_space.reset( offspring->getMaxBlocks() );
     }
 
     void operator()() {
@@ -108,10 +106,6 @@ public:
 
     void recordFixed( boost::property_tree::ptree & log ) {
         recordTime( log, m_fixed_timer );
-    }
-
-    free_space_type * getFreeSpaceBuffer() {
-        return & m_free_space;
     }
 
     virtual ~offspring_generator() {}
@@ -189,7 +183,7 @@ protected:
 
         for( unsigned int i = 2 * m_off_begin; i < 2 * m_off_end; ++i ) {
             block_type * f = m_offspring->begin_genome( i );
-            m_free_space.updateBuffers( f, M );
+            m_free_space.update( f, M );
         }
     }
 
@@ -212,7 +206,7 @@ protected:
 
     phenotype_method m_pheno_method;
     
-    free_space_type m_free_space;
+    free_buffer_type m_free_space;
 
     timer_type  m_crossover_timer, m_mutate_timer, m_phenotype_timer, m_fitness_timer, m_fixed_timer;
 };
