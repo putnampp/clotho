@@ -55,6 +55,10 @@ public:
         return m_positions[index];
     }
 
+    neutral_vector & getNeutrals() {
+        return m_neutral;
+    }
+
     bool getAlleleNeutral( size_type index ) const {
         return m_neutral[ index ];
     }
@@ -75,6 +79,10 @@ public:
 #ifdef DEBUGGING
         assert( index < m_positions.size() );
 #endif // DEBUGGING
+
+        while( index >= m_positions.size() ) {
+            grow();
+        }
 
         position_type p = m_positions[ index ];
         m_positions[ index ] = pos;

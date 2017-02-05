@@ -93,6 +93,8 @@ public:
 #endif  // DEBUGGING
         unsigned int _offset = row * m_trait_count;
 
+        while( m_weights.size() <= _offset ) grow();
+
         m_weights[ _offset + col ] = w;
     }
 

@@ -47,7 +47,7 @@ public:
         m_start = clock_type::now();
     }
 
-    unsigned long long getStart() {
+    unsigned long long getStart() const {
         return m_start.time_since_epoch().count();
     }
 
@@ -56,6 +56,10 @@ public:
      */
     inline void stop() {
         m_end = clock_type::now();
+    }
+
+    unsigned long long getStop() const {
+        return m_end.time_since_epoch().count();
     }
 
     /**

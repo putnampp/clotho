@@ -23,13 +23,7 @@
 
 #include <boost/random/mersenne_twister.hpp>
 
-#ifndef USE_MT
-#include "qtlsim_engine.hpp"
-#define ENGINE Engine
-#else   // USE_MT
-#include "qtlsim_engine_mt3.hpp"
-#define ENGINE EngineMT2
-#endif  // USE_MT
+#include "engines.hpp"
 
 #include "qtlsim_parameters.hpp"
 
@@ -38,7 +32,7 @@
 #include "clotho/data_spaces/analysis/pairwise_difference/pairwise_difference.hpp"
 
 typedef boost::random::mt19937          random_engine_type;
-typedef ENGINE< random_engine_type >    simulate_engine_type;
+typedef Engine< random_engine_type, double, unsigned long long, unsigned int, ENGINE_MODE >    simulate_engine_type;
 typedef typename simulate_engine_type::sequence_space_type      sequence_space_type;
 typedef typename simulate_engine_type::allele_type              allele_space_type;
 

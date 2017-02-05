@@ -43,7 +43,7 @@ public:
  * @param offset - strand relative block offset
  *
  */
-    inline block_type crossover( const block_type & top_strand, const block_type & bottom_strand, const unsigned int OFFSET ) {
+    inline block_type crossover( const block_type top_strand, const block_type bottom_strand, const unsigned int OFFSET ) {
         block_type hets = top_strand ^ bottom_strand;
         block_type mask = bit_helper_type::ALL_UNSET;   // mask state from m_p1 strand
 //        offset *= bit_helper_type::BITS_PER_BLOCK;      // scale offset to appropriate allele offset

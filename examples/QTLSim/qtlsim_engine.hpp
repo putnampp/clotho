@@ -11,8 +11,8 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_SIM_ENGINE_HPP_
-#define CLOTHO_SIM_ENGINE_HPP_
+#ifndef ENGINE_BASE_ENGINE_HPP_
+#define ENGINE_BASE_ENGINE_HPP_
 
 #ifdef DEBUG_MODE
 #define DEBUGGING 0
@@ -35,15 +35,17 @@
 
 #include "clotho/utility/state_object.hpp"
 
-template < class RNG >
-class Engine {
-public:
-    typedef Engine< RNG >               self_type;
+struct base_engine {};
 
-    typedef double                      position_type;
-    typedef double                      weight_type;
+template < class RNG, class RealType, class BlockType, class SizeType >
+class Engine< RNG, RealType, BlockType, SizeType, base_engine >{
+public:
+    typedef Engine< RNG, RealType, BlockType, SizeType, base_engine >               self_type;
+
+    typedef RealType                      position_type;
+    typedef RealType                     weight_type;
     typedef weight_type *               phenotype_type;
-    typedef unsigned long long          block_type;
+    typedef BlockType          block_type;
 
     typedef RNG                                                                                     random_engine_type;
 
@@ -272,9 +274,9 @@ protected:
 namespace clotho {
 namespace utility {
 
-template < class RNG >
-struct state_getter< Engine< RNG > > {
-    typedef Engine< RNG >           object_type;
+template < class RNG, class RealType, class BlockType, class SizeType >
+struct state_getter< Engine< RNG, RealType, BlockType, SizeType, base_engine > > {
+    typedef  Engine< RNG, RealType, BlockType, SizeType, base_engine > object_type;
 
     void operator()( boost::property_tree::ptree & s, object_type & obj ) {
         boost::property_tree::ptree tr;
@@ -312,4 +314,4 @@ struct state_getter< Engine< RNG > > {
 }
 }
 
-#endif  // CLOTHO_SIM_ENGINE_HPP_
+#endif  // ENGINE_BASE_ENGINE_HPP_

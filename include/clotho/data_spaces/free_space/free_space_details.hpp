@@ -364,9 +364,7 @@ protected:
 
         block_type * first = fixed, * last = fixed + W;
 
-        unsigned int offset = 0;
-
-        unsigned int idx = 0;
+        unsigned int idx = 0, offset = 0;
         while( first != last ) {
             block_type fx = *first++;
 

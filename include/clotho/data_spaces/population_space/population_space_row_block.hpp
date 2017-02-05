@@ -27,7 +27,7 @@ class population_space_row {
 public:
     typedef BlockType       block_type;
 
-    typedef trait_space_vector< WeightType >           trait_space_type;
+    typedef trait_space_vector< WeightType >            trait_space_type;
 
     typedef typename trait_space_type::weight_type      weight_type;
     typedef typename trait_space_type::vector_type      weight_vector;
@@ -174,12 +174,15 @@ public:
     }
 
     genome_pointer begin_genome( unsigned int idx ) {
-        assert( idx < m_genome_rows );
+        if( idx >= m_genome_rows )
+            return m_genetic_space;
+    
         return m_genetic_space + idx * m_allele_block_columns;
     }
 
     genome_pointer end_genome( unsigned int idx ) {
-        assert( idx < m_genome_rows );
+        if( idx >= m_genome_rows )
+            return m_genetic_space;
 
         return m_genetic_space + (idx + 1) * m_allele_block_columns;
     }
@@ -199,6 +202,12 @@ public:
         }
     }
 
+    void updateGenomeWeights( unsigned int genome_index, weight_type * weights ) {
+        for(unsigned int i = 0, j = genome_index * m_trait_count; i < m_trait_count; ++i, ++j ) {
+            m_genome_traits[ j ] = weights[ i ];
+        }
+    }
+
     const_weight_iterator begin_genome_traits( unsigned int idx ) const {
         return m_genome_traits.begin() + idx * m_trait_count;
     }
@@ -207,14 +216,14 @@ public:
         return m_genome_traits.begin() + (idx + 1) * m_trait_count;
     }
 
+    void clear() {
+        memset( m_genetic_space, 0, sizeof(block_type) * m_genetic_space_allocated );
+    }
+
     virtual ~population_space_row() {
         if( m_genetic_space != NULL ) {
             delete [] m_genetic_space;
         }
-    }
-
-    void clear() {
-        memset( m_genetic_space, 0, sizeof(block_type) * m_genetic_space_allocated );
     }
 
 protected:
@@ -251,6 +260,31 @@ protected:
 };
 
 }   // namespace genetics
+}   // namespace clotho
+
+namespace clotho {
+namespace utility {
+
+template < class BlockType, class WeightType >
+struct state_getter< clotho::genetics::population_space_row< BlockType, WeightType > > {
+    typedef clotho::genetics::population_space_row< BlockType, WeightType > object_type;
+
+    void operator()( boost::property_tree::ptree & s, object_type & obj ) {
+        boost::property_tree::ptree ph;
+
+        for( unsigned int i = 0; i < obj.haploid_genome_count(); ++i ) {
+            boost::property_tree::ptree p;
+
+            clotho::utility::add_value_array( p, obj.begin_genome_traits( i ), obj.end_genome_traits( i ) );
+
+            ph.push_back( std::make_pair( "", p ) );
+        }
+
+        s.put_child( "phenotype", ph );
+    }
+};
+
+}   // namespace utility
 }   // namespace clotho
 
 #endif  // CLOTHO_POPULATION_SPACE_ROW_BLOCK_HPP_

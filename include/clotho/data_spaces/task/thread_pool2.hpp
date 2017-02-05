@@ -14,6 +14,7 @@
 #ifndef CLOTHO_THREAD_POOL2_HPP_
 #define CLOTHO_THREAD_POOL2_HPP_
 
+#include <vector>
 #include <queue>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
@@ -56,6 +57,13 @@ public:
         }
     }
 
+    thread_pool2( unsigned int T ) :
+        m_available(0)
+        , m_pool_size( T )
+        , m_running( true )
+        , m_thread_engines( NULL ) 
+    {}
+
     random_engine_type * getRNG( unsigned int index ) {
 #ifdef DEBUGGING
         assert( index < m_pool_size );
@@ -72,6 +80,14 @@ public:
         boost::thread *th = new boost::thread( t );
 
         m_threads.add_thread( th );
+    }
+
+    template < class Task >
+    void post_list( std::vector< Task * > & task ) {
+        for(typename std::vector< Task * >::iterator it = task.begin(); it != task.end(); it++ ) {
+            boost::thread * th = new boost::thread( &Task::operator(), (*it) );
+            m_threads.add_thread( th );
+        }
     }
 
     void sync() {

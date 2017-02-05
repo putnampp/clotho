@@ -49,6 +49,8 @@ public:
     void update( genetic_space_type * parents, size_t count ) {
         // distribution generates numbers in range [0, N]
         // therefore N needs to be the maximum index (individual_count - 1)
+        //
+        std::cerr << parents->individual_count() << std::endl;
         distribution_type dist( 0, parents->individual_count() - 1 );
 
         m_pairs.clear();
