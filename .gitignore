@@ -28,6 +28,8 @@
 *.out
 *.app
 
+*.swp
+
 # Build directories
 build*
 sandbox*

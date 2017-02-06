@@ -76,13 +76,7 @@ public:
     }
 
     void setAllele( size_type index, position_type pos, bool is_neutral, unsigned int age ) {
-#ifdef DEBUGGING
         assert( index < m_positions.size() );
-#endif // DEBUGGING
-
-        while( index >= m_positions.size() ) {
-            grow();
-        }
 
         position_type p = m_positions[ index ];
         m_positions[ index ] = pos;

@@ -188,13 +188,10 @@ public:
 #endif // DEBUGGING
 
         m_child->grow( pN, all_size, m_trait_space.trait_count() );               // grow the child population accordingly
+        generate_child_mutations( pM );
 
         select_gen.update( m_fit, pN );
 
-        m_mut_pool.clear();
-        m_mut_dist.clear();
-
-        generate_child_mutations( pM );
         thread_pool_type tpool( m_thread_count.m_tc );
 
         block_type * neutrals = new block_type[ m_child->getMaxBlocks() ];
@@ -348,29 +345,26 @@ protected:
         typename free_space_type::base_type::iterator it = m_free_space.free_begin(), end = m_free_space.free_end();
 
         unsigned int i = 0;
-        while( i < N && it != end ) {
-            typename free_space_type::size_type all_idx = *it++;
+        while( i < N ) {
+            typename free_space_type::size_type all_idx = m_allele_space.size();
+
+            if( it != end ) {
+                all_idx = *it++;
+            } else {
+                m_allele_space.grow();
+            }
+
             unsigned int seq_idx = seq_gen( *m_rand );
 
-            m_mut_pool[ i++ ] = all_idx;
+            assert( all_idx < m_child->getMaxAlleles() );
+
+            m_mut_pool[ i ] = all_idx;
             m_mut_dist[ seq_idx + 1 ] += 1;
 
             allele_gen( m_allele_space, all_idx, m_generation );
             trait_gen(*m_rand, m_trait_space, all_idx );
-        }
 
-        while( i < N ) {
-            typename free_space_type::size_type all_idx = m_allele_space.size();
-            unsigned int seq_idx = seq_gen( *m_rand );
-
-            m_mut_pool[i++] = all_idx;
-            m_mut_dist[ seq_idx + 1 ] += 1;
-
-            assert( all_idx < m_child->getMaxAlleles() );
-
-            allele_gen( m_allele_space, all_idx, m_generation );
-            trait_gen( *m_rand, m_trait_space, all_idx );
-            --N;
+            ++i;
         }
 
         // scan right to produce m_mut_pool relative index ranges
@@ -380,14 +374,9 @@ protected:
     }
 
     void resetMutationEvents( unsigned int N ) {
-        m_mut_pool.clear();
-        m_mut_pool.reserve( N );
-
         while( m_mut_pool.size() < N ) {
             m_mut_pool.push_back(0);
         }
-
-        m_mut_dist.reserve( m_child->haploid_genome_count() + 1 );
 
         unsigned int i = 0;
         while( i < m_mut_dist.size() ) {
