@@ -70,7 +70,7 @@ public:
     typedef SizeType                    size_type;
 
     typedef clotho::genetics::thread_pool2< RNG >                                                   thread_pool_type;
-    typedef clotho::genetics::AlleleSpace< position_type, size_type >                               allele_type;
+    typedef clotho::genetics::AlleleSpace< position_type, block_type, size_type >                               allele_type;
 
 #ifdef USE_ROW_MODIFICATION
     typedef clotho::genetics::population_space_row_modified< block_type, weight_type >              sequence_space_type;
@@ -99,6 +99,10 @@ public:
     typedef typename offspring_generator_type::mutation_pool_type                               mutation_pool_type;
     typedef typename offspring_generator_type::mutation_distribution_type                       mutation_distribution_type;
     typedef typename sequence_space_type::bit_helper_type bit_helper_type;
+
+    typedef typename offspring_generator_type::time_vector  time_vector;
+
+    typedef std::map< std::string, time_vector> time_map;
 
     friend struct clotho::utility::state_getter< self_type >;
 
@@ -190,15 +194,12 @@ public:
         m_child->grow( pN, all_size, m_trait_space.trait_count() );               // grow the child population accordingly
         generate_child_mutations( pM );
 
+        bool allNeutral = m_allele_space.isAllNeutral();
+
         select_gen.update( m_fit, pN );
 
         thread_pool_type tpool( m_thread_count.m_tc );
-
-        block_type * neutrals = new block_type[ m_child->getMaxBlocks() ];
-        memset( neutrals, 0, m_child->getMaxBlocks() * sizeof( block_type ) );
-
-        bool allNeutral = fill_neutrals( neutrals );
-
+        
         const size_t TC = tpool.pool_size() + 1;
         const size_t BATCH_SIZE = (pN / TC) + ((pN % TC > 0)? 1:0);
 
@@ -210,7 +211,7 @@ public:
         unsigned int off_idx = 0, j = 0;
         while( off_idx + BATCH_SIZE < pN ) {
             free_buffer_type tbuf = m_free_space.getThreadBuffer( j );
-            offspring_generator_type * ogen = new offspring_generator_type( m_worker_rng[ j ], m_parent, m_child, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, neutrals, tbuf, off_idx, off_idx + BATCH_SIZE, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral);
+            offspring_generator_type * ogen = new offspring_generator_type( m_worker_rng[ j ], m_parent, m_child, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, tbuf, off_idx, off_idx + BATCH_SIZE, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral);
             task_list.push_back( ogen );
             off_idx += BATCH_SIZE;
             ++j;
@@ -220,7 +221,7 @@ public:
 
         if( off_idx < pN ) {
             free_buffer_type tbuf = m_free_space.getThreadBuffer( j );
-            offspring_generator_type ogen( m_rand, m_parent, m_child, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, neutrals, tbuf, off_idx, pN, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral );
+            offspring_generator_type ogen( m_rand, m_parent, m_child, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, tbuf, off_idx, pN, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral );
             ogen();
 
             // replace Allele space
@@ -252,24 +253,7 @@ public:
 
         recordAlleles();
 
-        delete [] neutrals;
-
         ++m_generation;
-    }
-
-    bool fill_neutrals( block_type * neutrals ) {
-        typename allele_type::neutral_vector::size_type i = m_allele_space.getNeutrals().find_first();
-
-        while( i != allele_type::neutral_vector::npos ) {
-            typename allele_type::neutral_vector::size_type idx = i / bit_helper_type::BITS_PER_BLOCK;
-            typename allele_type::neutral_vector::size_type offset = i % bit_helper_type::BITS_PER_BLOCK;
-
-            neutrals[ idx ] |= ((block_type) 1 << offset );
-            
-            i = m_allele_space.getNeutrals().find_next(i);
-        }
-
-        return m_allele_space.getNeutrals().all();
     }
 
     sequence_space_type * getChildPopulation() const {
@@ -281,6 +265,17 @@ public:
     }
 
     void recordTimes( offspring_generator_type * gen, std::string key ) {
+        if( m_xover_times.find( key ) == m_xover_times.end() ) {
+            m_xover_times.insert( std::make_pair( key, time_vector() ) );
+            m_mutate_times.insert( std::make_pair( key, time_vector() ) );
+            m_pheno_times.insert( std::make_pair( key, time_vector() ) );
+            m_fixed_times.insert( std::make_pair( key, time_vector() ) );
+        }
+
+        gen->record( m_xover_times[key], m_mutate_times[key], m_pheno_times[key], m_fixed_times[key]) ;
+    }
+
+/*    void recordTimes( offspring_generator_type * gen, std::string key ) {
 
         boost::property_tree::ptree xover_times, mutate_times, pheno_times, fixed_times;
 
@@ -298,7 +293,7 @@ public:
         m_mutate_times.put_child( key, mutate_times );
         m_pheno_times.put_child( key, pheno_times );
         m_fixed_times.put_child( key, fixed_times );
-    }
+    }*/
 
     void recordAlleles() {
         clotho::utility::add_value_array( free_sizes, m_free_space.free_size() );
@@ -306,12 +301,39 @@ public:
         clotho::utility::add_value_array( fixed_sizes, m_free_space.fixed_size() );
     }
 
+    void buildTimeVectorLog( boost::property_tree::ptree & log, time_map & times ) {
+        for( typename time_map::iterator it = times.begin(); it != times.end(); it++ ) {
+            boost::property_tree::ptree starts, stops;
+
+            for( typename time_vector::iterator iter = it->second.begin(); iter != it->second.end(); ++iter ) {
+                clotho::utility::add_value_array( starts, iter->first );
+                clotho::utility::add_value_array( stops, iter->second );
+            }
+
+            boost::property_tree::ptree tmp;
+            tmp.put_child( "start", starts );
+            tmp.put_child( "stop", stops );
+
+            log.put_child( it->first, tmp );
+        }
+    }
+
     void getPerformanceResults( boost::property_tree::ptree & log ) {
-        log.put_child( "performance.mutate", m_mutate_times );
-        log.put_child( "performance.crossover", m_xover_times );
-        log.put_child( "performance.fixed", m_fixed_times );
-        log.put_child( "performance.phenotypes", m_pheno_times );
-        log.put_child( "performance.fitness", m_fitness_times );
+        
+        boost::property_tree::ptree mut, xo, ph, fx;
+        buildTimeVectorLog( mut, m_mutate_times );
+        log.put_child( "performance.mutate", mut );
+
+        buildTimeVectorLog( xo, m_xover_times );
+        log.put_child( "performance.crossover", xo );
+
+        buildTimeVectorLog( fx, m_fixed_times );
+        log.put_child( "performance.fixed", fx );
+
+        buildTimeVectorLog( ph, m_pheno_times );
+        log.put_child( "performance.phenotypes", ph );
+
+        log.put_child( "performance.fitness", m_fitness_times);
 
         log.put_child( "memory.free_count", free_sizes );
         log.put_child( "memory.variable_count", var_sizes );
@@ -340,6 +362,8 @@ protected:
 //        std::cerr << "Free space: " << m_free_space.free_size() << std::endl;
 //
         resetMutationEvents( N );
+
+        m_allele_space.alignNeutralToPopulation( m_child->getMaxBlocks() );
 
         boost::random::uniform_int_distribution< unsigned int > seq_gen( 0, m_child->haploid_genome_count() - 1);
         typename free_space_type::base_type::iterator it = m_free_space.free_begin(), end = m_free_space.free_end();
@@ -483,8 +507,8 @@ protected:
     mutation_pool_type  m_mut_pool;
     mutation_distribution_type  m_mut_dist;
 //
-    boost::property_tree::ptree m_fixed_times, m_mutate_times, m_xover_times, m_pheno_times, m_fitness_times;
-    boost::property_tree::ptree free_sizes, var_sizes, fixed_sizes;
+    time_map m_fixed_times, m_mutate_times, m_xover_times, m_pheno_times;
+    boost::property_tree::ptree free_sizes, var_sizes, fixed_sizes, m_fitness_times;
 };
 
 namespace clotho {

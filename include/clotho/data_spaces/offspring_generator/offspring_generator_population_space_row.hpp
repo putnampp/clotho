@@ -49,7 +49,9 @@ public:
 
     typedef typename phenotype_method::weight_type          weight_type;
 
-    offspring_generator( random_engine_type * rng, population_type * parents, population_type * offspring, allele_type * alleles, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, selection_type * sel, trait_space_type * traits, block_type * neutrals, const free_buffer_type & fbuf, unsigned int off_idx, unsigned int off_end, double recomb_rate, double bias_rate, bool allNeutral ) :
+    typedef std::vector< std::pair< unsigned long long, unsigned long long > >               time_vector;
+
+    offspring_generator( random_engine_type * rng, population_type * parents, population_type * offspring, allele_type * alleles, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, selection_type * sel, trait_space_type * traits, const free_buffer_type & fbuf, unsigned int off_idx, unsigned int off_end, double recomb_rate, double bias_rate, bool allNeutral ) :
         m_rng( rng )
         , m_parents( parents )
         , m_offspring( offspring )
@@ -61,7 +63,7 @@ public:
         , m_off_end( off_end )
         , m_all_neutral( allNeutral )
         , m_crossover_method( rng, alleles, recomb_rate, bias_rate )
-        , m_pheno_method( traits, neutrals )
+        , m_pheno_method( traits, alleles->getNeutrals() )
         , m_free_space( fbuf )
     {
     }
@@ -90,6 +92,13 @@ public:
         m_fixed_timer.start();
         fixed();
         m_fixed_timer.stop();
+    }
+
+    void record( time_vector & xover, time_vector & mut, time_vector & pheno, time_vector & fixed ) {
+        xover.push_back( std::make_pair( m_crossover_timer.getStart(), m_crossover_timer.getStop() ) );
+        mut.push_back( std::make_pair( m_mutate_timer.getStart(), m_mutate_timer.getStop() ) );
+        pheno.push_back( std::make_pair( m_phenotype_timer.getStart(), m_phenotype_timer.getStop() ) );
+        fixed.push_back( std::make_pair( m_fixed_timer.getStart(), m_fixed_timer.getStop() ) );
     }
 
     void recordCrossover( boost::property_tree::ptree & log ) {

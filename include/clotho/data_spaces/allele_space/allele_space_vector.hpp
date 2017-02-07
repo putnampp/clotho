@@ -27,25 +27,31 @@
 namespace clotho {
 namespace genetics {
 
-template < class PositionType, class SizeType = unsigned int >
+template < class PositionType, class BlockType, class SizeType = unsigned int >
 class AlleleSpace {
 public:
+
+    typedef AlleleSpace< PositionType, BlockType, SizeType >   self_type;
 
     typedef PositionType                    position_type;
     typedef std::vector< position_type >    position_vector;
 
     typedef SizeType                        size_type;
 
-    typedef boost::dynamic_bitset< unsigned int >   neutral_vector;
+    typedef BlockType                       block_type;
+    typedef block_type *                    neutral_vector;
 
     typedef unsigned int                age_type;
     typedef std::vector< age_type >     age_vector;
 
-    typedef AlleleSpace< PositionType, SizeType >   self_type;
+    typedef clotho::utility::BitHelper< block_type > bit_helper_type;
 
-    static const unsigned int ALLELES_PER_BLOCK = clotho::utility::BitHelper< unsigned int >::BITS_PER_BLOCK; 
+    static const unsigned int ALLELES_PER_BLOCK = bit_helper_type::BITS_PER_BLOCK; 
 
-    AlleleSpace() {}
+    AlleleSpace() :
+        m_neutral( NULL )
+        , m_neutral_alloc(0)
+    {}
 
     position_vector & getPositions() {
         return m_positions;
@@ -55,12 +61,25 @@ public:
         return m_positions[index];
     }
 
-    neutral_vector & getNeutrals() {
+    neutral_vector getNeutrals() {
         return m_neutral;
     }
 
-    bool getAlleleNeutral( size_type index ) const {
-        return m_neutral[ index ];
+    bool isNeutral( size_type index ) const {
+        size_type off = index / bit_helper_type::BITS_PER_BLOCK;
+
+        return ((m_neutral[ off ] >> (index % bit_helper_type::BITS_PER_BLOCK)) & (block_type) 1);
+    }
+
+    void setNeutral( size_type index, bool val ) {
+        size_type off = index / bit_helper_type::BITS_PER_BLOCK;
+        block_type mask = ((block_type)1 << (index % bit_helper_type::BITS_PER_BLOCK));
+
+        if( val ) {
+            m_neutral[ off ] |= mask;
+        } else {
+            m_neutral[ off ] &= ~mask;
+        }
     }
 
     age_type getAlleleAge( size_type index ) const {
@@ -68,7 +87,19 @@ public:
     }
 
     bool isAllNeutral() const {
-        return m_neutral.all();
+        if( this->size() == 0 ) return true;
+
+        size_type off = this->size() / bit_helper_type::BITS_PER_BLOCK;
+        block_type tail_mask = ~(bit_helper_type::ALL_SET << (this->size() % bit_helper_type::BITS_PER_BLOCK));
+        bool isall = ((m_neutral[ off ] & tail_mask) == tail_mask);
+        --off;
+
+        block_type * tmp = m_neutral;
+        while( isall && off-- ) {
+            isall = (*tmp++ == bit_helper_type::ALL_SET);
+        }
+
+        return isall;
     }
 
     bool hasAllelePosition( position_type pos ) const {
@@ -95,7 +126,7 @@ public:
             m_position_lookup[ pos ] += 1;
         }
 
-        m_neutral.set( index, is_neutral );
+        setNeutral( index, is_neutral );
         m_age[ index ] = age;
     }
 
@@ -122,6 +153,8 @@ public:
         assert( idx < other.size() );
 #endif  // DEBUGGING
 
+        unsigned int off = m_positions.size();
+
         position_type p = other.m_positions[ idx ];
 
         m_positions.push_back( p );
@@ -132,7 +165,10 @@ public:
             m_position_lookup[ p ] += 1;
         }
 
-        m_neutral.push_back( other.m_neutral[ idx ] );
+        if( off >= m_neutral_alloc * sizeof( block_type ))
+            this->alignNeutralToPopulation( m_neutral_alloc + bit_helper_type::BLOCKS_PER_CACHE_LINE );
+
+        setNeutral( off, other.isNeutral( idx ) );
         m_age.push_back( other.m_age[ idx ] );
     }
 
@@ -142,7 +178,6 @@ public:
 
     void grow() {
         m_positions.push_back( 0 );
-        m_neutral.push_back( false );
         m_age.push_back( 0 );
 #ifdef DEBUGGING
         assert( m_positions.size() == m_neutral.size() );
@@ -150,13 +185,38 @@ public:
 #endif  // DEBUGGING
     }
 
-    virtual ~AlleleSpace() {}
+    void alignNeutralToPopulation( unsigned int block_count ) {
+        if( block_count > m_neutral_alloc ) {
+            block_type * tmp = new block_type[ block_count ];
+
+            unsigned int i = 0;
+            while( i < block_count ) {
+                tmp[ i ] = (( i < m_neutral_alloc) ? m_neutral[ i ] : bit_helper_type::ALL_UNSET);
+                ++i;
+            }
+
+            if( m_neutral != NULL ) {
+                delete [] m_neutral;
+            }
+
+            m_neutral = tmp;
+            m_neutral_alloc = block_count;
+        }
+    }
+
+    virtual ~AlleleSpace() {
+        if( m_neutral != NULL ) {
+            delete [] m_neutral;
+        }
+    }
+
 protected:
 
     position_vector m_positions;
     neutral_vector  m_neutral;
     age_vector      m_age;
 
+    unsigned int m_neutral_alloc;
     std::map< position_type, unsigned int  > m_position_lookup;
 };
 
@@ -177,7 +237,7 @@ struct state_getter< clotho::genetics::AlleleSpace< PositionType, SizeType > > {
         while( i < all_count ) {
             boost::property_tree::ptree all;
             all.put( "position", obj.getAllelePosition(i) );
-            all.put( "neutral", obj.getAlleleNeutral(i) );
+            all.put( "neutral", obj.isNeutral(i) );
             all.put( "age", obj.getAlleleAge(i) );
 
             s.push_back( std::make_pair("", all ) );
