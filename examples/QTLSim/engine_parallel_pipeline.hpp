@@ -124,6 +124,8 @@ public:
         , allele_gen( rng, config )
         , m_recomb_rate( config )
         , m_bias_rate( config )
+        , m_main_off_gen( rng, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, m_recomb_rate.m_rho, m_bias_rate.m_bias )
+        , m_worker_off_gens( NULL )
     {
         population_growth_generator_type tmp  = population_growth_toolkit::getInstance()->get_tool( config );
         if( tmp ) {
@@ -155,8 +157,10 @@ public:
 
         if( m_thread_count.m_tc > 0 ) {
             m_worker_rng = new random_engine_type * [ m_thread_count.m_tc ];
+            m_worker_off_gens = new offspring_generator_type * [ m_thread_count.m_tc ];
             for( int i = 0; i < m_thread_count.m_tc; ++i ) {
                 m_worker_rng[ i ] = new random_engine_type( (*m_rand)());
+                m_worker_off_gens[i] = new offspring_generator_type( m_worker_rng[ i ], &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, m_recomb_rate.m_rho, m_bias_rate.m_bias );
             }
         }
 
@@ -200,48 +204,48 @@ public:
 
         thread_pool_type tpool( m_thread_count.m_tc );
         
-        const size_t TC = tpool.pool_size() + 1;
+        const size_t TC = m_thread_count.m_tc + 1;
         const size_t BATCH_SIZE = (pN / TC) + ((pN % TC > 0)? 1:0);
 
-        std::vector< offspring_generator_type * > task_list;
-        task_list.reserve( TC );
+//        std::vector< offspring_generator_type * > task_list;
+//        task_list.reserve( TC );
 
         m_free_space.resetBuffers( m_child->getMaxBlocks() );
 
         unsigned int off_idx = 0, j = 0;
         while( off_idx + BATCH_SIZE < pN ) {
             free_buffer_type tbuf = m_free_space.getThreadBuffer( j );
-            offspring_generator_type * ogen = new offspring_generator_type( m_worker_rng[ j ], m_parent, m_child, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, tbuf, off_idx, off_idx + BATCH_SIZE, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral);
-            task_list.push_back( ogen );
+//            offspring_generator_type * ogen = new offspring_generator_type( m_worker_rng[ j ], m_parent, m_child, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, tbuf, off_idx, off_idx + BATCH_SIZE, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral);
+            m_worker_off_gens[ j ]->reset( m_parent, m_child, tbuf, off_idx, off_idx + BATCH_SIZE, allNeutral );
+//            task_list.push_back( ogen );
             off_idx += BATCH_SIZE;
             ++j;
         }
 
-        tpool.post_list( task_list );
+        tpool.post_list( m_worker_off_gens, m_thread_count.m_tc );
 
         if( off_idx < pN ) {
             free_buffer_type tbuf = m_free_space.getThreadBuffer( j );
-            offspring_generator_type ogen( m_rand, m_parent, m_child, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, tbuf, off_idx, pN, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral );
-            ogen();
+//            offspring_generator_type ogen( m_rand, m_parent, m_child, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, tbuf, off_idx, pN, m_recomb_rate.m_rho, m_bias_rate.m_bias, allNeutral );
 
-            // replace Allele space
-            recordTimes( &ogen, "main" );
+            m_main_off_gen.reset( m_parent, m_child, tbuf, off_idx, pN, allNeutral );
+            m_main_off_gen();
         }
 
         tpool.sync();
 
-        while( !task_list.empty() ) {
-            std::ostringstream oss;
-
-            oss << "W_" << task_list.size();
-
-            offspring_generator_type * tmp = task_list.back();
-            task_list.pop_back();
-
-            recordTimes( tmp, oss.str() );
-
-            delete tmp;
-        }
+//        while( !task_list.empty() ) {
+//            std::ostringstream oss;
+//
+//            oss << "W_" << task_list.size();
+//
+//            offspring_generator_type * tmp = task_list.back();
+//            task_list.pop_back();
+//
+//            recordTimes( tmp, oss.str() );
+//
+//            delete tmp;
+//        }
 
         timer_type fit_time;
         m_fit( m_child );
@@ -264,6 +268,7 @@ public:
         return m_parent;
     }
 
+/*
     void recordTimes( offspring_generator_type * gen, std::string key ) {
         if( m_xover_times.find( key ) == m_xover_times.end() ) {
             m_xover_times.insert( std::make_pair( key, time_vector() ) );
@@ -275,7 +280,7 @@ public:
         gen->record( m_xover_times[key], m_mutate_times[key], m_pheno_times[key], m_fixed_times[key]) ;
     }
 
-/*    void recordTimes( offspring_generator_type * gen, std::string key ) {
+    void recordTimes( offspring_generator_type * gen, std::string key ) {
 
         boost::property_tree::ptree xover_times, mutate_times, pheno_times, fixed_times;
 
@@ -319,19 +324,27 @@ public:
     }
 
     void getPerformanceResults( boost::property_tree::ptree & log ) {
-        
+
+        for( int i = 0; i < m_thread_count.m_tc; ++i ) {
+            std::ostringstream oss;
+            oss << "W_" << (i + 1);
+
+            boost::property_tree::ptree mut, xo, ph, fx;
+            m_worker_off_gens[ i ]->record( xo, mut, ph, fx );
+            
+            log.put_child( "performance.mutate." + oss.str(), mut );
+            log.put_child( "performance.crossover." + oss.str(), xo );
+            log.put_child( "performance.fixed." + oss.str(), fx );
+            log.put_child( "performance.phenotype." + oss.str(), ph );
+        }
+
         boost::property_tree::ptree mut, xo, ph, fx;
-        buildTimeVectorLog( mut, m_mutate_times );
-        log.put_child( "performance.mutate", mut );
-
-        buildTimeVectorLog( xo, m_xover_times );
-        log.put_child( "performance.crossover", xo );
-
-        buildTimeVectorLog( fx, m_fixed_times );
-        log.put_child( "performance.fixed", fx );
-
-        buildTimeVectorLog( ph, m_pheno_times );
-        log.put_child( "performance.phenotypes", ph );
+        m_main_off_gen.record( xo, mut, ph, fx );
+        
+        log.put_child( "performance.mutate.main", mut );
+        log.put_child( "performance.crossover.main", xo );
+        log.put_child( "performance.fixed.main", fx );
+        log.put_child( "performance.phenotype.main", ph );
 
         log.put_child( "performance.fitness", m_fitness_times);
 
@@ -339,6 +352,28 @@ public:
         log.put_child( "memory.variable_count", var_sizes );
         log.put_child( "memory.fixed_count", fixed_sizes );
     }
+
+//    void getPerformanceResults( boost::property_tree::ptree & log ) {
+//        
+//        boost::property_tree::ptree mut, xo, ph, fx;
+//        buildTimeVectorLog( mut, m_mutate_times );
+//        log.put_child( "performance.mutate", mut );
+//
+//        buildTimeVectorLog( xo, m_xover_times );
+//        log.put_child( "performance.crossover", xo );
+//
+//        buildTimeVectorLog( fx, m_fixed_times );
+//        log.put_child( "performance.fixed", fx );
+//
+//        buildTimeVectorLog( ph, m_pheno_times );
+//        log.put_child( "performance.phenotypes", ph );
+//
+//        log.put_child( "performance.fitness", m_fitness_times);
+//
+//        log.put_child( "memory.free_count", free_sizes );
+//        log.put_child( "memory.variable_count", var_sizes );
+//        log.put_child( "memory.fixed_count", fixed_sizes );
+//    }
 
     allele_type * getAlleleSpace() {
         return &m_allele_space;
@@ -351,6 +386,15 @@ public:
             }
             delete [] m_worker_rng;
             m_worker_rng = NULL;
+        }
+
+        if( m_worker_off_gens != NULL ) {
+            for( int i = 0; i < m_thread_count.m_tc; ++i ) {
+                delete m_worker_off_gens[ i ];
+            }
+
+            delete [] m_worker_off_gens;
+            m_worker_off_gens = NULL;
         }
     }
 
@@ -479,12 +523,11 @@ protected:
 
     random_engine_type  * m_rand;
 
-    allele_type             m_allele_space, m_fixed;
+    allele_type          m_allele_space, m_fixed;
     sequence_space_type  m_pop0, m_pop1;
     sequence_space_type  * m_parent, * m_child;
 
     trait_space_type        m_trait_space, m_fixed_traits;
-
 
     selection_type          select_gen;
     fitness_type            m_fit;
@@ -506,6 +549,9 @@ protected:
 
     mutation_pool_type  m_mut_pool;
     mutation_distribution_type  m_mut_dist;
+
+    offspring_generator_type m_main_off_gen;
+    offspring_generator_type ** m_worker_off_gens;
 //
     time_map m_fixed_times, m_mutate_times, m_xover_times, m_pheno_times;
     boost::property_tree::ptree free_sizes, var_sizes, fixed_sizes, m_fitness_times;

@@ -90,6 +90,14 @@ public:
         }
     }
 
+    template < class Task >
+    void post_list( Task ** t, const unsigned int N ) {
+        for( unsigned int i = 0; i < N; ++i ) {
+            boost::thread * th = new boost::thread( &Task::operator(), t[i] );
+            m_threads.add_thread( th );
+        }
+    }
+
     void sync() {
         m_threads.join_all();
     }

@@ -51,90 +51,139 @@ public:
 
     typedef std::vector< std::pair< unsigned long long, unsigned long long > >               time_vector;
 
-    offspring_generator( random_engine_type * rng, population_type * parents, population_type * offspring, allele_type * alleles, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, selection_type * sel, trait_space_type * traits, const free_buffer_type & fbuf, unsigned int off_idx, unsigned int off_end, double recomb_rate, double bias_rate, bool allNeutral ) :
+    offspring_generator( random_engine_type * rng, allele_type * alleles, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, selection_type * sel, trait_space_type * traits, double recomb_rate, double bias_rate ) :
         m_rng( rng )
-        , m_parents( parents )
-        , m_offspring( offspring )
+        , m_parents( NULL )
+        , m_offspring( NULL )
         , m_alleles( alleles )
         , m_mut_pool( mut_pool )
         , m_mut_dist( mut_dist )
         , m_select( sel )
-        , m_off_begin( off_idx )
-        , m_off_end( off_end )
-        , m_all_neutral( allNeutral )
+        , m_off_begin( 0 )
+        , m_off_end( 0 )
+        , m_all_neutral( 0 )
         , m_crossover_method( rng, alleles, recomb_rate, bias_rate )
-        , m_pheno_method( traits, alleles->getNeutrals() )
-        , m_free_space( fbuf )
-    {
+        , m_pheno_method( traits )
+    {}
+
+    void reset( population_type * parents, population_type * offspring, const free_buffer_type & buf, unsigned int off_idx, unsigned int off_end, bool allNeutral ) {
+        m_parents = parents;
+        m_offspring = offspring;
+
+        m_free_space.reset( buf );
+
+        m_off_begin = off_idx;
+        m_off_end = off_end;
+
+        m_all_neutral = allNeutral;
     }
 
     void operator()() {
         // crossover parents of offspring population
         //
-        m_crossover_timer.start();
+        timer_type xover_time;
         crossover();
-        m_crossover_timer.stop();
+        xover_time.stop();
         
         // mutate offspring population
         //
-        m_mutate_timer.start();
+        timer_type mutate_time;
         mutate();
-        m_mutate_timer.stop();
+        mutate_time.stop();
+
         //
         // evaluate phenotype of  offspring population
         //
-        m_phenotype_timer.start();
+        timer_type pheno_time;
         phenotype();
-        m_phenotype_timer.stop();
+        pheno_time.stop();
 
         // evaluate fixed alleles with offspring population
         //
-        m_fixed_timer.start();
+        timer_type fixed_time;
         fixed();
-        m_fixed_timer.stop();
+        fixed_time.stop();
+
+        // persist time logs
+        m_crossover_times.push_back( std::make_pair( xover_time.getStart(), xover_time.getStop()));
+        m_mutate_times.push_back( std::make_pair( mutate_time.getStart(), mutate_time.getStop()));
+        m_phenotype_times.push_back( std::make_pair( pheno_time.getStart(), pheno_time.getStop()));
+        m_fixed_times.push_back( std::make_pair( fixed_time.getStart(), fixed_time.getStop()));
     }
 
-    void record( time_vector & xover, time_vector & mut, time_vector & pheno, time_vector & fixed ) {
-        xover.push_back( std::make_pair( m_crossover_timer.getStart(), m_crossover_timer.getStop() ) );
-        mut.push_back( std::make_pair( m_mutate_timer.getStart(), m_mutate_timer.getStop() ) );
-        pheno.push_back( std::make_pair( m_phenotype_timer.getStart(), m_phenotype_timer.getStop() ) );
-        fixed.push_back( std::make_pair( m_fixed_timer.getStart(), m_fixed_timer.getStop() ) );
-    }
+//    void record( time_vector & xover, time_vector & mut, time_vector & pheno, time_vector & fixed ) {
+//        xover.push_back( std::make_pair( m_crossover_timer.getStart(), m_crossover_timer.getStop() ) );
+//        mut.push_back( std::make_pair( m_mutate_timer.getStart(), m_mutate_timer.getStop() ) );
+//        pheno.push_back( std::make_pair( m_phenotype_timer.getStart(), m_phenotype_timer.getStop() ) );
+//        fixed.push_back( std::make_pair( m_fixed_timer.getStart(), m_fixed_timer.getStop() ) );
+//    }
+//
+//    void recordCrossover( boost::property_tree::ptree & log ) {
+//        recordTime( log, m_crossover_timer );
+//    }
+//
+//    void recordMutate( boost::property_tree::ptree & log ) {
+//        recordTime( log, m_mutate_timer );
+//    }
+//
+//    void recordPhenotype( boost::property_tree::ptree & log ) {
+//        recordTime( log, m_phenotype_timer );
+//    }
+//
+//    void recordFixed( boost::property_tree::ptree & log ) {
+//        recordTime( log, m_fixed_timer );
+//    }
 
-    void recordCrossover( boost::property_tree::ptree & log ) {
-        recordTime( log, m_crossover_timer );
-    }
+    void record( boost::property_tree::ptree & xo, boost::property_tree::ptree & mt, boost::property_tree::ptree & ph, boost::property_tree::ptree & fx ) {
 
-    void recordMutate( boost::property_tree::ptree & log ) {
-        recordTime( log, m_mutate_timer );
-    }
+        boost::property_tree::ptree xo_begins, xo_ends;
+        buildTimeLog( xo_begins, xo_ends, m_crossover_times );
+        xo.put_child( "start", xo_begins);
+        xo.put_child( "stop", xo_ends);
 
-    void recordPhenotype( boost::property_tree::ptree & log ) {
-        recordTime( log, m_phenotype_timer );
-    }
+        boost::property_tree::ptree mt_begins, mt_ends;
+        buildTimeLog( mt_begins, mt_ends, m_mutate_times );
+        mt.put_child( "start", mt_begins);
+        mt.put_child( "stop", mt_ends);
 
-    void recordFixed( boost::property_tree::ptree & log ) {
-        recordTime( log, m_fixed_timer );
+        boost::property_tree::ptree ph_begins, ph_ends;
+        buildTimeLog( ph_begins, ph_ends, m_phenotype_times );
+        ph.put_child( "start", ph_begins);
+        ph.put_child( "stop", ph_ends);
+
+        boost::property_tree::ptree fx_begins, fx_ends;
+        buildTimeLog( fx_begins, fx_ends, m_fixed_times );
+        fx.put_child( "start", fx_begins);
+        fx.put_child( "stop", fx_ends);
     }
 
     virtual ~offspring_generator() {}
 
 protected:
-    void recordTime( boost::property_tree::ptree & log, const timer_type & t ) {
-        boost::property_tree::ptree elapsed, start, stop;
 
-        elapsed = log.get_child("elapsed", elapsed);
-        start = log.get_child( "start", start );
-        stop = log.get_child( "stop", stop );
-
-        clotho::utility::add_value_array( elapsed, t );
-        clotho::utility::add_value_array( start, t.getStart() );
-        clotho::utility::add_value_array( stop, t.getStop() );
-        
-        log.put_child( "elapsed", elapsed );
-        log.put_child( "start", start );
-        log.put_child( "stop", stop );
+    void buildTimeLog( boost::property_tree::ptree & begins, boost::property_tree::ptree & ends, time_vector & t ) {
+        for( typename time_vector::iterator it = t.begin(); it != t.end(); it++ ) {
+            clotho::utility::add_value_array( begins, it->first );
+            clotho::utility::add_value_array( ends, it->second );
+        }
     }
+
+
+//    void recordTime( boost::property_tree::ptree & log, const timer_type & t ) {
+//        boost::property_tree::ptree elapsed, start, stop;
+//
+//        elapsed = log.get_child("elapsed", elapsed);
+//        start = log.get_child( "start", start );
+//        stop = log.get_child( "stop", stop );
+//
+//        clotho::utility::add_value_array( elapsed, t );
+//        clotho::utility::add_value_array( start, t.getStart() );
+//        clotho::utility::add_value_array( stop, t.getStop() );
+//        
+//        log.put_child( "elapsed", elapsed );
+//        log.put_child( "start", start );
+//        log.put_child( "stop", stop );
+//    }
 
     void crossover() {
         typename selection_type::iterator b = m_select->begin() + m_off_begin, e = m_select->begin() + m_off_end;
@@ -173,7 +222,7 @@ protected:
             for( unsigned int i = 2 * m_off_begin; i < 2 * m_off_end; ++i ) {
                 genome_pointer first = m_offspring->begin_genome( i ), last = m_offspring->end_genome( i );
 
-                m_pheno_method( first, last );
+                m_pheno_method( first, last, m_alleles->getNeutrals() );
 
                 m_offspring->updateGenomeWeights(i, m_pheno_method.getResults());
             }
@@ -207,7 +256,7 @@ protected:
 
     selection_type  * m_select;
 
-    const unsigned int m_off_begin, m_off_end;
+    unsigned int m_off_begin, m_off_end;
 
     bool m_all_neutral;
 
@@ -215,9 +264,9 @@ protected:
 
     phenotype_method m_pheno_method;
     
-    free_buffer_type m_free_space;
+    free_buffer_type  m_free_space;
 
-    timer_type  m_crossover_timer, m_mutate_timer, m_phenotype_timer, m_fitness_timer, m_fixed_timer;
+    time_vector m_crossover_times, m_mutate_times, m_phenotype_times, m_fitness_times, m_fixed_times;
 };
 
 }   // namespace genetics

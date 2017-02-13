@@ -40,19 +40,18 @@ public:
 
     typedef clotho::utility::debruijn_bit_walker< block_type >                              bit_walker_type;
 
-    common_phenotype_accumulator( trait_space_type * traits, block_type * neutral ) :
+    common_phenotype_accumulator( trait_space_type * traits ) :
         m_traits( traits )
-        , m_neutrals( neutral )
         , m_trait_count( traits->trait_count() )
         , m_weight_buffer( NULL )
     {
         m_weight_buffer = new weight_type[ m_trait_count ];
     }
 
-    void operator()( genome_pointer first, genome_pointer last ) {
+    void operator()( genome_pointer first, genome_pointer last, block_type * neutrals ) {
         resetBuffer();
 
-        block_type * f = m_neutrals;
+        block_type * f = neutrals;
 
         unsigned int j = 0;
         while( first != last ) {
@@ -96,8 +95,6 @@ public:
 
 protected:
     trait_space_type * m_traits;
-    block_type * m_neutrals;
-
     unsigned int m_trait_count;
     weight_type * m_weight_buffer;
 };

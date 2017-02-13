@@ -65,6 +65,12 @@ public:
         block_type * m_thread_var_buffer;
         block_type * m_thread_fix_buffer;
 
+        thread_buffer() :
+            m_parent( NULL )
+            , m_thread_var_buffer( NULL )
+            , m_thread_fix_buffer( NULL )
+        {}
+
         thread_buffer( free_space_accumulator_mt * par, block_type * var_buf, block_type * fix_buf ) :
             m_parent( par )
             , m_thread_var_buffer( var_buf )
@@ -80,6 +86,12 @@ public:
         void update( block_type * buf, unsigned int len ) {
             m_parent->updateVariableBuffer( m_thread_var_buffer, buf, len );
             m_parent->updateFixedBuffer( m_thread_fix_buffer, buf, len );
+        }
+
+        void reset( const thread_buffer & other ) {
+            m_parent = other.m_parent;
+            m_thread_var_buffer = other.m_thread_var_buffer;
+            m_thread_fix_buffer = other.m_thread_fix_buffer;
         }
 
         virtual ~thread_buffer() {}
