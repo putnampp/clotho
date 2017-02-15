@@ -123,7 +123,7 @@ int main( int argc, char ** argv ) {
     if( !print_config_only ) {
         unsigned int log_period = (( gen_param.m_size < log_param.m_period ) ? gen_param.m_size : log_param.m_period);
 
-        boost::property_tree::ptree sim_times, stat_times;
+        boost::property_tree::ptree sim_times, stat_times, sim_times_start, sim_times_end;
 
         timer_type rep_time;
         unsigned int T_gen = gen_param.m_size;
@@ -133,6 +133,8 @@ int main( int argc, char ** argv ) {
             sim_time.stop();
 
             clotho::utility::add_value_array( sim_times, sim_time );
+            clotho::utility::add_value_array( sim_times_start, sim_time.getStart() );
+            clotho::utility::add_value_array( sim_times_end, sim_time.getStop() );
 
             if( !( --log_period ) ) {
                 boost::property_tree::ptree stat_log;
@@ -180,6 +182,8 @@ int main( int argc, char ** argv ) {
         boost::property_tree::ptree perform_log;
         perform_log.add( "performance.runtime", rep_time.elapsed().count() );
         perform_log.put_child( "performance.simulate", sim_times );
+        perform_log.put_child( "performance.generations.start", sim_times_start );
+        perform_log.put_child( "performance.generations.stop", sim_times_end );
         perform_log.put_child( "performance.stats", stat_times );
 
         sim_engine.getPerformanceResults( perform_log );
