@@ -11,17 +11,28 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef OFFSPRING_GENERATOR_DEF_HPP_
-#define OFFSPRING_GENERATOR_DEF_HPP_
+#ifndef CLOTHO_SELECTION_DETAILS_HPP_
+#define CLOTHO_SELECTION_DETAILS_HPP_
 
 namespace clotho {
 namespace genetics {
 
-//template < class RNG, class PopulationType, class AlleleSpaceType, class SelectionType, class TraitSpaceType, class FreeSpaceType >
-template < class RNG, class PopulationType, class AlleleSpaceType, class FitnessType, class TraitSpaceType, class FreeSpaceType >
-class offspring_generator;
+template < class RNG, class IDType = unsigned int >
+struct selection_details {
+    typedef RNG                                     random_engine_type;
+    typedef IDType                                  individual_id_type;
+    typedef std::pair< individual_id_type, individual_id_type > parent_pair;
+
+    random_engine_type * m_rand;
+
+    selection_details( random_engine_type * rng ) : m_rand(rng) {}
+
+    virtual parent_pair operator()() = 0;
+
+    virtual ~selection_details() {}
+};
 
 }   // namespace genetics
 }   // namespace clotho
 
-#endif  // OFFSPRING_GENERATOR_DEF_HPP_
+#endif  // CLOTHO_SELECTION_DETAILS_HPP_

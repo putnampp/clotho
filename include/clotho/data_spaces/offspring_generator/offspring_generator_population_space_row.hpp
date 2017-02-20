@@ -20,13 +20,16 @@
 #include "clotho/data_spaces/crossover/common_crossover.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/common_phenotype_accumulator.hpp"
 
+#include "clotho/data_spaces/selection/selection_generator_factory.hpp"
+
 namespace clotho {
 namespace genetics {
 
-template < class RNG, class BlockType, class WeightType, class AlleleSpaceType, class SelectionType, class TraitSpaceType, class FreeBufferType >
-class offspring_generator<RNG, population_space_row< BlockType, WeightType >, AlleleSpaceType, SelectionType, TraitSpaceType, FreeBufferType > {
+//template < class RNG, class BlockType, class WeightType, class AlleleSpaceType, class SelectionType, class TraitSpaceType, class FreeBufferType >
+template < class RNG, class BlockType, class WeightType, class AlleleSpaceType, class FitnessType, class TraitSpaceType, class FreeBufferType >
+class offspring_generator<RNG, population_space_row< BlockType, WeightType >, AlleleSpaceType, FitnessType, TraitSpaceType, FreeBufferType > {
 public:
-    typedef offspring_generator< RNG, population_space_row< BlockType, WeightType >, AlleleSpaceType, SelectionType, TraitSpaceType, FreeBufferType > self_type;
+    typedef offspring_generator< RNG, population_space_row< BlockType, WeightType >, AlleleSpaceType, FitnessType, TraitSpaceType, FreeBufferType > self_type;
 
     typedef RNG                                             random_engine_type;
     typedef population_space_row< BlockType, WeightType >   population_type;
@@ -40,7 +43,7 @@ public:
 
     typedef FreeBufferType                                  free_buffer_type;
 
-    typedef SelectionType                                   selection_type;
+    typedef FitnessType                                   fitness_type;
     typedef TraitSpaceType                                  trait_space_type;
 
     typedef clotho::genetics::common_crossover< RNG, population_type, allele_type > crossover_type;
@@ -51,14 +54,14 @@ public:
 
     typedef std::vector< std::pair< unsigned long long, unsigned long long > >               time_vector;
 
-    offspring_generator( random_engine_type * rng, allele_type * alleles, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, selection_type * sel, trait_space_type * traits, double recomb_rate, double bias_rate ) :
+    offspring_generator( random_engine_type * rng, allele_type * alleles, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, fitness_type * fit, trait_space_type * traits, double recomb_rate, double bias_rate ) :
         m_rng( rng )
         , m_parents( NULL )
         , m_offspring( NULL )
         , m_alleles( alleles )
         , m_mut_pool( mut_pool )
         , m_mut_dist( mut_dist )
-        , m_select( sel )
+        , m_fitness( fit )
         , m_off_begin( 0 )
         , m_off_end( 0 )
         , m_all_neutral( 0 )
@@ -185,15 +188,26 @@ protected:
 //        log.put_child( "stop", stop );
 //    }
 
+//    void crossover() {
+//        typename selection_type::iterator b = m_fitness->begin() + m_off_begin, e = m_fitness->begin() + m_off_end;
+//
+//        unsigned int off_idx = 2 * m_off_begin;
+//        while( b != e ) {
+//            perform_crossover_method( 2 * b->first, off_idx++ );
+//            perform_crossover_method( 2 * b->second, off_idx++ );
+//
+//            ++b;
+//        }
+//    }
+
     void crossover() {
-        typename selection_type::iterator b = m_select->begin() + m_off_begin, e = m_select->begin() + m_off_end;
+        std::shared_ptr< selection_details< random_engine_type, unsigned int > > sel = clotho::genetics::make_selection_generator( m_rng, m_fitness);
 
-        unsigned int off_idx = 2 * m_off_begin;
-        while( b != e ) {
-            perform_crossover_method( 2 * b->first, off_idx++ );
-            perform_crossover_method( 2 * b->second, off_idx++ );
+        for( unsigned int i = m_off_begin; i < m_off_end; ++i ) {
+            typename selection_details< random_engine_type >::parent_pair res = (*sel)();
 
-            ++b;
+            perform_crossover_method( 2 * res.first, 2 * i );
+            perform_crossover_method( 2 * res.second, 2 * i + 1 );
         }
     }
 
@@ -254,7 +268,7 @@ protected:
     mutation_pool_type * m_mut_pool;
     mutation_distribution_type * m_mut_dist;
 
-    selection_type  * m_select;
+    fitness_type  * m_fitness;
 
     unsigned int m_off_begin, m_off_end;
 
