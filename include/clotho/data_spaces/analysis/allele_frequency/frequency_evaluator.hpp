@@ -21,6 +21,7 @@
 #include "clotho/data_spaces/analysis/allele_frequency/population_space_frequency_evaluator.hpp"
 #include "clotho/data_spaces/analysis/allele_frequency/population_space_columnar_frequency_evaluator.hpp"
 #include "clotho/data_spaces/analysis/allele_frequency/population_space_row_frequency_evaluator.hpp"
+#include "clotho/data_spaces/analysis/allele_frequency/frequency_evaluator_population_space_row_alignment.hpp"
 
 #endif  // FREQUENCY_EVALUATOR_HPP_
 

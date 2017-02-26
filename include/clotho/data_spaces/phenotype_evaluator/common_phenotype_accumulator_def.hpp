@@ -11,15 +11,16 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_POPULATION_SPACES_HPP_
-#define CLOTHO_POPULATION_SPACES_HPP_
+#ifndef CLOTHO_COMMON_PHENOTYPE_ACCUMULATOR_DEF_HPP_
+#define CLOTHO_COMMON_PHENOTYPE_ACCUMULATOR_DEF_HPP_
 
-#include "clotho/data_spaces/population_space/population_space.hpp"
-#include "clotho/data_spaces/population_space/population_space_columnar.hpp"
+namespace clotho {
+namespace genetics {
 
-#include "clotho/data_spaces/population_space/population_space_def.hpp"
-#include "clotho/data_spaces/population_space/population_space_row.hpp"
-#include "clotho/data_spaces/population_space/population_space_row_block_alignment.hpp"
-//#include "clotho/data_spaces/population_space/population_space_row_modified.hpp"
+template < class PopulationType, class TraitSpaceType >
+class common_phenotype_accumulator;
 
-#endif  // CLOTHO_POPULATION_SPACES_HPP_
+}   // namespace genetics
+}   // namespace clotho
+
+#endif  // CLOTHO_COMMON_PHENOTYPE_ACCUMULATOR_DEF_HPP_

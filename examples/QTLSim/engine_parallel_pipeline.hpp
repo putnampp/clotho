@@ -70,14 +70,16 @@ public:
     typedef SizeType                    size_type;
 
     typedef clotho::genetics::thread_pool2< RNG >                                                   thread_pool_type;
-    typedef clotho::genetics::AlleleSpace< position_type, block_type, size_type >                               allele_type;
+    typedef clotho::genetics::AlleleSpace< position_type, block_type, size_type >                   allele_type;
 
-#ifdef USE_ROW_MODIFICATION
-    typedef clotho::genetics::population_space_row_modified< block_type, weight_type >              sequence_space_type;
-#else
-    typedef clotho::genetics::population_space_row< block_type, weight_type >                       sequence_space_type;
-#endif  // USE_ROW_MODIFICATION
-    typedef clotho::genetics::trait_space_vector< weight_type >                                     trait_space_type;
+//#ifdef USE_ROW_MODIFICATION
+//    typedef clotho::genetics::population_space_row_modified< block_type, weight_type >              sequence_space_type;
+//#else
+//    typedef clotho::genetics::population_space_row< block_type, weight_type >                       sequence_space_type;
+//#endif  // USE_ROW_MODIFICATION
+    typedef clotho::genetics::row_block_alignment< block_type >                     alignment_type;
+    typedef clotho::genetics::trait_space_vector< weight_type >                     trait_space_type;
+    typedef clotho::genetics::population_space< alignment_type, trait_space_type >  sequence_space_type;
 
     typedef clotho::genetics::free_space_accumulator_mt< block_type, size_type >                    free_space_type;
     typedef typename free_space_type::buffer_type                                                   free_buffer_type;

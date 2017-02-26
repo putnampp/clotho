@@ -11,11 +11,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef OFFSPRING_GENERATOR_POPULATION_SPACE_ROW_HPP_
-#define OFFSPRING_GENERATOR_POPULATION_SPACE_ROW_HPP_
+#ifndef OFFSPRING_GENERATOR_POPULATION_SPACE_ROW_BLOCK_ALIGNMENT_HPP_
+#define OFFSPRING_GENERATOR_POPULATION_SPACE_ROW_BLOCK_ALIGNMENT_HPP_
 
 #include "clotho/data_spaces/offspring_generator/offspring_generator_def.hpp"
-#include "clotho/data_spaces/population_space/population_space_row.hpp"
+#include "clotho/data_spaces/population_space/population_spaces.hpp"
 
 #include "clotho/data_spaces/crossover/common_crossovers.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/common_phenotype_accumulators.hpp"
@@ -26,13 +26,15 @@ namespace clotho {
 namespace genetics {
 
 //template < class RNG, class BlockType, class WeightType, class AlleleSpaceType, class SelectionType, class TraitSpaceType, class FreeBufferType >
-template < class RNG, class BlockType, class WeightType, class AlleleSpaceType, class FitnessType, class TraitSpaceType, class FreeBufferType >
-class offspring_generator<RNG, population_space_row< BlockType, WeightType >, AlleleSpaceType, FitnessType, TraitSpaceType, FreeBufferType > {
+template < class RNG, class BlockType, class AlleleSpaceType, class FitnessType, class TraitSpaceType, class FreeBufferType >
+class offspring_generator<RNG, population_space< row_block_alignment< BlockType >, TraitSpaceType >, AlleleSpaceType, FitnessType, TraitSpaceType, FreeBufferType > {
 public:
-    typedef offspring_generator< RNG, population_space_row< BlockType, WeightType >, AlleleSpaceType, FitnessType, TraitSpaceType, FreeBufferType > self_type;
+    typedef offspring_generator< RNG, population_space< row_block_alignment< BlockType >, TraitSpaceType >, AlleleSpaceType, FitnessType, TraitSpaceType, FreeBufferType > self_type;
 
     typedef RNG                                             random_engine_type;
-    typedef population_space_row< BlockType, WeightType >   population_type;
+    typedef population_space< row_block_alignment< BlockType >, TraitSpaceType >   population_type;
+    typedef TraitSpaceType                                  trait_space_type;
+
     typedef AlleleSpaceType                                 allele_type;
 
     typedef std::vector< unsigned int >                     mutation_pool_type;
@@ -43,11 +45,9 @@ public:
 
     typedef FreeBufferType                                  free_buffer_type;
 
-    typedef FitnessType                                   fitness_type;
-    typedef TraitSpaceType                                  trait_space_type;
+    typedef FitnessType                                     fitness_type;
 
     typedef clotho::genetics::common_crossover< RNG, population_type, allele_type > crossover_type;
-
     typedef clotho::genetics::common_phenotype_accumulator< population_type, trait_space_type > phenotype_method;
 
     typedef typename phenotype_method::weight_type          weight_type;
@@ -286,4 +286,4 @@ protected:
 }   // namespace genetics
 }   // namespace clotho
 
-#endif  // OFFSPRING_GENERATOR_POPULATION_SPACE_ROW_HPP_
+#endif  // OFFSPRING_GENERATOR_POPULATION_SPACE_ROW_BLOCK_ALIGNMENT_HPP_

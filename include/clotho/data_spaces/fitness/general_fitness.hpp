@@ -141,6 +141,33 @@ public:
         }
     }
 
+    template < class BlockType, class WeightType >
+    void operator()( population_space< row_block_alignment< BlockType >, trait_space_vector< WeightType > > * pop ) {
+        const unsigned int N = pop->getIndividualCount();
+
+        if( N == 0 ) return;
+
+        fitness_operator op = m_fit_gen->generate( N );
+
+        typedef typename population_space< row_block_alignment< BlockType >, trait_space_vector< WeightType > >::const_weight_iterator iterator;
+        for( unsigned int i = 0; i < N; ++i ) {
+            iterator f = pop->begin_genome_traits( 2 * i ), e = pop->end_genome_traits( 2 * i );
+            typename population_space_row< BlockType, WeightType >::weight_vector w( f, e );
+
+            f = pop->begin_genome_traits( 2 * i + 1);
+            e = pop->end_genome_traits( 2 * i + 1 );
+
+            unsigned int j = 0;
+            while( f != e ) {
+                w[ j++ ] += *f++;
+            }
+
+            fitness_type score = (*op)(w);
+
+            setFitness( i, score );
+        }
+    }
+
     template < class Iterator >
     void operator()( Iterator first, Iterator last ) {
         const unsigned int N = last - first;

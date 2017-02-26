@@ -11,17 +11,16 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_COMMON_PHENOTYPE_ACCUMULATOR_HPP_
-#define CLOTHO_COMMON_PHENOTYPE_ACCUMULATOR_HPP_
+#ifndef CLOTHO_COMMON_PHENOTYPE_ACCUMULATOR_ROW_BLOCK_HPP_
+#define CLOTHO_COMMON_PHENOTYPE_ACCUMULATOR_ROW_BLOCK_HPP_
+
+#include "clotho/data_spaces/phenotype_evaluator/common_phenotype_accumulator_def.hpp"
 
 #include "clotho/data_spaces/population_space/population_space_row.hpp"
 #include "clotho/utility/debruijn_bit_walker.hpp"
 
 namespace clotho {
 namespace genetics {
-
-template < class PopulationType, class TraitSpaceType >
-class common_phenotype_accumulator;
 
 template < class BlockType, class WeightType, class TraitSpaceType >
 class common_phenotype_accumulator< population_space_row< BlockType, WeightType >, TraitSpaceType > {
@@ -102,4 +101,4 @@ protected:
 }   // namespace genetics
 }   // namespace clotho
 
-#endif  // CLOTHO_COMMON_PHENOTYPE_ACCUMULATOR_HPP_
+#endif  // CLOTHO_COMMON_PHENOTYPE_ACCUMULATOR_ROW_BLOCK_HPP_

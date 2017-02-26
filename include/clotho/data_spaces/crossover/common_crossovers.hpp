@@ -11,15 +11,12 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef CLOTHO_POPULATION_SPACES_HPP_
-#define CLOTHO_POPULATION_SPACES_HPP_
+#ifndef CLOTHO_COMMON_CROSSOVER_GUARD_HPP_
+#define CLOTHO_COMMON_CROSSOVER_GUARD_HPP_
 
-#include "clotho/data_spaces/population_space/population_space.hpp"
-#include "clotho/data_spaces/population_space/population_space_columnar.hpp"
+#include "clotho/data_spaces/crossover/common_crossover_def.hpp"
+#include "clotho/data_spaces/crossover/common_crossover_row_block.hpp"
+#include "clotho/data_spaces/crossover/common_crossover_row_block_alignment.hpp"
 
-#include "clotho/data_spaces/population_space/population_space_def.hpp"
-#include "clotho/data_spaces/population_space/population_space_row.hpp"
-#include "clotho/data_spaces/population_space/population_space_row_block_alignment.hpp"
-//#include "clotho/data_spaces/population_space/population_space_row_modified.hpp"
+#endif  // CLOTHO_COMMON_CROSSOVER_GUARD_HPP_
 
-#endif  // CLOTHO_POPULATION_SPACES_HPP_
