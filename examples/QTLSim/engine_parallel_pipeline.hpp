@@ -40,6 +40,7 @@
 #include "clotho/data_spaces/fitness/general_fitness.hpp"
 
 #include "clotho/utility/state_object.hpp"
+#include "clotho/utility/bit_helper.hpp"
 
 #include "clotho/data_spaces/task/thread_count_parameter.hpp"
 #include "clotho/data_spaces/task/thread_pool2.hpp"
@@ -72,12 +73,12 @@ public:
     typedef clotho::genetics::thread_pool2< RNG >                                                   thread_pool_type;
     typedef clotho::genetics::AlleleSpace< position_type, block_type, size_type >                   allele_type;
 
-//#ifdef USE_ROW_MODIFICATION
-//    typedef clotho::genetics::population_space_row_modified< block_type, weight_type >              sequence_space_type;
-//#else
-//    typedef clotho::genetics::population_space_row< block_type, weight_type >                       sequence_space_type;
-//#endif  // USE_ROW_MODIFICATION
+#ifdef USE_VECTOR_ALIGNMENT
+    typedef clotho::genetics::index_vector_alignment< unsigned int, block_type >    alignment_type;
+#else
     typedef clotho::genetics::row_block_alignment< block_type >                     alignment_type;
+#endif
+
     typedef clotho::genetics::trait_space_vector< weight_type >                     trait_space_type;
     typedef clotho::genetics::population_space< alignment_type, trait_space_type >  sequence_space_type;
 
@@ -89,19 +90,15 @@ public:
     typedef clotho::genetics::AlleleGenerator< random_engine_type, allele_type >                allele_generator_type;
     typedef clotho::genetics::TraitSpaceGenerator2< trait_space_type >                          trait_generator_type;
 
-
     typedef clotho::genetics::GeneralFitness                                                      fitness_type;
-//    typedef clotho::genetics::SelectionGenerator< random_engine_type, clotho::genetics::fitness_selection< fitness_type > >          selection_type;
 
     typedef std::shared_ptr< ipopulation_growth_generator >                                         population_growth_generator_type;
     typedef std::shared_ptr< ipopulation_growth >                                                   population_growth_type;
 
-//    typedef clotho::genetics::offspring_generator< random_engine_type, sequence_space_type, allele_type, selection_type, trait_space_type, free_buffer_type >           offspring_generator_type;
     typedef clotho::genetics::offspring_generator< random_engine_type, sequence_space_type, allele_type, fitness_type, trait_space_type, free_buffer_type >           offspring_generator_type;
 
     typedef typename offspring_generator_type::mutation_pool_type                               mutation_pool_type;
     typedef typename offspring_generator_type::mutation_distribution_type                       mutation_distribution_type;
-    typedef typename sequence_space_type::bit_helper_type bit_helper_type;
 
     typedef typename offspring_generator_type::time_vector  time_vector;
 
@@ -204,8 +201,6 @@ public:
         generate_child_mutations( pM );
 
         bool allNeutral = m_allele_space.isAllNeutral();
-
-//        select_gen.update( m_fit, pN );
 
         thread_pool_type tpool( m_thread_count.m_tc );
         

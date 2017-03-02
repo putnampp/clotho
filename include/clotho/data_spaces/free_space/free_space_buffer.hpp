@@ -14,6 +14,8 @@
 #ifndef CLOTHO_FREE_SPACE_BUFFER_HPP_
 #define CLOTHO_FREE_SPACE_BUFFER_HPP_
 
+#include "clotho/utility/bit_helper.hpp"
+
 namespace clotho {
 namespace genetics {
 
@@ -22,10 +24,12 @@ class free_space_buffer {
 public:
     typedef free_space_buffer< BlockType > self_type;
     typedef BlockType block_type;
+    typedef clotho::utility::BitHelper< BlockType > bit_helper_type;
 
     free_space_buffer( ) :
         m_var_buffer( NULL )
         , m_fixed_buffer( NULL )
+        , m_temp_buffer( NULL )
         , m_buffer_size(0)
         , m_buffer_alloc(0)
     {}
@@ -35,6 +39,20 @@ public:
 
         updateVariableBuffer( buf, len );
         updateFixedBuffer( buf, len );
+    }
+
+    template < class Iterator >
+    void updateBuffers( Iterator first, Iterator last ) {
+        memset( m_temp_buffer, 0, sizeof(block_type) * m_buffer_size);
+        while( first != last ) {
+            unsigned int idx = (*first / bit_helper_type::BITS_PER_BLOCK);
+            block_type b = ((block_type) 1 << (*first % bit_helper_type::BITS_PER_BLOCK ));
+
+            m_temp_buffer[ idx ] |= b;
+            ++first;
+        }
+
+        updateBuffers( m_temp_buffer, m_buffer_size );
     }
 
     block_type * getVariableBuffer() {
@@ -59,14 +77,20 @@ public:
                 delete [] m_fixed_buffer;
             }
 
+            if( m_temp_buffer != NULL ) {
+                delete [] m_temp_buffer;
+            }
+
             m_var_buffer = new block_type[ s ];
             m_fixed_buffer = new block_type[ s ];
+            m_temp_buffer = new block_type[ s ];
 
             m_buffer_alloc = s;
         }
 
         m_buffer_size = s;
         memset( m_var_buffer, 0, m_buffer_alloc * sizeof(block_type) );
+        memset( m_temp_buffer, 0, m_buffer_alloc * sizeof(block_type) );
         memset( m_fixed_buffer, 255, m_buffer_alloc * sizeof(block_type) );
     }
 
@@ -77,6 +101,10 @@ public:
 
         if( m_fixed_buffer != NULL ) {
             delete [] m_fixed_buffer;
+        }
+
+        if( m_temp_buffer != NULL ) {
+            delete [] m_temp_buffer;
         }
     }
 
@@ -101,6 +129,7 @@ protected:
 
     block_type * m_var_buffer;
     block_type * m_fixed_buffer;
+    block_type * m_temp_buffer;
 
     unsigned int m_buffer_size, m_buffer_alloc;
 };

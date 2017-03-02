@@ -17,5 +17,6 @@
 #include "clotho/data_spaces/offspring_generator/offspring_generator_def.hpp"
 #include "clotho/data_spaces/offspring_generator/offspring_generator_population_space_row.hpp"
 #include "clotho/data_spaces/offspring_generator/offspring_generator_population_space_row_alignment.hpp"
+#include "clotho/data_spaces/offspring_generator/offspring_generator_population_space_index_vector_alignment.hpp"
 
 #endif  // OFFSPRING_GENERATOR_GUARD_HPP_

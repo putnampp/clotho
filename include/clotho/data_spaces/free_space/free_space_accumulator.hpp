@@ -53,7 +53,7 @@ protected:
 template < class BlockType, class SizeType >
 class free_space_accumulator_mt : public free_space_details< SizeType > {
 public:
-    typedef free_space_accumulator< BlockType, SizeType >   self_type;
+    typedef free_space_accumulator_mt< BlockType, SizeType >   self_type;
     typedef free_space_details< SizeType >                  base_type;
 
     typedef BlockType                                       block_type;

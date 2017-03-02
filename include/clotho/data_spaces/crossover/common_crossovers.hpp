@@ -17,6 +17,7 @@
 #include "clotho/data_spaces/crossover/common_crossover_def.hpp"
 #include "clotho/data_spaces/crossover/common_crossover_row_block.hpp"
 #include "clotho/data_spaces/crossover/common_crossover_row_block_alignment.hpp"
+#include "clotho/data_spaces/crossover/common_crossover_index_vector_alignment.hpp"
 
 #endif  // CLOTHO_COMMON_CROSSOVER_GUARD_HPP_
 

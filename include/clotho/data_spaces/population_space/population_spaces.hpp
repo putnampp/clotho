@@ -20,6 +20,8 @@
 #include "clotho/data_spaces/population_space/population_space_def.hpp"
 #include "clotho/data_spaces/population_space/population_space_row.hpp"
 #include "clotho/data_spaces/population_space/population_space_row_block_alignment.hpp"
+#include "clotho/data_spaces/population_space/population_space_index_vector_alignment.hpp"
+
 //#include "clotho/data_spaces/population_space/population_space_row_modified.hpp"
 
 #endif  // CLOTHO_POPULATION_SPACES_HPP_

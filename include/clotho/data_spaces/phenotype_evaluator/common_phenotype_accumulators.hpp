@@ -17,5 +17,6 @@
 #include "clotho/data_spaces/phenotype_evaluator/common_phenotype_accumulator_def.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/common_phenotype_accumulator_row_block.hpp"
 #include "clotho/data_spaces/phenotype_evaluator/common_phenotype_accumulator_row_block_alignment.hpp"
+#include "clotho/data_spaces/phenotype_evaluator/common_phenotype_accumulator_index_vector_alignment.hpp"
 
 #endif  // CLOTHO_COMMON_PHENOTYPE_ACCUMULATORS_HPP_
