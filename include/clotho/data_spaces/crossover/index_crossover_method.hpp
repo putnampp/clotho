@@ -16,6 +16,15 @@
 
 #include "clotho/data_spaces/population_space/population_spaces.hpp"
 
+#define UPDATE_OR_APPEND( off, op, pp, N ) \
+    if ( N > 0 ) { \
+        *op = *pp; \
+        op++; \
+        --N;  \
+    } else { \
+        off->push_back( *pp ); \
+    }
+
 namespace clotho {
 namespace genetics {
 
@@ -37,11 +46,16 @@ public:
 
     void operator()( genome_pointer & p0_start, genome_pointer & p0_end, genome_pointer & p1_start, genome_pointer & p1_end, row_pointer & offspring ) {
 
+        genome_pointer o_start = offspring->begin();
+
+        size_t N = offspring->size();
+
         while( true ) {
             if( p0_start == p0_end ) {
                 while( p1_start != p1_end ) {
                     if( !m_cfier( *p1_start) ) {
-                        offspring->push_back(*p1_start);
+//                        offspring->push_back(*p1_start);
+                        UPDATE_OR_APPEND( offspring, o_start, p1_start, N )
                     }
                     ++p1_start;
                 }
@@ -49,7 +63,8 @@ public:
             } else if( p1_start == p1_end ) {
                 while( p0_start != p0_end ) {
                     if( m_cfier( *p0_start) ) {
-                        offspring->push_back(*p0_start);
+//                        offspring->push_back(*p0_start);
+                        UPDATE_OR_APPEND( offspring, o_start, p0_start, N )
                     }
                     ++p0_start;
                 }
@@ -57,21 +72,28 @@ public:
             } else if( *p0_start == *p1_start ) {
                 // homozygous
                 //
-                offspring->push_back(*p0_start);
+//                offspring->push_back(*p0_start);
+                UPDATE_OR_APPEND( offspring, o_start, p0_start, N )
 
                 ++p0_start;
                 ++p1_start;
             } else if( *p0_start < *p1_start ) {
                 if( m_cfier( *p0_start ) ) {
-                    offspring->push_back(*p0_start);
+//                    offspring->push_back(*p0_start);
+                    UPDATE_OR_APPEND( offspring, o_start, p0_start, N )
                 }
                 ++p0_start;
             } else {
                 if( !m_cfier( *p1_start) ) {
-                    offspring->push_back(*p1_start);
+//                    offspring->push_back(*p1_start);
+                    UPDATE_OR_APPEND( offspring, o_start, p1_start, N )
                 }
                 ++p1_start;
             }
+        }
+
+        while( N-- > 0 ) {
+            offspring->pop_back();
         }
     }
 

@@ -72,14 +72,37 @@ protected:
 
     void run_crossover_task( const classifier_type & cls, genome_pointer p0_start, genome_pointer p0_end, genome_pointer p1_start, genome_pointer p1_end, row_pointer offspring, bool should_swap_strands ) {
         if( cls.event_count() == 0 ) {
+            genome_pointer o_start = offspring->begin();
+            size_t N = offspring->size();
+
             if( should_swap_strands ) {
                 while( p1_start != p1_end ) {
-                    offspring->push_back( *p1_start++ );
+//                    offspring->push_back( *p1_start++ );
+                    if( N > 0 ) {
+                        *o_start = *p1_start;
+                        o_start++;
+                        --N;
+                    } else {
+                        offspring->push_back( *p1_start );
+                    }
+                    ++p1_start;
                 }
             } else {
                 while( p0_start != p0_end ) {
-                    offspring->push_back( *p0_start++ );
+//                    offspring->push_back( *p0_start++ );
+                    if( N > 0 ) {
+                        *o_start = *p0_start;
+                        o_start++;
+                        --N;
+                    } else {
+                        offspring->push_back( *p0_start );
+                    }
+                    p0_start++;
                 }
+            }
+
+            while( N-- > 0 ) {
+                offspring->pop_back();
             }
         } else if( should_swap_strands ) {
             method_type met(cls);

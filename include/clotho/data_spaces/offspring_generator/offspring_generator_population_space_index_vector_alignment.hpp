@@ -174,7 +174,8 @@ protected:
         genome_pointer bottom = m_parents->begin_genome( p_idx + 1 ), bottom_end = m_parents->end_genome( p_idx + 1 );
         row_pointer off = m_offspring->begin_row( o_idx );
 
-        off->clear();
+// Testing whether memory (de)allocation is the dominate overhead
+//        off->clear();
 
         m_crossover_method( top, top_end, bottom, bottom_end, off ); 
     }
@@ -210,21 +211,13 @@ protected:
     }
 
     void fixed() {
-        std::map< typename population_type::index_type, unsigned int > idx_set;
+        std::vector< typename population_type::index_type > idx_set( m_offspring->getMaxAlleles(), 0 );
 
         for( unsigned int i = 2 * m_off_begin; i < 2 * m_off_end; ++i ) {
             genome_pointer first = m_offspring->begin_genome(i), last = m_offspring->end_genome(i);
 
             while( first != last ) {
-
-                typename std::map< typename population_type::index_type, unsigned int >::iterator it = idx_set.find(*first);
-                if( it == idx_set.end() ) {
-                    idx_set.insert( std::make_pair( *first, 1 ) );
-                } else {
-                    it->second++;
-                }
-
-                ++first;
+                idx_set[ *first++ ]++;
             }
 
         }
@@ -233,14 +226,18 @@ protected:
         block_type * tmp = new block_type[ 2 * M ];
         block_type * fix_tmp = tmp + M;
         memset( tmp, 0, 2 * sizeof( block_type ) * M );
-        for( typename std::map< typename population_type::index_type, unsigned int >::iterator it = idx_set.begin(); it != idx_set.end(); ++it ) {
-            unsigned int idx = ( it->first / bit_helper_type::BITS_PER_BLOCK );
-            block_type m = ((block_type) 1 << ( it->first % bit_helper_type::BITS_PER_BLOCK ) );
+        unsigned int i = 0;
+        for( typename std::vector< typename population_type::index_type >::iterator it = idx_set.begin(); it != idx_set.end(); ++it ) {
+            if( *it > 0 ) {
+                unsigned int idx = ( i / bit_helper_type::BITS_PER_BLOCK );
+                block_type m = ((block_type) 1 << ( i % bit_helper_type::BITS_PER_BLOCK ) );
 
-            tmp[ idx ] |= m;
-            if( it->second == 2 * (m_off_end - m_off_begin)) {
-                fix_tmp[ idx ] |= m;
+                tmp[ idx ] |= m;
+                if( *it == 2 * (m_off_end - m_off_begin)) {
+                    fix_tmp[ idx ] |= m;
+                }
             }
+            ++i;
         }
 
         m_free_space.update( tmp, M );
