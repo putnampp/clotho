@@ -30,7 +30,7 @@ namespace genetics {
 template < class RNG >
 class UniformPairGenerator : public selection_details< RNG, unsigned int > {
 public:
-    typedef selection_details< RNG >    base_type;
+    typedef selection_details< RNG, unsigned int >    base_type;
     typedef typename base_type::individual_id_type individual_id_type;
     typedef typename base_type::parent_pair parent_pair;
 
@@ -57,7 +57,7 @@ template < class RNG, class ScoreType >
 class DiscretePairGenerator : public selection_details< RNG, unsigned int > {
 public:
 
-    typedef selection_details< RNG > base_type;
+    typedef selection_details< RNG, unsigned int > base_type;
     typedef typename base_type::individual_id_type  individual_id_type;
     typedef typename base_type::parent_pair         parent_pair;
     typedef ScoreType                               score_type;
@@ -80,6 +80,30 @@ public:
 
 protected:
     boost::random::discrete_distribution< individual_id_type, score_type > m_dist;   
+};
+
+template < class RNG >
+class ConstantPairGenerator : public selection_details< RNG, unsigned int > {
+public:
+
+    typedef selection_details< RNG, unsigned int >  base_type;
+    typedef typename base_type::individual_id_type  individual_id_type;
+    typedef typename base_type::parent_pair         parent_pair;
+
+    ConstantPairGenerator( RNG * rng, unsigned int id = 0 ) :
+        base_type( rng )
+        , m_id(id)
+    {}
+
+    parent_pair operator()() {
+        return std::make_pair( m_id, m_id );
+    }
+
+
+    virtual ~ConstantPairGenerator() {}
+
+protected:
+    unsigned int m_id;
 };
 
 }   // namepsace_genetics

@@ -175,7 +175,6 @@ public:
     }
 
     row_pointer end_block_row( unsigned int idx ) {
-
         return m_genetic_space + (idx + 1) * m_allele_block_columns;
     }
 
@@ -183,6 +182,8 @@ public:
         if( idx >= m_genome_rows )
             return m_genetic_space;
     
+        assert( m_genetic_space != NULL );
+        assert( m_genome_rows > 0 );
         return m_genetic_space + idx * m_allele_block_columns;
     }
 

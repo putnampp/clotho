@@ -27,28 +27,43 @@ static std::shared_ptr< selection_details< RNG, unsigned int > > make_selection_
 
 template < class RNG >
 static std::shared_ptr< selection_details< RNG > > make_selection_generator( RNG * rng, GeneralFitness * fspace  ) {
-    typedef GeneralFitness::iterator iterator;
-    bool constant_fitness = true;
-    unsigned int N = 0;
-    iterator first = fspace->begin(), last = fspace->end();
-    if( first != last ) {
-        typename GeneralFitness::fitness_type prev = *first++;
-        while( constant_fitness && ( first != last ) ) {
-            constant_fitness = ( prev == *first++);
-        }
-        N = fspace->individual_count() - 1;
-    }
+    return make_selection_generator( rng, fspace, 0, fspace->size() );
+}
 
-    if( constant_fitness ) {
-        std::shared_ptr< UniformPairGenerator< RNG > > tmp( new UniformPairGenerator< RNG >( rng, N ) );
+template < class RNG >
+static std::shared_ptr< selection_details< RNG > > make_selection_generator( RNG * rng, GeneralFitness * fspace, unsigned int start, unsigned int end  ) {
 
+    assert( fspace != NULL );
+
+
+    if( fspace->isEmpty() )  {
+        std::shared_ptr< ConstantPairGenerator< RNG > > tmp( new ConstantPairGenerator< RNG >( rng, 0 ) );
         return tmp;
-//        return std::make_shared( UniformPairGenerator< RNG >( rng, N ) );
-    }
+    } else {
 
-    std::shared_ptr< DiscretePairGenerator< RNG, typename GeneralFitness::fitness_type > > tmp( new DiscretePairGenerator< RNG, typename GeneralFitness::fitness_type>( rng, fspace->begin(), fspace->end()) );
-    return tmp;
-//    return std::make_shared( DiscretePairGenerator< RNG, typename GeneralFitness::fitness_type>( rng, fspace->begin(), fspace->end()) );
+        typedef GeneralFitness::iterator iterator;
+        bool constant_fitness = true;
+        unsigned int N = 0;
+        iterator first = fspace->begin() + start;
+        iterator last = fspace->begin() + end;
+
+        if( first != last ) {
+            typename GeneralFitness::fitness_type prev = *first++;
+            while( constant_fitness && ( first != last ) ) {
+                constant_fitness = ( prev == *first++);
+            }
+            N = end - start - 1;
+        }
+
+        if( constant_fitness ) {
+            std::shared_ptr< UniformPairGenerator< RNG > > tmp( new UniformPairGenerator< RNG >( rng, N ) );
+
+            return tmp;
+        }
+
+        std::shared_ptr< DiscretePairGenerator< RNG, typename GeneralFitness::fitness_type > > tmp( new DiscretePairGenerator< RNG, typename GeneralFitness::fitness_type>( rng, fspace->begin() + start, fspace->begin() + end) );
+        return tmp;
+    }
 }
 
 }   // namespace genetics

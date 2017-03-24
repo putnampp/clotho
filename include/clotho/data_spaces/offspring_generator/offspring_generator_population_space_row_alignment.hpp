@@ -64,7 +64,7 @@ public:
         , m_fitness( fit )
         , m_off_begin( 0 )
         , m_off_end( 0 )
-        , m_all_neutral( 0 )
+        , m_all_neutral( false )
         , m_crossover_method( rng, alleles, recomb_rate, bias_rate )
         , m_pheno_method( traits )
     {}

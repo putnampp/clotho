@@ -84,6 +84,8 @@ public:
         {}
             
         void update( block_type * buf, unsigned int len ) {
+            assert( m_parent != NULL );
+
             m_parent->updateVariableBuffer( m_thread_var_buffer, buf, len );
             m_parent->updateFixedBuffer( m_thread_fix_buffer, buf, len );
         }
@@ -147,12 +149,14 @@ public:
     }
 
     void updateVariableBuffer( block_type * dest, block_type * source, unsigned int N ) {
+        assert( N <= m_blocks_per_row);
         while( N-- ) {
             *dest++ |= *source++;
         }
     }
 
     void updateFixedBuffer( block_type * dest, block_type * source, unsigned int N ) {
+        assert( N <= m_blocks_per_row);
         unsigned int tail = m_blocks_per_row - N;
         while( N-- ) {
             *dest++ &= *source++;

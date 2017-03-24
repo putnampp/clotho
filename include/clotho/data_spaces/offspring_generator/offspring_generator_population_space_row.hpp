@@ -44,7 +44,7 @@ public:
     typedef FreeBufferType                                  free_buffer_type;
 
     typedef FitnessType                                   fitness_type;
-    typedef TraitSpaceType                                  trait_space_type;
+    typedef TraitSpaceType                                trait_space_type;
 
     typedef clotho::genetics::common_crossover< RNG, population_type, allele_type > crossover_type;
 

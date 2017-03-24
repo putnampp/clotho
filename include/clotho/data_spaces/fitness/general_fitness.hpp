@@ -22,12 +22,15 @@
 #include "clotho/data_spaces/phenotype_evaluator/batch_phenotype_mt.hpp"
 
 #include <vector>
+#include <algorithm>
 
 namespace clotho {
 namespace genetics {
 
 class GeneralFitness {
 public:
+    typedef GeneralFitness                                  self_type;
+    
     typedef std::shared_ptr< ifitness_generator >           fitness_generator;
     typedef std::shared_ptr< ifitness >                     fitness_operator;
 
@@ -41,6 +44,7 @@ public:
 
     GeneralFitness( boost::property_tree::ptree & config ) :
         m_fit_gen()
+        , m_fitness()
     {
 
         m_fit_gen = fitness_toolkit::getInstance()->get_tool( config );
@@ -143,15 +147,18 @@ public:
 
     template < class BlockType, class WeightType >
     void operator()( population_space< row_block_alignment< BlockType >, trait_space_vector< WeightType > > * pop ) {
-        const unsigned int N = pop->getIndividualCount();
+        operator()( pop, 0, pop->getIndividualCount() );
+    }
 
-        if( N == 0 ) return;
+    template < class BlockType, class WeightType >
+    void operator()( population_space< row_block_alignment< BlockType >, trait_space_vector< WeightType > > * pop, unsigned int start, unsigned int end ) {
+        if( (end - start) == 0 ) return;
 
-        fitness_operator op = m_fit_gen->generate( N );
+        fitness_operator op = m_fit_gen->generate( (end - start) );
 
         typedef population_space< row_block_alignment< BlockType >, trait_space_vector< WeightType > > space_type;
         typedef typename space_type::const_weight_iterator iterator;
-        for( unsigned int i = 0; i < N; ++i ) {
+        for( unsigned int i = start; i < end; ++i ) {
             iterator f = pop->begin_genome_traits( 2 * i ), e = pop->end_genome_traits( 2 * i );
             typename space_type::weight_vector w( f, e );
 
@@ -216,14 +223,29 @@ public:
         return m_fitness.size();
     }
 
-    void setFitness( unsigned int i, fitness_type score ) {
-        if( i < m_fitness.size() ) {
-            m_fitness[ i ] = score;
-        } else {
-            do {
-                m_fitness.push_back( score );
-            } while( m_fitness.size() <= i );
+    unsigned int size() const {
+        return m_fitness.size();
+    }
+
+    bool isEmpty() const {
+        return m_fitness.empty();
+    }
+
+    void updateFitness( self_type * other, unsigned int start, unsigned int end ) {
+        std::copy( other->begin() + start, other->begin() + end, begin() + start );
+    }
+
+    void resize( unsigned int N ) {
+        while( m_fitness.size() < N ) {
+            m_fitness.push_back( 1.0 );
         }
+
+    }
+
+    void setFitness( unsigned int i, fitness_type score ) {
+        assert( i < m_fitness.size() );
+
+        m_fitness[ i ] = score;
     }
 
     fitness_type getFitness( unsigned int idx ) {
@@ -247,6 +269,10 @@ public:
 
     const_iterator end() const {
         return m_fitness.end();
+    }
+
+    void reset() {
+        std::fill( m_fitness.begin(), m_fitness.end(), 1.0);
     }
 
     virtual ~GeneralFitness() {}

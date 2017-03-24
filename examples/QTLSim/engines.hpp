@@ -20,6 +20,9 @@
 #ifdef USE_PARALLEL_PIPELINE
 #include "engine_parallel_pipeline.hpp"
 #define ENGINE_MODE parallel_pipeline
+#elif USE_PARALLEL_PIPELINE_BATCH
+#include "engine_parallel_pipeline_batched.hpp"
+#define ENGINE_MODE parallel_pipeline_batched
 #else   // USE_PARALLEL_PIPELINE
 #include "engine_batched_task.hpp"
 #define ENGINE_MODE batched_task
