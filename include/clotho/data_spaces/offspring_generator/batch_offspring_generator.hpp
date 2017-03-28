@@ -49,6 +49,8 @@ public:
         unsigned int p_start, p_end;
         unsigned int o_start, o_end;
 
+        bool all_neutral;
+
         batch_parameters( population_type * p
             , population_type * o
             , fitness_type * p_fit
@@ -58,7 +60,8 @@ public:
             , unsigned int p_s
             , unsigned int p_e
             , unsigned int o_s
-            , unsigned int o_e ) :
+            , unsigned int o_e
+            , bool neutral ) :
             parent( p )
             , offspring( o )
             , parent_fit( p_fit)
@@ -69,6 +72,7 @@ public:
             , p_end( p_e )
             , o_start(o_s)
             , o_end(o_e)
+            , all_neutral( neutral )
         {}
 
         batch_parameters( const batch_parameters & bp ) :
@@ -82,6 +86,7 @@ public:
             , p_end( bp.p_end )
             , o_start( bp.o_start )
             , o_end( bp.o_end )
+            , all_neutral( bp.all_neutral )
         {}
 
         virtual ~batch_parameters() {}
@@ -148,6 +153,7 @@ public:
             m_mutate_times.push_back( std::make_pair( mutate_time.getStart(), mutate_time.getStop()));
             m_phenotype_times.push_back( std::make_pair( pheno_time.getStart(), pheno_time.getStop()));
             m_fitness_times.push_back( std::make_pair( fit_time.getStart(), fit_time.getStop() ) );
+            m_fixed_times.push_back( std::make_pair( fit_time.getStop() + 5, fit_time.getStop() + 10));
         }
         
         parameter_type * param = m_pop_params[ m_pop_params.size() - 1 ];
@@ -156,8 +162,7 @@ public:
         fixed( param );
         fixed_time.stop();
 
-        for( unsigned int i = 0; i < m_pop_params.size(); ++i)
-            m_fixed_times.push_back( std::make_pair( fixed_time.getStart(), fixed_time.getStop()));
+        m_fixed_times.push_back( std::make_pair( fixed_time.getStart(), fixed_time.getStop()));
     }
 
     void record( boost::property_tree::ptree & xo, boost::property_tree::ptree & mt, boost::property_tree::ptree & ph, boost::property_tree::ptree & fx, boost::property_tree::ptree & ft ) {
@@ -237,7 +242,7 @@ protected:
     }
 
     void phenotype( parameter_type * params ) {
-//        if( !m_all_neutral ) {
+        if( !params->all_neutral ) {
             for( unsigned int i = 2 * params->o_start; i < 2 * params->o_end; ++i ) {
                 genome_pointer first = params->offspring->begin_genome( i ), last = params->offspring->end_genome( i );
 
@@ -245,13 +250,13 @@ protected:
 
                 params->offspring->updateGenomeWeights(i, m_pheno_method.getResults());
             }
-//        } else {
-//            // constant phenotype
-//            m_pheno_method.resetBuffer();
-//
-//            for( unsigned int i = 2 * params->o_start; i < 2 * params->o_end; ++i )
-//                params->offspring->updateGenomeWeights( i, m_pheno_method.getResults() );
-//        }
+        } else {
+            // constant phenotype
+            m_pheno_method.resetBuffer();
+
+            for( unsigned int i = 2 * params->o_start; i < 2 * params->o_end; ++i )
+                params->offspring->updateGenomeWeights( i, m_pheno_method.getResults() );
+        }
     }
 
     void fitness( parameter_type * params ) {

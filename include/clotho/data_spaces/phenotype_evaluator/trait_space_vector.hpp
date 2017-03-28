@@ -88,12 +88,10 @@ public:
 //    }
 //
     void setWeight( weight_type w, unsigned int row, unsigned int col ) {
-#ifdef DEBUGGING
         assert( col < m_trait_count );
-#endif  // DEBUGGING
         unsigned int _offset = row * m_trait_count;
 
-        while( m_weights.size() <= _offset ) grow();
+//        while( m_weights.size() <= _offset ) grow();
 
         m_weights[ _offset + col ] = w;
     }

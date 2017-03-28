@@ -208,6 +208,8 @@ public:
         // grow the free space buffer to a size relative to the last projected population
         m_free_space.resetBuffers( m_pop.back()->getMaxBlocks() );
 
+        bool is_all_neutral = m_allele_space.isAllNeutral();
+
         thread_pool_type tpool( m_thread_count.m_tc );
         
         const size_t TC = m_thread_count.m_tc + 1;
@@ -225,7 +227,7 @@ public:
                 size_t BATCH_SIZE = (pN / TC) + ((pN % TC > 0) ? 1 : 0);
 
                 unsigned int off_idx = j * BATCH_SIZE;
-                parameter_type * param = new parameter_type( m_pop[ p - 1 ], m_pop[ p ], m_fits[ p - 1], m_fits[ p ], m_mut_pools[ p - 1], m_mut_dists[ p - 1], prev_start, prev_end, off_idx, off_idx + BATCH_SIZE );
+                parameter_type * param = new parameter_type( m_pop[ p - 1 ], m_pop[ p ], m_fits[ p - 1], m_fits[ p ], m_mut_pools[ p - 1], m_mut_dists[ p - 1], prev_start, prev_end, off_idx, off_idx + BATCH_SIZE, is_all_neutral );
 
                 m_worker_off_gens[ j ]->addPopulation( param );
                 
@@ -244,7 +246,7 @@ public:
             size_t BATCH_SIZE = (pN / TC) + ((pN % TC > 0) ? 1 : 0);
             unsigned int off_idx = m_thread_count.m_tc * BATCH_SIZE;
 
-            parameter_type * param = new parameter_type( m_pop[ p - 1 ], m_pop[ p ], m_fits[ p - 1], m_fits[ p ], m_mut_pools[ p - 1], m_mut_dists[ p - 1], prev_start, prev_end, off_idx, pN );
+            parameter_type * param = new parameter_type( m_pop[ p - 1 ], m_pop[ p ], m_fits[ p - 1], m_fits[ p ], m_mut_pools[ p - 1], m_mut_dists[ p - 1], prev_start, prev_end, off_idx, pN, is_all_neutral );
             m_main_off_gen.addPopulation( param );
             params.push_back( param );
 
@@ -385,18 +387,18 @@ protected:
 
         typename free_space_type::base_type::iterator it = m_free_space.free_begin(), end = m_free_space.free_end();
 
+        unsigned int gen_offset = m_generation * (m_pop.size() - 1);
+
         for( unsigned int i = 1; i < m_pop.size(); ++i ) {
-            all_count = grow_child_population( m_pop[ i - 1 ], m_pop[ i ], m_fits[ i ], m_mut_pools[ i - 1], m_mut_dists[ i - 1], all_count, free_count, it, end );
+            all_count = grow_child_population( m_pop[ i - 1 ], m_pop[ i ], m_fits[ i ], m_mut_pools[ i - 1], m_mut_dists[ i - 1], all_count, free_count, it, end, gen_offset++ );
 
             free_count = (end - it);
         }
 
-        m_allele_space.alignNeutralToPopulation( m_pop.back()->getMaxBlocks() );
-
         return all_count;
     }
 
-    size_t grow_child_population( sequence_space_type * parent, sequence_space_type * off, fitness_type * fit, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, size_t all_count, size_t free_count, typename free_space_type::base_type::iterator & it, typename free_space_type::base_type::iterator & end ) {
+    size_t grow_child_population( sequence_space_type * parent, sequence_space_type * off, fitness_type * fit, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, size_t all_count, size_t free_count, typename free_space_type::base_type::iterator & it, typename free_space_type::base_type::iterator & end, unsigned int gen ) {
         // at the start of each simulate round, m_fit has already been updated from the previous
         // round with the fitness of the "then child/now parent" popualtions fitness
         //
@@ -411,12 +413,12 @@ protected:
         off->grow( pN, all_size, m_trait_space.trait_count() );               // grow the child population accordingly
 
         fit->resize( pN );
-        generate_child_mutations( off, mut_pool, mut_dist, pM, it, end );
+        generate_child_mutations( off, mut_pool, mut_dist, pM, it, end, gen );
 
         return all_size;
     }
 
-    void generate_child_mutations( sequence_space_type * off, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, unsigned int N, typename free_space_type::base_type::iterator & it, typename free_space_type::base_type::iterator & end ) {
+    void generate_child_mutations( sequence_space_type * off, mutation_pool_type * mut_pool, mutation_distribution_type * mut_dist, unsigned int N, typename free_space_type::base_type::iterator & it, typename free_space_type::base_type::iterator & end, unsigned int gen ) {
 //        std::cerr << "Child population size: " << m_child->haploid_genome_count() << std::endl;
 //        std::cerr << "Mutation count: " << N << std::endl;
 //        std::cerr << "Free space: " << m_free_space.free_size() << std::endl;
@@ -434,6 +436,7 @@ protected:
                 all_idx = *it++;
             } else {
                 m_allele_space.grow();
+                m_trait_space.grow();
             }
 
             unsigned int seq_idx = seq_gen( *m_rand );
@@ -443,7 +446,7 @@ protected:
             mut_pool->at( i ) = all_idx;
             mut_dist->at( seq_idx + 1 ) += 1;
 
-            allele_gen( m_allele_space, all_idx, m_generation );
+            allele_gen( m_allele_space, all_idx, gen );
             trait_gen(*m_rand, m_trait_space, all_idx );
 
             ++i;
