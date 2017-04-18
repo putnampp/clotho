@@ -35,7 +35,7 @@ __global__ void _resize_space( device_event_pool_space< EventType, IndexOffsetTy
     assert(blockIdx.y * gridDim.x + blockIdx.x == 0 );
 
     if( threadIdx.y * blockDim.x + threadIdx.x == 0 ) {
-        typedef typename device_event_pool_space< EventType, IndexOffsetType > space_type;
+        typedef device_event_pool_space< EventType, IndexOffsetType > space_type;
 
         unsigned int pool_cap = space->pool_capacity;
         unsigned int new_pool_size = space_type::MAX_EVENTS_PER_OFFSET * N;

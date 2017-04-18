@@ -48,20 +48,20 @@ __global__ void build_crossover_mask_kernel(  AlleleSpaceType * alleles,
     unsigned int nAlleles = alleles->capacity;
     if( nAlleles == 0 ) return;
 
-    __shared__ int_type     event_count = 0;
     __shared__ real_type    rand_pool[ pool_type::MAX_EVENTS_PER_OFFSET ];
 
     // 1 sequence per block
-    while( seqIdx < nSequences ) {
-        int_type lo = events->offsets[ seqIdx ], hi = events->offsets[ seqIdx + 1 ];
+    while( bid < nSequences ) {
+        int_type lo = events->offsets[ bid ], hi = events->offsets[ bid + 1 ];
 
         // true for all threads
         if( lo == hi ) {
-            unsigned int id = tid;
+            unsigned int id = bid * seq_width + tid;
             while( id < seq_width ) {
-                buf[ seqIdx * seq_width + tid ] = 0;
+                buf[ id ] = 0;
                 id += tpb;
             }
+            __syncthreads();
         } else {
             // move events from global memory into shared memory
             if( lo + tid < hi ) {
@@ -72,7 +72,7 @@ __global__ void build_crossover_mask_kernel(  AlleleSpaceType * alleles,
             hi -= lo;
 
             unsigned int id = tid;
-            unsigned int offset = seqIdx * seq_width + threadIdx.y;
+            unsigned int offset = bid * seq_width + threadIdx.y;
 
             while( id < nAlleles ) {
                 real_type pos = allele_list[ id ];
@@ -99,12 +99,12 @@ __global__ void build_crossover_mask_kernel(  AlleleSpaceType * alleles,
                 __syncthreads();
 
                 id += tpb;
-                offset += wpb;
+                offset += blockDim.y;
             }
+            __syncthreads();
         }
 
-        seqIdx += bpg;
-        __sycnthreads();
+        bid += bpg;
     }
 }
 

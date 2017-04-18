@@ -65,12 +65,12 @@ public:
 
 //        std::cout << "Blocks: {" << m_blocks.x << ", " << m_blocks.y << ", " << m_blocks.z << "}" << std::endl;
 //        std::cout << "Threads: {" << m_threads.x << ", " << m_threads.y << ", " << m_threads.z << "}" << std::endl;
-        run_crossover_kernel( ver );
+        run_crossover_kernel( pop, ver );
 
         CHECK_LAST_KERNEL_EXEC
     }
 
-    void operator()( population_type * pop, device_event_pool_space * event_pool ) {
+    void operator()( population_type * pop, device_event_pool_space< real_type, int_type > * event_pool ) {
         CHECK_LAST_KERNEL_EXEC
 
         build_crossover_mask_kernel<<< m_blocks, m_threads >>>( pop->alleles.get_device_space(),
@@ -95,8 +95,8 @@ protected:
         m_exec( m_blocks, m_threads );
     }
 
-    template < char V >
-    void run_crossover_kernel( clotho::utility::algo_version< V > * v ) {
+    template < unsigned char V >
+    void run_crossover_kernel( population_type * pop, clotho::utility::algo_version< V > * v ) {
         crossover_kernel<<< m_blocks, m_threads >>>( state_pool_type::getInstance()->get_device_states()
                                                 , pop->alleles.get_device_space()
                                                 , pop->free_space
@@ -106,7 +106,7 @@ protected:
 
     }
 
-    void run_crossover_kernel( clotho::utility::algo_version< 5 > * v ) {
+    void run_crossover_kernel( population_type * pop, clotho::utility::algo_version< 5 > * v ) {
         m_blocks.x = state_pool_type::getInstance()->get_total_states();
         m_blocks.y = 1;
         m_blocks.z = 1;
@@ -120,7 +120,7 @@ protected:
                                                 , pop->free_space
                                                 , dPoisCDF
                                                 , pop->sequences.get_device_space()
-                                                , v );
+                                                , v);
     }
 
     void initialize() {
@@ -128,10 +128,10 @@ protected:
         assert( cudaMalloc( (void **) &dPoisCDF, sizeof( poisson_type) ) == cudaSuccess );
 
 
-        real_type lambda = compute_lambda( m_recombination_rate.m_rho, (order_tag_type *) NULL, (clotho::utility::algo_version< CROSSOVER_VERSION > *) NULL );
+        real_type lambda_adj = compute_lambda( m_recombination_rate.m_rho, (order_tag_type *) NULL, (clotho::utility::algo_version< CROSSOVER_VERSION > *) NULL );
 
         
-        make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, lambda );
+        make_poisson_cdf_maxk32<<< 1, 32 >>>( dPoisCDF, lambda_adj, m_recombination_rate.m_rho );
     }
 
     template < class Tag0, class Tag1 >
@@ -159,7 +159,7 @@ protected:
     }
 
     poisson_type * dPoisCDF;
-    recombination_rate_type  m_recombination_rate;
+    recombination_rate_type     m_recombination_rate;
     algorithm_version_type      * ver;
     exec_type                   m_exec;
     dim3                        m_blocks, m_threads;

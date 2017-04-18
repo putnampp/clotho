@@ -685,7 +685,7 @@ __global__ void crossover_kernel( StateType * states
 
     const unsigned int MAX_EVENTS = 32;
 
-    __shared__ int_type     event_count = 0;
+    __shared__ int_type     event_count;
     __shared__ real_type    rand_pool[ MAX_EVENTS ];
 
     unsigned int seqIdx = bid;
@@ -697,7 +697,7 @@ __global__ void crossover_kernel( StateType * states
         if( tid == 0 ) {
             state_type local_state = states[ bid ];
             // update the event_count
-            event_count = curand_poisson( &local_state, lambda );
+            event_count = curand_poisson( &local_state, pois->lambda );
 
             for( unsigned int i = 0; i < event_count; ++i ) {
                 rand_pool[ i ] = curand_uniform( &local_state );
@@ -741,17 +741,17 @@ __global__ void crossover_kernel( StateType * states
                 }
 
                 if( threadIdx.x == 31 ) {
-                    seq[ offset ] = mask;
+                    seqs[ offset ] = mask;
                 }
                 __syncthreads();
 
                 id += tpb;
-                offset += wpb;
+                offset += blockDim.y;
             }
         }
 
         seqIdx += bpg;
-        __sycnthreads();
+        __syncthreads();
     }
 }
 

@@ -21,14 +21,15 @@ struct poisson_cdf {
     static const unsigned int MAX_K = K;
     RealType _cdf[ MAX_K ];
     unsigned int max_k;
+    RealType lambda;
 };
 
 template < class RealType >
-__global__ void  make_poisson_cdf_maxk32( poisson_cdf< RealType, 32 > * c, RealType lambda ) {
+__global__ void  make_poisson_cdf_maxk32( poisson_cdf< RealType, 32 > * c, RealType adj_lambda, RealType lambda ) {
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
     unsigned int lane_id = (tid & 31);
 
-    RealType p = ((lane_id != 0) ? (lambda / (RealType) lane_id) : 1.0);
+    RealType p = ((lane_id != 0) ? (adj_lambda / (RealType) lane_id) : 1.0);
 
     for( unsigned int i = 1; i < 32; i <<= 1 ) {
         RealType _c = __shfl_up(p, i );
@@ -40,7 +41,7 @@ __global__ void  make_poisson_cdf_maxk32( poisson_cdf< RealType, 32 > * c, RealT
         p += ((lane_id >= i ) ? _c : 0.0 );
     }
 
-    p *= exp( 0.0 - lambda ); // $p_{lane_id} = \sum_{k=0}^{lane_id} \frac{\lambda^{k}}{lane_id!} e^{-\lambda} $
+    p *= exp( 0.0 - adj_lambda ); // $p_{lane_id} = \sum_{k=0}^{lane_id} \frac{\adj_lambda^{k}}{lane_id!} e^{-\adj_lambda} $
 
     c->_cdf[ tid ] = p;
 
@@ -55,6 +56,8 @@ __global__ void  make_poisson_cdf_maxk32( poisson_cdf< RealType, 32 > * c, RealT
     if( tid == 31 ) {
         c->max_k = koff;
     }
+
+    c->lambda = lambda;
 }
 
 template < class RealType >
