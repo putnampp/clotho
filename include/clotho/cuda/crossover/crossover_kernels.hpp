@@ -19,4 +19,6 @@
 #include "clotho/cuda/crossover/crossover_kernel_unordered_impl.hpp"
 #include "clotho/cuda/crossover/crossover_kernel_unit_ordered_impl.hpp"
 
+#include "clotho/cuda/crossover/crossover_kernel_build_mask_impl.hpp"
+
 #endif  // CROSSOVER_KERNELS_HPP_

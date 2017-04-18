@@ -37,6 +37,11 @@ const unsigned int xover_config< O, V >::MAX_WARPS = 4;
 template <>
 const unsigned int xover_config< unordered_tag, 3 >::MAX_WARPS = 16;
 
+template < >
+const unsigned int xover_config< unordered_tag, 5 >::MAX_BLOCKS = 10;
+
+template < >
+const unsigned int xover_config< unordered_tag, 5 >::MAX_WARPS = 32;
 
 #include "clotho/cuda/data_spaces/tags/unit_ordered_tag.hpp"
 

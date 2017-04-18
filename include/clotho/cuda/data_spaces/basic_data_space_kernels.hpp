@@ -26,7 +26,7 @@ __global__ void _delete_space( basic_data_space< ValueType > * space ) {
     typename basic_data_space< ValueType >::value_type * tmp = space->data;
 
     if( tmp ) {
-        delete tmp;
+        delete [] tmp;
     }
     space->data = NULL;
 }

@@ -90,7 +90,6 @@ public:
         initialize();
     }
 
-#ifndef USE_OFFSPRING_CROSSOVER
     void simulate( unsigned int N ) {
         swap();
         unsigned int cur_seq_count = 2 * N;
@@ -101,10 +100,16 @@ public:
 
         current_pop->resize( prev_pop, dMutations, cur_seq_count );
 
+#ifdef USE_OFFSPRING_CROSSOVER
+        sel_gen.generate( prev_pop, current_pop, fit_trans.get_device_space() );
+        xover_gen( prev_pop, sel_gen.get_device_space(), current_pop );
+#else
+        // use the memory for the current population as an intermediate buffer
+        // fill it with crossover maskings
         xover_gen( current_pop );
-
         // recombine parents 
         sel_gen.generate_and_recombine( prev_pop, current_pop, fit_trans.get_device_space() );
+#endif  // USE_OFFSPRING_CROSSOVER
 
         mut_gen.scatter( current_pop, dMutations, cur_seq_count );
         
@@ -129,32 +134,6 @@ public:
         clotho::utility::add_value_array(dev_space.get_child("free"), fsize );
 */
     }
-#else 
-    void simulate( unsigned int N ) {
-        swap();
-        unsigned int cur_seq_count = 2 * N;
-
-        prev_pop->record_fixed( fixed_alleles );
-
-        mut_gen.generate( dMutations, cur_seq_count );
-
-        current_pop->resize( prev_pop, dMutations, cur_seq_count );
-
-        sel_gen.generate( prev_pop, current_pop, fit_trans.get_device_space() );
-
-        xover_gen( prev_pop, sel_gen.get_device_space(), current_pop );
-
-        mut_gen.scatter( current_pop, dMutations, cur_seq_count );
-        
-        pheno_trans.translate( current_pop );
-
-        fit_trans( current_pop->pheno_space, cur_seq_count );
-        
-        current_pop->update_metadata();
-
-        cudaDeviceSynchronize();
-    }
-#endif  // USE_OFFSPRING_CROSSOVER
 
     void analyze_population( ) {
         all_freq.evaluate( current_pop );

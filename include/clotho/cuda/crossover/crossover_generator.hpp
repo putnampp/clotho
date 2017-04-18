@@ -65,13 +65,18 @@ public:
 
 //        std::cout << "Blocks: {" << m_blocks.x << ", " << m_blocks.y << ", " << m_blocks.z << "}" << std::endl;
 //        std::cout << "Threads: {" << m_threads.x << ", " << m_threads.y << ", " << m_threads.z << "}" << std::endl;
+        run_crossover_kernel( ver );
 
-        crossover_kernel<<< m_blocks, m_threads >>>( state_pool_type::getInstance()->get_device_states()
-                                                , pop->alleles.get_device_space()
-                                                , pop->free_space
-                                                , dPoisCDF
-                                                , pop->sequences.get_device_space()
-                                                , ver );
+        CHECK_LAST_KERNEL_EXEC
+    }
+
+    void operator()( population_type * pop, device_event_pool_space * event_pool ) {
+        CHECK_LAST_KERNEL_EXEC
+
+        build_crossover_mask_kernel<<< m_blocks, m_threads >>>( pop->alleles.get_device_space(),
+            pop->sequences.get_device_space(),
+            event_pool );
+
         CHECK_LAST_KERNEL_EXEC
     }
 
@@ -88,6 +93,34 @@ protected:
         m_threads.x = state_pool_type::getInstance()->get_max_threads();
 
         m_exec( m_blocks, m_threads );
+    }
+
+    template < char V >
+    void run_crossover_kernel( clotho::utility::algo_version< V > * v ) {
+        crossover_kernel<<< m_blocks, m_threads >>>( state_pool_type::getInstance()->get_device_states()
+                                                , pop->alleles.get_device_space()
+                                                , pop->free_space
+                                                , dPoisCDF
+                                                , pop->sequences.get_device_space()
+                                                , v );
+
+    }
+
+    void run_crossover_kernel( clotho::utility::algo_version< 5 > * v ) {
+        m_blocks.x = state_pool_type::getInstance()->get_total_states();
+        m_blocks.y = 1;
+        m_blocks.z = 1;
+
+        m_threads.x = 32;
+        m_threads.y = 32;
+        m_threads.z = 1;
+
+        crossover_kernel<<< m_blocks, m_threads >>>( state_pool_type::getInstance()->get_device_states()
+                                                , pop->alleles.get_device_space()
+                                                , pop->free_space
+                                                , dPoisCDF
+                                                , pop->sequences.get_device_space()
+                                                , v );
     }
 
     void initialize() {

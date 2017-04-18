@@ -36,9 +36,13 @@ struct kernel_exec< xover_config< OrderTag, V > > {
     {}
 
     void operator()( dim3 & bcount, dim3 & tcount ) {
-        bcount.x = _blocks;
-        tcount.x = 32;
+        bcount.x = _blocks; // 1D grid
+        bcount.y = 1;
+        bcount.z = 1;
+
+        tcount.x = 32;      // assume threads per warp
         tcount.y = _warps;
+        tcount.z = 1;
     }
 
     void parse_configuration( boost::property_tree::ptree & config ) {

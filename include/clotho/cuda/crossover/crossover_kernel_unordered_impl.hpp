@@ -645,4 +645,114 @@ __global__ void crossover_kernel( StateType * states
     states[ bid * tpb + tid ] = local_state;
 }
 
+
+template < class StateType, class AlleleSpaceType, class RealType, class IntType >
+__global__ void crossover_kernel( StateType * states
+                                , AlleleSpaceType * alleles
+                                , device_free_space< IntType, unordered_tag > * free_space
+                                , poisson_cdf< RealType, 32 > * pois
+                                , device_sequence_space< IntType > * sequences
+                                , clotho::utility::algo_version< 5 > * v ) {
+
+    typedef StateType                                   state_type;
+    typedef AlleleSpaceType                             allele_space_type;
+    typedef typename allele_space_type::real_type       real_type;
+
+    typedef device_sequence_space< IntType >            sequence_space_type;
+    typedef typename sequence_space_type::int_type      int_type;
+
+    typedef poisson_cdf< RealType, 32 >                 poisson_type;
+    typedef xover_config< unordered_tag, 5 >            xover_type;
+
+    assert( blockDim.x == 32 && blockDim.y <= xover_type::MAX_WARPS );
+
+    // encourage quick return;
+    unsigned int nAlleles = alleles->capacity;
+    if( nAlleles == 0 ) return;
+
+    // only considering 2d grid/block definitions
+    int_type bid = blockIdx.y * gridDim.x + blockIdx.x;
+    int_type tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    unsigned int tpb = (blockDim.x * blockDim.y);
+    unsigned int bpg = (gridDim.x * gridDim.y);
+
+    real_type * allele_list = alleles->locations;
+
+    int_type * seqs = sequences->sequences;
+    int_type seq_width = sequences->seq_width;
+    int_type nSequences = sequences->seq_count;
+
+    const unsigned int MAX_EVENTS = 32;
+
+    __shared__ int_type     event_count = 0;
+    __shared__ real_type    rand_pool[ MAX_EVENTS ];
+
+    unsigned int seqIdx = bid;
+
+    // 1 sequence per block
+    while( seqIdx < nSequences ) {
+        // use the first thread of each block to populate a pool
+        // of random numbers
+        if( tid == 0 ) {
+            state_type local_state = states[ bid ];
+            // update the event_count
+            event_count = curand_poisson( &local_state, lambda );
+
+            for( unsigned int i = 0; i < event_count; ++i ) {
+                rand_pool[ i ] = curand_uniform( &local_state );
+            }
+
+            states[ bid ] = local_state;
+        }
+        __syncthreads();
+
+        // copy event_count from shared memory to thread local memory
+        // 
+        unsigned int nEvents = event_count;
+
+        // true for all threads
+        if( nEvents == 0 ) {
+            unsigned int id = tid;
+            while( id < seq_width ) {
+                seqs[ seqIdx * seq_width + tid ] = 0;
+                id += tpb;
+            }
+        } else {
+            unsigned int id = tid;
+            unsigned int offset = seqIdx * seq_width + threadIdx.y;
+
+            while( id < nAlleles ) {
+                real_type pos = allele_list[ id ];
+
+                unsigned int n = 0;
+                for( unsigned int i = 0; i < nEvents; ++i ) {
+                    n += ((rand_pool[ i ] < pos) ? 1 : 0);
+                }
+                __syncthreads();
+
+                int_type mask = (1 << threadIdx.x);
+                mask *= (n & 1);
+
+                // scan left mask
+                for( unsigned int i = 1; i < 32; i <<= 1 ) {
+                    int_type _c = __shfl_up( mask, i );
+                    mask |= ((threadIdx.x >= i ) *_c );
+                }
+
+                if( threadIdx.x == 31 ) {
+                    seq[ offset ] = mask;
+                }
+                __syncthreads();
+
+                id += tpb;
+                offset += wpb;
+            }
+        }
+
+        seqIdx += bpg;
+        __sycnthreads();
+    }
+}
+
 #endif  // CROSSOVER_KERNEL_UNORDERED_IMPL_HPP_
