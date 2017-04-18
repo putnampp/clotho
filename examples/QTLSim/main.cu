@@ -136,7 +136,7 @@ int main( int argc, char ** argv ) {
                 log.add_record( "samples", samps );
             }
 
-            std::cerr << gen << ": Writing log file" << std::endl;
+//            std::cerr << gen << ": Writing log file" << std::endl;
             log.write();
         }
     }
@@ -148,7 +148,7 @@ int main( int argc, char ** argv ) {
     _run.put_child( "simulate", _sim );
     _run.put_child( "analyze", _an );
 
-    log.add_record( "runtime", _run );
+    log.add_record( "performance", _run );
 
     p = log.make_path( "profile" );
     log.write( p );
