@@ -35,10 +35,10 @@ __device__ void _resize_space_impl( device_free_space< IntType, OrderTag > * s, 
     if( N > s->capacity ) {
 
         if( s->free_list != NULL ) {
-            delete s->free_list;
-            delete s->fixed_list;
-            delete s->lost_list;
-            delete s->free_map;
+            delete [] s->free_list;
+            delete [] s->fixed_list;
+            delete [] s->lost_list;
+            delete [] s->free_map;
         }
 
         int_type * flist = new int_type [ free_list_size ];
@@ -80,10 +80,10 @@ __global__ void _delete_space( device_free_space< IntType, OrderTag > * s ) {
     if( s == NULL ) return;
 
     if( s->free_list != NULL ) {
-        delete s->free_list;
-        delete s->fixed_list;
-        delete s->lost_list;
-        delete s->free_map;
+        delete [] s->free_list;
+        delete [] s->fixed_list;
+        delete [] s->lost_list;
+        delete [] s->free_map;
     }
 
     

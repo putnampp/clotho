@@ -49,6 +49,10 @@ void simulation_log::record_state( clotho::utility::iStateObject * obj ) {
     obj->get_state( m_log );
 }
 
+boost::property_tree::ptree & simulation_log::getLog() {
+    return m_log;
+}
+
 void simulation_log::add_record( std::string name, const record_type & rec ) {
 
     m_log.add_child( name, rec );

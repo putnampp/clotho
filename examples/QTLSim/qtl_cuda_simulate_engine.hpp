@@ -38,7 +38,6 @@
 #include "clotho/cuda/analysis/pairwise_difference.hpp"
 
 #include "clotho/utility/timer.hpp"
-#include "clotho/utility/log_helper.hpp"
 
 #include "clotho/cuda/fitness/quadratic_fitness_translator.hpp"
 #include "clotho/cuda/data_spaces/population_space/sample_population.hpp"

@@ -96,7 +96,9 @@ int main( int argc, char ** argv ) {
     unsigned int p_size = 0;
     unsigned int gen = 0;
 
-    boost::property_tree::ptree _sim, _an;
+    boost::property_tree::ptree _sim, _an, _an_state, _an_samps;
+    boost::property_tree::ptree free_count, a_count, var_count;
+
     while( gen < nGens ) {
         p_size = (*pop_grow)( p_size, gen++ );
 
@@ -114,11 +116,17 @@ int main( int argc, char ** argv ) {
             t.stop();
 
             clotho::utility::add_value_array( _an, t );
+
+            t.start();
             log.record_state( &sim_engine );
+            t.stop();
+
+            clotho::utility::add_value_array( _an_state, t );
 
             typedef std::vector< sample_log_params > samples_type;
             typedef typename samples_type::iterator  sample_iter;
 
+            t.start();
             boost::property_tree::ptree samps;
             unsigned int i = 0;
             for( sample_iter it = log.m_sampling.begin(); it != log.m_sampling.end(); it++ ) {
@@ -131,26 +139,44 @@ int main( int argc, char ** argv ) {
                     samps.add_child( oss.str(), res );
                 }
             }
+            t.stop();
+
+            clotho::utility::add_value_array( _an_samps, t);
 
             if(!samps.empty() ) {
                 log.add_record( "samples", samps );
             }
 
+            unsigned int fc = log.getLog().get< unsigned int>( "population.current.free_space.total", 0);
+            unsigned int ac = log.getLog().get< unsigned int>( "population.current.alleles.capacity", 0);
+
+            clotho::utility::add_value_array(free_count, fc);
+            clotho::utility::add_value_array(a_count, ac );
+            clotho::utility::add_value_array(var_count, (ac - fc));
+            
 //            std::cerr << gen << ": Writing log file" << std::endl;
             log.write();
         }
     }
     r.stop();
 
-    boost::property_tree::ptree _run;
+    boost::property_tree::ptree _run, _mem;
     _run.put( "total", r );
     _run.put( "init", i_time );
     _run.put_child( "simulate", _sim );
-    _run.put_child( "analyze", _an );
+    _run.put_child( "analysis.global.elapsed", _an );
+    _run.put_child( "analysis.global.record_elapsed", _an_state );
+    _run.put_child( "analysis.samples.elapsed", _an_samps );
 
     log.add_record( "performance", _run );
 
-    p = log.make_path( "profile" );
+    _mem.put_child( "free_count", free_count);
+    _mem.put_child( "allele_count", a_count);
+    _mem.put_child( "variable_count", var_count);
+
+    log.add_record( "memory", _mem );
+
+    p = log.make_path( "performance" );
     log.write( p );
 
     return 0;

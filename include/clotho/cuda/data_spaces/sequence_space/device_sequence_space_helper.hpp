@@ -81,7 +81,8 @@ template < typename IntType >
 struct state_getter< device_sequence_space< IntType > > {
     void operator()( boost::property_tree::ptree & state, const device_sequence_space< IntType > & obj ) {
         state.put( "dimensions.rows", obj.seq_count );
-        state.put( "dimensions.columns", obj.seq_width );
+        state.put( "dimensions.blocks_per_row", obj.seq_width );
+        state.put( "dimensions.bytes_per_block", sizeof(IntType) );
 
         state.put( "size", obj.size);
         state.put( "capacity", obj.capacity );

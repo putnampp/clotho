@@ -58,11 +58,17 @@ public:
     }
 
     thread_pool2( unsigned int T ) :
-        m_available(0)
+        m_threads(NULL)
+        , m_available(0)
         , m_pool_size( T )
         , m_running( true )
         , m_thread_engines( NULL ) 
-    {}
+    {
+        m_threads = new boost::thread* [ m_pool_size ];
+        for( unsigned int i = 0; i < m_pool_size; ++i ) {
+            m_threads[ i ] = NULL;
+        }
+    }
 
     random_engine_type * getRNG( unsigned int index ) {
 #ifdef DEBUGGING
@@ -75,35 +81,54 @@ public:
         return m_pool_size;
     }
 
-    template < class Task >
-    void post( Task & t ) {
-        boost::thread *th = new boost::thread( t );
-
-        m_threads.add_thread( th );
-    }
+//    template < class Task >
+//    void post( Task & t ) {
+//        boost::thread *th = new boost::thread( t );
+//
+//        m_threads.add_thread( th );
+//    }
 
     template < class Task >
     void post_list( std::vector< Task * > & task ) {
-        for(typename std::vector< Task * >::iterator it = task.begin(); it != task.end(); it++ ) {
-            boost::thread * th = new boost::thread( &Task::operator(), (*it) );
-            m_threads.add_thread( th );
+        assert( task.size() <= m_pool_size );
+
+        unsigned int i = 0;
+        for(typename std::vector< Task * >::iterator it = task.begin(); it != task.end() && i < m_pool_size; it++ ) {
+//            boost::thread * th = new boost::thread( &Task::operator(), (*it) );
+//            m_threads.add_thread( th );
+            assert( m_threads[ i ] == NULL );
+            m_threads[ i++ ] = new boost::thread( &Task::operator(), (*it));           
         }
     }
 
     template < class Task >
     void post_list( Task ** t, const unsigned int N ) {
+        assert( N <= m_pool_size );
         for( unsigned int i = 0; i < N; ++i ) {
-            boost::thread * th = new boost::thread( &Task::operator(), t[i] );
-            m_threads.add_thread( th );
+//            boost::thread * th = new boost::thread( &Task::operator(), t[i] );
+//            m_threads.add_thread( th );
+            assert( m_threads[ i ] == NULL );
+            m_threads[ i ] = new boost::thread( &Task::operator(), t[ i ] );
         }
     }
 
     void sync() {
-        m_threads.join_all();
+//        m_threads.join_all();
+        for( unsigned int i = 0; i < m_pool_size; ++i ) {
+            if( m_threads[ i ] != NULL ) {
+                boost::thread * th = m_threads[ i ];
+                m_threads[ i ] = NULL;
+                th->join();
+                delete th;
+            }
+        }
     }
 
     virtual ~thread_pool2() {
-        m_threads.join_all();
+//        m_threads.join_all();
+        sync();
+
+        delete [] m_threads;
 
         if( m_thread_engines != NULL ) {
             delete [] m_thread_engines;
@@ -112,7 +137,8 @@ public:
 
 protected:
 
-    boost::thread_group                     m_threads;
+    boost::thread   ** m_threads;  
+//    boost::thread_group                     m_threads;
     size_t                                  m_available, m_pool_size;
     bool                                    m_running;
 

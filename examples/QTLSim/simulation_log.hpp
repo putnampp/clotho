@@ -28,6 +28,8 @@ public:
 
     simulation_log( boost::property_tree::ptree & config, std::string prefix );
 
+    boost::property_tree::ptree & getLog();
+
     void set_path_prefix( std::string & prefix );
     std::string get_path_prefix() const;
 
@@ -43,7 +45,7 @@ public:
     std::string make_path( FillType suffix ) {
         std::ostringstream oss;
 
-        oss << m_prefix << "_" << suffix << ".json";
+        oss << m_prefix << "." << suffix << ".json";
 
         return oss.str();
     }
