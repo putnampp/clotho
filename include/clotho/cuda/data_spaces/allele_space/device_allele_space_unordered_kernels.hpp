@@ -146,12 +146,14 @@ __global__ void update_space_kernel( device_weighted_allele_space< RealType > * 
         out_data = out_alleles->weights;
     }
 
+    // Copy in space to out space
     while( idx < N ) {
         out_data[idx] = in_data[idx];
         idx += tpb;
     }
     __syncthreads();
 
+    // clear out space that is unused
     while( idx < M ) {
         out_data[idx] = (RealType)0;
         idx += tpb;
