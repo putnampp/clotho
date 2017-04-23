@@ -379,7 +379,7 @@ __device__ void _generate_random_allele( StateType * state
 
     RealType n = alleles->neutral[ idx ];
 
-    RealType y = n * curand_normal( state );
+    RealType y = n * curand_normal( state );    // 0 weights for neutral alleles; simplifies phenotype calculation algorithm
     alleles->weights[ idx ] = y;
 }
 

@@ -57,7 +57,10 @@ public:
     template < class PopulationType >
     void scatter( PopulationType * pop, space_type * events, unsigned int N ) {
         // scatter combines scattering and generation of allele
-        _scatter_mutations<<< 128 , 1 >>>( state_pool_type::getInstance()->get_device_states()
+        //
+        dim3 blocks( state_pool_type::getInstance()->get_total_states(), 1, 1), threads( 1,1,1);
+
+        _scatter_mutations<<< blocks, threads >>>( state_pool_type::getInstance()->get_device_states()
                                             , pop->free_space
                                             , events
                                             , pop->sequences.get_device_space() 

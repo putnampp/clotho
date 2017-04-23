@@ -61,7 +61,7 @@ struct PopulationSpace : public clotho::utility::iStateObject {
 
     void resize( self_type * parent_pop, event_space_type * mut_events, unsigned int seqs ) {
 
-        resize_space( pheno_space, seqs/2); // 1 phenotype per pair of sequences
+        resize_space( pheno_space, seqs); 
 
         alleles.expand_relative_to( parent_pop->alleles, parent_pop->free_space, free_space, mut_events );
         cudaDeviceSynchronize();

@@ -35,86 +35,78 @@ __global__ void _translate( device_weighted_allele_space< RealType > * alleles
                             , basic_data_space< RealType > * phenos 
                             , clotho::utility::algo_version< 1 > * v) {
 
-    typedef device_weighted_allele_space< RealType >    allele_space_type;
-    typedef device_sequence_space< IntType >            sequence_space_type;
-
-    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
-
-    unsigned int seq_idx = 2 * bid;
-    unsigned int seq_count = sequences->seq_count;
-
-    if( seq_idx >= seq_count ) return;
-
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
-
-    unsigned int warp_id = (tid >> 5);
-    unsigned int lane_id = tid & 31;
-
-    unsigned int allele_count = alleles->capacity;
-    unsigned int s_width = sequences->seq_width;
-
-    assert( allele_count == s_width * sequence_space_type::OBJECTS_PER_INT );
+    assert( blockDim.x == 32 );     // assert block is warp aligned
 
     typedef typename device_allele_space< RealType >::real_type     effect_type;
     typedef typename basic_data_space< RealType >::value_type  real_type;
     typedef typename device_sequence_space< IntType >::int_type     int_type;
+    typedef device_weighted_allele_space< RealType >    allele_space_type;
+    typedef device_sequence_space< IntType >            sequence_space_type;
+
+    unsigned int allele_count = alleles->capacity;
+    unsigned int s_width = sequences->seq_width;
+
+    // validation check
+    assert( allele_count == s_width * sequence_space_type::OBJECTS_PER_INT );
 
     int_type    * seqs = sequences->sequences;
     effect_type * effects = alleles->weights;
 
-    unsigned int thread_per_block = (blockDim.x * blockDim.y);
-    unsigned int warp_per_block = (thread_per_block >> 5);
-    unsigned int seq_per_grid = (gridDim.x * gridDim.y) * 2;
+    __shared__ real_type s_pheno[ 32 ];
 
+    unsigned int seq_idx = blockIdx.y*gridDim.x + blockIdx.x;
+    const unsigned int seq_count = sequences->seq_count;
     while( seq_idx < seq_count ) {
 
+        if( threadIdx.y == 0 ) {    // use first warp
+            // clear buffer
+            // necessary for when blockDim.y != 32
+            s_pheno[threadIdx.x] = (real_type)0;
+        }
+        __syncthreads();
+
         real_type   pheno = 0.;
-        unsigned int a_idx = tid;
-        unsigned int s_idx = seq_idx * s_width + warp_id;
+        unsigned int a_idx = threadIdx.y * blockDim.x + threadIdx.x;
+        unsigned int s_idx = seq_idx * s_width + threadIdx.y;
         while( a_idx < allele_count ) {
-            effect_type eff = effects[a_idx];
-
+            effect_type eff = effects[a_idx];   // assumes neutral alleles have 0 weight (handled during allele generation)
             int_type    mask = seqs[ s_idx ];
-            pheno += ((real_type)((mask >> lane_id) & 1)) * eff;
 
-            mask = seqs[ s_idx + s_width ];
-            pheno += ((real_type)((mask >> lane_id) & 1)) * eff;
+            pheno += ((real_type)((mask >> threadIdx.x) & 1)) * eff;
 
-            a_idx += thread_per_block;
-            s_idx += warp_per_block;
+            a_idx += (blockDim.x * blockDim.y);
+            s_idx += blockDim.y;
         }
         __syncthreads();
 
         for( unsigned int i = 1; i < 32; i <<= 1 ) {
             real_type p = __shfl_up( pheno, i );
-            pheno += ((real_type)(lane_id >= i)) * p;
+            pheno += ((real_type)(threadIdx.x >= i)) * p;
         }
 
         if( warp_per_block > 1 ) {  // true/false for all threads in block
-            __shared__ real_type s_pheno[ 32 ];
-            if( lane_id < 32 ) {
-                s_pheno[lane_id] = (real_type)0;
-            }
-            __syncthreads();
-            if( lane_id == 31 ) {
-                s_pheno[warp_id] = pheno;
+            if( threadIdx.x == 31 ) {   // write each warp's phenotype partial sum to shared memory
+                s_pheno[threadIdx.y] = pheno;
             }
             __syncthreads();
 
-            real_type tmp_pheno = s_pheno[lane_id];
+            // Have all warps read the partial phenotype sums
+            //  and compute final phenotype sum
+            // All warps used to 'avoid' thread divergence.
+            real_type tmp_pheno = s_pheno[threadIdx.x];
             for(unsigned int i = 1; i < 32; i <<= 1 ) {
                 real_type p = __shfl_up( tmp_pheno, i );
-                pheno += ((real_type)(lane_id >= i )) * p;
+                pheno += ((real_type)(threadIdx.x >= i )) * p;
             }
         }
         __syncthreads();
 
-        if( tid == 31 ) {
-            phenos->data[ seq_idx / 2 ] = pheno;
+        if( threadIdx.y == 0 && threadIdx.x == 31 ) {
+            phenos->data[ seq_idx ] = pheno;
         }
         __syncthreads();
 
-        seq_idx += seq_per_grid;
+        seq_idx += gridDim.x * gridDim.y;
     }
 }
 
@@ -199,4 +191,27 @@ __global__ void _translate( device_weighted_allele_space< RealType > * alleles
         pheno_idx += ppg;
     }
 }
+
+///**
+// *
+// * Translate genetic sequence to phenotype
+// * 1 warp == 1 sequence
+// */
+//template < class RealType, class IntType >
+//__global__ void _translate( device_weighted_allele_space< RealType > * alleles
+//                            , device_sequence_space< IntType > * sequences
+//                            , basic_data_space< RealType > * phenos 
+//                            , clotho::utility::algo_version< 3 > * v) {
+//
+//    assert( blockDim.x == 32 ); // assert block dimensionality defined in terms of warps
+//
+//    while( seq_idx < seq_count ) {
+//
+//        while( all_idx < all_count ) {
+//
+//        }
+//
+//    }
+//
+//}
 #endif  // TRANSLATE_KERNELS_HPP_

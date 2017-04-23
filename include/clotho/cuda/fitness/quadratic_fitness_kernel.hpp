@@ -21,18 +21,21 @@ template < class RealType >
 __global__ void quadratic_fitness_kernel( basic_data_space< RealType > * phenos, RealType scale_coeff, basic_data_space< RealType > * fitness ) {
     typedef RealType real_type;
 
-    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    // individual index
+    unsigned int ind_idx = threadIdx.y * blockDim.x + threadIdx.x;
 
     unsigned int N = phenos->size;
     unsigned int M = fitness->size;
 
-    assert( N <= M );
+    assert( N == 2 * M );
 
     real_type * pdata = phenos->data;
     real_type * fdata = fitness->data;
 
-    while( tid < N ) {
-        real_type x = pdata[tid];
+    while( ind_idx < M ) {
+        // assumes individual's sequence phenotypes are adjacent in memory
+        real_type x = pdata[2 * ind_idx];
+        x += pdata[ 2 * ind_idx + 1 ];
 
         x /= scale_coeff;
         x *= x;
@@ -40,8 +43,8 @@ __global__ void quadratic_fitness_kernel( basic_data_space< RealType > * phenos,
         // x = 1.0 - ((real_type)(x > 1.0)* 1.0) - ((real_type)(x < 1.0) * x)
         x = (( x > 1.0 ) ? 0.0 : (1.0 - x));
 
-        fdata[tid] = x;
-        tid += (blockDim.x * blockDim.y);
+        fdata[ind_idx] = x;
+        ind_idx += (blockDim.x * blockDim.y);
     }
 }
 
