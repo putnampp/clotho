@@ -72,4 +72,13 @@ __global__ void _resize_space_to( basic_data_space< ValueType > * target, SpaceT
     }
 }
 
+template < class SpaceType >
+__global__ void record_size( SpaceType * space, basic_data_space< unsigned int > * buf, unsigned int idx ) {
+    assert( idx < buf->size );
+
+    if( (blockIdx.y * gridDim.x + blockIdx.x == 0) &&  (threadIdx.y * blockDim.x + threadIdx.x == 0) ) {
+        buf->data[ idx ]  = space->size;
+    }
+}
+
 #endif  // BASIC_DATA_SPACE_KERNELS_HPP_

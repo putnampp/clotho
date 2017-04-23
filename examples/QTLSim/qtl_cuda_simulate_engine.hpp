@@ -134,6 +134,14 @@ public:
 */
     }
 
+    population_space_type   * get_parent_population() {
+        return prev_pop;
+    }
+
+    population_space_type   * get_offspring_population() {
+        return current_pop;
+    }
+
     void analyze_population( ) {
         all_freq.evaluate( current_pop );
         seq_weight.evaluate( current_pop );

@@ -17,6 +17,8 @@
 #include "clotho/cuda/data_spaces/free_space/device_free_space_def.hpp"
 #include "clotho/cuda/data_spaces/data_space_kernel_api.hpp"
 
+#include "clotho/cuda/data_spaces/basic_data_space.hpp"
+
 template < class IntType, class OrderTag >
 __device__ void _resize_space_impl( device_free_space< IntType, OrderTag > * s, unsigned int N ) {
 //    printf("Resize free space: %d\n", N );
@@ -182,4 +184,14 @@ __global__ void update_space_kernel( device_free_space< IntType, OrderTag > * in
         idx += tpb;
     }
 }
+
+template < class IntType, class OrderTag >
+__global__ void record_size( device_free_space< IntType, OrderTag > * space, basic_data_space< unsigned int > * buf, unsigned int idx ) {
+    assert( idx < buf->size );
+
+    if( (blockIdx.y * gridDim.x + blockIdx.x == 0) &&  (threadIdx.y * blockDim.x + threadIdx.x == 0) ) {
+        buf->data[ idx ] = space->total;
+    }
+}
+
 #endif  // DEVICE_FREE_SPACE_KERNELS_HPP_

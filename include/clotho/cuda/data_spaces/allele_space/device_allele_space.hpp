@@ -68,6 +68,8 @@ __device__ bool _resize_space_impl( device_allele_space< RealType > * aspace, un
         cap_increased = true;
     }
 
+    aspace->size = N;
+
     return cap_increased;
 }
 

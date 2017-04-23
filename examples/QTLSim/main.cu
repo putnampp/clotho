@@ -18,10 +18,10 @@
 
 #include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
 
-
 #include "qtl_cuda_simulate_engine.hpp"
 
 #include "simulation_log.hpp"
+#include "clotho/cuda/data_spaces/status_buffer/status_buffer.hpp"
 
 #ifdef USE_UNIT_ORDERING
 typedef unit_ordered_tag< int_type > order_tag_type;
@@ -37,6 +37,8 @@ static const std::string HEAP_K = "device.heap.malloc.size";
 
 typedef std::shared_ptr< ipopulation_growth_generator >                     population_growth_generator_type;
 typedef std::shared_ptr< ipopulation_growth >                               population_growth_type;
+
+typedef StatusBuffer< population_space_type >       status_buffer_type;
 
 int main( int argc, char ** argv ) {
 
@@ -99,12 +101,16 @@ int main( int argc, char ** argv ) {
     boost::property_tree::ptree _sim, _an, _an_state, _an_samps;
     boost::property_tree::ptree free_count, a_count, var_count;
 
+    status_buffer_type stats( nGens );
+
     while( gen < nGens ) {
         p_size = (*pop_grow)( p_size, gen++ );
 
         timer_type t;
         sim_engine.simulate(p_size);
         t.stop();
+
+        stats.track( sim_engine.get_offspring_population(), (gen - 1) );
 
         clotho::utility::add_value_array( _sim, t );
 
@@ -147,12 +153,12 @@ int main( int argc, char ** argv ) {
                 log.add_record( "samples", samps );
             }
 
-            unsigned int fc = log.getLog().get< unsigned int>( "population.current.free_space.total", 0);
-            unsigned int ac = log.getLog().get< unsigned int>( "population.current.alleles.capacity", 0);
+            //unsigned int fc = log.getLog().get< unsigned int>( "population.current.free_space.total", 0);
+            //unsigned int ac = log.getLog().get< unsigned int>( "population.current.alleles.capacity", 0);
 
-            clotho::utility::add_value_array(free_count, fc);
-            clotho::utility::add_value_array(a_count, ac );
-            clotho::utility::add_value_array(var_count, (ac - fc));
+            //clotho::utility::add_value_array(free_count, fc);
+            //clotho::utility::add_value_array(a_count, ac );
+            //clotho::utility::add_value_array(var_count, (ac - fc));
             
 //            std::cerr << gen << ": Writing log file" << std::endl;
             log.write();
@@ -170,9 +176,11 @@ int main( int argc, char ** argv ) {
 
     log.add_record( "performance", _run );
 
-    _mem.put_child( "free_count", free_count);
-    _mem.put_child( "allele_count", a_count);
-    _mem.put_child( "variable_count", var_count);
+//    _mem.put_child( "free_count", free_count);
+//    _mem.put_child( "allele_count", a_count);
+//    _mem.put_child( "variable_count", var_count);
+
+    stats.get_state( _mem );
 
     log.add_record( "memory", _mem );
 
