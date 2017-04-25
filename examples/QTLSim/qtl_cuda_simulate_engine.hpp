@@ -112,7 +112,7 @@ public:
 
         mut_gen.scatter( current_pop, dMutations, cur_seq_count );
         
-        pheno_trans.translate( current_pop );
+        pheno_trans.translate( current_pop, cur_seq_count );
 
         fit_trans( current_pop->pheno_space, cur_seq_count );
         

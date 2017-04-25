@@ -207,14 +207,14 @@ __global__ void pairwise_difference_kernel2( device_sequence_space< IntType > * 
 
     assert( tpb % 32 == 0 );    // 32 == threads per warp; all warps are full
 
-    unsigned int wpb = (tpb >> 5);  // warp per block
+    //unsigned int wpb = (tpb >> 5);  // warp per block
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
     unsigned int lane_id = (tid & 31);
     unsigned int warp_id = (tid >> 5);
 
     unsigned int bpg = (gridDim.x * gridDim.y); // blocks per grid
-    unsigned int wpg = (wpb * bpg); // warps per grid
+//    unsigned int wpg = (wpb * bpg); // warps per grid
 
     unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
 

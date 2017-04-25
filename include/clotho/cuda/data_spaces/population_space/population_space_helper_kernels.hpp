@@ -140,8 +140,8 @@ __global__ void update_free_space_kernel( device_sequence_space< IntType > * seq
     unsigned int tpb = blockDim.x * blockDim.y;
     assert( (tpb & 31) == 0 );  // all warps full
 
-    unsigned int wpb = (tpb >> 5);
-    unsigned int bpg = (gridDim.x * gridDim.y);
+    //unsigned int wpb = (tpb >> 5);
+    //unsigned int bpg = (gridDim.x * gridDim.y);
     //unsigned int spg = ( wpb * bpg );
 
     unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
