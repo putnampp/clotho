@@ -35,18 +35,33 @@ public:
 
     normal_fitness_metric( real_type mu = 0., real_type sigma = 1. );
 
-    result_type operator()( real_type x );
-    result_type operator()( real_type x, real_type mu, real_type sigma );
+    result_type operator()( double x );
+    result_type operator()( float x ) { return operator()( (double) x ); }
 
-    inline result_type operator()( const std::vector< real_type > & multi_variate ) {
+    result_type operator()( double x, real_type mu, real_type sigma );
+    result_type operator()( float x, real_type mu, real_type sigma ) { return operator()( (double) x, mu, sigma); }
+
+    inline result_type operator()( const std::vector< double > & multi_variate ) {
         return ((multi_variate.empty()) ? operator()( 0. ) : operator()( multi_variate.front() ));
     }
 
-    inline result_type operator()( const std::vector< real_type > & multi_variate, real_type mu, real_type sigma ) {
+    inline result_type operator()( const std::vector< float > & multi_variate ) {
+        return ((multi_variate.empty()) ? operator()( 0. ) : operator()( multi_variate.front() ));
+    }
+
+    inline result_type operator()( const std::vector< double > & multi_variate, real_type mu, real_type sigma ) {
         return ((multi_variate.empty()) ? operator()( 0., mu, sigma ) : operator()( multi_variate.front(), mu, sigma ));
     }
 
-    inline result_type operator()( real_type * first, real_type * last ) {
+    inline result_type operator()( const std::vector< float > & multi_variate, real_type mu, real_type sigma ) {
+        return ((multi_variate.empty()) ? operator()( 0., mu, sigma ) : operator()( multi_variate.front(), mu, sigma ));
+    }
+
+    inline result_type operator()( double * first, double * last ) {
+        return (first == last) ? operator()( 0. ) : operator()( *first );
+    }
+
+    inline result_type operator()( float * first, float * last ) {
         return (first == last) ? operator()( 0. ) : operator()( *first );
     }
 

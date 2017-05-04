@@ -36,21 +36,34 @@ public:
 
     quadratic_fitness_metric( real_type s = 1. );
 
-    result_type operator()( real_type x );
-    result_type operator()( real_type x, real_type s );
+    result_type operator()( double x );
+    result_type operator()( float x ) { return operator()( (double)x ); }
+    result_type operator()( double x, real_type s );
+    result_type operator()( float x, real_type s ) { return operator()( (double) x, s ); }
 
-    inline result_type operator()( const std::vector< real_type > & multi_variate ) {
+    inline result_type operator()( const std::vector< double > & multi_variate ) {
         return ((multi_variate.empty()) ? 0.0 :  operator()( multi_variate.front() ));
     }
 
-    inline result_type operator()( const std::vector< real_type > & multi_variate, real_type s ) {
+    inline result_type operator()( const std::vector< double > & multi_variate, real_type s ) {
         return ((multi_variate.empty()) ? 0.0 : operator()( multi_variate.front(), s ));
     }
 
-    result_type operator()( real_type * first, real_type * last ) {
+    result_type operator()( double * first, double * last ) {
         return ( first == last ) ? 0.0 : operator()( *first );
     }
 
+    inline result_type operator()( const std::vector< float > & multi_variate ) {
+        return ((multi_variate.empty()) ? 0.0 :  operator()( multi_variate.front() ));
+    }
+
+    inline result_type operator()( const std::vector< float > & multi_variate, real_type s ) {
+        return ((multi_variate.empty()) ? 0.0 : operator()( multi_variate.front(), s ));
+    }
+
+    result_type operator()( float * first, float * last ) {
+        return ( first == last ) ? 0.0 : operator()( *first );
+    }
     const std::string name() const;
 
     void log( std::ostream & out ) const;

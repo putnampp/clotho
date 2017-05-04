@@ -26,14 +26,25 @@ public:
 
     constant_fitness_metric( real_type s );
 
-    result_type operator()( real_type x );
-    result_type operator()( real_type x, real_type s );
+    result_type operator()( double x );
+    result_type operator()( double x, real_type s );
 
-    inline result_type operator()( const std::vector< real_type > & multi_variate ) {
+    result_type operator()( float x ) { return operator()( (double) x ); }
+    result_type operator()( float x, real_type s ) { return operator()( (double) x, s ); }
+
+    inline result_type operator()( const std::vector< double > & multi_variate ) {
         return 1.0;
     }
 
-    result_type operator()( real_type * first, real_type * last ) {
+    result_type operator()( double * first, double * last ) {
+        return 1.0;
+    }
+
+    inline result_type operator()( const std::vector< float > & multi_variate ) {
+        return 1.0;
+    }
+
+    result_type operator()( float * first, float * last ) {
         return 1.0;
     }
 

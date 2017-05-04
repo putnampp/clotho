@@ -26,11 +26,13 @@ struct ifitness_generator {
      */
     virtual std::shared_ptr< ifitness_generator > create( boost::property_tree::ptree & config ) const = 0;
 
-    /**
-     * Generate the associated ifitness metric based upon
-     * the provided population phenotype distribution
-     */
-    virtual std::shared_ptr< ifitness > generate( const std::vector< std::vector< double > > & ) = 0;
+//    /**
+//     * Generate the associated ifitness metric based upon
+//     * the provided population phenotype distribution
+//     */
+//    virtual std::shared_ptr< ifitness > generate( const std::vector< std::vector< double > > & ) = 0;
+//
+//    virtual std::shared_ptr< ifitness > generate( const std::vector< std::vector< float > > & ) = 0;
 
     virtual std::shared_ptr< ifitness > generate( size_t  ) = 0;
 
