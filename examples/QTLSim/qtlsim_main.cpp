@@ -32,7 +32,8 @@
 #include "clotho/data_spaces/analysis/pairwise_difference/pairwise_difference.hpp"
 
 typedef boost::random::mt19937          random_engine_type;
-typedef Engine< random_engine_type, double, unsigned long long, unsigned int, ENGINE_MODE >    simulate_engine_type;
+
+typedef Engine< random_engine_type, real_type, block_unit_type, unsigned int, ENGINE_MODE >    simulate_engine_type;
 typedef typename simulate_engine_type::sequence_space_type      sequence_space_type;
 typedef typename simulate_engine_type::allele_type              allele_space_type;
 
