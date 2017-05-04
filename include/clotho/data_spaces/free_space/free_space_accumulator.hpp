@@ -105,6 +105,8 @@ public:
         m_var_buffer( NULL )
         , m_fix_buffer( NULL )
         , m_thread_count( tc )
+        , m_blocks_per_row(0)
+        , m_buffer_alloc(0)
     {}
 
     void resetBuffers( unsigned int block_count ) {
