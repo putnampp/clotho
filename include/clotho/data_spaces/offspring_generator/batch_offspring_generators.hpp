@@ -11,14 +11,11 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef OFFSPRING_GENERATOR_GUARD_HPP_
-#define OFFSPRING_GENERATOR_GUARD_HPP_
+#ifndef BATCH_OFFSPRING_GENERATORS_HPP_
+#define BATCH_OFFSPRING_GENERATORS_HPP_
 
-#include "clotho/data_spaces/offspring_generator/offspring_generator_def.hpp"
-#include "clotho/data_spaces/offspring_generator/offspring_generator_population_space_row.hpp"
-#include "clotho/data_spaces/offspring_generator/offspring_generator_population_space_row_alignment.hpp"
-#include "clotho/data_spaces/offspring_generator/offspring_generator_population_space_index_vector_alignment.hpp"
+#include "clotho/data_spaces/offspring_generator/batch_offspring_generator_def.hpp"
+#include "clotho/data_spaces/offspring_generator/batch_offspring_generator.hpp"
+#include "clotho/data_spaces/offspring_generator/batch_offspring_generator_pipeline.hpp"
 
-#include "clotho/data_spaces/offspring_generator/batch_offspring_generators.hpp"
-
-#endif  // OFFSPRING_GENERATOR_GUARD_HPP_
+#endif  // BATCH_OFFSPRING_GENERATORS_HPP_

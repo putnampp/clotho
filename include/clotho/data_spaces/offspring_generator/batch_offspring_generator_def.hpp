@@ -11,14 +11,16 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef OFFSPRING_GENERATOR_GUARD_HPP_
-#define OFFSPRING_GENERATOR_GUARD_HPP_
+#ifndef BATCH_OFFSPRING_GENERATOR_DEF_HPP_
+#define BATCH_OFFSPRING_GENERATOR_DEF_HPP_
 
-#include "clotho/data_spaces/offspring_generator/offspring_generator_def.hpp"
-#include "clotho/data_spaces/offspring_generator/offspring_generator_population_space_row.hpp"
-#include "clotho/data_spaces/offspring_generator/offspring_generator_population_space_row_alignment.hpp"
-#include "clotho/data_spaces/offspring_generator/offspring_generator_population_space_index_vector_alignment.hpp"
+namespace clotho {
+namespace genetics {
 
-#include "clotho/data_spaces/offspring_generator/batch_offspring_generators.hpp"
+template < class RNG, class PopulationType, class AlleleSpaceType, class FitnessType, class TraitSpaceType, class FreeBufferType, class Method >
+class batch_offspring_generator;
 
-#endif  // OFFSPRING_GENERATOR_GUARD_HPP_
+}   // namespace genetics
+}   // namespace clotho
+
+#endif  // BATCH_OFFSPRING_GENERATOR_DEF_HPP_

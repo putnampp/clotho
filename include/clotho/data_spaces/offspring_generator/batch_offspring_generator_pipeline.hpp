@@ -11,8 +11,8 @@
 //   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
-#ifndef BATCH_OFFSPRING_GENERATOR_HPP_
-#define BATCH_OFFSPRING_GENERATOR_HPP_
+#ifndef BATCH_OFFSPRING_GENERATOR_PIPELINE_HPP_
+#define BATCH_OFFSPRING_GENERATOR_PIPELINE_HPP_
 
 #include "clotho/data_spaces/offspring_generator/batch_offspring_generator_def.hpp"
 
@@ -27,10 +27,10 @@
 namespace clotho {
 namespace genetics {
 
-struct off_gen_default {};
+struct off_gen_pipelined {};
 
 template < class RNG, class PopulationType, class AlleleSpaceType, class FitnessType, class TraitSpaceType, class FreeBufferType >
-class batch_offspring_generator< RNG, PopulationType, AlleleSpaceType, FitnessType, TraitSpaceType, FreeBufferType, off_gen_default > {
+class batch_offspring_generator< RNG, PopulationType, AlleleSpaceType, FitnessType, TraitSpaceType, FreeBufferType, off_gen_pipelined > {
 public:
 
     typedef RNG                     random_engine_type;
@@ -137,27 +137,25 @@ public:
 
             std::shared_ptr< selection_details< random_engine_type, unsigned int> > sel = buildSelection(params);
 
-            timer_type xover_time;
-            crossover( params, sel );
-            xover_time.stop();
+            std::vector< unsigned int > parent_list;
+            parent_list.reserve( 2 * ( params->o_end - params->o_start ) );
+            for( unsigned int j = params->o_start; j < params->o_end; ++j ) {
+                typename selection_details< random_engine_type >::parent_pair rent_idx = (*sel)();
+                parent_list.push_back( 2 * (rent_idx.first + params->p_start) );
+                parent_list.push_back( 2 * (rent_idx.second + params->p_start) );
+            }
 
-            timer_type mutate_time;
-            mutate( params );
-            mutate_time.stop();
+            std::vector< unsigned int >::iterator rent_idx = parent_list.begin();
 
-            timer_type pheno_time;
-            phenotype( params );
-            pheno_time.stop();
+            for( unsigned int j = 2 * params->o_start; j < 2 * params->o_end; ++j, ++rent_idx ) {
 
-            timer_type fit_time;
+                // parent genetic contribution
+                perform_crossover_method( params->parents, params->offspring, *rent_idx, j );
+                mutate( params->offspring, params->mut_dist, params->mut_pool, j );
+                phenotype( params->offspring, j, params->all_neutral );
+            }
+
             fitness( params );
-            fit_time.stop();
-
-            m_crossover_times.push_back( std::make_pair( xover_time.getStart(), xover_time.getStop()));
-            m_mutate_times.push_back( std::make_pair( mutate_time.getStart(), mutate_time.getStop()));
-            m_phenotype_times.push_back( std::make_pair( pheno_time.getStart(), pheno_time.getStop()));
-            m_fitness_times.push_back( std::make_pair( fit_time.getStart(), fit_time.getStop() ) );
-            m_fixed_times.push_back( std::make_pair( fit_time.getStop() + 5, fit_time.getStop() + 10));
         }
         
         parameter_type * param = m_pop_params[ m_pop_params.size() - 1 ];
@@ -222,7 +220,6 @@ protected:
             perform_crossover_method( params->parent, params->offspring, 2 * (res.first + params->p_start), 2 * i );
             perform_crossover_method( params->parent, params->offspring, 2 * (res.second + params->p_start), 2 * i + 1 );
         }
-
     }
 
     void perform_crossover_method( population_type * parent, population_type * offspring, unsigned int p_idx, unsigned int o_idx ) {
@@ -235,13 +232,16 @@ protected:
 
     void mutate( parameter_type * params ) {
         for( unsigned int i = 2 * params->o_start; i < 2 * params->o_end; ++i ) {
-            unsigned int lo = params->mut_dist->at( i ), hi = params->mut_dist->at( i + 1 );
+            mutate( params->offspring, params->mut_dist, params->mut_pool, i );
+        }
+    }
 
-            while( lo < hi ) {
-                unsigned int all_idx = params->mut_pool->at( lo );
-                params->offspring->mutate( i, all_idx );
-                ++lo;
-            }
+    void mutate( population_type * offspring, mutation_distribution_type * mut_dist, mutation_pool_type * pool, unsigned int seq_idx ) {
+        unsigned int lo = mut_dist->at( seq_idx ), hi = mut_dist->at( seq_idx + 1 );
+        while( lo < hi ) {
+            unsigned int all_idx = pool->at( lo );
+            offspring->mutate( i, all_idx );
+            ++lo;
         }
     }
 
@@ -261,6 +261,17 @@ protected:
             for( unsigned int i = 2 * params->o_start; i < 2 * params->o_end; ++i )
                 params->offspring->updateGenomeWeights( i, m_pheno_method.getResults() );
         }
+    }
+
+    void phenotype( population_type * offspring, unsigned int seq_idx, bool all_neutral ) {
+        if( !all_neutral ) {
+            genome_pointer first = offspring->begin_genome( seq_idx ), last = offspring->end_genome( seq_idx );
+
+            m_pheno_method( first, last, m_alleles->getNeutrals() );
+        } else {
+            m_pheno_method.resetBuffer();
+        }
+        offspring->updateGenomeWeights(seq_idx, m_pheno_method.getResults());
     }
 
     void fitness( parameter_type * params ) {
@@ -297,5 +308,5 @@ protected:
 }   // namespace genetics
 }   // namespace clotho
 
-#endif  // BATCH_OFFSPRING_GENERATOR_HPP_
+#endif  // BATCH_OFFSPRING_GENERATOR_PIPELINE_HPP_
 
