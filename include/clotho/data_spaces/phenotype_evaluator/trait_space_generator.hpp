@@ -104,7 +104,8 @@ public:
     void operator()( Engine & eng, trait_space_type & traits, unsigned int offset ) {
         unsigned int i = 0;
         while( i < traits.trait_count() ) {
-            traits.setWeight( m_weights.m_dist( eng ), offset, i );
+            weight_type w = m_weights.m_dist( eng );
+            traits.setWeight( w, offset, i );
             ++i;
         }
     }
