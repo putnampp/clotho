@@ -346,6 +346,7 @@ protected:
                 all_idx = *it++;
             } else {
                 m_allele_space.grow();
+                m_trait_space.grow();
             }
 
             unsigned int seq_idx = seq_gen( *m_rand );
