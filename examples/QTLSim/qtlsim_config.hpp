@@ -40,6 +40,12 @@
 // typedefs
 typedef clotho::configuration_manager::config_manager       config_manager_type;
 
+#ifdef USE_BLOCK_SIZE_32
+typedef unsigned int    block_unit_type;
+#else
+typedef unsigned long long block_unit_type;
+#endif  // USE_BLOCK_SIZE_32
+
 #ifdef USE_DOUBLE_REAL
 typedef double          real_type;
 #else
