@@ -69,6 +69,16 @@ struct debruijn_bit_walker_size< T, 32 > {
 
         return lsb;
     }
+
+    static unsigned int next_and_shift( T & b ) {
+        unsigned int lo = LEAST_SIG_BIT( b );
+        unsigned int x = DEBRUIJNBIT_HASH_LOOKUP( lo );
+
+        b >>= x;
+        b ^= (T)1;
+
+        return x;
+    }
 };
 
 template < class T >
