@@ -239,9 +239,8 @@ protected:
     void mutate( population_type * offspring, mutation_distribution_type * mut_dist, mutation_pool_type * pool, unsigned int seq_idx ) {
         unsigned int lo = mut_dist->at( seq_idx ), hi = mut_dist->at( seq_idx + 1 );
         while( lo < hi ) {
-            unsigned int all_idx = pool->at( lo );
-            offspring->mutate( i, all_idx );
-            ++lo;
+            unsigned int all_idx = pool->at( lo++ );
+            offspring->mutate( seq_idx, all_idx );
         }
     }
 
