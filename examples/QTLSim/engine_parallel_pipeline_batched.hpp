@@ -56,6 +56,12 @@
 
 struct parallel_pipeline_batched {};
 
+#ifdef USE_OFF_GEN_PIPELINE
+#define OFF_GEN_METHOD clotho::genetics::off_gen_pipelined
+#else
+#define OFF_GEN_METHOD clotho::genetics::off_gen_default
+#endif  // USE_OFF_GEN_PIPELINE
+
 template < class RNG, class RealType, class BlockType, class SizeType >
 class Engine< RNG, RealType, BlockType, SizeType, parallel_pipeline_batched > {
 public:
@@ -95,7 +101,7 @@ public:
     typedef std::shared_ptr< ipopulation_growth_generator >                                         population_growth_generator_type;
     typedef std::shared_ptr< ipopulation_growth >                                                   population_growth_type;
 
-    typedef clotho::genetics::batch_offspring_generator< random_engine_type, sequence_space_type, allele_type, fitness_type, trait_space_type, free_buffer_type >           offspring_generator_type;
+    typedef clotho::genetics::batch_offspring_generator< random_engine_type, sequence_space_type, allele_type, fitness_type, trait_space_type, free_buffer_type, OFF_GEN_METHOD >           offspring_generator_type;
     typedef typename offspring_generator_type::parameter_type parameter_type;
 
     typedef typename offspring_generator_type::mutation_pool_type                               mutation_pool_type;
