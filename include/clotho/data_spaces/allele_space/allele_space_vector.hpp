@@ -90,6 +90,10 @@ public:
         if( this->size() == 0 ) return true;
 
         size_type off = this->size() / bit_helper_type::BITS_PER_BLOCK;
+#ifdef DEBUGGING
+        assert( off < m_neutral_alloc );
+#endif  // DEBUGGING
+
         block_type tail_mask = ~(bit_helper_type::ALL_SET << (this->size() % bit_helper_type::BITS_PER_BLOCK));
         bool isall = ((m_neutral[ off ] & tail_mask) == tail_mask);
         --off;
