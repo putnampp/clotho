@@ -152,10 +152,6 @@ public:
             pN = m_pop_growth->operator()( pN, m_generation );
         }
 
-        m_pop1.grow( pN, aN, m_trait_space.trait_count() );
-        m_pop1.clear();
-        m_pop0.clear();
-
         if( m_thread_count.m_tc > 0 ) {
             m_worker_rng = new random_engine_type * [ m_thread_count.m_tc ];
             m_worker_off_gens = new offspring_generator_type * [ m_thread_count.m_tc ];
@@ -198,6 +194,7 @@ public:
 #endif // DEBUGGING
 
         m_child->grow( pN, all_size, m_trait_space.trait_count() );               // grow the child population accordingly
+        m_fit.resize( pN );
         generate_child_mutations( pM );
 
         bool allNeutral = m_allele_space.isAllNeutral();
