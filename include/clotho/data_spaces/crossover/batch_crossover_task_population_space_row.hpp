@@ -88,8 +88,6 @@ public:
 
         while( mate_it != mate_end ) {
 
-            unsigned int parent_idx = 2 * mate_it->first;
-
             generate_parental_crossover( 2 * mate_it->first, i++, event_dist(*m_rng), bias_dist(*m_rng) );
             generate_parental_crossover( 2 * mate_it->second, i, event_dist(*m_rng), bias_dist(*m_rng) );
 
