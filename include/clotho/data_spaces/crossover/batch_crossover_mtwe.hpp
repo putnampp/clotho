@@ -27,6 +27,12 @@
 namespace clotho {
 namespace genetics {
 
+/**
+ *
+ * Single pool of crossover events (WE => with events)
+ * Common event pool intended to make simulations more reproduceable
+ *
+ */
 template < class RNG, class SequenceSpaceType, class AlleleSpaceType >
 class BatchCrossoverMTWE {
 public:
@@ -64,6 +70,7 @@ protected:
         typedef typename crossover_task_type::event_lookup_type                     event_lookup_type;
         typedef typename crossover_task_type::bias_pool_type                        bias_pool_type;
 
+        // generate a new event pool for every generation
         event_pool_type ep = crossover_task_type::make_event_pool();
         event_lookup_type el;
 
@@ -111,6 +118,9 @@ protected:
         event_distribution_type event_dist( m_recomb_rate.m_rho );
         position_distribution_type pos_dist;
 
+        lookup.reserve( offspring_pop_size + 1);
+        events->reserve( offspring_pop_size );
+
         while( offspring_pop_size-- ) {
             lookup.push_back( events->size() );
             unsigned int N = event_dist( *m_rng );
@@ -127,6 +137,7 @@ protected:
     template < class BiasPool >
     void fill_bias_pool( BiasPool & bp, unsigned int offspring_pop_size ) {
         boost::random::bernoulli_distribution< double > bias_dist( m_seq_bias.m_bias );
+        bp.reserve( offspring_pop_size );
 
         while( offspring_pop_size-- ) {
             bp.push_back( bias_dist( *m_rng ) );
