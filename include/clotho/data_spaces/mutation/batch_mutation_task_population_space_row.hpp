@@ -49,15 +49,16 @@ public:
 
     typedef TraitSpaceGenerator2< trait_space_type >                            trait_generator_type;
     typedef typename trait_generator_type::parameter_type                       weight_parameter_type;
+    typedef typename trait_generator_type::neutral_param_type                   neutral_parameter_type;
 
-    BatchMutationTask( random_engine_type * rng, population_space_type * pop, allele_space_type * alleles, trait_space_type * traits, const_free_iterator first, const_free_iterator last, allele_generator_type & all_gen, unsigned int age, weight_parameter_type & wparam ) :
+    BatchMutationTask( random_engine_type * rng, population_space_type * pop, allele_space_type * alleles, trait_space_type * traits, const_free_iterator first, const_free_iterator last, allele_generator_type & all_gen, unsigned int age, weight_parameter_type & wparam, neutral_parameter_type & neutral_rate ) :
         m_rng( rng )
         , m_pop( pop )
         , m_alleles( alleles )
         , m_traits( traits )
         , m_free( first, last )
         , m_allele_gen( rng, all_gen )
-        , m_trait_gen( wparam )
+        , m_trait_gen( wparam, neutral_rate )
         , m_age( age )
     {}
 

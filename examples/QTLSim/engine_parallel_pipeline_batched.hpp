@@ -77,7 +77,7 @@ public:
     typedef SizeType                    size_type;
 
     typedef clotho::genetics::thread_pool2< RNG >                                                   thread_pool_type;
-    typedef clotho::genetics::AlleleSpace< position_type, block_type, size_type >                   allele_type;
+    typedef clotho::genetics::AlleleSpace< position_type, size_type >                   allele_type;
 
 #ifdef USE_VECTOR_ALIGNMENT
     typedef clotho::genetics::index_vector_alignment< unsigned int, block_type >    alignment_type;
@@ -214,7 +214,8 @@ public:
         // grow the free space buffer to a size relative to the last projected population
         m_free_space.resetBuffers( m_pop.back()->getMaxBlocks() );
 
-        bool is_all_neutral = m_allele_space.isAllNeutral();
+//        bool is_all_neutral = m_allele_space.isAllNeutral();
+        bool is_all_neutral = m_trait_space.isAllNeutral();
 
         thread_pool_type tpool( m_thread_count.m_tc );
         
@@ -430,7 +431,7 @@ protected:
 //        std::cerr << "Free space: " << m_free_space.free_size() << std::endl;
 //
         resetMutationEvents( mut_pool, mut_dist, N, off->haploid_genome_count() + 1 );
-        m_allele_space.alignNeutralToPopulation( off->getMaxBlocks() );
+//        m_allele_space.alignNeutralToPopulation( off->getMaxBlocks() );
 
         boost::random::uniform_int_distribution< unsigned int > seq_gen( 0, off->haploid_genome_count() - 1);
 

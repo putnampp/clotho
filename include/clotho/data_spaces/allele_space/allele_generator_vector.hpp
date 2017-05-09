@@ -18,7 +18,7 @@
 #include "clotho/data_spaces/allele_space/allele_space_vector.hpp"
 
 #include "clotho/data_spaces/generators/position_generator.hpp"
-#include "clotho/data_spaces/generators/neutral_generator.hpp"
+//#include "clotho/data_spaces/generators/neutral_generator.hpp"
 
 namespace clotho {
 namespace genetics {
@@ -34,26 +34,26 @@ public:
     typedef typename allele_type::position_type     position_type;
 
     typedef position_generator2< position_type > position_generator_type;
-    typedef neutral_generator2                   neutrality_generator_type;
+//    typedef neutral_generator2                   neutrality_generator_type;
 
     AlleleGenerator( boost::property_tree::ptree & config ) :
         m_rng( NULL )
-        , m_neut_gen( config )
+//        , m_neut_gen( config )
     {}
 
     AlleleGenerator( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rng( rng )
-        , m_neut_gen( config )
+//        , m_neut_gen( config )
     {}
 
     AlleleGenerator( random_engine_type * rng, const self_type & other ) :
         m_rng( rng )
-        , m_neut_gen( other.m_neut_gen )
+//        , m_neut_gen( other.m_neut_gen )
     {}
 
     AlleleGenerator( const self_type & other ) :
         m_rng( other.m_rng )
-        , m_neut_gen( other.m_neut_gen )
+//        , m_neut_gen( other.m_neut_gen )
     {}
 
     template < class FreeSpaceType >
@@ -76,9 +76,10 @@ public:
     void operator()( allele_type & all, unsigned int idx, unsigned int age ) {
         position_type p = m_pos_gen( *m_rng );
 
-        bool neu = m_neut_gen( *m_rng );
-
-        all.setAllele( idx, p, neu, age );
+//        bool neu = m_neut_gen( *m_rng );
+//        all.setAllele( idx, p, neu, age );
+//
+        all.setAllele( idx, p, age );
     }
 
     virtual ~AlleleGenerator() {}
@@ -86,7 +87,7 @@ public:
 protected:
     random_engine_type          * m_rng;
     position_generator_type     m_pos_gen;
-    neutrality_generator_type   m_neut_gen;
+//    neutrality_generator_type   m_neut_gen;
 };
 
 }   // namespace genetics

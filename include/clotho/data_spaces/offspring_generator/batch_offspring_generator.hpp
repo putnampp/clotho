@@ -250,7 +250,7 @@ protected:
             for( unsigned int i = 2 * params->o_start; i < 2 * params->o_end; ++i ) {
                 genome_pointer first = params->offspring->begin_genome( i ), last = params->offspring->end_genome( i );
 
-                m_pheno_method( first, last, m_alleles->getNeutrals() );
+                m_pheno_method( first, last );
 
                 params->offspring->updateGenomeWeights(i, m_pheno_method.getResults());
             }

@@ -68,6 +68,27 @@ public:
         return m_weights[ row ];
     }
 
+    bool isAllNeutral( ) const {
+        bool all_neutral = true;
+        for( const_iterator it = m_weights.begin(); all_neutral && it != m_weights.end(); it++ )
+            all_neutral = (*it == 0);
+        return all_neutral;
+    }
+
+/**
+ *
+ * Trait specific neutrality check
+ *
+ */
+    bool isNeutral( unsigned int all_index, unsigned int trait_index ) const {
+        unsigned int weight_index = all_index * m_trait_count + trait_index;
+        
+
+        assert( weight_index < m_weights.size() );
+
+        return (m_weights[ weight_index ] != 0);
+    }
+
 //    void setWeight( weight_type w, unsigned int row, unsigned int col ) {
 //#ifdef DEBUGGING
 //        assert( col < m_trait_count );

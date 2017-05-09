@@ -40,19 +40,16 @@ public:
         m_weight_buffer = new weight_type[ m_trait_count ];
     }
 
-    template< class AlleleType >
-    void operator()( genome_pointer first, genome_pointer last, AlleleType * all ) {
+    void operator()( genome_pointer first, genome_pointer last ) {
         resetBuffer();
 
         while( first != last ) {
             index_type idx = *first++;
 
-            if( !all->isNeutral( idx ) ) {
 
-                unsigned int k = 0, offset = idx * m_trait_count;
-                while( k < m_trait_count ) {
-                    m_weight_buffer[ k++ ] = (*m_traits)[ offset++ ];
-                }
+            unsigned int k = 0, offset = idx * m_trait_count;
+            while( k < m_trait_count ) {
+                m_weight_buffer[ k++ ] = (*m_traits)[ offset++ ];
             }
         }
     }

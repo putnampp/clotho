@@ -63,6 +63,10 @@ public:
     typedef neutral_parameter< double >     parameter_type;
     typedef bool                            result_type;
 
+    neutral_generator2( const parameter_type & param ) :
+        m_param( param )
+    {}
+
     neutral_generator2( boost::property_tree::ptree & config ) :
         m_param( config )
     {}

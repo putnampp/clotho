@@ -44,17 +44,13 @@ public:
         m_weight_buffer = new weight_type[ m_trait_count ];
     }
 
-    void operator()( genome_pointer first, genome_pointer last, block_type * neutrals ) {
+    void operator()( genome_pointer first, genome_pointer last ) {
         resetBuffer();
-
-        block_type * f = neutrals;
 
         unsigned int j = 0;
         while( first != last ) {
-            block_type n = *f++;
             block_type b = *first++;
 
-            b &= (~n); 
             unsigned int bidx = j;
             while( b ) {
                 bidx += bit_walker_type::next_and_shift(b);

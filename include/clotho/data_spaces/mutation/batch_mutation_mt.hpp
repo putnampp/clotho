@@ -40,6 +40,7 @@ public:
 
     typedef typename task_type::allele_generator_type                           allele_generator_type;
     typedef typename task_type::trait_generator_type::parameter_type            weight_parameter_type;
+    typedef typename task_type::neutral_parameter_type    neutral_parameter_type;
 
     typedef std::vector< size_type >                                            free_vector;
 
@@ -48,6 +49,7 @@ public:
     BatchMutationMT( random_engine_type * rng, boost::property_tree::ptree & config) :
         m_rng( rng )
         , m_weight_param( config )
+        , m_neutral_param( config )
         , m_base_allele_gen( rng, config )
         , m_mut_allocator( rng, config )
     {}
@@ -94,14 +96,14 @@ protected:
         while( off_idx + BATCH_SIZE < N ) {
             unsigned int off_end = off_idx + BATCH_SIZE;
 
-            task_type x( pool.getRNG( j++ ), pop, alleles, traits, free_indices.begin() + off_idx, free_indices.begin() + off_end, m_base_allele_gen, age, m_weight_param );
+            task_type x( pool.getRNG( j++ ), pop, alleles, traits, free_indices.begin() + off_idx, free_indices.begin() + off_end, m_base_allele_gen, age, m_weight_param, m_neutral_param );
             pool.post(x);
 
             off_idx = off_end;
         }
 
         if( off_idx < N ) {
-            task_type t( m_rng, pop, alleles, traits, free_indices.begin() + off_idx, free_indices.begin() + N, m_base_allele_gen, age, m_weight_param );
+            task_type t( m_rng, pop, alleles, traits, free_indices.begin() + off_idx, free_indices.begin() + N, m_base_allele_gen, age, m_weight_param, m_neutral_param );
             t();
         }
 
@@ -124,23 +126,23 @@ protected:
             // scan forward in free indices
             // find the last free index in an allele block relative to the intended block
             // this is to prevent write collisions when setting neutral bit state
-            unsigned int block_idx = free_indices[ off_end ] / allele_type::ALLELES_PER_BLOCK;
+            unsigned int block_idx = free_indices[ off_end ] / space_type::bit_helper_type::BITS_PER_BLOCK;
             while( off_end < N ) {
-                unsigned int next_block_idx = free_indices[ off_end + 1 ] / allele_type::ALLELES_PER_BLOCK;
+                unsigned int next_block_idx = free_indices[ off_end + 1 ] / space_type::bit_helper_type::BITS_PER_BLOCK;
                 if( block_idx != next_block_idx ) {
                     break;
                 }
                 ++off_end;
             }
 
-            task_type x( pool.getRNG( j++ ), pop, alleles, traits, free_indices.begin() + off_idx, free_indices.begin() + off_end, m_base_allele_gen, age, m_weight_param );
+            task_type x( pool.getRNG( j++ ), pop, alleles, traits, free_indices.begin() + off_idx, free_indices.begin() + off_end, m_base_allele_gen, age, m_weight_param, m_neutral_param );
             pool.post(x);
 
             off_idx = off_end;
         }
 
         if( off_idx <  N ) {
-            task_type t( m_rng, pop, alleles, traits, free_indices.begin() + off_idx, free_indices.begin() + N, m_base_allele_gen, age, m_weight_param );
+            task_type t( m_rng, pop, alleles, traits, free_indices.begin() + off_idx, free_indices.begin() + N, m_base_allele_gen, age, m_weight_param, m_neutral_param );
             t();
         }
 
@@ -150,6 +152,7 @@ protected:
     random_engine_type      * m_rng;
 
     weight_parameter_type   m_weight_param;
+    neutral_parameter_type  m_neutral_param;
 
     allele_generator_type   m_base_allele_gen;
 

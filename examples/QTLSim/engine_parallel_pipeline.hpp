@@ -71,7 +71,7 @@ public:
     typedef SizeType                    size_type;
 
     typedef clotho::genetics::thread_pool2< RNG >                                                   thread_pool_type;
-    typedef clotho::genetics::AlleleSpace< position_type, block_type, size_type >                   allele_type;
+    typedef clotho::genetics::AlleleSpace< position_type, size_type >                   allele_type;
 
 #ifdef USE_VECTOR_ALIGNMENT
     typedef clotho::genetics::index_vector_alignment< unsigned int, block_type >    alignment_type;
@@ -197,7 +197,8 @@ public:
         m_fit.resize( pN );
         generate_child_mutations( pM );
 
-        bool allNeutral = m_allele_space.isAllNeutral();
+//        bool allNeutral = m_allele_space.isAllNeutral();
+        bool allNeutral = m_trait_space.isAllNeutral();
 
         thread_pool_type tpool( m_thread_count.m_tc );
         
@@ -330,7 +331,7 @@ protected:
 //
         resetMutationEvents( N );
 
-        m_allele_space.alignNeutralToPopulation( m_child->getMaxBlocks() );
+//        m_allele_space.alignNeutralToPopulation( m_child->getMaxBlocks() );
 
         boost::random::uniform_int_distribution< unsigned int > seq_gen( 0, m_child->haploid_genome_count() - 1);
         typename free_space_type::base_type::iterator it = m_free_space.free_begin(), end = m_free_space.free_end();

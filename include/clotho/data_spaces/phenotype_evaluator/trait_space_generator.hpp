@@ -16,6 +16,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include "clotho/data_spaces/generators/weight_parameter.hpp"
+#include "clotho/data_spaces/generators/neutral_generator.hpp"
 
 namespace clotho {
 namespace genetics {
@@ -30,20 +31,25 @@ public:
     typedef typename trait_space_type::weight_type  weight_type;
 
     typedef weight_parameter< weight_type >         parameter_type;
+    typedef neutral_generator2                      neutrality_generator_type;
+    typedef typename neutrality_generator_type::parameter_type      neutral_param_type;
 
     TraitSpaceGenerator( random_engine_type * rng, boost::property_tree::ptree & config ) :
         m_rng( rng )
         , m_weights( config )
+        , m_neutral( config )
     {}
 
-    TraitSpaceGenerator( random_engine_type * rng, const parameter_type & param ) :
+    TraitSpaceGenerator( random_engine_type * rng, const parameter_type & param, const neutral_param_type & nparam ) :
         m_rng( rng )
         , m_weights( param )
+        , m_neutral( nparam)
     {}
 
     TraitSpaceGenerator( const self_type & other ) :
         m_rng( other.m_rng )
         , m_weights( other.m_weights )
+        , m_neutral( other.m_neutral )
     {}
 
     template < class FreeSpaceType >
@@ -66,7 +72,10 @@ public:
     void operator()( trait_space_type & traits, unsigned int offset ) {
         unsigned int i = 0;
         while( i < traits.trait_count() ) {
-            traits.setWeight( m_weights.m_dist( *m_rng ), offset, i );
+            weight_type w = 0;
+            if( !m_neutral( *m_rng ) )
+                w = m_weights.m_dist( *m_rng );
+            traits.setWeight( w, offset, i );
             ++i;
         }
     }
@@ -76,6 +85,7 @@ public:
 protected:
     random_engine_type  * m_rng;
     parameter_type      m_weights;
+    neutrality_generator_type m_neutral;
 };
 
 template < class TraitSpaceType >
@@ -87,24 +97,32 @@ public:
     typedef typename trait_space_type::weight_type  weight_type;
 
     typedef weight_parameter< weight_type >         parameter_type;
+    typedef neutral_generator2                      neutrality_generator_type;
+    typedef typename neutrality_generator_type::parameter_type      neutral_param_type;
 
     TraitSpaceGenerator2( boost::property_tree::ptree & config ) :
         m_weights( config )
+        , m_neutral( config )
     {}
 
-    TraitSpaceGenerator2( const parameter_type & param ) :
+    TraitSpaceGenerator2( const parameter_type & param, const neutral_param_type & neut_rate ) :
         m_weights( param )
+        , m_neutral( neut_rate )
     {}
     
     TraitSpaceGenerator2( const self_type & other ) :
         m_weights( other.m_weights )
+        , m_neutral( other.m_neutral )
     {}
     
     template < class Engine >
     void operator()( Engine & eng, trait_space_type & traits, unsigned int offset ) {
         unsigned int i = 0;
         while( i < traits.trait_count() ) {
-            weight_type w = m_weights.m_dist( eng );
+
+            weight_type w = 0;
+            if( !m_neutral( eng ) )
+                w = m_weights.m_dist( eng );
             traits.setWeight( w, offset, i );
             ++i;
         }
@@ -114,6 +132,7 @@ public:
 protected:
 
     parameter_type m_weights;
+    neutrality_generator_type m_neutral;
 };
 
 }   // namespace genetics

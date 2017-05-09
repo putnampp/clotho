@@ -82,7 +82,7 @@ public:
     typedef SizeType                    size_type;
 
     typedef clotho::genetics::thread_pool< RNG >                                                    thread_pool_type;
-    typedef clotho::genetics::AlleleSpace< position_type, block_type, size_type >                   allele_type;
+    typedef clotho::genetics::AlleleSpace< position_type, size_type >                   allele_type;
 
 #ifdef USE_ROW_MODIFICATION
     typedef clotho::genetics::population_space_row_modified< block_type, weight_type >                       sequence_space_type;
@@ -190,7 +190,7 @@ public:
 #endif // DEBUGGING
 
         m_child->grow( pN, all_size, m_trait_space.trait_count() );               // grow the child population accordingly
-        m_allele_space.alignNeutralToPopulation( m_child->getMaxBlocks() );
+//        m_allele_space.alignNeutralToPopulation( m_child->getMaxBlocks() );
 
         select_gen.update( m_fit, pN );
 
@@ -203,7 +203,8 @@ public:
         mutate_time.stop();
 
         timer_type pheno_time;
-        if( !m_allele_space.isAllNeutral() ) {
+        //if( !m_allele_space.isAllNeutral() ) {
+        if( !m_trait_space.isAllNeutral() ) {
             m_pheno( m_parent, m_child, &m_trait_space, m_thread_pool );
         } else {
             m_pheno.constant_phenotype( m_child, &m_trait_space );
