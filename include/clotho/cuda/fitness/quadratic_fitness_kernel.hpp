@@ -18,6 +18,35 @@
 #include <cuda.h>
 
 template < class RealType >
+__global__ void quadratic_fitness_kernel( basic_data_space< RealType > * phenos, RealType scale_coeff, RealType * fdata, unsigned int M ) {
+    typedef RealType real_type;
+
+    // individual index
+    unsigned int ind_idx = threadIdx.y * blockDim.x + threadIdx.x;
+
+    unsigned int N = phenos->size;
+
+    assert( N == 2 * M );
+
+    real_type * pdata = phenos->data;
+
+    while( ind_idx < M ) {
+        // assumes individual's sequence phenotypes are adjacent in memory
+        real_type x = pdata[2 * ind_idx];
+        x += pdata[ 2 * ind_idx + 1 ];
+
+        x /= scale_coeff;
+        x *= x;
+
+        // x = 1.0 - ((real_type)(x > 1.0)* 1.0) - ((real_type)(x < 1.0) * x)
+        x = (( x > 1.0 ) ? 0.0 : (1.0 - x));
+
+        fdata[ind_idx] = x;
+        ind_idx += (blockDim.x * blockDim.y);
+    }
+}
+
+template < class RealType >
 __global__ void quadratic_fitness_kernel( basic_data_space< RealType > * phenos, RealType scale_coeff, basic_data_space< RealType > * fitness ) {
     typedef RealType real_type;
 

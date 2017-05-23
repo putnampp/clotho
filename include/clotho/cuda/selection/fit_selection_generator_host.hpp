@@ -37,7 +37,8 @@ struct host_discrete_distribution {};
 template < class IntType, class RealType >
 class FitSelectionGenerator< IntType, RealType, host_discrete_distribution > : public clotho::utility::iStateObject {
 public:
-    typedef basic_data_space< IntType >                     event_space_type;
+//    typedef basic_data_space< IntType >                     event_space_type;
+    typedef IntType                                       event_space_type;
 
 //    typedef clotho::cuda::curand_state_pool             state_pool_type;
 //
@@ -50,51 +51,36 @@ public:
     typedef clotho::utility::BitHelper< IntType >      bit_helper_type;
 
     FitSelectionGenerator( boost::property_tree::ptree & config ) :
-        dParentIndices(NULL)
-        , m_seq_bias( config )
+         m_seq_bias( config )
+        , dParentIndices(NULL)
         , localParentIndices( NULL )
+        , localFitness( NULL )
         , m_parent_size( 0 )
+        , m_current_parent_size(0)
+        , m_fitness_capacity(0)
     {
-//        state_pool_type::getInstance()->initialize( config );
-        create_space( dParentIndices );
-
         seed_parameter< > seed( config );
 
         m_rng.seed( seed.m_seed );
     }
 
-    template < class PopulationSpaceType, class FitnessSpaceType >
-    void generate( PopulationSpaceType * parent_pop, PopulationSpaceType * child_pop, FitnessSpaceType * fitness, unsigned int N ) {
-        FitnessSpaceType local_fit;
-        cudaError_t err = cudaMemcpy( &local_fit, fitness, sizeof( FitnessSpaceType ), cudaMemcpyDeviceToHost );
-        if( err != cudaSuccess ) {
-            std::cerr << "ERROR: " << cudaGetErrorString( err ) << std::endl;
-            assert(false);
-        }
+    void generate( RealType * fitness, unsigned int N ) {
 
-        buildDiscrete( local_fit, N );
+        buildParentIndices( fitness, N );
 
-        // resize the devices vector
-        resize_space( dParentIndices, N );
-        // update the hosts copy of the device object (gain device pointer)
-        err = cudaMemcpy( &hParentIndices, dParentIndices, sizeof( event_space_type ), cudaMemcpyDeviceToHost );
+        cudaError_t err = cudaMemcpy(dParentIndices, localParentIndices, N * sizeof( IntType ), cudaMemcpyHostToDevice );
         if( err != cudaSuccess ) {
             std::cerr << "ERROR: " << cudaGetErrorString( err ) << std::endl;
             assert( false );
         }
 
-        err = cudaMemcpy( hParentIndices.data, localParentIndices, N * sizeof( IntType ), cudaMemcpyHostToDevice );
-        if( err != cudaSuccess ) {
-            std::cerr << "ERROR: " << cudaGetErrorString( err ) << std::endl;
-            assert( false );
-        }
     }
 
-    template < class PopulationSpaceType, class FitnessSpaceType >
-    void generate_and_recombine( PopulationSpaceType * parent_pop, PopulationSpaceType * child_pop, FitnessSpaceType * fitness, unsigned int N ) {
-        generate( parent_pop, child_pop, fitness, N );
+    template < class PopulationSpaceType >
+    void generate_and_recombine( PopulationSpaceType * parent_pop, PopulationSpaceType * child_pop, RealType * fitness, unsigned int N ) {
+        generate( fitness, N );
 
-        clotho::utility::algo_version< 2 > * v = NULL;
+        clotho::utility::algo_version< 3 > * v = NULL;
         recombine_parents_kernel<<< 10, 1024 >>>( parent_pop->sequences.get_device_space()
                                                 , dParentIndices
                                                 , child_pop->sequences.get_device_space()
@@ -107,18 +93,24 @@ public:
     }
 
     void get_state( boost::property_tree::ptree & state ) {
-//        boost::property_tree::ptree fit;
-//        m_discrete.get_state( fit );
-
         boost::property_tree::ptree evts;
-        get_device_object_state( evts, dParentIndices );
 
-//        state.add_child( "distribution", fit );
+        for( unsigned int i = 0; i < m_parent_size; ++i ) {
+            clotho::utility::add_value_array( evts, localParentIndices[i] );
+        }
+
         state.add_child( "events", evts );
     }
 
     virtual ~FitSelectionGenerator() {
-        delete_space( dParentIndices );
+        if( localParentIndices != NULL ) {
+            delete [] localParentIndices;
+            cudaFree( dParentIndices );
+        }
+
+        if( localFitness != NULL ) {
+            delete [] localFitness;
+        }
     }
 
 protected:
@@ -127,50 +119,67 @@ protected:
         if( N > m_parent_size ) {
             if( localParentIndices != NULL ) {
                 delete [] localParentIndices;
+                cudaFree( dParentIndices );
             }
 
-            localParentIndices = new IntType[ N ];
+            assert( cudaMalloc( (void **) &dParentIndices, N * sizeof(IntType ) ) == cudaSuccess );
 
+            localParentIndices = new IntType[ N ];
             m_parent_size = N;
+        }
+
+        if( N > m_fitness_capacity ) {
+            if( localFitness != NULL ) {
+                delete [] localFitness;
+            }
+
+            localFitness = new RealType[ N ];
+
+            m_fitness_capacity = N;
         }
     }
 
-    template < class WeightType >
-    void buildDiscrete( basic_data_space< WeightType > & discrete_weights, unsigned int N ) {
+    void buildParentIndices( RealType * fitness, unsigned int N ) {
         resize( N );
 
-        typedef typename basic_data_space< WeightType >::value_type value_type;
+        if( m_current_parent_size == 0 ) {
+            for( unsigned int i = 0; i < N; ++i ) {
+                localParentIndices[ i ] = 0;
+            }
+        } else {
 
-        value_type * data = new value_type[ discrete_weights.size ];
+            cudaError_t err = cudaMemcpy( &localFitness, fitness, m_current_parent_size * sizeof( RealType ), cudaMemcpyDeviceToHost );
+            if( err != cudaSuccess ) {
+                std::cerr << "ERROR: " << cudaGetErrorString( err ) << std::endl;
+                assert(false);
+            }
 
-        copy_heap_data( data, discrete_weights.data, discrete_weights.size );
+            discrete_dist_type dist( localFitness, localFitness + m_current_parent_size );
 
-        discrete_dist_type dist( data, data + discrete_weights.size );
+            for( unsigned int i = 0; i < N; ++i ) {
+               
+                localParentIndices[ i ] = dist( m_rng );
 
-        for( unsigned int i = 0; i < N; ++i ) {
-           
-            localParentIndices[ i ] = dist( m_rng );
-
-            if( m_bern( m_rng ) ) {
-                localParentIndices[ i ] |= bit_helper_type::MSB_SET;  
+                if( m_bern( m_rng ) ) {
+                    localParentIndices[ i ] |= bit_helper_type::MSB_SET;  
+                }
             }
         }
 
-        delete [] data;
+        m_current_parent_size = N / 2;
     }
 
     random_engine_type  m_rng;
-    event_space_type    hParentIndices;
-    event_space_type    * dParentIndices;
-
     sequence_bias_type  m_seq_bias;
-
     bernoulli_type  m_bern;
+
+    IntType         * dParentIndices;
     IntType         * localParentIndices;
 
-    RealType        * localWeights;
+    RealType        * localFitness;
 
     unsigned int m_parent_size;
+    unsigned int m_current_parent_size, m_fitness_capacity;
 };
 
 #endif  // FIT_SELECTION_GENERATOR_HOST_HPP_

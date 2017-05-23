@@ -172,4 +172,80 @@ __global__ void recombine_parents_kernel( device_sequence_space< IntType > * par
     }
 }
 
+template < class IntType >
+__global__ void recombine_parents_kernel( device_sequence_space< IntType > * parents
+                                        , IntType * evts
+                                        , device_sequence_space< IntType > * offspring 
+                                        , clotho::utility::algo_version< 3 > * v) {
+
+    typedef device_sequence_space< IntType > sequence_space_type;
+    typedef typename sequence_space_type::int_type  sequence_int_type;
+
+    unsigned int tpb = blockDim.x * blockDim.y;
+    assert( (tpb & 31) == 0 );  // all warps are full
+
+    unsigned int wpb = (tpb >> 5);
+    unsigned int bpg = gridDim.x * gridDim.y;
+    unsigned int spg = wpb * bpg;
+
+    unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int bid = blockIdx.y * gridDim.x + blockIdx.x;
+
+    unsigned int lane_id = (tid & 31);
+    unsigned int warp_id = (tid >> 5 );
+
+    unsigned int parent_width = parents->seq_width;
+    unsigned int off_width = offspring->seq_width;
+    unsigned int off_count = offspring->seq_count;
+
+    sequence_int_type   * par_seqs = parents->sequences;
+    sequence_int_type   * off_seqs = offspring->sequences;
+
+    unsigned int max_off_count = off_count / wpb;
+    max_off_count += ((off_count % wpb) ? 1 : 0);
+    max_off_count *= wpb;
+
+    unsigned int off_id = (bid * wpb) + warp_id;
+    
+    while(off_id < max_off_count ) {    // allows blocks to terminate 'early'
+        unsigned int pidx = 0;
+        if( off_id < off_count ) {  // true for all threads in warp
+            pidx = evts[off_id];
+        }
+        __syncthreads();
+
+        unsigned int p_end = (pidx + 1) * parent_width;
+        unsigned int p_start = p_end - ((off_id < off_count) ? parent_width : 0);
+        p_start += lane_id;
+
+        unsigned int end = (off_id + 1) * off_width;
+        unsigned int start = end - ((off_id < off_count) ? off_width : 0);
+        start += lane_id;
+
+        int _width = ((pidx & 1) ? -parent_width : parent_width);
+        while( p_start < p_end ) {
+            sequence_int_type p0 = par_seqs[ p_start ];
+            sequence_int_type p1 = par_seqs[ p_start + _width ] ;
+
+            sequence_int_type cross = off_seqs[ start ];
+
+            sequence_int_type off = ((p0 & ~cross) | (p1 & cross));
+
+            off_seqs[ start ] = off;
+
+            p_start += 32;
+            start += 32;
+        }
+        __syncthreads();
+
+        // clear the tail of a offspring sequence
+        while( start < end ) {
+            off_seqs[ start ] = 0;
+            start += 32;
+        }
+        __syncthreads();
+
+        off_id += spg;
+    }
+}
 #endif  // RECOMBINE_PARENTS_HPP_

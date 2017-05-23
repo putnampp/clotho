@@ -20,6 +20,8 @@
 #include "clotho/utility/state_object.hpp"
 #include "clotho/utility/log_helper.hpp"
 
+#include "clotho/cuda/curand_state_pool.hpp"
+
 #include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
 #include "clotho/cuda/mutation/mutation_event_generator.hpp"
 
@@ -39,7 +41,7 @@
 
 #include "clotho/utility/timer.hpp"
 
-#include "clotho/cuda/fitness/quadratic_fitness_translator.hpp"
+#include "clotho/cuda/fitness/quadratic_fitness_translators.hpp"
 #include "clotho/cuda/data_spaces/population_space/sample_population.hpp"
 
 template < class PopulationSpaceType > 
@@ -66,12 +68,12 @@ public:
     //typedef SelectionEventGenerator                                 selection_generator_type;
 #ifdef USE_HOST_DISCRETE
 #define SELECTION_METHOD host_discrete_distribution
+    typedef QuadraticFitnessTranslator2< typename population_space_type::phenotype_space_type >                 fitness_type;
 #else
 #define SELECTION_METHOD cuda_discrete_distribution
+    typedef QuadraticFitnessTranslator< typename population_space_type::phenotype_space_type >                 fitness_type;
 #endif  // USE_HOST_DISCRETE
     typedef FitSelectionGenerator< int_type, real_type, SELECTION_METHOD >            selection_generator_type;
-
-    typedef QuadraticFitnessTranslator< typename population_space_type::phenotype_space_type >                 fitness_type;
 
     typedef clotho::utility::timer                                  timer_type;
 
@@ -91,6 +93,9 @@ public:
         , pair_diff( config )
     {
         parse_config( config );
+
+        clotho::cuda::curand_state_pool::getInstance()->initialize( config );
+
         initialize();
     }
 
