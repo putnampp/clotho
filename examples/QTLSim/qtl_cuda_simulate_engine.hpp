@@ -30,7 +30,7 @@
 #endif  // USE_OFFSPRING_CROSSOVER
 
 //#include "clotho/cuda/selection/selection_event_generator.hpp"
-#include "clotho/cuda/selection/fit_selection_generator.hpp"
+#include "clotho/cuda/selection/fit_selection_generators.hpp"
 #include "clotho/cuda/phenotype/phenotype_translator.hpp"
 
 #include "clotho/cuda/analysis/allele_frequency.hpp"
@@ -64,7 +64,12 @@ public:
 #endif  // USE_OFFSPRING_CROSSOVER
 
     //typedef SelectionEventGenerator                                 selection_generator_type;
-    typedef FitSelectionGenerator< int_type, real_type >            selection_generator_type;
+#ifdef USE_HOST_DISCRETE
+#define SELECTION_METHOD host_discrete_distribution
+#else
+#define SELECTION_METHOD cuda_discrete_dsitribution
+#endif  // USE_HOST_DISCRETE
+    typedef FitSelectionGenerator< int_type, real_type, SELECTION_METHOD >            selection_generator_type;
 
     typedef QuadraticFitnessTranslator< typename population_space_type::phenotype_space_type >                 fitness_type;
 
@@ -100,14 +105,14 @@ public:
         current_pop->resize( prev_pop, dMutations, cur_seq_count );
 
 #ifdef USE_OFFSPRING_CROSSOVER
-        sel_gen.generate( prev_pop, current_pop, fit_trans.get_device_space() );
+        sel_gen.generate( prev_pop, current_pop, fit_trans.get_device_space(), cur_seq_count );
         xover_gen( prev_pop, sel_gen.get_device_space(), current_pop );
 #else
         // use the memory for the current population as an intermediate buffer
         // fill it with crossover maskings
         xover_gen( current_pop );
         // recombine parents 
-        sel_gen.generate_and_recombine( prev_pop, current_pop, fit_trans.get_device_space() );
+        sel_gen.generate_and_recombine( prev_pop, current_pop, fit_trans.get_device_space(), cur_seq_count );
 #endif  // USE_OFFSPRING_CROSSOVER
 
         mut_gen.scatter( current_pop, dMutations, cur_seq_count );

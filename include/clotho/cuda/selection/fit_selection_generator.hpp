@@ -27,8 +27,12 @@
 
 #include "clotho/cuda/device_state_object.hpp"
 
+#include "clotho/cuda/selection/fit_selection_generator_def.hpp"
+
+struct cuda_discrete_distribution {};
+
 template < typename IntType, typename RealType >
-class FitSelectionGenerator : public clotho::utility::iStateObject {
+class FitSelectionGenerator< IntType, RealType, cuda_discrete_distribution > : public clotho::utility::iStateObject {
 public:
     typedef basic_data_space< IntType > event_space_type;
     
@@ -46,7 +50,7 @@ public:
     }
 
     template < class PopulationSpaceType, class FitnessSpaceType >
-    void generate( PopulationSpaceType * parent_pop, PopulationSpaceType * child_pop, FitnessSpaceType * fitness ) {
+    void generate( PopulationSpaceType * parent_pop, PopulationSpaceType * child_pop, FitnessSpaceType * fitness, unsigned int N ) {
         m_discrete.initialize_table( fitness );
         CHECK_LAST_KERNEL_EXEC
 
@@ -62,7 +66,7 @@ public:
     }
 
     template < class PopulationSpaceType, class FitnessSpaceType >
-    void generate_and_recombine( PopulationSpaceType * parent_pop, PopulationSpaceType * child_pop, FitnessSpaceType * fitness ) {
+    void generate_and_recombine( PopulationSpaceType * parent_pop, PopulationSpaceType * child_pop, FitnessSpaceType * fitness, unsigned int N ) {
         generate( parent_pop, child_pop, fitness );
 
         clotho::utility::algo_version< 2 > * v = NULL;
