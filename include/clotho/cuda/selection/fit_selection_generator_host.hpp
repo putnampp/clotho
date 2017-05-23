@@ -34,7 +34,7 @@
 
 struct host_discrete_distribution {};
 
-template < typename IntType, typename RealType >
+template < class IntType, class RealType >
 class FitSelectionGenerator< IntType, RealType, host_discrete_distribution > : public clotho::utility::iStateObject {
 public:
     typedef basic_data_space< IntType >                     event_space_type;
@@ -42,12 +42,12 @@ public:
 //    typedef clotho::cuda::curand_state_pool             state_pool_type;
 //
 //    typedef DiscreteDistribution< IntType, RealType >   discrete_dist_type;
-    typedef boost:random::mt19937                                       random_engine_type;
+    typedef boost::random::mt19937                                       random_engine_type;
     typedef boost::random::discrete_distribution< IntType, RealType >   discrete_dist_type;
     typedef boost::random::bernoulli_distribution< double >             bernoulli_type;
     typedef sequence_bias_parameter< RealType >         sequence_bias_type;
 
-    typedef clotho::utility::bit_helper< IntType >      bit_helper_type;
+    typedef clotho::utility::BitHelper< IntType >      bit_helper_type;
 
     FitSelectionGenerator( boost::property_tree::ptree & config ) :
         dParentIndices(NULL)
@@ -113,8 +113,8 @@ public:
         boost::property_tree::ptree evts;
         get_device_object_state( evts, dParentIndices );
 
-        state.add_child( "distribution", fit );
-//        state.add_child( "events", evts );
+//        state.add_child( "distribution", fit );
+        state.add_child( "events", evts );
     }
 
     virtual ~FitSelectionGenerator() {
@@ -124,7 +124,7 @@ public:
 protected:
 
     void resize( unsigned int N ) {
-        if( N > m_size ) {
+        if( N > m_parent_size ) {
             if( localParentIndices != NULL ) {
                 delete [] localParentIndices;
             }
@@ -135,7 +135,7 @@ protected:
         }
     }
 
-    template < class PopulationSpaceType, class WeightType >
+    template < class WeightType >
     void buildDiscrete( basic_data_space< WeightType > & discrete_weights, unsigned int N ) {
         resize( N );
 

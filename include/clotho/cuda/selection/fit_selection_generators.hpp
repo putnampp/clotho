@@ -14,7 +14,7 @@
 #ifndef FIT_SELECTION_GENERATORS_HPP_
 #define FIT_SELECTION_GENERATORS_HPP_
 
-#include "clohto/cuda/selection/fit_selection_generator_def.hpp"
+#include "clotho/cuda/selection/fit_selection_generator_def.hpp"
 
 #include "clotho/cuda/selection/fit_selection_generator.hpp"
 #include "clotho/cuda/selection/fit_selection_generator_host.hpp"

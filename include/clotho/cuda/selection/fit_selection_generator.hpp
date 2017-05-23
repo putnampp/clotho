@@ -31,7 +31,7 @@
 
 struct cuda_discrete_distribution {};
 
-template < typename IntType, typename RealType >
+template < class IntType, class RealType >
 class FitSelectionGenerator< IntType, RealType, cuda_discrete_distribution > : public clotho::utility::iStateObject {
 public:
     typedef basic_data_space< IntType > event_space_type;
@@ -67,7 +67,7 @@ public:
 
     template < class PopulationSpaceType, class FitnessSpaceType >
     void generate_and_recombine( PopulationSpaceType * parent_pop, PopulationSpaceType * child_pop, FitnessSpaceType * fitness, unsigned int N ) {
-        generate( parent_pop, child_pop, fitness );
+        generate( parent_pop, child_pop, fitness, N );
 
         clotho::utility::algo_version< 2 > * v = NULL;
         recombine_parents_kernel<<< 10, 1024 >>>( parent_pop->sequences.get_device_space()

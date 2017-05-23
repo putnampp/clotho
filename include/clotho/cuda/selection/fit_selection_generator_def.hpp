@@ -14,7 +14,7 @@
 #ifndef FIT_SELECTION_GENERATOR_DEF_HPP_
 #define FIT_SELECTION_GENERATOR_DEF_HPP_
 
-template< typename IntType, typename RealType, class MethodType >
+template< class IntType, class RealType, class MethodType >
 class FitSelectionGenerator;
 
 #endif  // FIT_SELECTION_GENERATOR_DEF_HPP_

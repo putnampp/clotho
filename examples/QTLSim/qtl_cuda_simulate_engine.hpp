@@ -67,7 +67,7 @@ public:
 #ifdef USE_HOST_DISCRETE
 #define SELECTION_METHOD host_discrete_distribution
 #else
-#define SELECTION_METHOD cuda_discrete_dsitribution
+#define SELECTION_METHOD cuda_discrete_distribution
 #endif  // USE_HOST_DISCRETE
     typedef FitSelectionGenerator< int_type, real_type, SELECTION_METHOD >            selection_generator_type;
 
