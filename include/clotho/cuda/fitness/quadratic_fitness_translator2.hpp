@@ -51,6 +51,7 @@ public:
         stdev *= m_quad.m_scale;
 
         quadratic_fitness_kernel<<< 1, 1024 >>>( phenos, stdev, dFitness, N / 2 );
+
     }
 
     fitness_space_type * get_device_space() {

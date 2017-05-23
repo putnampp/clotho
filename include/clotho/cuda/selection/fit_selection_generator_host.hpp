@@ -148,7 +148,7 @@ protected:
             }
         } else {
 
-            cudaError_t err = cudaMemcpy( &localFitness, fitness, m_current_parent_size * sizeof( RealType ), cudaMemcpyDeviceToHost );
+            cudaError_t err = cudaMemcpy( localFitness, fitness, m_current_parent_size * sizeof( RealType ), cudaMemcpyDeviceToHost );
             if( err != cudaSuccess ) {
                 std::cerr << "ERROR: " << cudaGetErrorString( err ) << std::endl;
                 assert(false);
@@ -158,10 +158,11 @@ protected:
 
             for( unsigned int i = 0; i < N; ++i ) {
                
-                localParentIndices[ i ] = dist( m_rng );
+                // sequence offset
+                localParentIndices[ i ] = 2 * dist( m_rng );
 
                 if( m_bern( m_rng ) ) {
-                    localParentIndices[ i ] |= bit_helper_type::MSB_SET;  
+                    localParentIndices[ i ] += 1;  
                 }
             }
         }
