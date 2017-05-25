@@ -22,7 +22,7 @@
 #include "clotho/cuda/device_state_object.hpp"
 
 #ifndef HAMMING_VERSION
-#define HAMMING_VERSION 4
+#define HAMMING_VERSION 5
 #endif  // HAMMING_VERSION
 
 class SequenceHammingWeight : public clotho::utility::iStateObject {
@@ -46,6 +46,7 @@ public:
         _resize_space_to<<< 1, 1 >>>( dWeights, pop->sequences.get_device_space() );
         CHECK_LAST_KERNEL_EXEC
 
+        dim3 blocks( pop->seq_count, 1, 1), threads( 32, 32, 1);
         sequence_hamming_weight_kernel<<< blocks, threads >>>( pop->sequences.get_device_space(), dWeights, ver );
         CHECK_LAST_KERNEL_EXEC
     }
@@ -66,7 +67,7 @@ protected:
     }
 
     space_type * dWeights;
-    dim3 blocks, threads;
+//    dim3 blocks, threads;
     algo_version_type * ver;
 };
 

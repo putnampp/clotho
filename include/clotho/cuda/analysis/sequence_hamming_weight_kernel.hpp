@@ -304,4 +304,60 @@ __global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType >
     }
 }
 
+/**
+ *
+ * 1 block per sequence
+ *
+ */
+template < class IntType >
+__global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType > * seqs, basic_data_space< unsigned int > * res, clotho::utility::algo_version< 5 > * v ) {
+    assert( blockDim.x == 32 );
+
+    __shared__ unsigned int buffer[ 32 ];
+
+    if( threadIdx.y == 0 ) {
+        buffer[ threadIdx.x ] = 0;
+    }
+    __syncthreads();
+
+    const unsigned int WIDTH = seqs->seq_width;
+
+    IntType * seq_ptr = seqs->sequences;
+
+    unsigned int N = 0;
+    unsigned int seq_idx = blockIdx.y * gridDim.x  + blockIdx.x;
+    unsigned int seq_begin = seq_idx * WIDTH + threadIdx.y;
+    unsigned int seq_end = (seq_idx + 1) * WIDTH;
+    while( seq_begin < seq_end ) {
+        IntType x = seq_ptr[ seq_begin ];
+        N += (( x >> threadIdx.x) & 1);
+        seq_begin += blockDim.y;    
+    }
+    __syncthreads();
+
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        unsigned int t = __shfl_up( N, i );
+        N += ((unsigned int) (threadIdx.x >= i) * t);
+    }
+
+    
+    if( threadIdx.x == 31 ) {
+        buffer[ threadIdx.y ] = N;
+    }
+    __syncthreads();
+
+    if( threadIdx.y == 0 ) {
+        N = buffer[ threadIdx.x ];
+
+        for( unsigned int i = 0; i < 32; i <<= 1 ) {
+            unsigned int t = __shfl_up( N, i );
+            N += ((unsigned int) (threadIdx.x >= i) * t);
+        }
+
+        if( threadIdx.x == 31 ) {
+            res->data[ seq_idx ] = N;           
+        }
+    }
+}
+
 #endif  // SEQUENCE_HAMMING_WEIGHT_KERNEL_HPP_

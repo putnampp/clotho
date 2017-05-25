@@ -47,9 +47,12 @@ struct PopulationSpace : public clotho::utility::iStateObject {
     free_space_type         * free_space;
     phenotype_space_type    * pheno_space;
 
+    unsigned int            seq_count;
+
     PopulationSpace( boost::property_tree::ptree & config ) :
         sequences( config )
         , alleles( config )
+        , seq_count(0)
         {
         create_space( free_space );
         create_space( pheno_space );
@@ -60,7 +63,6 @@ struct PopulationSpace : public clotho::utility::iStateObject {
     }
 
     void resize( self_type * parent_pop, event_space_type * mut_events, unsigned int seqs ) {
-
         resize_space( pheno_space, seqs); 
 
         alleles.expand_relative_to( parent_pop->alleles, parent_pop->free_space, free_space, mut_events );
@@ -71,6 +73,8 @@ struct PopulationSpace : public clotho::utility::iStateObject {
         validate_free_map( free_space, mut_events );
 
         sequences.resize( alleles.get_device_space(), seqs );
+
+        seq_count = seqs;
     }
 
     void update_metadata() {
