@@ -44,10 +44,10 @@ struct PopulationSpace : public clotho::utility::iStateObject {
     sequence_space_type sequences;
     allele_space_type   alleles;
 
+    unsigned int            seq_count;
+
     free_space_type         * free_space;
     phenotype_space_type    * pheno_space;
-
-    unsigned int            seq_count;
 
     PopulationSpace( boost::property_tree::ptree & config ) :
         sequences( config )
