@@ -312,6 +312,7 @@ __global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType >
 template < class IntType >
 __global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType > * seqs, basic_data_space< unsigned int > * res, clotho::utility::algo_version< 5 > * v ) {
     assert( blockDim.x == 32 );
+    assert( blockDim.y <= 32 );
 
     __shared__ unsigned int buffer[ 32 ];
 
@@ -346,18 +347,18 @@ __global__ void sequence_hamming_weight_kernel( device_sequence_space< IntType >
     }
     __syncthreads();
 
-    if( threadIdx.y == 0 ) {
-        N = buffer[ threadIdx.x ];
+    N = buffer[ threadIdx.x ];
+    __syncthreads();
 
-        for( unsigned int i = 0; i < 32; i <<= 1 ) {
-            unsigned int t = __shfl_up( N, i );
-            N += ((unsigned int) (threadIdx.x >= i) * t);
-        }
-
-        if( threadIdx.x == 31 ) {
-            res->data[ seq_idx ] = N;           
-        }
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        unsigned int t = __shfl_up( N, i );
+        N += ((unsigned int) (threadIdx.x >= i) * t);
     }
+
+    if( threadIdx.y == 0 && threadIdx.x == 31 ) {
+        res->data[ seq_idx ] = N;           
+    }
+    __syncthreads();
 }
 
 #endif  // SEQUENCE_HAMMING_WEIGHT_KERNEL_HPP_
