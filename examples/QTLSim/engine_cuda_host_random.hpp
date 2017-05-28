@@ -20,22 +20,6 @@
 #include "clotho/utility/state_object.hpp"
 #include "clotho/utility/log_helper.hpp"
 
-#include "clotho/cuda/curand_state_pool.hpp"
-
-#include "clotho/cuda/data_spaces/event_space/device_event_space.hpp"
-
-#ifndef USE_OFFSPRING_CROSSOVER
-#include "clotho/cuda/crossover/crossover_generator.hpp"
-#else
-#include "clotho/cuda/crossover/offspring_generator.hpp"
-#endif  // USE_OFFSPRING_CROSSOVER
-
-//#include "clotho/cuda/selection/selection_event_generator.hpp"
-#include "clotho/cuda/selection/fit_selection_generators.hpp"
-#include "clotho/cuda/phenotype/phenotype_translator.hpp"
-
-#include "clotho/cuda/analysis/host_allele_frequency.hpp"
-#include "clotho/cuda/analysis/host_sequence_weight.hpp"
 //#include "clotho/cuda/analysis/pairwise_difference.hpp"
 
 #include "clotho/utility/timer.hpp"
@@ -53,6 +37,10 @@
 #include "clotho/cuda/fitness/host_fitness_translator.hpp"
 #include "clotho/cuda/data_spaces/population_space/sample_population.hpp"
 
+#include "clotho/cuda/analysis/host_allele_frequency.hpp"
+#include "clotho/cuda/analysis/host_sequence_weight.hpp"
+//#include "clotho/cuda/analysis/pairwise_difference.hpp"
+//
 #include "clotho/random/seed_parameter.hpp"
 
 #include "engine_def.hpp"
@@ -94,8 +82,6 @@ public:
         , xover_gen( config )
         , sel_gen(config)
         , fit_trans( config )
-        , seq_weight( config )
-        , pair_diff( config )
         , m_generation(0)
     {
         parse_config( config );
