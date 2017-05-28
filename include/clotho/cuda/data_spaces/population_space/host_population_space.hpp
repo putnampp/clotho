@@ -114,9 +114,36 @@ public:
         return m_seqs.getDeviceFreeSpace();
     }
 
+    unsigned int getFreeCount() const {
+        return m_seqs.getFreeCount();
+    }
+
+    unsigned int getFixedCount() const {
+        return m_seqs.getFixedCount();
+    }
+
+    unsigned int getLostCount() const {
+        return m_seqs.getLostCount();
+    }
+
     void get_state( boost::property_tree::ptree & state ) {
-        boost::property_tree::ptree s;
+        updateHost();
+
+        boost::property_tree::ptree s, p, f, d;
         m_seqs.get_state( s );
+        m_phenos.get_state( p );
+
+        for( unsigned int i = 0; i < m_size; ++i ) {
+            clotho::utility::add_value_array( d, m_hFitness[ i ] );
+        }
+
+        f.put( "size", m_size );
+        f.put( "capacity", m_capacity );
+        f.put_child( "data", d );
+
+        state.put_child( "sequence_space", s );
+        state.put_child( "phenotype_space", p );
+        state.put_child( "fitness", f );
     }
 
     virtual ~HostPopulationSpace() { 

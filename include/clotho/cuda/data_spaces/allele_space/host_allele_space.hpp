@@ -36,7 +36,17 @@ public:
     }
 
     void get_state( boost::property_tree::ptree & state ) {
+        boost::property_tree::ptree l, a;
 
+        for( unsigned int i = 0; i < m_size; ++i ) {
+            clotho::utility::add_value_array( l, m_hLoc[ i ] );
+            clotho::utility::add_value_array( a, m_hAge[ i ] );
+        }
+
+        state.put( "size", m_size );
+        state.put( "capacity", m_capacity );
+        state.put_child( "locations", l);
+        state.put_child( "age", a);
     }
 
     size_t getAlleleCount() const {

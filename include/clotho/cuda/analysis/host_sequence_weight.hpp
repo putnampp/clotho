@@ -28,6 +28,15 @@ public:
 
     void get_state( boost::property_tree::ptree & s ) {
         updateHost();
+
+        boost::property_tree::ptree d;
+        for( unsigned int i = 0; i < m_size; ++i ) {
+            clotho::utility::add_value_array( d, m_hSeqWeights[ i ] );
+        }
+
+        s.put("size", m_size);
+        s.put("capacity", m_capacity );
+        s.add_child("data", d);
     }
 
     void updateHost() {

@@ -147,9 +147,17 @@ public:
 */
     }
 
+    void trackStats() {
+        clotho::utility::add_value_array( m_allele_track, alleles.getAlleleCount() );
+        clotho::utility::add_value_array( m_free_track, prev_pop->getFreeCount() );
+        clotho::utility::add_value_array( m_fixed_track, fixed_alleles.getAlleleCount());
+    }
+
     void recordFixed( population_space_type * pop ) {
         // update host downloads free/fixed space from device to host
         pop->updateHost();
+
+        if( pop->getFixedCount() == 0 ) return;
 
         block_type * fixed = pop->getFreeSpace();
         unsigned int N = pop->getBlocksPerSequence();
@@ -216,6 +224,12 @@ public:
 //
 ////        pair_diff.get_state( samp_res );
 //        samp_res.put( "rt", t.elapsed_long());
+    }
+
+    void get_tracked_states( boost::property_tree::ptree & state ) {
+        state.put_child( "allele_space.sizes", m_allele_track );
+        state.put_child( "free_space.sizes", m_free_track );
+        state.put_child( "fixed_space.sizes", m_fixed_track );
     }
 
     void get_state( boost::property_tree::ptree & state ) {
@@ -299,6 +313,8 @@ protected:
 
     unsigned int                m_generation;
 //    boost::property_tree::ptree dev_space;
+//
+    boost::property_tree::ptree m_allele_track, m_free_track, m_fixed_track;
 };
 
 #endif  // ENGINE_CUDA_HOST_RANDOM_HPP_

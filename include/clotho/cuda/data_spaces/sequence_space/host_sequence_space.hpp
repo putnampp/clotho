@@ -16,6 +16,7 @@
 
 #include "clotho/utility/bit_helper.hpp"
 #include "clotho/cuda/free_space/offset_enum.hpp"
+#include "clotho/utility/popcount.hpp"
 
 template < class IntType >
 class HostSequenceSpace : public clotho::utility::iStateObject {
@@ -35,11 +36,16 @@ public:
         , m_allele_count(0)
         , m_seq_count(0)
         , m_capacity(0)
+        , m_lost_count(0)
+        , m_fixed_count(0)
+        , m_free_count(0)
     {}
 
     void updateHost() {
         if( m_hFreeSpace != NULL ) {
             cudaMemcpy( m_hFreeSpace, m_dFreeSpace, 3 * m_blocks_per_seq * sizeof( int_type ), cudaMemcpyDeviceToHost );
+
+            evaluateFreeSpace();
         }
     }
 
@@ -97,8 +103,24 @@ public:
         return m_dFreeSpace;
     }
 
-    void get_state( boost::property_tree::ptree & state ) {
+    unsigned int getLostCount() const {
+        return m_lost_count;
+    }
 
+    unsigned int getFreeCount() const {
+        return m_free_count;
+    }
+
+    unsigned int getFixedCount() const {
+        return m_fixed_count;
+    }
+
+    void get_state( boost::property_tree::ptree & state ) {
+        state.put( "dimensions.rows", m_seq_count );
+        state.put( "dimensions.blocks_per_row", m_blocks_per_seq);
+        state.put( "dimensions.bytes_per_block", sizeof( int_type ) );
+        state.put( "size", m_seq_count * m_blocks_per_seq );
+        state.put( "capacity", m_capacity );
     }
 
     virtual ~HostSequenceSpace() {
@@ -110,11 +132,32 @@ public:
     }
 protected:
 
+    void evaluateFreeSpace() {
+        m_lost_count = 0;
+        for( unsigned int i = LOST_OFFSET * m_blocks_per_seq; i < (LOST_OFFSET + 1) * m_blocks_per_seq; ++i ) {
+            int_type b = m_hFreeSpace[ i ];
+            m_lost_count += popcount( b );
+        }
+        m_fixed_count = 0;
+        for( unsigned int i = FIXED_OFFSET * m_blocks_per_seq; i < (FIXED_OFFSET + 1) * m_blocks_per_seq; ++i ) {
+            int_type b = m_hFreeSpace[ i ];
+            m_fixed_count += popcount( b );
+        }
+
+        m_free_count = 0;
+        for( unsigned int i = FREE_OFFSET * m_blocks_per_seq; i < (FREE_OFFSET + 1) * m_blocks_per_seq; ++i ) {
+            int_type b = m_hFreeSpace[ i ];
+            m_free_count += popcount( b );
+        }
+    }
+
     int_type    * m_dSeqSpace;
 
     int_type    * m_hFreeSpace, * m_dFreeSpace;
 
-    size_t      m_blocks_per_seq, m_seq_count, m_allele_count;
-    size_t      m_size, m_capacity;
+    unsigned int m_blocks_per_seq, m_seq_count, m_allele_count;
+    size_t      m_capacity;
+
+    unsigned int m_lost_count, m_fixed_count, m_free_count;
 };
 #endif  // HOST_SEQUENCE_SPACE_HPP_

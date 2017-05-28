@@ -117,7 +117,9 @@ int main( int argc, char ** argv ) {
         sim_engine.simulate(p_size);
         t.stop();
 
-#ifndef USE_CUDA_HOST_RANDOM
+#ifdef USE_CUDA_HOST_RANDOM
+        sim_engine.trackStats();
+#else
         stats.track( sim_engine.get_offspring_population(), (gen - 1) );
 #endif  // USE_CUDA_HOST_RANDOM
 
@@ -189,11 +191,12 @@ int main( int argc, char ** argv ) {
 //    _mem.put_child( "allele_count", a_count);
 //    _mem.put_child( "variable_count", var_count);
 
-#ifndef USE_CUDA_HOST_RANDOM
+#ifdef USE_CUDA_HOST_RANDOM
+    sim_engine.get_tracked_states( _mem );
+#else
     stats.get_state( _mem );
-
-    log.add_record( "memory", _mem );
 #endif // USE_CUDA_HOST_RANDOM
+    log.add_record( "memory", _mem );
     p = log.make_path( "performance" );
     log.write( p );
 
