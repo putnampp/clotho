@@ -33,9 +33,6 @@ public:
 
     SequenceHammingWeight( boost::property_tree::ptree & config ) :
         dWeights( NULL )
-        , blocks( 200, 1, 1 )
-        , threads( 32, 32, 1)
-        , ver( NULL )
     {
         create_space( dWeights );
         parse_configuration( config );
@@ -46,6 +43,7 @@ public:
         _resize_space_to<<< 1, 1 >>>( dWeights, pop->sequences.get_device_space() );
         CHECK_LAST_KERNEL_EXEC
 
+        algo_version_type * ver(NULL);
         dim3 blocks( pop->seq_count, 1, 1), threads( 32, 32, 1);
         sequence_hamming_weight_kernel<<< blocks, threads >>>( pop->sequences.get_device_space(), dWeights, ver );
         CHECK_LAST_KERNEL_EXEC
@@ -67,8 +65,6 @@ protected:
     }
 
     space_type * dWeights;
-//    dim3 blocks, threads;
-    algo_version_type * ver;
 };
 
 #endif  // SEQUENCE_HAMMING_WEIGHT_HPP_

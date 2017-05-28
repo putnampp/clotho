@@ -46,13 +46,12 @@ public:
     typedef boost::random::mt19937                                       random_engine_type;
     typedef boost::random::discrete_distribution< IntType, RealType >   discrete_dist_type;
     typedef boost::random::bernoulli_distribution< double >             bernoulli_type;
-    typedef sequence_bias_parameter< RealType >         sequence_bias_type;
+    typedef sequence_bias_parameter< double >         sequence_bias_type;
 
     typedef clotho::utility::BitHelper< IntType >      bit_helper_type;
 
     FitSelectionGenerator( boost::property_tree::ptree & config ) :
-         m_seq_bias( config )
-        , dParentIndices(NULL)
+        dParentIndices(NULL)
         , localParentIndices( NULL )
         , localFitness( NULL )
         , m_parent_size( 0 )
@@ -63,7 +62,9 @@ public:
 
         m_rng.seed( seed.m_seed );
 
-        m_bern.param( m_seq_bias.m_bias );
+        sequence_bias_parameter< double > seq_bias;
+        typename bernoulli_type::param_type p( seq_bias.m_bias );
+        m_bern.param( p );
     }
 
     void generate( RealType * fitness, unsigned int N ) {
@@ -173,7 +174,6 @@ protected:
     }
 
     random_engine_type  m_rng;
-    sequence_bias_type  m_seq_bias;
     bernoulli_type  m_bern;
 
     IntType         * dParentIndices;
