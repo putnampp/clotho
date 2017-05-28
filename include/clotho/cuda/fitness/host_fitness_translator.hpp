@@ -37,7 +37,7 @@ public:
         stdev *= 2.0 * m_mutate_rate.m_mu;
         stdev *= m_quad_param.m_scale;
 
-        evaluate_quadritic_fitness<<< blocks, threads >>>( pop->getDevicePhenotypes(), pop->getDeviceFitness(), pop->getTraitCount(), stdev );
+        evaluate_quadratic_fitness<<< blocks, threads >>>( pop->getDevicePhenotypes(), pop->getDeviceFitness(), pop->getTraitCount(), stdev );
     }
 
     virtual ~HostFitnessTranslator() {}

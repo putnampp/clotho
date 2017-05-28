@@ -22,15 +22,15 @@ public:
     template < class RealType, class IntType >
     void operator()( HostPopulationSpace< RealType, IntType > * pop ) {
         dim3 blocks( 1,1,1), threads( 1,1,1 );
-        computBlockThreadDims( pop->getBlocksPerSequence(), blocks, threads );
+        computeBlockThreadDims( pop->getBlocksPerSequence(), blocks, threads );
 
         evaluate_free_space<<< blocks, threads >>>( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence() );
     }
 
     template < class RealType, class IntType >
-    void remove_fixed( HostPopulationSpace< RealType, IntType > * pop ) {
+    void perform_remove_fixed( HostPopulationSpace< RealType, IntType > * pop ) {
         dim3 blocks( 1,1,1), threads( 1,1,1 );
-        computBlockThreadDims( pop->getBlocksPerSequence(), blocks, threads );
+        computeBlockThreadDims( pop->getBlocksPerSequence(), blocks, threads );
 
         remove_fixed<<< blocks, threads >>>( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence() );
     }

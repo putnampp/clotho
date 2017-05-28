@@ -21,7 +21,7 @@
  * 1 block per 
  */
 template < class IntType >
-__global__ void crossover_kernel( IntType * parent, IntType * offspring, unsigned int * parent_indices, unsigned int parent_width, unsigned int offspring_width ) {
+__global__ void crossover_kernel( IntType * parents, IntType * offspring, unsigned int * parent_indices, unsigned int parent_width, unsigned int offspring_width ) {
     assert( blockDim.x == 32 );
 
     unsigned int seq_block_idx = blockIdx.y * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;

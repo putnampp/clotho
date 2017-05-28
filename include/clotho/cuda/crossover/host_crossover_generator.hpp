@@ -102,7 +102,7 @@ public:
 
         dim3 blocks( b_x, b_y, 1 ), threads( t_x, t_y, 1 );
 
-        crossover_kernel<<< blocks, threads >>>( parents->getDeviceSequences(), offspring->getDeviceSequences(), sel.getDeviceList(), offspring->getDeviceSequences(), parents->getBlocksPerSequence, offspring->getBlocksPerSequence() );
+        crossover_kernel<<< blocks, threads >>>( parents->getDeviceSequences(), offspring->getDeviceSequences(), sel.getDeviceList(), parents->getBlocksPerSequence(), offspring->getBlocksPerSequence() );
     }
 
     void updateDevice() {

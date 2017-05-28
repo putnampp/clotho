@@ -31,6 +31,11 @@ public:
         , m_capacity(0)
     {}
 
+    void get_state( boost::property_tree::ptree & s ) {
+
+    }
+
+
     weight_type * getDeviceWeights() {
         return m_dTraitSpace;
     }
@@ -54,7 +59,6 @@ public:
         assert( cudaMemcpy( m_dTraitSpace, m_hTraitSpace, m_allele_count * m_trait_count * sizeof( weight_type ), cudaMemcpyHostToDevice ) == cudaSuccess );
     }
 
-    template < class RealType  >
     void resize( HostAlleleSpace < RealType > & alleles ) {
         resize( alleles.getMaxAlleleCount(), m_trait_count );
     }

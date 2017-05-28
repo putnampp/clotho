@@ -76,7 +76,7 @@ public:
 
         if( new_cap > m_capacity ) {
             location_type * tmp_loc = new location_type[ new_cap ];
-            age_type tmp_age = new age_type[ new_cap ];
+            age_type * tmp_age = new age_type[ new_cap ];
             
             if( m_hLoc != NULL ) {
                 memcpy( tmp_loc, m_hLoc, sizeof( location_type ) * m_size);
@@ -88,7 +88,7 @@ public:
             }
 
             // assuming that location is only attribute necessary to appear on device
-            assert( cudaMalloc( (void **) &m_dAge, sizeof( location_type ) * new_cap ) == cudaSuccess);
+            assert( cudaMalloc( (void **) &m_dLoc, sizeof( location_type ) * new_cap ) == cudaSuccess);
 
             m_hLoc = tmp_loc;
             m_hAge = tmp_age;

@@ -74,21 +74,22 @@ public:
     typedef HostMutateGenerator                                     mutation_generator_type;
 
     typedef HostSelectionGenerator                                  selection_generator_type;
-    typedef HostCrossoverGenerator                                  crossover_generator_type;
+    typedef HostCrossoverGenerator< typename allele_space_type::location_type > crossover_generator_type;
 
     typedef HostPhenotypeTranslator                                 phenotype_generator_type;
 
     typedef HostFreeSpace                                           free_space_type;
 
     typedef HostFitnessTranslator< typename population_space_type::fitness_type > fitness_translator_type;
-    typedef HostSelectionGenerator                                  selection_generator_type;
 
     typedef clotho::utility::timer                                  timer_type;
 
-    qtl_cuda_simulate_engine( boost::property_tree::ptree & config ) :
+    typedef typename population_space_type::sequence_space_type::bit_helper_type bit_helper_type;
+
+    Engine( boost::property_tree::ptree & config ) :
          prev_pop( &hPop1 )
         , current_pop( &hPop0 )
-        , m_traits( config )
+        , traits( config )
         , mut_gen( config )
         , xover_gen( config )
         , sel_gen(config)
@@ -113,16 +114,16 @@ public:
         recordFixed(  prev_pop );
 
         // use free space to determine new allele count for current population
-        unsigned int allele_count = mut_gen.initialize( m_rng, prev_pop, cur_seq_count );
+        unsigned int allele_count = mut_gen.initialize( m_rng, prev_pop, cur_seq_count, alleles.getAlleleCount() );
 
         alleles.resize( allele_count );
-        m_traits.resize( alleles );
-        current_pop->resize( allele_space, m_traits, cur_seq_count );
+        traits.resize( alleles );
+        current_pop->resize( alleles, traits, cur_seq_count );
 
         xover_gen.initialize( m_rng, current_pop );
         xover_gen.buildRecombinationMask( alleles, current_pop );
 
-        sel_gen( prev_pop, current_pop );
+        sel_gen( m_rng, prev_pop, current_pop );
 
         xover_gen.performCrossover( prev_pop, current_pop, sel_gen );
 
@@ -135,7 +136,7 @@ public:
         fr( current_pop );
 
         phenotype_generator_type ph;
-        ph( current_pop, m_traits );
+        ph( current_pop, traits );
 
         fit_trans( current_pop );
         
@@ -172,11 +173,8 @@ public:
             // trigger kernel to remove fixed alleles from population
             //
             free_space_type fr;
-            fr.remove_fixed( pop );
+            fr.perform_remove_fixed( pop );
         }
-
-        block_type * fixed = pop->getFreeSpace();
-        unsigned int N = pop->getBlocksPerSequence();
 
         std::set< unsigned int > offsets;
         for( unsigned int i = 0; i < N; ++i ) {
@@ -193,7 +191,7 @@ public:
             }
         }
 
-        if(!offset.empty() ) {
+        if(!offsets.empty() ) {
             fixed_alleles.resize( fixed_alleles.getAlleleCount() + offsets.size() );
 
             for( std::set< unsigned int >::iterator it = offsets.begin(); it != offsets.end(); ++it ) {
@@ -213,26 +211,26 @@ public:
     }
 
     void analyze_population( ) {
-        all_freq.evaluate( current_pop );
-        seq_weight.evaluate( current_pop );
-
-        //pair_diff.evaluate( current_pop );
-
-        cudaDeviceSynchronize();
+//        all_freq.evaluate( current_pop );
+//        seq_weight.evaluate( current_pop );
+//
+//        //pair_diff.evaluate( current_pop );
+//
+//        cudaDeviceSynchronize();
     }
-
+//
     void analyze_sample( unsigned int N, boost::property_tree::ptree & samp_res) {
-        clotho::utility::timer t;
-
-        SamplePopulation< population_space_type > samps( current_pop, N );
-
-//        pair_diff.evaluate( current_pop, samps.m_dSubpop );
-
-        cudaDeviceSynchronize();
-        t.stop();
-
-//        pair_diff.get_state( samp_res );
-        samp_res.put( "rt", t.elapsed_long());
+//        clotho::utility::timer t;
+//
+//        SamplePopulation< population_space_type > samps( current_pop, N );
+//
+////        pair_diff.evaluate( current_pop, samps.m_dSubpop );
+//
+//        cudaDeviceSynchronize();
+//        t.stop();
+//
+////        pair_diff.get_state( samp_res );
+//        samp_res.put( "rt", t.elapsed_long());
     }
 
     void get_state( boost::property_tree::ptree & state ) {
@@ -240,32 +238,27 @@ public:
         current_pop->get_state( cur );
         prev_pop->get_state( prev );
 
+        boost::property_tree::ptree al;
+        alleles.get_state( al );
+
         boost::property_tree::ptree fx;
         fixed_alleles.get_state( fx );
-
-        boost::property_tree::ptree mut;
-        get_device_object_state( mut, dMutations );
 
         boost::property_tree::ptree sel;
         sel_gen.get_state( sel );
 
-        boost::property_tree::ptree asis;
-        all_freq.get_state( asis );
-        seq_weight.get_state( asis );
-//        pair_diff.get_state( asis );
-
-        boost::property_tree::ptree fit;
-        fit_trans.get_state( fit );
+//        boost::property_tree::ptree asis;
+//        all_freq.get_state( asis );
+//        seq_weight.get_state( asis );
+////        pair_diff.get_state( asis );
 
 //        state.put_child("device.memory", dev_space );
 
         state.put_child( "population.current", cur );
-        state.put_child( "population.current.fitness", fit );
-
         state.put_child( "population.previous", prev );
-        state.put_child( "mutations", mut );
         state.put_child( "selection", sel );
-        state.put_child( "analysis", asis );
+//        state.put_child( "analysis", asis );
+        state.put_child( "alleles.population", al );
         state.put_child( "alleles.fixed", fx );
     }
 
@@ -273,9 +266,7 @@ public:
         std::swap( prev_pop, current_pop );
     }
 
-    virtual ~qtl_cuda_simulate_engine() {
-        delete_space( dMutations );
-    }
+    virtual ~Engine() { }
 
 protected:
 
@@ -286,8 +277,6 @@ protected:
     }
 
     void initialize( ) {
-        create_space( dMutations );
-
 /*
         size_t fsize = 0;
         size_t tsize = 0;
@@ -311,7 +300,7 @@ protected:
 
     allele_space_type          alleles, fixed_alleles;
 
-    trait_space_type            m_traits;
+    trait_space_type            traits;
 
     mutation_generator_type     mut_gen;
     crossover_generator_type    xover_gen;

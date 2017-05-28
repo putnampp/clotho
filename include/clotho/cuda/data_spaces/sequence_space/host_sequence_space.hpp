@@ -39,7 +39,7 @@ public:
 
     void updateHost() {
         if( m_hFreeSpace != NULL ) {
-            cudaMemcpy( m_hFreeSpace, m_dFreeSpace, 3 * m_block_per_seq * sizeof( int_type ), cudaMemcpyDeviceToHost );
+            cudaMemcpy( m_hFreeSpace, m_dFreeSpace, 3 * m_blocks_per_seq * sizeof( int_type ), cudaMemcpyDeviceToHost );
         }
     }
 
@@ -69,6 +69,10 @@ public:
         m_seq_count = seq_count;
     }
 
+    unsigned int getSequenceCount() const {
+        return m_seq_count;
+    }
+
     unsigned int getBlocksPerSequence() const {
         return m_blocks_per_seq;
     }
@@ -85,12 +89,20 @@ public:
         return m_hFreeSpace + FREE_OFFSET * m_blocks_per_seq;
     }
 
+    int_type * getDeviceSequences() {
+        return m_dSeqSpace;
+    }
+
+    int_type * getDeviceFreeSpace() {
+        return m_dFreeSpace;
+    }
+
     void get_state( boost::property_tree::ptree & state ) {
 
     }
 
     virtual ~HostSequenceSpace() {
-        if( dSeqSpace != NULL ) {
+        if( m_dSeqSpace != NULL ) {
             cudaFree( m_dSeqSpace );
             cudaFree( m_dFreeSpace );
             delete [] m_hFreeSpace;

@@ -19,20 +19,20 @@
 #include "clotho/cuda/data_spaces/allele_space/host_allele_space.hpp"
 
 template < class RealType, class IntType >
-class HostPopulationSpace : public clotho::utility:iStateObject {
+class HostPopulationSpace : public clotho::utility::iStateObject {
 public:
-    typedef HostPopulationSpace< RealType, IntType, OrderTag > self_type;
+    typedef HostPopulationSpace< RealType, IntType > self_type;
 
     typedef HostSequenceSpace< IntType >                sequence_space_type;
     typedef HostPhenotypeSpace< RealType >              phenotype_space_type;
 
     typedef typename sequence_space_type::block_type    block_type;
 
-    typedef typename phenotype_space_type::weight_type  phenotype_type;
+    typedef typename phenotype_space_type::phenotype_type  phenotype_type;
 
     typedef real_type                                   fitness_type;
 
-    HostPopulationSpace( boost::property_tree::ptree & config ) :
+    HostPopulationSpace( ) :
         m_dFitness( NULL )
         , m_hFitness( NULL )
         , m_size(0)
@@ -66,13 +66,13 @@ public:
         return m_size;
     }
 
-    void resize( HostAlleleType< RealType > & allele_space , HostTraitSpace< RealType > & trait_space, unsigned int nSeqs ) {
+    void resize( HostAlleleSpace< RealType > & allele_space , HostTraitSpace< RealType > & trait_space, unsigned int nSeqs ) {
         m_seqs.resize( allele_space.getMaxAlleleCount(), nSeqs );
-        m_pheno.resize( m_seqs, trait_space );
+        m_phenos.resize( nSeqs, trait_space.getTraitCount() );
 
-        unsigned int fit_count = m_pheno.getSequenceCount() / 2;
+        unsigned int fit_count = m_phenos.getSequenceCount() / 2;
 
-        assert( m_pheno.getSequenceCount() % 2 == 0 );
+        assert( m_phenos.getSequenceCount() % 2 == 0 );
 
         if( fit_count > m_capacity ) {
             if( m_dFitness != NULL ) {
@@ -106,6 +106,14 @@ public:
         return m_phenos.getTraitCount();
     }
 
+    phenotype_type * getDevicePhenotypes() {
+        return m_phenos.getDevicePhenotypes();
+    }
+
+    block_type * getDeviceFreeSpace() {
+        return m_seqs.getDeviceFreeSpace();
+    }
+
     void get_state( boost::property_tree::ptree & state ) {
         boost::property_tree::ptree s;
         m_seqs.get_state( s );
@@ -121,7 +129,7 @@ public:
 protected:
 
     sequence_space_type m_seqs;
-    phenotype_space_type m_pheno;
+    phenotype_space_type m_phenos;
 
     real_type * m_dFitness, * m_hFitness;
 
@@ -129,5 +137,6 @@ protected:
 
     cudaStream_t    fitnessStream;
 };
+
 #endif  // HOST_POPULATION_SPACE_DEF_HPP_
 

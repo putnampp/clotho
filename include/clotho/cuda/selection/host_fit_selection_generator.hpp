@@ -19,7 +19,7 @@
 #include <boost/random/discrete_distribution.hpp>
 #include <boost/random/bernoulli_distribution.hpp>
 
-class HostSelectionGenerator {
+class HostSelectionGenerator : public clotho::utility::iStateObject {
 public:
 
     typedef sequence_bias_parameter< double > sequence_bias_type;
@@ -31,6 +31,10 @@ public:
         , m_size(0)
         , m_capacity(0)
     {    }
+
+    void get_state( boost::property_tree::ptree & s ) {
+
+    }
 
     template < class RNG, class RealType, class IntType >
     void operator()( RNG & rng, HostPopulationSpace< RealType, IntType > * parent, HostPopulationSpace< RealType, IntType > * offspring ) {
@@ -49,6 +53,10 @@ public:
                 m_hSelection[ i ] += 1;
             }
         }
+    }
+
+    unsigned int * getDeviceList() {
+        return m_dSelection;
     }
 
     void updateDevice( ) {
@@ -83,6 +91,6 @@ protected:
     unsigned int * m_hSelection, * m_dSelection;
 
     size_t m_size, m_capacity;
-}
+};
 
 #endif  // HOST_FIT_SELECTION_GENERATOR_HPP_

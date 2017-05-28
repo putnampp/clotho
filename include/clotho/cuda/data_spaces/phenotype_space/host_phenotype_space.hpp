@@ -20,6 +20,7 @@ public:
     typedef HostPhenotypeSpace< RealType >  self_type;
 
     typedef RealType                        real_type;
+    typedef real_type                       phenotype_type;
 
     template < class IntType >
     void operator()( HostSequenceSpace< IntType > & seq_space, HostTraitSpace< RealType > & trait_space ) {
@@ -34,17 +35,20 @@ public:
         return m_trait_count;
     }
 
-    real_type * getDevicePhenotype() {
+    phenotype_type * getDevicePhenotypes() {
         return m_dPhenoSpace;
     }
 
-    virtual HostPhenotypeSpace() {
+    void get_state( boost::property_tree::ptree & s ) {
+
+    }
+
+    virtual ~HostPhenotypeSpace() {
         if( m_dPhenoSpace != NULL ) {
             cudaFree( m_dPhenoSpace );
         }
     }
  
-protected:
     void resize( unsigned int seq_count, unsigned int trait_count ) {
         size_t new_cap = seq_count * trait_count;
 
@@ -62,6 +66,7 @@ protected:
         m_trait_count = trait_count;
     }
 
+protected:
     real_type   * m_dPhenoSpace;
 
     unsigned int m_seq_count, m_trait_count;

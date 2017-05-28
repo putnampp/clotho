@@ -15,6 +15,7 @@
 #define HOST_MUTATE_GENERATOR_HPP_
 
 #include <boost/random/poisson_distribution.hpp>
+#include <boost/random/uniform_01.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/random/normal_distribution.hpp>
 
@@ -41,7 +42,7 @@ public:
     {}
 
     template < class RNG, class RealType, class IntType >
-    unsigned int initialize( RNG & eng, HostPopulationSpace< RealType, IntType > * parents, unsigned int N ) {
+    unsigned int initialize( RNG & eng, HostPopulationSpace< RealType, IntType > * parents, unsigned int N, unsigned int all_count ) {
         double lambda = N * m_rate.m_mu;
         boost::random::poisson_distribution< unsigned int, double > dist( lambda );
 
@@ -49,10 +50,10 @@ public:
 
         resize( N, M );
 
-        return buildAllele( parents );
+        return buildAllele( parents, all_count);
     }
 
-    template < class RNG, class RealType, class IntType >
+    template < class RNG, class RealType >
     void generate( RNG & eng, HostAlleleSpace< RealType > & alleles, HostTraitSpace< RealType > & traits, unsigned int age ) {
 
         updateSpace( eng, alleles, traits, age );
@@ -84,13 +85,14 @@ public:
 protected:
 
     template < class RealType, class IntType >
-    unsigned int buildAllele( HostPopulationSpace< RealType, IntType > * parents ) {
+    unsigned int buildAllele( HostPopulationSpace< RealType, IntType > * parents, unsigned int all_count ) {
         typedef HostPopulationSpace< RealType, IntType > population_space_type;
         typedef typename population_space_type::block_type    block_type;
-        typedef typename population_space_type::bit_helper_type bit_helper_type;
+        typedef typename population_space_type::sequence_space_type::bit_helper_type bit_helper_type;
 
-        for( unsigned int i = 0; i < parent->getBlocksPerSequence() && mut_idx < m_pool_size; ++i ) {
-            block_type b = parent->getFreeSpace()[ i ];
+        unsigned int mut_idx = 0;
+        for( unsigned int i = 0; i < parents->getBlocksPerSequence() && mut_idx < m_pool_size; ++i ) {
+            block_type b = parents->getFreeSpace()[ i ];
 
             unsigned int j = i * bit_helper_type::BITS_PER_BLOCK;
             while( b > 0 ) {
@@ -103,12 +105,11 @@ protected:
             }
         }
 
-        unsigned int all_idx = alleles.getAlleleCount();
         while( mut_idx < m_pool_size ) {
-            m_hAlleleIndexPool[ mut_idx++ ] = all_idx++;
+            m_hAlleleIndexPool[ mut_idx++ ] = all_count++;
         }
 
-        return all_idx;
+        return all_count;
     }
 
     template < class RNG, class RealType >
@@ -119,7 +120,7 @@ protected:
         typedef HostTraitSpace< RealType > trait_space_type;
         typedef typename trait_space_type::weight_type weight_type;
 
-        typedef boost::random::uniform_distribution< location_type > location_distribution_type;
+        typedef boost::random::uniform_01< location_type > location_distribution_type;
         typedef boost::random::uniform_int_distribution< unsigned int > sequence_distribution_type;
         typedef boost::random::normal_distribution< weight_type >       weight_distribution_type;
 
@@ -189,7 +190,7 @@ protected:
     }
 
     mutation_rate_parameter< double > m_rate;
-    neutral_parameter< double > m_neutral;
+    clotho::genetics::neutral_parameter< double > m_neutral;
 
     unsigned int * m_hAlleleIndexPool, * m_dAlleleIndexPool;
     unsigned int * m_hSeqDist, * m_dSeqDist;

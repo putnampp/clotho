@@ -26,7 +26,7 @@ public:
         assert( traits.getAlleleCount() % 32 == 0 );
 
         dim3 blocks( pop->getSequenceCount(), traits.getTraitCount(), 1 ), threads( 32, 32, 1 );
-        evaluate_phenotype<<< blocks, threads >>>( pop->getDeviceSequences(), traits.getDeviceWeights(), pop->getDevicePhenotype(), pop->getBlocksPerSequence(), traits.getAlleleCount() );
+        evaluate_phenotype<<< blocks, threads >>>( pop->getDeviceSequences(), traits.getDeviceWeights(), pop->getDevicePhenotypes(), pop->getBlocksPerSequence(), traits.getAlleleCount() );
 
     }
 

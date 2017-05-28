@@ -15,7 +15,7 @@
 #define MUTATE_KERNEL_HPP_
 
 template < class IntType >
-__global__ void mutate( IntType * offspring, unsigned int * allele_index_pool, unsigned int sequence_dist, unsigned int width ) {
+__global__ void mutate( IntType * offspring, unsigned int * allele_index_pool, unsigned int * sequence_dist, unsigned int width ) {
 
     unsigned int start = sequence_dist[ blockDim.x ];
     unsigned int end = sequence_dist[ blockDim.x + 1 ];

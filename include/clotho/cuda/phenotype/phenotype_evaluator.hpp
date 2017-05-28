@@ -49,7 +49,7 @@ __global__ void evaluate_phenotype( IntType * seqs, RealType * trait_weights, Re
         RealType w = trait_weights[ blockIdx.y * allele_count + allele_idx ];
         IntType b = seqs[ blockIdx.x * width + b_idx];
 
-        if( (b & m) ) {
+        if( (b & mask) != 0) {
             local_pheno += w;
         }
 
