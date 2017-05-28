@@ -108,4 +108,52 @@ __global__ void build_crossover_mask_kernel(  AlleleSpaceType * alleles,
     }
 }
 
+template < class RealType, class IntType >
+__global__ void build_crossover_mask( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int WIDTH ) {
+    assert( blockDim.x == 32 );
+    assert( blockDim.y == 32 );
+
+    unsigned int all_idx = blockIdx.y * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+
+    unsigned int seq_idx = blockIdx.x * WIDTH + blockIdx.y * blockDim.y + threadIdx.y;
+
+    __shared__ RealType sEvents[ 32 ];
+
+    unsigned int event_start = event_dist[ blockIdx.x ];
+    unsigned int event_end = event_dist[ blockIdx.x + 1 ];
+
+    if( event_start == event_end ) {
+        if( threadIdx.x == 0 ) {
+            mask_buffer[ seq_idx ] = 0;
+        }
+        __syncthreads();
+    } else {
+        if( threadIdx.y == 0 &&  event_start + threadIdx.x < event_end ) {
+            sEvents[ threadIdx.x ] = event_pool[ threadIdx.x + event_start ]; 
+        }
+        __syncthreads();
+
+        RealType loc = locations[ all_idx ];
+
+        IntType N = 0;
+        while( local_start < local_end ) {
+            RealType w = sEvents[ local_start++ ];
+            N += (( loc < w ) ? 1 : 0 ); 
+        }
+
+        IntType mask = (1 << threadIdx.x);
+        mask *= (N & 1);
+
+        for( unsigned int i = 1; i < 32; i <<= 1 ) {
+            IntType _m = __shfl_up( mask, i );
+            mask |= ((threadIdx.x >= i) * _m );
+        }
+
+        if( threadIdx.x == 31 ) {
+            mask_buffer[ seq_idx ] = mask;
+        }
+        __syncthreads();
+    } 
+}
+
 #endif  // CROSSOVER_KERNEL_BUILD_MASK_IMPL_HPP_

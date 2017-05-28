@@ -18,20 +18,25 @@
 
 #include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
 
-#include "qtl_cuda_simulate_engine.hpp"
-
 #include "simulation_log.hpp"
 #include "clotho/cuda/data_spaces/status_buffer/status_buffer.hpp"
 
+#include <boost/random/mersenne_twister.hpp>
+
+#ifdef USE_CUDA_HOST_RANDOM
+#include "engine_cuda_host_random.hpp"
+typedef HostPopulationSpace< real_type, int_type > population_space_type;
+typedef Engine< boost::random::mt19937, real_type, int_type, int_type, cuda_host_random > engine_type;
+#else
 #ifdef USE_UNIT_ORDERING
 typedef unit_ordered_tag< int_type > order_tag_type;
 #else
 typedef unordered_tag   order_tag_type;
 #endif
-
+#include "qtl_cuda_simulate_engine.hpp"
 typedef PopulationSpace< real_type, int_type, order_tag_type > population_space_type;
-
 typedef qtl_cuda_simulate_engine< population_space_type >   engine_type;
+#endif  //
 
 static const std::string HEAP_K = "device.heap.malloc.size";
 

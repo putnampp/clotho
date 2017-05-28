@@ -62,6 +62,8 @@ public:
         seed_parameter< > seed( config );
 
         m_rng.seed( seed.m_seed );
+
+        m_bern.param( m_seq_bias.m_bias );
     }
 
     void generate( RealType * fitness, unsigned int N ) {
