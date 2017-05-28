@@ -136,10 +136,11 @@ __global__ void build_crossover_mask( RealType * locations, RealType * event_poo
         RealType loc = locations[ all_idx ];
 
         IntType N = 0;
-        while( local_start < local_end ) {
-            RealType w = sEvents[ local_start++ ];
+        while( event_start < event_end ) {
+            RealType w = sEvents[ event_start++ ];
             N += (( loc < w ) ? 1 : 0 ); 
         }
+        __syncthreads();
 
         IntType mask = (1 << threadIdx.x);
         mask *= (N & 1);
