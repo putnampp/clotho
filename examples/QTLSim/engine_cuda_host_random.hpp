@@ -34,9 +34,9 @@
 #include "clotho/cuda/selection/fit_selection_generators.hpp"
 #include "clotho/cuda/phenotype/phenotype_translator.hpp"
 
-#include "clotho/cuda/analysis/allele_frequency.hpp"
-#include "clotho/cuda/analysis/sequence_hamming_weight.hpp"
-#include "clotho/cuda/analysis/pairwise_difference.hpp"
+#include "clotho/cuda/analysis/host_allele_frequency.hpp"
+#include "clotho/cuda/analysis/host_sequence_weight.hpp"
+//#include "clotho/cuda/analysis/pairwise_difference.hpp"
 
 #include "clotho/utility/timer.hpp"
 
@@ -94,7 +94,6 @@ public:
         , xover_gen( config )
         , sel_gen(config)
         , fit_trans( config )
-        , all_freq( config )
         , seq_weight( config )
         , pair_diff( config )
         , m_generation(0)
@@ -211,8 +210,8 @@ public:
     }
 
     void analyze_population( ) {
-//        all_freq.evaluate( current_pop );
-//        seq_weight.evaluate( current_pop );
+        all_freq( current_pop, alleles.getAlleleCount() );
+        seq_weight( current_pop );
 //
 //        //pair_diff.evaluate( current_pop );
 //
@@ -247,9 +246,9 @@ public:
         boost::property_tree::ptree sel;
         sel_gen.get_state( sel );
 
-//        boost::property_tree::ptree asis;
-//        all_freq.get_state( asis );
-//        seq_weight.get_state( asis );
+        boost::property_tree::ptree asis;
+        all_freq.get_state( asis );
+        seq_weight.get_state( asis );
 ////        pair_diff.get_state( asis );
 
 //        state.put_child("device.memory", dev_space );
@@ -257,7 +256,7 @@ public:
         state.put_child( "population.current", cur );
         state.put_child( "population.previous", prev );
         state.put_child( "selection", sel );
-//        state.put_child( "analysis", asis );
+        state.put_child( "analysis", asis );
         state.put_child( "alleles.population", al );
         state.put_child( "alleles.fixed", fx );
     }
@@ -308,9 +307,9 @@ protected:
 
     fitness_translator_type     fit_trans;
 
-    AlleleFrequency             all_freq;
-    SequenceHammingWeight       seq_weight;
-    PairwiseDifference          pair_diff;
+    HostAlleleFrequency         all_freq;
+    HostSequenceWeight          seq_weight;
+//    PairwiseDifference          pair_diff;
 
     unsigned int                m_generation;
 //    boost::property_tree::ptree dev_space;
