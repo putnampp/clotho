@@ -57,4 +57,32 @@ __global__ void crossover_kernel( IntType * parents, IntType * offspring, unsign
     }
 }
 
+struct crossover {
+
+    template < class IntType >
+    static void execute( IntType * parents, IntType * offspring, unsigned int * parent_dist, unsigned int offspring_count, unsigned int parent_width, unsigned int offspring_width ) {
+        assert( parents != NULL );
+        assert( offspring != NULL );
+        assert( parent_dist != NULL );
+        assert( offspring_width % 32 == 0 );
+        assert( parent_width <= offspring_width );
+
+        // 1 thread per sequence block
+        dim3 blocks( offspring_count,1,1), threads( 1,1,1 );
+
+        if( offspring_width > 1024 ) {
+            blocks.y = offspring_width / 1024 + ((offspring_width % 1024 ) ? 1 : 0);
+            threads.x = 32;
+            threads.y = 32;
+        } else {
+            threads.x = 32;
+            threads.y = offspring_width / 32;
+        }
+
+        std::cerr << "Crossover - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
+
+        crossover_kernel<<< blocks, threads >>>( parents, offspring, parent_dist, parent_width, offspring_width );
+    }
+};
+
 #endif  // CROSSOVER_KERNEL_HPP_

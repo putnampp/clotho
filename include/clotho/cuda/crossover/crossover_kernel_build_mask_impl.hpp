@@ -109,7 +109,7 @@ __global__ void build_crossover_mask_kernel(  AlleleSpaceType * alleles,
 }
 
 template < class RealType, class IntType >
-__global__ void build_crossover_mask( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int WIDTH, unsigned int ALLELE_COUNT ) {
+__global__ void build_crossover_mask_kernel( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int WIDTH, unsigned int ALLELE_COUNT ) {
     assert( blockDim.x == 32 );
 
     unsigned int seq_offset = blockIdx.y * blockDim.y + threadIdx.y;
@@ -160,5 +160,41 @@ __global__ void build_crossover_mask( RealType * locations, RealType * event_poo
         __syncthreads();
     } 
 }
+
+struct build_crossover_mask {
+    template < class RealType, class IntType >
+    static void execute( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count ) {
+        assert( locations != NULL );
+        assert( event_pool != NULL );
+        assert( event_dist != NULL );
+        assert( mask_buffer != NULL );
+
+        // 1 thread per device allele
+        dim3 blocks( seq_count, 1, 1), threads( 1,1,1);
+
+        unsigned int max_locations = seq_width * 32;
+        assert( allele_count <= max_locations );
+
+        if( max_locations > 1024 ) {
+            blocks.y = max_locations / 1024;
+            if( max_locations % 1024 ) {
+                blocks.y += 1;
+            }
+
+            threads.x = 32;
+            threads.y = 32;
+        } else {
+            threads.x = 32;
+            threads.y = max_locations / 32;
+            if( max_locations % 32 ) {
+                threads.y += 1;
+            }
+            assert( threads.y <= 32);
+        }
+
+        std::cerr << "Build Mask - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
+        build_crossover_mask_kernel<<< blocks, threads >>>( locations, event_pool, event_dist, mask_buffer, seq_width, allele_count );
+    }
+};
 
 #endif  // CROSSOVER_KERNEL_BUILD_MASK_IMPL_HPP_

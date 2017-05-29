@@ -104,8 +104,11 @@ public:
         unsigned int allele_count = mut_gen.initialize( m_rng, prev_pop, cur_seq_count, alleles.getAlleleCount() );
 
         std::cerr << "Allele count: " << allele_count << std::endl;
+        // resize the host alleles
         alleles.resize( allele_count );
+        // resize the host traits
         traits.resize( alleles );
+        // resize the current population accordingly
         current_pop->resize( alleles, traits, cur_seq_count );
 
         xover_gen.initialize( m_rng, current_pop );

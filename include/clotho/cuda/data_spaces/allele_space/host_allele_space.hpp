@@ -29,10 +29,21 @@ public:
         , m_hLoc( NULL )
         , m_size(0)
         , m_capacity(0)
+        , m_dSize(0)
+        , m_dCapacity(0)
     {}
 
     void updateDevice() {
-        assert( cudaMemcpy( m_dLoc, m_hLoc, sizeof( location_type ) * m_size, cudaMemcpyHostToDevice ) == cudaSuccess);
+        if( m_capacity > m_dCapacity ) {
+            if( m_dLoc != NULL ) {
+                cudaFree( m_dLoc );
+            }
+            assert( cudaMalloc((void **)&m_dLoc, m_capacity * sizeof(location_type)) == cudaSuccess );
+            m_dCapacity = m_capacity;
+        }
+
+        m_dSize = m_size;
+        assert( cudaMemcpy( m_dLoc, m_hLoc, sizeof( location_type ) * m_dSize, cudaMemcpyHostToDevice ) == cudaSuccess);
     }
 
     void get_state( boost::property_tree::ptree & state ) {
@@ -47,6 +58,14 @@ public:
         state.put( "capacity", m_capacity );
         state.put_child( "locations", l);
         state.put_child( "age", a);
+    }
+
+    size_t getDeviceAlleleCount() const {
+        return m_dSize;
+    }
+
+    size_t getDeviceMaxAlleles() const {
+        return m_dCapacity;
     }
 
     size_t getAlleleCount() const {
@@ -97,11 +116,7 @@ public:
 
                 delete [] m_hLoc;
                 delete [] m_hAge;
-                cudaFree( m_dLoc );
             }
-
-            // assuming that location is only attribute necessary to appear on device
-            assert( cudaMalloc( (void **) &m_dLoc, sizeof( location_type ) * new_cap ) == cudaSuccess);
 
             m_hLoc = tmp_loc;
             m_hAge = tmp_age;
@@ -118,6 +133,9 @@ public:
         if( m_hLoc != NULL ) {
             delete [] m_hLoc;
             delete [] m_hAge;
+        }
+
+        if( m_dLoc != NULL ) {
             cudaFree( m_dLoc );
         }
     }
@@ -129,6 +147,7 @@ protected:
     age_type * m_hAge;
 
     size_t m_size, m_capacity;
+    size_t m_dSize, m_dCapacity;
 };
 
 #endif  // HOST_ALLELE_SPACE_HPP_

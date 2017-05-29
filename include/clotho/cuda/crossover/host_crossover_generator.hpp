@@ -22,9 +22,13 @@
 #include "clotho/cuda/crossover/crossover_kernel_build_mask_impl.hpp"
 #include "clotho/cuda/crossover/crossover_kernel.hpp"
 
+#include "clotho/cuda/data_spaces/sequence_space/sequence_kernels.hpp"
+
 template < class EventType >
 class HostCrossoverGenerator {
 public:
+
+    static const unsigned int MAX_MUTATIONS_PER_SEQUENCE = 32;
 
     typedef EventType   event_type;
     
@@ -45,88 +49,38 @@ public:
 
     template < class RNG, class RealType, class IntType >
     void initialize( RNG & rng, HostPopulationSpace< RealType, IntType > * pop ) {
-        location_distribution_type loc_dist;
-        event_distribution_type events( m_recomb.m_rho );
-
         resize( pop->getSequenceCount() );
 
-        m_hEventDist[ 0 ] = 0;
-        for( unsigned int i = 0; i < m_dist_size; ++i ) {
-            unsigned int N = events( rng );
-            while( N > 0 ) {
-                m_hEventPool[ m_pool_size++ ] = loc_dist( rng );
-                --N;
-            }
-
-            m_hEventDist[ i + 1 ] = m_pool_size;  
-        }
-        updateDevice();
+        generateEvents( rng, pop->getSequenceCount() );
     }
 
     template < class RealType, class IntType >
     void buildRecombinationMask( HostAlleleSpace< RealType > & alleles, HostPopulationSpace< RealType, IntType > * offspring ) {
+       updateDevice();
 
-        dim3 blocks( 1, 1, 1), threads( 1,1,1);
+        if( alleles.getDeviceMaxAlleles() == 0 ) {
+            std::cerr << "No device alleles" << std::endl;
 
-        computeBlockThreadDims( offspring->getSequenceCount(), offspring->getBlocksPerSequence(), blocks, threads );
+            clear_sequence_space::execute( offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence() );
 
-        build_crossover_mask<<< blocks, threads >>>( alleles.getDeviceLocations(), m_dEventPool, m_dEventDist, offspring->getDeviceSequences(), offspring->getBlocksPerSequence(), alleles.getAlleleCount() );
-        CHECK_LAST_KERNEL_EXEC
+        } else {
+            build_crossover_mask::execute( alleles.getDeviceLocations(), m_dEventPool, m_dEventDist, offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence(), alleles.getDeviceAlleleCount() );
+        }
     }
 
     template < class RealType, class IntType >
     void performCrossover( HostPopulationSpace< RealType, IntType > * parents, HostPopulationSpace< RealType, IntType > * offspring, HostSelectionGenerator & sel ) {
-
-        sel.updateDevice();
-
-        // 1 thread per sequence block
-        dim3 blocks( 1,1,1), threads( 1,1,1 );
-
-        assert( offspring->getBlocksPerSequence() % 32 == 0 );
-
-        blocks.x = offspring->getSequenceCount();
-        
-        if( offspring->getBlocksPerSequence() > 1024 ) {
-            blocks.y = offspring->getBlocksPerSequence() / 1024 + ((offspring->getBlocksPerSequence() % 1024 ) ? 1 : 0);
-            threads.x = 32;
-            threads.y = 32;
+        if( parents->getDeviceSequences() == NULL ) {
+            // some what redundant as the only time the parents will be null
+            // is when the there are no allele locations
+            // so the buildMask function should have already cleared this space
+            // this just adds to the start-up cost
+            clear_sequence_space::execute( offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence() );
         } else {
-            threads.x = 32;
-            threads.y = offspring->getBlocksPerSequence() / 32;
+            sel.updateDevice();
+
+            crossover::execute( parents->getDeviceSequences(), offspring->getDeviceSequences(), sel.getDeviceList(), offspring->getSequenceCount(), parents->getBlocksPerSequence(), offspring->getBlocksPerSequence() );
         }
-
-        std::cerr << offspring->getBlocksPerSequence() <<  " [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
-
-        assert( offspring->getDeviceSequences() != NULL );
-        assert( sel.getDeviceList() != NULL );
-
-        crossover_kernel<<< blocks, threads >>>( parents->getDeviceSequences(), offspring->getDeviceSequences(), sel.getDeviceList(), parents->getBlocksPerSequence(), offspring->getBlocksPerSequence() );
-    }
-
-    void computeBlockThreadDims( unsigned int M, unsigned int N, dim3 & blocks, dim3 & threads ) {
-        assert( N % 32 == 0);
-
-        unsigned int t_x = 32, t_y = N / 32;
-
-        unsigned int b_x = M, b_y = 1;
-
-        if( t_y > 32 ) {
-            b_y = t_y / 32;
-
-            if( t_y % 32 != 0) {
-                b_y += 1;
-            }
-
-            t_y = 32;
-        }
-
-        blocks.x = b_x;
-        blocks.y = b_y;
-
-        threads.x = t_x;
-        threads.y = t_y;
-
-        std::cerr << "[ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
     }
 
     void updateDevice() {
@@ -149,6 +103,25 @@ public:
 
 protected:
 
+    template < class RNG >
+    void generateEvents( RNG & rng, unsigned int N ) {
+        assert( N < m_dist_size );
+
+        location_distribution_type loc_dist;
+        event_distribution_type events( m_recomb.m_rho );
+
+        m_pool_size = 0;
+        m_hEventDist[ 0 ] = 0;
+        for( unsigned int i = 1; i <= N; ++i ) {
+            unsigned int E = events( rng );
+            while( E > 0 ) {
+                m_hEventPool[ m_pool_size++ ] = loc_dist( rng );
+                --E;
+            }
+
+            m_hEventDist[ i ] = m_pool_size;  
+        }
+    }
     void resize( unsigned int N ) {
         if( N > m_dist_capacity ) {
             if( m_dEventDist != NULL ) {
@@ -162,18 +135,18 @@ protected:
         }
         m_dist_size = N + 1;
 
-        if( 32 * N > m_pool_capacity ) {
+        unsigned int pool_cap = MAX_MUTATIONS_PER_SEQUENCE * N;
+        if( pool_cap > m_pool_capacity ) {
             if( m_hEventPool != NULL ) {
                 delete [] m_hEventPool;
                 cudaFree( m_dEventPool );
             }
 
-            m_hEventPool = new event_type[ 32 * N ];
-            assert( cudaMalloc( (void **) &m_dEventPool, 32 * N * sizeof( event_type ) ) == cudaSuccess );
+            m_hEventPool = new event_type[ pool_cap ];
+            assert( cudaMalloc( (void **) &m_dEventPool, pool_cap * sizeof( event_type ) ) == cudaSuccess );
 
-            m_pool_capacity = 32 * N;
+            m_pool_capacity = pool_cap;
         }
-        m_pool_size = 0;
     }
 
     recombination_rate_parameter< double > m_recomb;
