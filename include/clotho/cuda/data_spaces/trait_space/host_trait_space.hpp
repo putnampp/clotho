@@ -14,6 +14,8 @@
 #ifndef HOST_TRAIT_SPACE_HPP_
 #define HOST_TRAIT_SPACE_HPP_
 
+#include "clotho/data_spaces/phenotype_evaluator/trait_count_parameter.hpp"
+
 template < class RealType >
 class HostTraitSpace : public clotho::utility::iStateObject {
 public:
@@ -29,7 +31,10 @@ public:
         , m_allele_count(0)
         , m_trait_count(0)
         , m_capacity(0)
-    {}
+    {
+        trait_count_parameter param( config );
+        m_trait_count = param.m_trait_count;
+    }
 
     void get_state( boost::property_tree::ptree & s ) {
 
@@ -92,7 +97,7 @@ protected:
 
             m_hTraitSpace = tmp_weight;
 
-            assert( cudaMalloc( (void **) &m_dTraitSpace, sizeof( real_type ) * new_cap ) == cudaSuccess);
+            assert( cudaMalloc( (void **) &m_dTraitSpace, sizeof( weight_type ) * new_cap ) == cudaSuccess);
             m_capacity = new_cap;
         }
 
@@ -100,8 +105,8 @@ protected:
         m_trait_count = trait_count;
     }
 
-    real_type   * m_hTraitSpace;
-    real_type   * m_dTraitSpace;
+    weight_type   * m_hTraitSpace;
+    weight_type   * m_dTraitSpace;
 
     size_t    m_allele_count, m_trait_count;
 
