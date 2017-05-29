@@ -78,6 +78,7 @@ public:
          prev_pop( &hPop1 )
         , current_pop( &hPop0 )
         , traits( config )
+        , fixed_traits( config )
         , mut_gen( config )
         , xover_gen( config )
         , sel_gen(config)
@@ -157,8 +158,6 @@ public:
         clotho::utility::add_value_array( m_allele_track, alleles.getAlleleCount() );
         clotho::utility::add_value_array( m_free_track, prev_pop->getFreeCount() );
         clotho::utility::add_value_array( m_fixed_track, fixed_alleles.getAlleleCount());
-
-        std::cerr << alleles.getAlleleCount() << ", " << prev_pop->getFreeCount() << ", " << fixed_alleles.getAlleleCount() << std::endl;
     }
 
     void recordFixed( population_space_type * pop ) {
@@ -177,28 +176,25 @@ public:
             fr.perform_remove_fixed( pop );
         }
 
-        std::set< unsigned int > offsets;
+        unsigned int last_fixed_allele = fixed_alleles.getAlleleCount();
+
+        fixed_alleles.resize( fixed_alleles.getAlleleCount() + pop->getFixedCount() );
+        fixed_traits.resize( fixed_alleles );
+
         for( unsigned int i = 0; i < N; ++i ) {
             block_type b = fixed[ i ];
 
             if( b ) {
                 for( unsigned int k = 0; k < bit_helper_type::BITS_PER_BLOCK; k++ ) {
                     if( b & 1) {
-                        offsets.insert( i * bit_helper_type::BITS_PER_BLOCK + k );
+                        unsigned int all_idx = i * bit_helper_type::BITS_PER_BLOCK + k;
+                        fixed_alleles.push_back( alleles, all_idx);
+                        fixed_traits.update( last_fixed_allele, traits, all_idx );
+                        last_fixed_allele += 1;
                     }
 
                     b >>= 1;
                 }
-            }
-        }
-
-        if(!offsets.empty() ) {
-            fixed_alleles.resize( fixed_alleles.getAlleleCount() + offsets.size() );
-
-            for( std::set< unsigned int >::iterator it = offsets.begin(); it != offsets.end(); ++it ) {
-                unsigned int idx = *it;
-
-                fixed_alleles.push_back( alleles, idx );
             }
         }
     }
@@ -245,18 +241,20 @@ public:
         current_pop->get_state( cur );
         prev_pop->get_state( prev );
 
-        boost::property_tree::ptree al;
+        boost::property_tree::ptree al, tr;
         alleles.get_state( al );
+        traits.get_state( tr );
 
-        boost::property_tree::ptree fx;
+        boost::property_tree::ptree fx, tfx;
         fixed_alleles.get_state( fx );
+        fixed_traits.get_state( tfx );
 
         boost::property_tree::ptree sel;
         sel_gen.get_state( sel );
 
-        boost::property_tree::ptree asis;
-        all_freq.get_state( asis );
-        seq_weight.get_state( asis );
+        boost::property_tree::ptree alfr, sqw;
+        all_freq.get_state( alfr);
+        seq_weight.get_state( sqw );
 ////        pair_diff.get_state( asis );
 
 //        state.put_child("device.memory", dev_space );
@@ -264,9 +262,12 @@ public:
         state.put_child( "population.current", cur );
         state.put_child( "population.previous", prev );
         state.put_child( "selection", sel );
-        state.put_child( "analysis", asis );
-        state.put_child( "alleles.population", al );
-        state.put_child( "alleles.fixed", fx );
+        state.put_child( "analysis.allele_frequency", alfr );
+        state.put_child( "analysis.sequence_weight", sqw );
+        state.put_child( "population.alleles", al );
+        state.put_child( "population.traits", tr );
+        state.put_child( "fixed.alleles", fx );
+        state.put_child( "fixed.traits", tfx );
     }
 
     void swap() {
@@ -307,7 +308,7 @@ protected:
 
     allele_space_type          alleles, fixed_alleles;
 
-    trait_space_type            traits;
+    trait_space_type            traits, fixed_traits;
 
     mutation_generator_type     mut_gen;
     crossover_generator_type    xover_gen;

@@ -108,7 +108,7 @@ protected:
             block_type b = parents->getFreeSpace()[ i ];
 
             unsigned int j = i * bit_helper_type::BITS_PER_BLOCK;
-            while( b > 0 ) {
+            while( b > 0 && j < all_count) {
                 if( b & 1) {
                     m_hAlleleIndexPool[ mut_idx++ ] = j;
                     if( mut_idx >= m_pool_size ) break;

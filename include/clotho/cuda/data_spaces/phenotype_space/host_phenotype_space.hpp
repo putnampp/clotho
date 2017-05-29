@@ -51,7 +51,7 @@ public:
             for( unsigned int j = 0; j < m_seq_count; ++j ) {
                 clotho::utility::add_value_array( t, m_hPhenoSpace[ i * m_trait_count + j ] );
             }
-            d.add_child( "", t );
+            d.push_back( std::make_pair( "", t ) );
         }
         
         s.put( "size", m_seq_count * m_trait_count );

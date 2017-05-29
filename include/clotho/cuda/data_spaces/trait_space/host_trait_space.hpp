@@ -38,7 +38,20 @@ public:
     }
 
     void get_state( boost::property_tree::ptree & s ) {
+        boost::property_tree::ptree d;
+        for( unsigned int i = 0; i < m_trait_count; ++i ) {
+            boost::property_tree::ptree t;
+            for( unsigned int j = 0; j < m_allele_count; ++j ) {
+                clotho::utility::add_value_array( t, m_hTraitSpace[ i * m_allele_count + j ] );
+            }
+            d.push_back( std::make_pair( "", t ));
+        }
 
+        s.put( "trait_count", m_trait_count);
+        s.put( "allele_count", m_allele_count );
+        s.put( "size", m_trait_count * m_allele_count );
+        s.put( "capacity", m_capacity );
+        s.put_child( "data", d );
     }
 
 
@@ -70,6 +83,18 @@ public:
             m_dCapacity = m_capacity;
         }
         assert( cudaMemcpy( m_dTraitSpace, m_hTraitSpace, m_dCapacity * sizeof(weight_type), cudaMemcpyHostToDevice ) == cudaSuccess );
+    }
+
+    void update( unsigned int a_idx, self_type & other, unsigned int b_idx ) {
+        assert( a_idx < m_allele_count );
+        assert( b_idx < other.m_allele_count );
+        assert( m_trait_count <= other.m_trait_count );
+
+        for( unsigned int i = 0; i < m_trait_count; ++i ) {
+            m_hTraitSpace[ a_idx ] = other.m_hTraitSpace[ b_idx ];
+            a_idx += m_allele_count;
+            b_idx += other.m_allele_count;
+        }
     }
 
     void resize( HostAlleleSpace < RealType > & alleles ) {
