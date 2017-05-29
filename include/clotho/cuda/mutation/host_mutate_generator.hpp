@@ -48,6 +48,8 @@ public:
 
         unsigned int M = dist( eng );
 
+        std::cerr << "New mutations: " << M << std::endl;
+
         resize( N, M );
 
         return buildAllele( parents, all_count);
@@ -64,12 +66,29 @@ public:
         updateDevice();
 
         dim3 blocks( pop->getSequenceCount(), 1, 1 ), threads( 1,1,1 );
+
+        std::cerr << "Mutate: [" << blocks.x << ", " << blocks.y << "]; [" << threads.x << ", " << threads.y << "]" << std::endl;
+        assert( pop->getDeviceSequences() != NULL );
+        assert( m_dAlleleIndexPool != NULL );
+        assert( m_dSeqDist != NULL );
         mutate<<< blocks, threads >>>( pop->getDeviceSequences(), m_dAlleleIndexPool, m_dSeqDist, pop->getBlocksPerSequence() );
     }
 
     void updateDevice() {
         assert( cudaMemcpy( m_dSeqDist, m_hSeqDist, sizeof( unsigned int ) * m_dist_size, cudaMemcpyHostToDevice ) == cudaSuccess );
+
+        std::cerr << "Sequence Distribution: ";
+        for( unsigned int i = 0; i < 10; ++i ) {
+            std::cerr << m_hSeqDist[ i ] << ", ";
+        }
+        std::cerr << " ... , " << m_hSeqDist[ m_dist_size - 1] << std::endl;
         assert( cudaMemcpy( m_dAlleleIndexPool, m_hAlleleIndexPool, sizeof( unsigned int ) * m_pool_size, cudaMemcpyHostToDevice ) == cudaSuccess );
+
+        std::cerr << "Allele Pool: ";
+        for( unsigned int i = 0; i < 10; ++i ) {
+            std::cerr << m_hAlleleIndexPool[ i ] << ", ";
+        }
+        std::cerr << " ... , " << m_hAlleleIndexPool[ m_pool_size - 1] << std::endl;
     }
 
     virtual ~HostMutateGenerator() {
@@ -127,9 +146,10 @@ protected:
         location_distribution_type loc_dist;
         sequence_distribution_type seq_dist( 0, m_dist_size - 2);
         weight_distribution_type weight_dist( 0.0, 1.0);
+
         for( unsigned int i = 0; i < m_pool_size; ++i ) {
-            location_type loc = loc_dist( eng );
             unsigned int idx = m_hAlleleIndexPool[ i ];
+            location_type loc = loc_dist( eng );
 
             if( idx >= alleles.getAlleleCount() ) {
                 alleles.push_back( loc, age );

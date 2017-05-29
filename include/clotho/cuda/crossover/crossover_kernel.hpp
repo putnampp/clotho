@@ -37,7 +37,7 @@ __global__ void crossover_kernel( IntType * parents, IntType * offspring, unsign
 
     IntType top = 0, bottom = 0;
 
-    if( seq_block_idx < parent_width ) {
+    if( parents != NULL && seq_block_idx < parent_width ) {
         top = parents[ p_top * parent_width + seq_block_idx ];
         bottom = parents[ p_bottom * parent_width + seq_block_idx ];
     }

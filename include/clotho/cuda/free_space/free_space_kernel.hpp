@@ -16,33 +16,42 @@
 
 #include "clotho/cuda/free_space/offset_enum.hpp"
 
+/**
+ * 
+ * 1 thread per sequence block
+ * 
+ */
 template < class IntType >
 __global__ void evaluate_free_space( IntType * pop, IntType * fspace, unsigned int seq_count, unsigned int width ) {
 
-    unsigned int offset = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+    // blockDim.x * blockDim.y == sequence blocks per batch
+    // threadIdx.y * blockDim.x + threadIdx.x == sequence block index
 
-    if( offset >= width ) {
-        offset = width - 1;
-    }
-    __syncthreads();
+    unsigned int block_idx = threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int seq_offset = blockIdx.x * blockDim.x * blockDim.y + block_idx;
 
     IntType var = 0;
-    IntType fixed = ~var;
+    IntType fixed = (~var);
 
-    for( unsigned int i = 0; i < seq_count; ++i ) {
-        IntType b = pop[ i * width + offset ];
-
-        var |= b;
-        fixed &= b;
+    if( seq_offset >= width ) {
+        seq_offset = width - 1;
+        fixed = 0;  // no fixed 
     }
-
     __syncthreads();
 
-    offset = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
-    if( offset < width ) {
-        fspace[ offset + LOST_OFFSET * width ] = ~var;
-        fspace[ offset + FIXED_OFFSET *width ] = fixed;
-        fspace[ offset + FREE_OFFSET * width ] = ~(var | fixed);
+    for( unsigned int i = 0; i < seq_count; ++i ) {
+        IntType b = pop[ i * width + seq_offset ];
+
+        var = (var | b);
+        fixed = (fixed & b);
+    }
+    __syncthreads();
+
+    seq_offset = blockIdx.x * blockDim.x * blockDim.y + block_idx;
+    if( seq_offset < width ) {
+        fspace[ seq_offset + 0 * width ] = fixed;
+        fspace[ seq_offset + 1 * width ] = (~var);
+        fspace[ seq_offset + 2 * width ] = (~(var | fixed));
     }
 
     __syncthreads();

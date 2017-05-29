@@ -78,7 +78,7 @@ public:
                 cudaFree( m_dPhenoSpace );
             }
 
-            assert( cudaMalloc( (void **) m_dPhenoSpace, sizeof( phenotype_type ) * new_cap ) == cudaSuccess );
+            assert( cudaMalloc( (void **) &m_dPhenoSpace, sizeof( phenotype_type ) * new_cap ) == cudaSuccess );
 
             m_hPhenoSpace = new phenotype_type[ new_cap ];
             m_capacity = new_cap;

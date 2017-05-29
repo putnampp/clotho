@@ -20,7 +20,7 @@
  *
  */
 template < class IntType, class RealType >
-__global__ void evaluate_phenotype( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int width, unsigned int allele_count ) {
+__global__ void evaluate_phenotype( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int width, unsigned int allele_count, unsigned int trait_width ) {
 
     // gridDim.x == sequence_count
     // gridDim.y == trait_count
@@ -46,14 +46,18 @@ __global__ void evaluate_phenotype( IntType * seqs, RealType * trait_weights, Re
     __syncthreads();
 
     while( allele_idx < allele_count ) {
-        RealType w = trait_weights[ blockIdx.y * allele_count + allele_idx ];
+        // trait_index * allele_count + allele_index
+        RealType w = trait_weights[ blockIdx.y * trait_width + allele_idx ];
+        // sequence_index * blocks_per_sequence + block_index
         IntType b = seqs[ blockIdx.x * width + b_idx];
 
         if( (b & mask) != 0) {
             local_pheno += w;
         }
 
+        // step == alleles_per_sequence_block * sequence_blocks
         allele_idx += (blockDim.x * blockDim.y);
+        // sequence_blocks
         b_idx += blockDim.y;
     }
     __syncthreads();
@@ -76,6 +80,7 @@ __global__ void evaluate_phenotype( IntType * seqs, RealType * trait_weights, Re
     }
 
     if( threadIdx.y == 0 && threadIdx.x == 31 ) {
+        // trait_index * sequence_count + sequence_index
         phenos[ blockIdx.y * gridDim.x + blockIdx.x ] = local_pheno; 
     }
 }

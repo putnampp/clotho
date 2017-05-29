@@ -42,11 +42,24 @@ public:
     {}
 
     void updateHost() {
-        if( m_hFreeSpace != NULL ) {
-            cudaMemcpy( m_hFreeSpace, m_dFreeSpace, 3 * m_blocks_per_seq * sizeof( int_type ), cudaMemcpyDeviceToHost );
+        assert( cudaMemcpy( m_hFreeSpace, m_dFreeSpace, 3 * m_blocks_per_seq * sizeof( int_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
 
-            evaluateFreeSpace();
-        }
+        evaluateFreeSpace();
+
+/*
+        if( m_blocks_per_seq != 0 ) {
+            int_type * tmp = new int_type[ 10 * m_blocks_per_seq ];
+            assert( cudaMemcpy( tmp, m_dSeqSpace, 10 * m_blocks_per_seq * sizeof( int_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
+
+            for( unsigned int i = 0; i < 10; ++i ) {
+                for( unsigned int j = 0; j < 10; ++j ) {
+                    std::cerr << tmp[ i * m_blocks_per_seq + j ] << ", ";
+                }
+                std::cerr << " ..., " << std::endl;
+            }
+
+            delete [] tmp;
+        }*/
     }
 
     void resize( unsigned int allele_count, unsigned int seq_count ) {
@@ -55,7 +68,7 @@ public:
         unsigned int new_cap = seq_count * bbr;
 
         if( new_cap > m_capacity ) {
-            std::cerr << "Resizing Sequence Space: " << m_capacity << " -> " << new_cap << std::endl;
+//            std::cerr << "Resizing Sequence Space: " << m_capacity << " -> " << new_cap << std::endl;
             if( m_dSeqSpace != NULL ) {
                 cudaFree( m_dSeqSpace );
                 cudaFree( m_dFreeSpace );
@@ -139,17 +152,21 @@ protected:
             int_type b = m_hFreeSpace[ i ];
             m_lost_count += popcount( b );
         }
+//        std::cerr << "Lost: " << m_lost_count << std::endl;
         m_fixed_count = 0;
         for( unsigned int i = FIXED_OFFSET * m_blocks_per_seq; i < (FIXED_OFFSET + 1) * m_blocks_per_seq; ++i ) {
             int_type b = m_hFreeSpace[ i ];
             m_fixed_count += popcount( b );
         }
+//        std::cerr << "Fixed: " << m_fixed_count << std::endl;
 
         m_free_count = 0;
         for( unsigned int i = FREE_OFFSET * m_blocks_per_seq; i < (FREE_OFFSET + 1) * m_blocks_per_seq; ++i ) {
             int_type b = m_hFreeSpace[ i ];
             m_free_count += popcount( b );
         }
+
+//        std::cerr << "Free: " << m_free_count << std::endl;
     }
 
     int_type    * m_dSeqSpace;

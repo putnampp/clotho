@@ -51,14 +51,30 @@ public:
 
         resize( offspring->getSequenceCount() );
 
-        boost::random::discrete_distribution< unsigned int, fitness_type > disc_dist( parent->getHostFitness(), parent->getHostFitness() + parent->getIndividualCount() );
-        boost::random::bernoulli_distribution< double > bern( m_seq_bias.m_bias );
+        if( parent->getIndividualCount() == 0 ) {
+            memset( m_hSelection, 0, m_size * sizeof(unsigned int));
+        } else {
+            boost::random::discrete_distribution< unsigned int, fitness_type > disc_dist( parent->getHostFitness(), parent->getHostFitness() + parent->getIndividualCount() );
+            boost::random::bernoulli_distribution< double > bern( m_seq_bias.m_bias );
 
-        for( unsigned int i = 0; i < m_size; ++i ) {
-            m_hSelection[ i ] = 2 * disc_dist( rng );
-            if( bern( rng ) ) {
-                m_hSelection[ i ] += 1;
+            std::cerr << "Individual: " << parent->getIndividualCount() << std::endl;
+
+            for( unsigned int i = 0; i < 10; ++i ) {
+                std::cerr << parent->getHostFitness()[ i ] << ", ";
             }
+            std::cerr << " ... ," << parent->getHostFitness()[ parent->getIndividualCount() - 1 ] << std::endl;
+
+            for( unsigned int i = 0; i < m_size; ++i ) {
+                m_hSelection[ i ] = 2 * disc_dist( rng );
+                if( bern( rng ) ) {
+                    m_hSelection[ i ] += 1;
+                }
+            }
+
+            for( unsigned int i = 0; i < 10; ++i ) {
+                std::cerr << m_hSelection[ i ] << ", ";
+            }
+            std::cerr << " ... , " << m_hSelection[ m_size - 1] << std::endl;
         }
     }
 
@@ -69,6 +85,9 @@ public:
     void updateDevice( ) {
         if( m_size > 0 ) {
             std::cerr << "Moving " << m_size << " select to device [" << m_capacity << "]" << std::endl;
+            assert( m_dSelection != NULL );
+            assert( m_hSelection != NULL );
+
             cudaError_t err = cudaMemcpy( m_dSelection, m_hSelection, m_size * sizeof(unsigned int), cudaMemcpyHostToDevice);
             if( err != cudaSuccess ) {
                 std::cerr << "ERROR: " << cudaGetErrorString( err ) << std::endl;
@@ -87,8 +106,8 @@ public:
 protected:
 
     void resize( size_t N ) {
-        std::cerr << "Resizing: " << N << std::endl;
         if( N > m_capacity ) {
+            std::cerr << "Fitness Resizing: " << N << std::endl;
             if( m_hSelection != NULL ) {
                 cudaFree( m_dSelection );
                 delete [] m_hSelection;

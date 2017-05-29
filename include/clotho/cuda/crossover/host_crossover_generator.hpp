@@ -95,6 +95,11 @@ public:
             threads.y = offspring->getBlocksPerSequence() / 32;
         }
 
+        std::cerr << offspring->getBlocksPerSequence() <<  " [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
+
+        assert( offspring->getDeviceSequences() != NULL );
+        assert( sel.getDeviceList() != NULL );
+
         crossover_kernel<<< blocks, threads >>>( parents->getDeviceSequences(), offspring->getDeviceSequences(), sel.getDeviceList(), parents->getBlocksPerSequence(), offspring->getBlocksPerSequence() );
     }
 

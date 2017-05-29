@@ -17,23 +17,26 @@
 template < class IntType >
 __global__ void mutate( IntType * offspring, unsigned int * allele_index_pool, unsigned int * sequence_dist, unsigned int width ) {
 
-    unsigned int start = sequence_dist[ blockDim.x ];
-    unsigned int end = sequence_dist[ blockDim.x + 1 ];
+    unsigned int start = sequence_dist[ blockIdx.x ];
+    unsigned int end = sequence_dist[ blockIdx.x + 1 ];
+
+    const unsigned int BITS_PER_BLOCK = (8 * sizeof(IntType) );
 
     while( start < end ) {
         unsigned int idx = allele_index_pool[ start ];
-        IntType mask = ( 1 << (idx % 8 * sizeof(IntType)) );
+        IntType mask = ( 1 << (idx % BITS_PER_BLOCK ));
 
-        unsigned int b_idx = (idx / (8 * sizeof(IntType)));
+        unsigned int b_idx = blockIdx.x * width + (idx / BITS_PER_BLOCK);
 
-        b_idx += blockIdx.x * width;
-
+        // read the block
         IntType b = offspring[ b_idx ];
 
         // assert that not colliding an existing mutation in sequence
         assert( ( b & mask ) == 0 );
-        b |= mask;
+        // update the block
+        b = (b | mask);
 
+        // write the block 
         offspring[ b_idx ] = b;
         ++start;
     }

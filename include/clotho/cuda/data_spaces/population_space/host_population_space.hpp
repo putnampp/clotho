@@ -54,6 +54,10 @@ public:
         }
     }
 
+    block_type * getLostSpace() {
+        return m_seqs.getLostSpace();
+    }
+
     block_type * getFixedSpace() {
         return m_seqs.getFixedSpace();
     }

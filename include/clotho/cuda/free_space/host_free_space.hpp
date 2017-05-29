@@ -24,7 +24,12 @@ public:
         dim3 blocks( 1,1,1), threads( 1,1,1 );
         computeBlockThreadDims( pop->getBlocksPerSequence(), blocks, threads );
 
+        assert( pop->getDeviceSequences() != NULL );
+        assert( pop->getDeviceFreeSpace() != NULL );
+        std::cerr << "Sequence Count: " << pop->getSequenceCount() << "; Width: " << pop->getBlocksPerSequence() << std::endl;
+
         evaluate_free_space<<< blocks, threads >>>( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence() );
+        cudaDeviceSynchronize();
     }
 
     template < class RealType, class IntType >
@@ -53,7 +58,11 @@ protected:
         }
 
         blocks.x = b_x;
+
+        threads.x = 32;
         threads.y = t_y;
+
+        std::cerr << "[ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
     }
 };
 #endif  // HOST_FREE_SPACE_HPP_

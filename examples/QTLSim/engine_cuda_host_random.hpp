@@ -98,11 +98,12 @@ public:
         unsigned int cur_seq_count = 2 * N;
 
         // use fixed space to update fixed alleles
-        recordFixed(  prev_pop );
+        recordFixed( prev_pop );
 
         // use free space to determine new allele count for current population
         unsigned int allele_count = mut_gen.initialize( m_rng, prev_pop, cur_seq_count, alleles.getAlleleCount() );
 
+        std::cerr << "Allele count: " << allele_count << std::endl;
         alleles.resize( allele_count );
         traits.resize( alleles );
         current_pop->resize( alleles, traits, cur_seq_count );
@@ -116,16 +117,16 @@ public:
 
         mut_gen.generate( m_rng, alleles, traits, m_generation++ );
 
-//        mut_gen( current_pop );
+        mut_gen( current_pop );
 
         // evaluate the free space of the current population after mutation
         free_space_type fr;
-//        fr( current_pop );
+        fr( current_pop );
 
         phenotype_generator_type ph;
-//        ph( current_pop, traits );
+        ph( current_pop, traits, alleles.getAlleleCount() );
 
-//        fit_trans( current_pop );
+        fit_trans( current_pop );
         
         // in this model, mutation occurs after recombination
         // so new mutation locations do impact recombination process
@@ -153,6 +154,8 @@ public:
         clotho::utility::add_value_array( m_allele_track, alleles.getAlleleCount() );
         clotho::utility::add_value_array( m_free_track, prev_pop->getFreeCount() );
         clotho::utility::add_value_array( m_fixed_track, fixed_alleles.getAlleleCount());
+
+        std::cerr << alleles.getAlleleCount() << ", " << prev_pop->getFreeCount() << ", " << fixed_alleles.getAlleleCount() << std::endl;
     }
 
     void recordFixed( population_space_type * pop ) {

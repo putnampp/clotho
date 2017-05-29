@@ -111,6 +111,7 @@ int main( int argc, char ** argv ) {
 #endif  // USE_CUDA_HOST_RANDOM
 
     while( gen < nGens ) {
+        assert( gen < 10);
         p_size = (*pop_grow)( p_size, gen++ );
 
         timer_type t;
