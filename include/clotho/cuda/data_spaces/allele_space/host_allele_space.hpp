@@ -36,14 +36,16 @@ public:
     void updateDevice() {
         if( m_capacity > m_dCapacity ) {
             if( m_dLoc != NULL ) {
-                cudaFree( m_dLoc );
+                std::cerr << "Free device locations" << std::endl;
+                assert( cudaFree( m_dLoc ) == cudaSuccess);
             }
             assert( cudaMalloc((void **)&m_dLoc, m_capacity * sizeof(location_type)) == cudaSuccess );
             m_dCapacity = m_capacity;
         }
 
         m_dSize = m_size;
-        assert( cudaMemcpy( m_dLoc, m_hLoc, sizeof( location_type ) * m_dSize, cudaMemcpyHostToDevice ) == cudaSuccess);
+        assert( m_dSize <= m_dCapacity );
+        assert( cudaMemcpy( m_dLoc, m_hLoc, sizeof( location_type ) * m_dCapacity, cudaMemcpyHostToDevice ) == cudaSuccess);
     }
 
     void get_state( boost::property_tree::ptree & state ) {

@@ -124,30 +124,37 @@ __global__ void build_crossover_mask_kernel( RealType * locations, RealType * ev
         }
         __syncthreads();
     } else {
-        unsigned int all_idx = blockIdx.y * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
 
         __shared__ RealType sEvents[ 32 ];
-        if( threadIdx.y == 0 &&  event_start + threadIdx.x < event_end ) {
+
+        // put events into shared memory        
+        if( threadIdx.y == 0 && event_start + threadIdx.x < event_end ) {
             sEvents[ threadIdx.x ] = event_pool[ threadIdx.x + event_start ]; 
         }
         __syncthreads();
 
         RealType loc = 1.0;
 
+        unsigned int all_idx = blockIdx.y * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
         if( all_idx < ALLELE_COUNT) {
             loc = locations[ all_idx ];
         }
         __syncthreads();
 
-        IntType N = 0;
+        unsigned int N = 0;
+        event_end -= event_start;
+        event_start = 0;
         while( event_start < event_end ) {
             RealType w = sEvents[ event_start++ ];
-            N += (( loc < w ) ? 1 : 0 ); 
+            N += (( loc < w ) ? 1 : 0 );
         }
         __syncthreads();
 
-        IntType mask = (1 << threadIdx.x);
-        mask *= (N & 1);
+        IntType mask = 0;
+        if( N & 1) {
+            mask = ( 1 << threadIdx.x);
+        }
+        __syncthreads();
 
         for( unsigned int i = 1; i < 32; i <<= 1 ) {
             IntType _m = __shfl_up( mask, i );

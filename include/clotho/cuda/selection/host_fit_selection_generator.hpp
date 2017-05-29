@@ -30,6 +30,8 @@ public:
         , m_dSelection(NULL)
         , m_size(0)
         , m_capacity(0)
+        , m_dSize(0)
+        , m_dCapacity(0)
     {    }
 
     void get_state( boost::property_tree::ptree & s ) {
@@ -82,13 +84,29 @@ public:
         return m_dSelection;
     }
 
+    size_t getDeviceSize() const {
+        return m_dSize;
+    }
+
+
     void updateDevice( ) {
-        if( m_size > 0 ) {
-            std::cerr << "Moving " << m_size << " select to device [" << m_capacity << "]" << std::endl;
+        if( m_size > m_dCapacity ) {
+            if( m_dSelection != NULL ) {
+                assert( cudaFree( m_dSelection ) == cudaSuccess);
+                m_dSelection = NULL;
+            }
+
+            assert( cudaMalloc( (void **) & m_dSelection, m_size * sizeof( unsigned int ) ) == cudaSuccess );
+            m_dCapacity = m_size;
+        }
+        m_dSize = m_size;
+
+        if( m_dSize > 0 ) {
+            std::cerr << "Moving " << m_dSize << " select to device [" << m_dCapacity << "]" << std::endl;
             assert( m_dSelection != NULL );
             assert( m_hSelection != NULL );
 
-            cudaError_t err = cudaMemcpy( m_dSelection, m_hSelection, m_size * sizeof(unsigned int), cudaMemcpyHostToDevice);
+            cudaError_t err = cudaMemcpy( m_dSelection, m_hSelection, m_dSize * sizeof(unsigned int), cudaMemcpyHostToDevice);
             if( err != cudaSuccess ) {
                 std::cerr << "ERROR: " << cudaGetErrorString( err ) << std::endl;
                 assert( false );
@@ -97,9 +115,11 @@ public:
     }
 
     virtual ~HostSelectionGenerator() {
-        if( m_hSelection ) {
-            cudaFree( m_dSelection );
+        if( m_hSelection != NULL ) {
             delete [] m_hSelection;
+        }
+        if( m_dSelection != NULL ) {
+            cudaFree( m_dSelection );
         }
     }
 
@@ -109,11 +129,9 @@ protected:
         if( N > m_capacity ) {
             std::cerr << "Fitness Resizing: " << N << std::endl;
             if( m_hSelection != NULL ) {
-                cudaFree( m_dSelection );
                 delete [] m_hSelection;
             }
 
-            assert( cudaMalloc( (void **) &m_dSelection, N * sizeof( unsigned int )) == cudaSuccess );
             m_hSelection = new unsigned int[ N ];
             m_capacity = N;
         }
@@ -124,6 +142,7 @@ protected:
     unsigned int * m_hSelection, * m_dSelection;
 
     size_t m_size, m_capacity;
+    size_t m_dSize, m_dCapacity;
 };
 
 #endif  // HOST_FIT_SELECTION_GENERATOR_HPP_

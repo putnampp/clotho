@@ -22,7 +22,7 @@
  *
  */
 template < class RealType >
-__global__ void evaluate_quadratic_fitness( RealType * phenos, RealType * fitness, unsigned int trait_count, RealType stddev ) {
+__global__ void evaluate_quadratic_fitness( RealType * phenos, RealType * fitness, RealType stddev ) {
     assert( blockDim.x * blockDim.y == 1 );
 
     // gridDim.x == individual count

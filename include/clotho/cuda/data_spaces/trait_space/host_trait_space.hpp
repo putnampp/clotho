@@ -31,6 +31,7 @@ public:
         , m_allele_count(0)
         , m_trait_count(0)
         , m_capacity(0)
+        , m_dCapacity(0)
     {
         trait_count_parameter param( config );
         m_trait_count = param.m_trait_count;
@@ -61,7 +62,14 @@ public:
     }
 
     void updateDevice() {
-        assert( cudaMemcpy( m_dTraitSpace, m_hTraitSpace, m_allele_count * m_trait_count * sizeof( weight_type ), cudaMemcpyHostToDevice ) == cudaSuccess );
+        if( m_capacity > m_dCapacity ) {
+            if( m_dTraitSpace != NULL ) {
+                assert( cudaFree( m_dTraitSpace ) == cudaSuccess );
+            }
+            assert( cudaMalloc((void **) &m_dTraitSpace, m_capacity * sizeof(weight_type)) == cudaSuccess);
+            m_dCapacity = m_capacity;
+        }
+        assert( cudaMemcpy( m_dTraitSpace, m_hTraitSpace, m_dCapacity * sizeof(weight_type), cudaMemcpyHostToDevice ) == cudaSuccess );
     }
 
     void resize( HostAlleleSpace < RealType > & alleles ) {
@@ -70,8 +78,10 @@ public:
 
     virtual ~HostTraitSpace() {
         if( m_dTraitSpace != NULL ) {
-            cudaFree( m_dTraitSpace );
             delete [] m_hTraitSpace;
+        }
+        if( m_dTraitSpace != NULL ) {
+            cudaFree( m_dTraitSpace );
         }
     }
 
@@ -90,14 +100,11 @@ protected:
                     memcpy( tmp_weight + i * allele_count, m_hTraitSpace + i * m_allele_count, sizeof( weight_type ) * m_allele_count );
                 }
 
-                cudaFree( m_dTraitSpace );
-
                 delete [] m_hTraitSpace;
             }
 
             m_hTraitSpace = tmp_weight;
 
-            assert( cudaMalloc( (void **) &m_dTraitSpace, sizeof( weight_type ) * new_cap ) == cudaSuccess);
             m_capacity = new_cap;
         }
 
@@ -110,7 +117,7 @@ protected:
 
     size_t    m_allele_count, m_trait_count;
 
-    size_t    m_capacity;
+    size_t    m_capacity, m_dCapacity;
 };
 
 #endif  // HOST_TRAIT_SPACE_HPP_

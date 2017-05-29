@@ -217,7 +217,7 @@ public:
 //
 //        //pair_diff.evaluate( current_pop );
 //
-//        cudaDeviceSynchronize();
+        cudaDeviceSynchronize();
     }
 //
     void analyze_sample( unsigned int N, boost::property_tree::ptree & samp_res) {

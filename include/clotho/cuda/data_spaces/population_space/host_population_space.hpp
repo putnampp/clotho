@@ -49,9 +49,7 @@ public:
 
     void updateHost() {
         m_seqs.updateHost();
-        if( m_capacity > 0 ) {
-            cudaMemcpy( m_hFitness, m_dFitness, m_capacity * sizeof( fitness_type ), cudaMemcpyDeviceToHost );
-        }
+        assert( cudaMemcpy( m_hFitness, m_dFitness, m_capacity * sizeof( fitness_type ), cudaMemcpyDeviceToHost ) == cudaSuccess);
     }
 
     block_type * getLostSpace() {
@@ -80,7 +78,7 @@ public:
 
         if( fit_count > m_capacity ) {
             if( m_dFitness != NULL ) {
-                cudaFree( m_dFitness );
+                assert( cudaFree( m_dFitness ) == cudaSuccess);
                 delete [] m_hFitness;
             }
 
@@ -162,11 +160,9 @@ protected:
     sequence_space_type m_seqs;
     phenotype_space_type m_phenos;
 
-    real_type * m_dFitness, * m_hFitness;
+    fitness_type * m_dFitness, * m_hFitness;
 
     size_t  m_size, m_capacity;
-
-    cudaStream_t    fitnessStream;
 };
 
 #endif  // HOST_POPULATION_SPACE_DEF_HPP_

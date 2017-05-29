@@ -79,6 +79,8 @@ public:
         } else {
             sel.updateDevice();
 
+            assert( sel.getDeviceSize() == offspring->getSequenceCount() );
+
             crossover::execute( parents->getDeviceSequences(), offspring->getDeviceSequences(), sel.getDeviceList(), offspring->getSequenceCount(), parents->getBlocksPerSequence(), offspring->getBlocksPerSequence() );
         }
     }
