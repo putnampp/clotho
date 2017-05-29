@@ -21,48 +21,19 @@ public:
 
     template < class RealType, class IntType >
     void operator()( HostPopulationSpace< RealType, IntType > * pop ) {
-        dim3 blocks( 1,1,1), threads( 1,1,1 );
-        computeBlockThreadDims( pop->getBlocksPerSequence(), blocks, threads );
+        evaluate_free_space::execute( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence());
 
-        assert( pop->getDeviceSequences() != NULL );
-        assert( pop->getDeviceFreeSpace() != NULL );
-        std::cerr << "Sequence Count: " << pop->getSequenceCount() << "; Width: " << pop->getBlocksPerSequence() << std::endl;
-
-        evaluate_free_space<<< blocks, threads >>>( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence() );
         cudaDeviceSynchronize();
     }
 
     template < class RealType, class IntType >
     void perform_remove_fixed( HostPopulationSpace< RealType, IntType > * pop ) {
-        dim3 blocks( 1,1,1), threads( 1,1,1 );
-        computeBlockThreadDims( pop->getBlocksPerSequence(), blocks, threads );
 
-        remove_fixed<<< blocks, threads >>>( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence() );
+        remove_fixed::execute( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence() );
     }
 
     virtual ~HostFreeSpace() {}
 
 protected:
-    void computeBlockThreadDims( unsigned int N, dim3 & blocks, dim3 & threads ) {
-        assert( N % 32 == 0);
-
-        unsigned int t_y = N / 32;
-        unsigned int b_x = 1;
-
-        if( t_y > 32 ) {
-            b_x = t_y / 32;
-            if( t_y % 32 != 0 ) {
-                b_x += 1;
-            }
-            t_y = 32;
-        }
-
-        blocks.x = b_x;
-
-        threads.x = 32;
-        threads.y = t_y;
-
-        std::cerr << "[ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
-    }
 };
 #endif  // HOST_FREE_SPACE_HPP_

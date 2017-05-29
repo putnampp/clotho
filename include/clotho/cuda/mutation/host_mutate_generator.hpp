@@ -65,13 +65,7 @@ public:
     void operator()( HostPopulationSpace< RealType, IntType > * pop ) {
         updateDevice();
 
-        dim3 blocks( pop->getSequenceCount(), 1, 1 ), threads( 1,1,1 );
-
-        std::cerr << "Mutate: [" << blocks.x << ", " << blocks.y << "]; [" << threads.x << ", " << threads.y << "]" << std::endl;
-        assert( pop->getDeviceSequences() != NULL );
-        assert( m_dAlleleIndexPool != NULL );
-        assert( m_dSeqDist != NULL );
-        mutate<<< blocks, threads >>>( pop->getDeviceSequences(), m_dAlleleIndexPool, m_dSeqDist, pop->getBlocksPerSequence() );
+        mutate::execute( pop->getDeviceSequences(), m_dAlleleIndexPool, m_dSeqDist, pop->getSequenceCount(), pop->getBlocksPerSequence() );
     }
 
     void updateDevice() {

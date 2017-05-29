@@ -22,7 +22,7 @@
  * 
  */
 template < class IntType >
-__global__ void evaluate_free_space( IntType * pop, IntType * fspace, unsigned int seq_count, unsigned int width ) {
+__global__ void evaluate_free_space_kernel( IntType * pop, IntType * fspace, unsigned int seq_count, unsigned int width ) {
 
     // blockDim.x * blockDim.y == sequence blocks per batch
     // threadIdx.y * blockDim.x + threadIdx.x == sequence block index
@@ -57,8 +57,29 @@ __global__ void evaluate_free_space( IntType * pop, IntType * fspace, unsigned i
     __syncthreads();
 }
 
+struct evaluate_free_space {
+    template < class IntType >
+    static void execute( IntType * pop, IntType * fspace, unsigned int seq_count, unsigned int width ){
+        assert( pop != NULL );
+        assert( fspace != NULL );
+        assert( width % 32 == 0 );
+
+        dim3 blocks( 1,1,1), threads( 1,1,1 );
+        if( width > 1024 ) {
+            blocks.x = (width / 1024) + ((width % 1024) ? 1 : 0);
+            threads.x = 32;
+            threads.y = 32;
+        } else {
+            threads.x = 32;
+            threads.y = width / 32;
+        }
+        std::cerr << "Free Space - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
+        evaluate_free_space_kernel<<< blocks, threads >>>( pop, fspace, seq_count, width );
+    }
+};
+
 template < class IntType >
-__global__ void remove_fixed( IntType * pop, IntType * fspace, unsigned int seq_count, unsigned int width ) { 
+__global__ void remove_fixed_kernel( IntType * pop, IntType * fspace, unsigned int seq_count, unsigned int width ) { 
 
     unsigned int offset = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
 
@@ -68,17 +89,42 @@ __global__ void remove_fixed( IntType * pop, IntType * fspace, unsigned int seq_
     }
     __syncthreads();
 
+    fixed = (~fixed);
+
     for( unsigned int i = 0; i < seq_count; ++i ) {
         if( offset < width ) {
             IntType b = pop[ i * width + offset ];
 
-            assert( (b & fixed) == fixed);
-            b &= ~fixed;
+            assert( (b & (~fixed)) == fixed);
+            b = (b & fixed);
 
             pop[ i * width + offset ] = b;
         }
         __syncthreads();
     }
 }
+
+struct remove_fixed {
+
+    template < class IntType > 
+    static void execute( IntType * pop, IntType * fspace, unsigned int seq_count, unsigned int seq_width ) {
+        assert( pop != NULL );
+        assert( fspace != NULL );
+        assert( seq_width % 32 == 0 );
+
+        dim3 blocks( 1,1,1), threads( 1,1,1 );
+        if( seq_width > 1024 ) {
+            blocks.x = (seq_width / 1024) + ((seq_width % 1024) ? 1 : 0);
+            threads.x = 32;
+            threads.y = 32;
+        } else {
+            threads.x = 32;
+            threads.y = seq_width / 32;
+        }
+        std::cerr << "Remove Fixed - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
+        remove_fixed_kernel<<< blocks, threads >>>( pop, fspace, seq_count, seq_width );
+
+    }
+};
 
 #endif  // FREE_SPACE_KERNEL_HPP_

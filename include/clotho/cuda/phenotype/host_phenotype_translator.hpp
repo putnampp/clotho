@@ -22,14 +22,7 @@ public:
     template < class RealType, class IntType >
     void operator()( HostPopulationSpace< RealType, IntType > * pop, HostTraitSpace< RealType > & traits, unsigned int all_count ) {
         traits.updateDevice();
-
-        assert( traits.getAlleleCount() % 32 == 0 );
-        assert( pop->getDeviceSequences() != NULL );
-        assert( traits.getDeviceWeights() != NULL );
-        assert( pop->getDevicePhenotypes() != NULL );
-
-        dim3 blocks( pop->getSequenceCount(), traits.getTraitCount(), 1 ), threads( 32, 32, 1 );
-        evaluate_phenotype<<< blocks, threads >>>( pop->getDeviceSequences(), traits.getDeviceWeights(), pop->getDevicePhenotypes(), pop->getBlocksPerSequence(), all_count, traits.getAlleleCount() );
+        evaluate_phenotype::execute( pop->getDeviceSequences(), traits.getDeviceWeights(), pop->getDevicePhenotypes(), pop->getSequenceCount(), pop->getBlocksPerSequence(), all_count, traits.getAlleleCount(), traits.getTraitCount() );
     }
 
     virtual ~HostPhenotypeTranslator() {}

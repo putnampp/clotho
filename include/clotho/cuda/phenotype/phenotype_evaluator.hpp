@@ -20,7 +20,8 @@
  *
  */
 template < class IntType, class RealType >
-__global__ void evaluate_phenotype( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int width, unsigned int allele_count, unsigned int trait_width ) {
+__global__ void evaluate_phenotype_kernel( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int width, unsigned int allele_count, unsigned int trait_width ) {
+    assert( blockDim.x == 32 );
 
     // gridDim.x == sequence_count
     // gridDim.y == trait_count
@@ -84,5 +85,27 @@ __global__ void evaluate_phenotype( IntType * seqs, RealType * trait_weights, Re
         phenos[ blockIdx.y * gridDim.x + blockIdx.x ] = local_pheno; 
     }
 }
+
+struct evaluate_phenotype {
+
+    template < class IntType, class RealType >
+    static void execute( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, unsigned int trait_width, unsigned int trait_count ) {
+        assert( seqs != NULL );
+        assert( trait_weights != NULL );
+        assert( phenos != NULL );
+
+        assert( allele_count <= trait_width );
+        assert( allele_count <= seq_width * 32 );
+
+        dim3 blocks( seq_count, trait_count, 1 ), threads( 32, 32, 1 );
+
+        if( seq_width < 32 ) {
+            threads.y = seq_width;
+        }
+
+        std::cerr << "Phenotype - [" << blocks.x << ", "<< blocks.y << "]; [" << threads.x << ", " << threads.y << "]" << std::endl;
+        evaluate_phenotype_kernel<<< blocks, threads >>>( seqs, trait_weights, phenos, seq_width, allele_count, trait_width );
+    }
+};
 
 #endif  // PHENOTYPE_EVALUATOR_HPP_
