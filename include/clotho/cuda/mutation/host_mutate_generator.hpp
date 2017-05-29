@@ -130,7 +130,12 @@ protected:
         for( unsigned int i = 0; i < m_pool_size; ++i ) {
             location_type loc = loc_dist( eng );
             unsigned int idx = m_hAlleleIndexPool[ i ];
-            alleles.update( idx, loc, age );
+
+            if( idx >= alleles.getAlleleCount() ) {
+                alleles.push_back( loc, age );
+            } else {
+                alleles.update( idx, loc, age );
+            }
 
             for( unsigned int t = 0; t < traits.getTraitCount(); ++t ) {
                 weight_type w = 0.0;

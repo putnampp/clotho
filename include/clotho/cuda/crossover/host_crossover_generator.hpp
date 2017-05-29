@@ -60,24 +60,18 @@ public:
 
             m_hEventDist[ i + 1 ] = m_pool_size;  
         }
+        updateDevice();
     }
 
     template < class RealType, class IntType >
     void buildRecombinationMask( HostAlleleSpace< RealType > & alleles, HostPopulationSpace< RealType, IntType > * offspring ) {
-        updateDevice();
 
-        unsigned int t_x = 32;
-        unsigned int t_y = 32;
+        dim3 blocks( 1, 1, 1), threads( 1,1,1);
 
-        unsigned int b_x = offspring->getSequenceCount();
-        unsigned int b_y = offspring->getBlocksPerSequence() / t_y;
+        computeBlockThreadDims( offspring->getSequenceCount(), offspring->getBlocksPerSequence(), blocks, threads );
 
-        if( offspring->getBlocksPerSequence() % t_y ) {
-            b_y += 1;
-        }
-        
-        dim3 blocks( b_x, b_y , 1 ), threads( t_x, t_y, 1 );
-        build_crossover_mask<<< blocks, threads >>>( alleles.getDeviceLocations(), m_dEventPool, m_dEventDist, offspring->getDeviceSequences(), offspring->getBlocksPerSequence() );
+        build_crossover_mask<<< blocks, threads >>>( alleles.getDeviceLocations(), m_dEventPool, m_dEventDist, offspring->getDeviceSequences(), offspring->getBlocksPerSequence(), alleles.getAlleleCount() );
+        CHECK_LAST_KERNEL_EXEC
     }
 
     template < class RealType, class IntType >
@@ -85,12 +79,31 @@ public:
 
         sel.updateDevice();
 
-        // blocks are warp aligned
-        assert( offspring->getBlocksPerSequence() % 32 == 0);
+        // 1 thread per sequence block
+        dim3 blocks( 1,1,1), threads( 1,1,1 );
 
-        unsigned int t_x = 32, t_y = offspring->getBlocksPerSequence() / 32;
+        assert( offspring->getBlocksPerSequence() % 32 == 0 );
 
-        unsigned int b_x = offspring->getSequenceCount(), b_y = 1;
+        blocks.x = offspring->getSequenceCount();
+        
+        if( offspring->getBlocksPerSequence() > 1024 ) {
+            blocks.y = offspring->getBlocksPerSequence() / 1024 + ((offspring->getBlocksPerSequence() % 1024 ) ? 1 : 0);
+            threads.x = 32;
+            threads.y = 32;
+        } else {
+            threads.x = 32;
+            threads.y = offspring->getBlocksPerSequence() / 32;
+        }
+
+        crossover_kernel<<< blocks, threads >>>( parents->getDeviceSequences(), offspring->getDeviceSequences(), sel.getDeviceList(), parents->getBlocksPerSequence(), offspring->getBlocksPerSequence() );
+    }
+
+    void computeBlockThreadDims( unsigned int M, unsigned int N, dim3 & blocks, dim3 & threads ) {
+        assert( N % 32 == 0);
+
+        unsigned int t_x = 32, t_y = N / 32;
+
+        unsigned int b_x = M, b_y = 1;
 
         if( t_y > 32 ) {
             b_y = t_y / 32;
@@ -98,14 +111,23 @@ public:
             if( t_y % 32 != 0) {
                 b_y += 1;
             }
+
+            t_y = 32;
         }
 
-        dim3 blocks( b_x, b_y, 1 ), threads( t_x, t_y, 1 );
+        blocks.x = b_x;
+        blocks.y = b_y;
 
-        crossover_kernel<<< blocks, threads >>>( parents->getDeviceSequences(), offspring->getDeviceSequences(), sel.getDeviceList(), parents->getBlocksPerSequence(), offspring->getBlocksPerSequence() );
+        threads.x = t_x;
+        threads.y = t_y;
+
+        std::cerr << "[ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
     }
 
     void updateDevice() {
+        std::cerr << "Event pool size: " << m_pool_size << " [" << m_pool_capacity << "]" << std::endl;
+        std::cerr << "Event Distribution size: " << m_dist_size << " [" << m_dist_capacity << "]" << std::endl;
+
         assert( cudaMemcpy( m_dEventPool, m_hEventPool, m_pool_size * sizeof( event_type ), cudaMemcpyHostToDevice ) == cudaSuccess );
         assert( cudaMemcpy( m_dEventDist, m_hEventDist, m_dist_size * sizeof( unsigned int ), cudaMemcpyHostToDevice ) == cudaSuccess );
     }

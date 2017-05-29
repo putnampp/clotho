@@ -92,6 +92,8 @@ public:
     }
 
     void simulate( unsigned int N ) {
+        std::cerr << "Generation: " << m_generation << std::endl;
+
         swap();
         unsigned int cur_seq_count = 2 * N;
 
@@ -114,16 +116,16 @@ public:
 
         mut_gen.generate( m_rng, alleles, traits, m_generation++ );
 
-        mut_gen( current_pop );
+//        mut_gen( current_pop );
 
         // evaluate the free space of the current population after mutation
         free_space_type fr;
-        fr( current_pop );
+//        fr( current_pop );
 
         phenotype_generator_type ph;
-        ph( current_pop, traits );
+//        ph( current_pop, traits );
 
-        fit_trans( current_pop );
+//        fit_trans( current_pop );
         
         // in this model, mutation occurs after recombination
         // so new mutation locations do impact recombination process

@@ -109,31 +109,35 @@ __global__ void build_crossover_mask_kernel(  AlleleSpaceType * alleles,
 }
 
 template < class RealType, class IntType >
-__global__ void build_crossover_mask( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int WIDTH ) {
+__global__ void build_crossover_mask( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int WIDTH, unsigned int ALLELE_COUNT ) {
     assert( blockDim.x == 32 );
-    assert( blockDim.y == 32 );
 
-    unsigned int all_idx = blockIdx.y * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
-
-    unsigned int seq_idx = blockIdx.x * WIDTH + blockIdx.y * blockDim.y + threadIdx.y;
-
-    __shared__ RealType sEvents[ 32 ];
+    unsigned int seq_offset = blockIdx.y * blockDim.y + threadIdx.y;
+    unsigned int seq_idx = blockIdx.x * WIDTH + seq_offset;
 
     unsigned int event_start = event_dist[ blockIdx.x ];
     unsigned int event_end = event_dist[ blockIdx.x + 1 ];
 
-    if( event_start == event_end ) {
-        if( threadIdx.x == 0 ) {
+    if( ALLELE_COUNT == 0 || event_start == event_end ) { // true for all threads
+        if( threadIdx.x == 0 && seq_offset < WIDTH ) {
             mask_buffer[ seq_idx ] = 0;
         }
         __syncthreads();
     } else {
+        unsigned int all_idx = blockIdx.y * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+
+        __shared__ RealType sEvents[ 32 ];
         if( threadIdx.y == 0 &&  event_start + threadIdx.x < event_end ) {
             sEvents[ threadIdx.x ] = event_pool[ threadIdx.x + event_start ]; 
         }
         __syncthreads();
 
-        RealType loc = locations[ all_idx ];
+        RealType loc = 1.0;
+
+        if( all_idx < ALLELE_COUNT) {
+            loc = locations[ all_idx ];
+        }
+        __syncthreads();
 
         IntType N = 0;
         while( event_start < event_end ) {
@@ -150,7 +154,7 @@ __global__ void build_crossover_mask( RealType * locations, RealType * event_poo
             mask |= ((threadIdx.x >= i) * _m );
         }
 
-        if( threadIdx.x == 31 ) {
+        if( threadIdx.x == 31 && seq_offset < WIDTH ) {
             mask_buffer[ seq_idx ] = mask;
         }
         __syncthreads();

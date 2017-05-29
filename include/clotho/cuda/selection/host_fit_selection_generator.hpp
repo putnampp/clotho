@@ -67,7 +67,14 @@ public:
     }
 
     void updateDevice( ) {
-        assert( cudaMemcpy( m_dSelection, m_hSelection, m_size * sizeof(unsigned int), cudaMemcpyHostToDevice) == cudaSuccess);
+        if( m_size > 0 ) {
+            std::cerr << "Moving " << m_size << " select to device [" << m_capacity << "]" << std::endl;
+            cudaError_t err = cudaMemcpy( m_dSelection, m_hSelection, m_size * sizeof(unsigned int), cudaMemcpyHostToDevice);
+            if( err != cudaSuccess ) {
+                std::cerr << "ERROR: " << cudaGetErrorString( err ) << std::endl;
+                assert( false );
+            }
+        }
     }
 
     virtual ~HostSelectionGenerator() {
@@ -80,6 +87,7 @@ public:
 protected:
 
     void resize( size_t N ) {
+        std::cerr << "Resizing: " << N << std::endl;
         if( N > m_capacity ) {
             if( m_hSelection != NULL ) {
                 cudaFree( m_dSelection );
@@ -88,7 +96,6 @@ protected:
 
             assert( cudaMalloc( (void **) &m_dSelection, N * sizeof( unsigned int )) == cudaSuccess );
             m_hSelection = new unsigned int[ N ];
-
             m_capacity = N;
         }
         m_size = N;

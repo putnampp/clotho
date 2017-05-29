@@ -65,7 +65,9 @@ public:
     }
 
     void push_back( location_type l, age_type a ) {
-        update( m_size, l, a );
+        assert( m_size + 1 < m_capacity );
+        this->m_hLoc[ m_size ] = l;
+        this->m_hAge[ m_size ] = a;
         ++m_size;
     }
 
@@ -85,6 +87,7 @@ public:
         new_cap += N;
 
         if( new_cap > m_capacity ) {
+            std::cerr << "Resizing alleles: " << m_capacity << " -> " << new_cap << std::endl;
             location_type * tmp_loc = new location_type[ new_cap ];
             age_type * tmp_age = new age_type[ new_cap ];
             
