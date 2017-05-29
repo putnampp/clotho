@@ -85,18 +85,12 @@ public:
         this->m_hAge[ idx ] = a;
     }
 
-    void push_back( location_type l, age_type a ) {
-        assert( m_size + 1 < m_capacity );
-        this->m_hLoc[ m_size ] = l;
-        this->m_hAge[ m_size ] = a;
-        ++m_size;
-    }
+    void update( unsigned int a_idx, self_type & others, unsigned int idx ) {
+        assert( a_idx < m_size );
+        assert( idx < others.m_size );
 
-    void push_back( self_type & others, unsigned int idx ) {
-        assert( m_size + 1 < m_capacity );
-        this->m_hLoc[ m_size ] = others.m_hLoc[ idx ];
-        this->m_hAge[ m_size ] = others.m_hAge[ idx ];
-        ++m_size;
+        this->m_hLoc[ a_idx ] = others.m_hLoc[ idx ];
+        this->m_hAge[ a_idx ] = others.m_hAge[ idx ];
     }
 
     void resize( unsigned int N ) {
@@ -105,7 +99,7 @@ public:
             new_cap = 1024 - new_cap;
         }
 
-        new_cap += N;
+        new_cap += N + 1024;
 
         if( new_cap > m_capacity ) {
             std::cerr << "Resizing alleles: " << m_capacity << " -> " << new_cap << std::endl;
@@ -125,6 +119,8 @@ public:
 
             m_capacity = new_cap;
         }
+
+        m_size = N;
     }
 
     location_type * getDeviceLocations() {

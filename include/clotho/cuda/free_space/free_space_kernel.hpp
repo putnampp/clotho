@@ -78,29 +78,26 @@ struct evaluate_free_space {
     }
 };
 
+
+/**
+ *
+ * 1 thread per sequence block
+ *
+ */
 template < class IntType >
-__global__ void remove_fixed_kernel( IntType * pop, IntType * fspace, unsigned int seq_count, unsigned int width ) { 
+__global__ void remove_fixed_kernel( IntType * pop, IntType * fspace, unsigned int width ) { 
 
-    unsigned int offset = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+    unsigned int offset = blockIdx.y * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
 
-    IntType fixed = 0;
     if( offset < width ) {
-        fixed = fspace[ offset + FIXED_OFFSET * width ];
-    }
-    __syncthreads();
+        IntType fixed = fspace[ offset + FIXED_OFFSET * width ];
+        
+        IntType b = pop[ blockIdx.x * width + offset ];
 
-    fixed = (~fixed);
+        assert( (b & fixed) == fixed);
+        b = (b & (~fixed));
 
-    for( unsigned int i = 0; i < seq_count; ++i ) {
-        if( offset < width ) {
-            IntType b = pop[ i * width + offset ];
-
-            assert( (b & (~fixed)) == fixed);
-            b = (b & fixed);
-
-            pop[ i * width + offset ] = b;
-        }
-        __syncthreads();
+        pop[ blockIdx.x * width + offset ] = b;
     }
 }
 
@@ -112,9 +109,9 @@ struct remove_fixed {
         assert( fspace != NULL );
         assert( seq_width % 32 == 0 );
 
-        dim3 blocks( 1,1,1), threads( 1,1,1 );
+        dim3 blocks( seq_count,1,1), threads( 1,1,1 );
         if( seq_width > 1024 ) {
-            blocks.x = (seq_width / 1024) + ((seq_width % 1024) ? 1 : 0);
+            blocks.y = (seq_width / 1024) + ((seq_width % 1024) ? 1 : 0);
             threads.x = 32;
             threads.y = 32;
         } else {
@@ -122,7 +119,7 @@ struct remove_fixed {
             threads.y = seq_width / 32;
         }
         std::cerr << "Remove Fixed - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
-        remove_fixed_kernel<<< blocks, threads >>>( pop, fspace, seq_count, seq_width );
+        remove_fixed_kernel<<< blocks, threads >>>( pop, fspace, seq_width );
 
     }
 };

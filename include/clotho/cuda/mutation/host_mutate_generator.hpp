@@ -145,11 +145,7 @@ protected:
             unsigned int idx = m_hAlleleIndexPool[ i ];
             location_type loc = loc_dist( eng );
 
-            if( idx >= alleles.getAlleleCount() ) {
-                alleles.push_back( loc, age );
-            } else {
-                alleles.update( idx, loc, age );
-            }
+            alleles.update( idx, loc, age );
 
             for( unsigned int t = 0; t < traits.getTraitCount(); ++t ) {
                 weight_type w = 0.0;
