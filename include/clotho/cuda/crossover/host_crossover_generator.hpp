@@ -59,7 +59,7 @@ public:
        updateDevice();
 
         if( alleles.getDeviceMaxAlleles() == 0 ) {
-            std::cerr << "No device alleles" << std::endl;
+//            std::cerr << "No device alleles" << std::endl;
 
             clear_sequence_space::execute( offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence() );
 
@@ -86,8 +86,8 @@ public:
     }
 
     void updateDevice() {
-        std::cerr << "Event pool size: " << m_pool_size << " [" << m_pool_capacity << "]" << std::endl;
-        std::cerr << "Event Distribution size: " << m_dist_size << " [" << m_dist_capacity << "]" << std::endl;
+//        std::cerr << "Event pool size: " << m_pool_size << " [" << m_pool_capacity << "]" << std::endl;
+//        std::cerr << "Event Distribution size: " << m_dist_size << " [" << m_dist_capacity << "]" << std::endl;
 
         assert( cudaMemcpy( m_dEventPool, m_hEventPool, m_pool_size * sizeof( event_type ), cudaMemcpyHostToDevice ) == cudaSuccess );
         assert( cudaMemcpy( m_dEventDist, m_hEventDist, m_dist_size * sizeof( unsigned int ), cudaMemcpyHostToDevice ) == cudaSuccess );

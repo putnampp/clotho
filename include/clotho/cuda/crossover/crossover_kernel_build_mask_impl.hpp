@@ -199,7 +199,7 @@ struct build_crossover_mask {
             assert( threads.y <= 32);
         }
 
-        std::cerr << "Build Mask - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
+//        std::cerr << "Build Mask - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
         build_crossover_mask_kernel<<< blocks, threads >>>( locations, event_pool, event_dist, mask_buffer, seq_width, allele_count );
     }
 };

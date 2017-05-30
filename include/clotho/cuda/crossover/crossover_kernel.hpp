@@ -79,7 +79,7 @@ struct crossover {
             threads.y = offspring_width / 32;
         }
 
-        std::cerr << "Crossover - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
+//        std::cerr << "Crossover - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
 
         crossover_kernel<<< blocks, threads >>>( parents, offspring, parent_dist, parent_width, offspring_width );
     }

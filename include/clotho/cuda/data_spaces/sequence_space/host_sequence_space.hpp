@@ -68,7 +68,7 @@ public:
         unsigned int new_cap = seq_count * bbr;
 
         if( new_cap > m_capacity ) {
-            std::cerr << "Resizing Sequence Space: " << m_capacity << " -> " << new_cap << std::endl;
+//            std::cerr << "Resizing Sequence Space: " << m_capacity << " -> " << new_cap << std::endl;
             if( m_dSeqSpace != NULL ) {
                 cudaFree( m_dSeqSpace );
                 cudaFree( m_dFreeSpace );

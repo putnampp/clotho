@@ -48,7 +48,7 @@ public:
 
         unsigned int M = dist( eng );
 
-        std::cerr << "New mutations: " << M << std::endl;
+//        std::cerr << "New mutations: " << M << std::endl;
 
         resize( N, M );
 
@@ -71,18 +71,18 @@ public:
     void updateDevice() {
         assert( cudaMemcpy( m_dSeqDist, m_hSeqDist, sizeof( unsigned int ) * m_dist_size, cudaMemcpyHostToDevice ) == cudaSuccess );
 
-        std::cerr << "Sequence Distribution: ";
-        for( unsigned int i = 0; i < 10; ++i ) {
-            std::cerr << m_hSeqDist[ i ] << ", ";
-        }
-        std::cerr << " ... , " << m_hSeqDist[ m_dist_size - 1] << std::endl;
+//        std::cerr << "Sequence Distribution: ";
+//        for( unsigned int i = 0; i < 10; ++i ) {
+//            std::cerr << m_hSeqDist[ i ] << ", ";
+//        }
+//        std::cerr << " ... , " << m_hSeqDist[ m_dist_size - 1] << std::endl;
         assert( cudaMemcpy( m_dAlleleIndexPool, m_hAlleleIndexPool, sizeof( unsigned int ) * m_pool_size, cudaMemcpyHostToDevice ) == cudaSuccess );
 
-        std::cerr << "Allele Pool: ";
-        for( unsigned int i = 0; i < 10; ++i ) {
-            std::cerr << m_hAlleleIndexPool[ i ] << ", ";
-        }
-        std::cerr << " ... , " << m_hAlleleIndexPool[ m_pool_size - 1] << std::endl;
+//        std::cerr << "Allele Pool: ";
+//        for( unsigned int i = 0; i < 10; ++i ) {
+//            std::cerr << m_hAlleleIndexPool[ i ] << ", ";
+//        }
+//        std::cerr << " ... , " << m_hAlleleIndexPool[ m_pool_size - 1] << std::endl;
     }
 
     virtual ~HostMutateGenerator() {

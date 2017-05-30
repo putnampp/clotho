@@ -36,7 +36,7 @@ public:
     void updateDevice() {
         if( m_capacity > m_dCapacity ) {
             if( m_dLoc != NULL ) {
-                std::cerr << "Free device locations" << std::endl;
+//                std::cerr << "Free device locations" << std::endl;
                 assert( cudaFree( m_dLoc ) == cudaSuccess);
             }
             assert( cudaMalloc((void **)&m_dLoc, m_capacity * sizeof(location_type)) == cudaSuccess );
@@ -102,7 +102,7 @@ public:
         new_cap += N + 1024;
 
         if( new_cap > m_capacity ) {
-            std::cerr << "Resizing alleles: " << m_capacity << " -> " << new_cap << std::endl;
+//            std::cerr << "Resizing alleles: " << m_capacity << " -> " << new_cap << std::endl;
             location_type * tmp_loc = new location_type[ new_cap ];
             age_type * tmp_age = new age_type[ new_cap ];
             

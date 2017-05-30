@@ -93,7 +93,7 @@ public:
     }
 
     void simulate( unsigned int N ) {
-        std::cerr << "Generation: " << m_generation << std::endl;
+//        std::cerr << "Generation: " << m_generation << std::endl;
 
         swap();
         unsigned int cur_seq_count = 2 * N;
@@ -104,7 +104,7 @@ public:
         // use free space to determine new allele count for current population
         unsigned int allele_count = mut_gen.initialize( m_rng, prev_pop, cur_seq_count, alleles.getAlleleCount() );
 
-        std::cerr << "Allele count: " << allele_count << std::endl;
+//        std::cerr << "Allele count: " << allele_count << std::endl;
         // resize the host alleles
         alleles.resize( allele_count );
         // resize the host traits

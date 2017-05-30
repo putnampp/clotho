@@ -59,12 +59,12 @@ public:
             boost::random::discrete_distribution< unsigned int, fitness_type > disc_dist( parent->getHostFitness(), parent->getHostFitness() + parent->getIndividualCount() );
             boost::random::bernoulli_distribution< double > bern( m_seq_bias.m_bias );
 
-            std::cerr << "Individual: " << parent->getIndividualCount() << std::endl;
-
-            for( unsigned int i = 0; i < 10; ++i ) {
-                std::cerr << parent->getHostFitness()[ i ] << ", ";
-            }
-            std::cerr << " ... ," << parent->getHostFitness()[ parent->getIndividualCount() - 1 ] << std::endl;
+//            std::cerr << "Individual: " << parent->getIndividualCount() << std::endl;
+//
+//            for( unsigned int i = 0; i < 10; ++i ) {
+//                std::cerr << parent->getHostFitness()[ i ] << ", ";
+//            }
+//            std::cerr << " ... ," << parent->getHostFitness()[ parent->getIndividualCount() - 1 ] << std::endl;
 
             for( unsigned int i = 0; i < m_size; ++i ) {
                 m_hSelection[ i ] = 2 * disc_dist( rng );
@@ -73,10 +73,10 @@ public:
                 }
             }
 
-            for( unsigned int i = 0; i < 10; ++i ) {
-                std::cerr << m_hSelection[ i ] << ", ";
-            }
-            std::cerr << " ... , " << m_hSelection[ m_size - 1] << std::endl;
+//            for( unsigned int i = 0; i < 10; ++i ) {
+//                std::cerr << m_hSelection[ i ] << ", ";
+//            }
+//            std::cerr << " ... , " << m_hSelection[ m_size - 1] << std::endl;
         }
     }
 
@@ -102,7 +102,7 @@ public:
         m_dSize = m_size;
 
         if( m_dSize > 0 ) {
-            std::cerr << "Moving " << m_dSize << " select to device [" << m_dCapacity << "]" << std::endl;
+//            std::cerr << "Moving " << m_dSize << " select to device [" << m_dCapacity << "]" << std::endl;
             assert( m_dSelection != NULL );
             assert( m_hSelection != NULL );
 
@@ -127,7 +127,7 @@ protected:
 
     void resize( size_t N ) {
         if( N > m_capacity ) {
-            std::cerr << "Fitness Resizing: " << N << std::endl;
+//            std::cerr << "Fitness Resizing: " << N << std::endl;
             if( m_hSelection != NULL ) {
                 delete [] m_hSelection;
             }

@@ -40,7 +40,7 @@ public:
         assert( pop->getDevicePhenotypes() != NULL );
         assert( pop->getDeviceFitness() != NULL );
 
-        std::cerr << "Fitness - [" << blocks.x << ", " << blocks.y << "]; [" << threads.x << ", " << threads.y << "]" << std::endl;
+//        std::cerr << "Fitness - [" << blocks.x << ", " << blocks.y << "]; [" << threads.x << ", " << threads.y << "]" << std::endl;
         evaluate_quadratic_fitness<<< blocks, threads >>>( pop->getDevicePhenotypes(), pop->getDeviceFitness(), stdev );
     }
 

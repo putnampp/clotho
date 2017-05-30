@@ -103,7 +103,7 @@ struct evaluate_phenotype {
             threads.y = seq_width;
         }
 
-        std::cerr << "Phenotype - [" << blocks.x << ", "<< blocks.y << "]; [" << threads.x << ", " << threads.y << "]" << std::endl;
+//        std::cerr << "Phenotype - [" << blocks.x << ", "<< blocks.y << "]; [" << threads.x << ", " << threads.y << "]" << std::endl;
         evaluate_phenotype_kernel<<< blocks, threads >>>( seqs, trait_weights, phenos, seq_width, allele_count, trait_width );
     }
 };

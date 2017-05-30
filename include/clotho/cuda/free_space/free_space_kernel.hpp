@@ -73,7 +73,7 @@ struct evaluate_free_space {
             threads.x = 32;
             threads.y = width / 32;
         }
-        std::cerr << "Free Space - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
+//        std::cerr << "Free Space - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
         evaluate_free_space_kernel<<< blocks, threads >>>( pop, fspace, seq_count, width );
     }
 };
@@ -118,7 +118,7 @@ struct remove_fixed {
             threads.x = 32;
             threads.y = seq_width / 32;
         }
-        std::cerr << "Remove Fixed - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
+//        std::cerr << "Remove Fixed - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
         remove_fixed_kernel<<< blocks, threads >>>( pop, fspace, seq_width );
 
     }
