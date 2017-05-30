@@ -181,13 +181,14 @@ public:
         fixed_alleles.resize( fixed_alleles.getAlleleCount() + pop->getFixedCount() );
         fixed_traits.resize( fixed_alleles );
 
-        for( unsigned int i = 0; i < N; ++i ) {
+        for( unsigned int i = 0; i < N && last_fixed_allele < fixed_alleles.getAlleleCount(); ++i ) {
             block_type b = fixed[ i ];
 
             if( b ) {
-                for( unsigned int k = 0; k < bit_helper_type::BITS_PER_BLOCK; k++ ) {
+                for( unsigned int k = 0; k < bit_helper_type::BITS_PER_BLOCK && last_fixed_allele < fixed_alleles.getAlleleCount(); k++ ) {
                     if( b & 1) {
                         unsigned int all_idx = i * bit_helper_type::BITS_PER_BLOCK + k;
+                        
                         fixed_alleles.update( last_fixed_allele, alleles, all_idx);
                         fixed_traits.update( last_fixed_allele, traits, all_idx );
                         last_fixed_allele += 1;
