@@ -36,19 +36,20 @@ public:
         , m_allele_count(0)
         , m_seq_count(0)
         , m_capacity(0)
-        , m_lost_count(0)
-        , m_fixed_count(0)
-        , m_free_count(0)
-    {}
+    {
+        memset( m_hCounts, 0, 3 * sizeof(unsigned int ) );
+        assert( cudaMalloc( (void **) & m_dCounts, 3 * sizeof(unsigned int ) ) == cudaSuccess );
+    }
 
     void updateHost() {
         assert( cudaMemcpy( m_hFreeSpace, m_dFreeSpace, 3 * m_blocks_per_seq * sizeof( int_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
 
-        evaluateFreeSpace();
+        assert( cudaMemcpy( m_hCounts, m_dCounts, 3 * sizeof( int_type ), cudaMemcpyDeviceToHost ) == cudaSuccess );
     }
 
     void updateHost( cudaStream_t & stream ) {
         assert( cudaMemcpyAsync( m_hFreeSpace, m_dFreeSpace, 3 * m_blocks_per_seq * sizeof( int_type ), cudaMemcpyDeviceToHost, stream ) == cudaSuccess );
+        assert( cudaMemcpyAsync( m_hCounts, m_dCounts, 3 * sizeof( unsigned int ), cudaMemcpyDeviceToHost, stream ) == cudaSuccess );
 
     }
 
@@ -107,16 +108,20 @@ public:
         return m_dFreeSpace;
     }
 
+    unsigned int * getDeviceCounts() {
+        return m_dCounts;
+    }
+
     unsigned int getLostCount() const {
-        return m_lost_count;
+        return m_hCounts[ LOST_OFFSET ];
     }
 
     unsigned int getFreeCount() const {
-        return m_free_count;
+        return m_hCounts[ FREE_OFFSET ];
     }
 
     unsigned int getFixedCount() const {
-        return m_fixed_count;
+        return m_hCounts[ FIXED_OFFSET ];
     }
 
     void get_state( boost::property_tree::ptree & state ) {
@@ -129,32 +134,34 @@ public:
 
     virtual ~HostSequenceSpace() {
         if( m_dSeqSpace != NULL ) {
-            cudaFree( m_dSeqSpace );
-            cudaFree( m_dFreeSpace );
+            assert( cudaFree( m_dSeqSpace ) == cudaSuccess);
+            assert( cudaFree( m_dFreeSpace ) == cudaSuccess);
             delete [] m_hFreeSpace;
         }
+
+        assert( cudaFree( m_dCounts ) == cudaSuccess );
     }
 
-    void evaluateFreeSpace() {
-        m_lost_count = 0;
-        for( unsigned int i = LOST_OFFSET * m_blocks_per_seq; i < (LOST_OFFSET + 1) * m_blocks_per_seq; ++i ) {
-            int_type b = m_hFreeSpace[ i ];
-            m_lost_count += popcount( b );
-        }
-
-        m_fixed_count = 0;
-        for( unsigned int i = FIXED_OFFSET * m_blocks_per_seq; i < (FIXED_OFFSET + 1) * m_blocks_per_seq; ++i ) {
-            int_type b = m_hFreeSpace[ i ];
-            m_fixed_count += popcount( b );
-        }
-
-        m_free_count = 0;
-        for( unsigned int i = FREE_OFFSET * m_blocks_per_seq; i < (FREE_OFFSET + 1) * m_blocks_per_seq; ++i ) {
-            int_type b = m_hFreeSpace[ i ];
-            m_free_count += popcount( b );
-        }
-
-    }
+//    void evaluateFreeSpace() {
+//        m_lost_count = 0;
+//        for( unsigned int i = LOST_OFFSET * m_blocks_per_seq; i < (LOST_OFFSET + 1) * m_blocks_per_seq; ++i ) {
+//            int_type b = m_hFreeSpace[ i ];
+//            m_lost_count += popcount( b );
+//        }
+//
+//        m_fixed_count = 0;
+//        for( unsigned int i = FIXED_OFFSET * m_blocks_per_seq; i < (FIXED_OFFSET + 1) * m_blocks_per_seq; ++i ) {
+//           int_type b = m_hFreeSpace[ i ];
+//            m_fixed_count += popcount( b );
+//        }
+//
+//        m_free_count = 0;
+//        for( unsigned int i = FREE_OFFSET * m_blocks_per_seq; i < (FREE_OFFSET + 1) * m_blocks_per_seq; ++i ) {
+//            int_type b = m_hFreeSpace[ i ];
+//            m_free_count += popcount( b );
+//        }
+//
+//    }
 
 protected:
     int_type    * m_dSeqSpace;
@@ -164,6 +171,7 @@ protected:
     unsigned int m_blocks_per_seq, m_seq_count, m_allele_count;
     size_t      m_capacity;
 
-    unsigned int m_lost_count, m_fixed_count, m_free_count;
+    unsigned int m_hCounts[ 3 ];
+    unsigned int * m_dCounts;
 };
 #endif  // HOST_SEQUENCE_SPACE_HPP_

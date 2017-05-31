@@ -120,6 +120,10 @@ public:
         return m_phenos.getTraitCount();
     }
 
+    unsigned int * getDeviceCounts() {
+        return m_seqs.getDeviceCounts();
+    }
+
     phenotype_type * getDevicePhenotypes() {
         return m_phenos.getDevicePhenotypes();
     }

@@ -49,9 +49,9 @@ __global__ void evaluate_free_space_kernel( IntType * pop, IntType * fspace, uns
 
     seq_offset = blockIdx.x * blockDim.x * blockDim.y + block_idx;
     if( seq_offset < width ) {
-        fspace[ seq_offset + 0 * width ] = fixed;
-        fspace[ seq_offset + 1 * width ] = (~var);
-        fspace[ seq_offset + 2 * width ] = (~(var | fixed));
+        fspace[ seq_offset + FIXED_OFFSET * width ] = fixed;
+        fspace[ seq_offset + LOST_OFFSET * width ] = (~var);
+        fspace[ seq_offset + FREE_OFFSET * width ] = (~(var | fixed));
     }
 
     __syncthreads();

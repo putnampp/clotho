@@ -155,7 +155,7 @@ public:
         //
         // evaluate the free space of the current population after mutation
         free_space_type fr;
-        fr( current_pop, m_freeStream );
+        fr( current_pop, alleles.getAlleleCount(), m_freeStream );
         current_pop->updateHostFreeSpaceAsync( m_freeStream );
 
         phenotype_generator_type ph;
@@ -165,8 +165,6 @@ public:
         current_pop->updateHostFitnessAsync( m_fitStream );
 
         cudaStreamSynchronize( m_freeStream );
-
-        current_pop->evaluateFreeSpace();
 
         cudaStreamSynchronize( m_fitStream );
 
@@ -238,7 +236,7 @@ public:
 
     void analyze_population( ) {
         all_freq( current_pop, alleles.getAlleleCount() );
-        seq_weight( current_pop );
+        seq_weight( current_pop, alleles.getAlleleCount() );
 //
 //        //pair_diff.evaluate( current_pop );
 //

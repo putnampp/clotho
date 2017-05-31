@@ -15,7 +15,7 @@
 #define SEQUENCE_WEIGHT_KERNEL_HPP_
 
 template < class IntType >
-__global__ void evaluate_sequence_weights( IntType * pop, unsigned int * weight, unsigned int width ) {
+__global__ void evaluate_sequence_weights( IntType * pop, unsigned int * weight, unsigned int width, unsigned int max_index ) {
     assert( blockDim.x == 32 );
 
     unsigned int b_idx = threadIdx.y;
@@ -30,12 +30,14 @@ __global__ void evaluate_sequence_weights( IntType * pop, unsigned int * weight,
     __syncthreads();
 
     unsigned int N = 0;
-    while( b_idx < width ) {
+    unsigned int a_index = threadIdx.y * blockDim.x + threadIdx.x;
+    while( b_idx < width && a_index < max_index ) {
         IntType b = pop[ blockIdx.x * width + b_idx ];
         if( b & mask ) {
             N += 1;
         }
         b_idx += blockDim.y;
+        a_index += (blockDim.x * blockDim.y);
     }
     __syncthreads();
 

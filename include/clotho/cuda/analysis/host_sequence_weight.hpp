@@ -44,12 +44,12 @@ public:
     }
 
     template < class RealType, class IntType >
-    void operator()( HostPopulationSpace< RealType, IntType > * pop ) {
+    void operator()( HostPopulationSpace< RealType, IntType > * pop, unsigned int max_index ) {
         resize( pop->getSequenceCount() );
 
         dim3 blocks( pop->getSequenceCount(), 1, 1), threads( 32, 32, 1 );
 
-        evaluate_sequence_weights<<< blocks, threads >>>( pop->getDeviceSequences(), m_dSeqWeights, pop->getBlocksPerSequence());
+        evaluate_sequence_weights<<< blocks, threads >>>( pop->getDeviceSequences(), m_dSeqWeights, pop->getBlocksPerSequence(), max_index);
     }
 
     virtual ~HostSequenceWeight() {
