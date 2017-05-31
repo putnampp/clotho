@@ -39,7 +39,9 @@ public:
         , m_pool_capacity(0)
         , m_dist_size(0)
         , m_dist_capacity(0)
-    {}
+    {
+        cudaStreamCreate( &m_upload );
+    }
 
     template < class RNG, class RealType, class IntType >
     unsigned int initialize( RNG & eng, HostPopulationSpace< RealType, IntType > * parents, unsigned int N, unsigned int all_count ) {
@@ -62,27 +64,29 @@ public:
     }
 
     template < class RealType, class IntType >
-    void operator()( HostPopulationSpace< RealType, IntType > * pop ) {
-        updateDevice();
-
+    void execute( HostPopulationSpace< RealType, IntType > * pop ) {
         mutate::execute( pop->getDeviceSequences(), m_dAlleleIndexPool, m_dSeqDist, pop->getSequenceCount(), pop->getBlocksPerSequence() );
+    }
+
+    void executeAsync( HostPopulationSpace< RealType, IntType > * pop ) {
+        mutate::execute( pop->getDeviceSequences(), m_dAlleleIndexPool, m_dSeqDist, pop->getSequenceCount(), pop->getBlocksPerSequence(), m_upload );
     }
 
     void updateDevice() {
         assert( cudaMemcpy( m_dSeqDist, m_hSeqDist, sizeof( unsigned int ) * m_dist_size, cudaMemcpyHostToDevice ) == cudaSuccess );
 
-//        std::cerr << "Sequence Distribution: ";
-//        for( unsigned int i = 0; i < 10; ++i ) {
-//            std::cerr << m_hSeqDist[ i ] << ", ";
-//        }
-//        std::cerr << " ... , " << m_hSeqDist[ m_dist_size - 1] << std::endl;
         assert( cudaMemcpy( m_dAlleleIndexPool, m_hAlleleIndexPool, sizeof( unsigned int ) * m_pool_size, cudaMemcpyHostToDevice ) == cudaSuccess );
 
-//        std::cerr << "Allele Pool: ";
-//        for( unsigned int i = 0; i < 10; ++i ) {
-//            std::cerr << m_hAlleleIndexPool[ i ] << ", ";
-//        }
-//        std::cerr << " ... , " << m_hAlleleIndexPool[ m_pool_size - 1] << std::endl;
+    }
+
+    void updateDeviceAsync() {
+        assert( cudaMemcpyAsync( m_dSeqDist, m_hSeqDist, sizeof( unsigned int ) * m_dist_size, cudaMemcpyHostToDevice, m_upload ) == cudaSuccess );
+
+        assert( cudaMemcpyAsync( m_dAlleleIndexPool, m_hAlleleIndexPool, sizeof( unsigned int ) * m_pool_size, cudaMemcpyHostToDevice, m_upload ) == cudaSuccess );
+    }
+
+    void sync() {
+        assert( cudaStreamSynchronize( m_upload ) == cudaSuccess );
     }
 
     virtual ~HostMutateGenerator() {
@@ -93,6 +97,8 @@ public:
             cudaFree( m_dAlleleIndexPool );
             cudaFree( m_dSeqDist );
         }
+
+        cudaStreamDestroy( m_upload );
     }
 
 protected:
@@ -212,6 +218,8 @@ protected:
 
     size_t m_pool_size, m_pool_capacity;
     size_t m_dist_size, m_dist_capacity;
+
+    cudaStream_t m_upload;
 };
 
 #endif  // HOST_MUTATE_GENERATOR_HPP_

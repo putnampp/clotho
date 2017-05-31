@@ -93,8 +93,6 @@ public:
     }
 
     void simulate( unsigned int N ) {
-//        std::cerr << "Generation: " << m_generation << std::endl;
-
         swap();
         unsigned int cur_seq_count = 2 * N;
 
@@ -104,7 +102,6 @@ public:
         // use free space to determine new allele count for current population
         unsigned int allele_count = mut_gen.initialize( m_rng, prev_pop, cur_seq_count, alleles.getAlleleCount() );
 
-//        std::cerr << "Allele count: " << allele_count << std::endl;
         // resize the host alleles
         alleles.resize( allele_count );
         // resize the host traits
@@ -113,33 +110,67 @@ public:
         current_pop->resize( alleles, traits, cur_seq_count );
 
         xover_gen.initialize( m_rng, current_pop );
-        xover_gen.buildRecombinationMask( alleles, current_pop );
 
+        // uses defined stream to build recombination masks
+        xover_gen.buildRecombinationMaskAsync( alleles, current_pop );
+
+        // host builds selection distribution
         sel_gen( m_rng, prev_pop, current_pop );
+        sel_gen.updateDeviceAsync();
+
+        // at this point the crossover masks should be evaluated
+        xover_gen.sync();
+
+        // in this model, mutation occurs after recombination
+        // so 'new' mutation locations impact recombination process
+        // and updating the device's allele location vector can be delayed
+        // push locations for next generation to device
+        // Need to wait until buildMasks has completed (sync above) though as to not cause
+        // data race condition
+        alleles.updateDeviceAsync();
+        sel_gen.sync();
 
         xover_gen.performCrossover( prev_pop, current_pop, sel_gen );
 
         mut_gen.generate( m_rng, alleles, traits, m_generation++ );
 
-        mut_gen( current_pop );
+        traits.updateDevice( m_fitStream );
 
+        mut_gen.updateDeviceAsync();
+
+        // at this point new mutation pool and sequence distribution
+        // should be copied to device
+        mut_gen.sync();
+
+        // default stream used to mutate population
+        mut_gen.execute( current_pop );
+
+        // at this point new mutations should be scattered
+        // within the population. Also, their effect sizes
+        // should also be copied to device       
+        cudaDeviceSynchronize();
+        
+        // mutations need to be scattered within population BEFORE
+        // either FREE_SPACE or FITNESS can be computed
+        //
         // evaluate the free space of the current population after mutation
         free_space_type fr;
-        fr( current_pop );
+        fr( current_pop, m_freeStream );
+        current_pop->updateHostFreeSpaceAsync( m_freeStream );
 
         phenotype_generator_type ph;
-        ph( current_pop, traits, alleles.getAlleleCount() );
+        ph( current_pop, traits, alleles.getAlleleCount(), m_fitStream );
 
-        fit_trans( current_pop );
-        
-        // in this model, mutation occurs after recombination
-        // so new mutation locations do impact recombination process
-        // and updating the device's allele location vector can be delayed
-        // push locations for next generation to device
-        alleles.updateDevice();
+        fit_trans( current_pop, m_fitStream );
+        current_pop->updateHostFitnessAsync( m_fitStream );
 
-        cudaDeviceSynchronize();
+        cudaStreamSynchronize( m_freeStream );
 
+        current_pop->evaluateFreeSpace();
+
+        cudaStreamSynchronize( m_fitStream );
+
+        alleles.sync();
 /*
         size_t fsize, tsize;
         cudaError_t err = cudaMemGetInfo( &fsize, &tsize );
@@ -161,9 +192,6 @@ public:
     }
 
     void recordFixed( population_space_type * pop ) {
-        // update host downloads free/fixed space from device to host
-        pop->updateHost();
-
         if( pop->getFixedCount() == 0 ) return;
 
         block_type * fixed = pop->getFreeSpace();
@@ -275,7 +303,10 @@ public:
         std::swap( prev_pop, current_pop );
     }
 
-    virtual ~Engine() { }
+    virtual ~Engine() {
+        cudaStreamDestroy( m_freeStream );
+        cudaStreamDestroy( m_fitStream );
+    }
 
 protected:
 
@@ -286,6 +317,8 @@ protected:
     }
 
     void initialize( ) {
+        cudaStreamCreate( &m_freeStream );
+        cudaStreamCreate( &m_fitStream );
 /*
         size_t fsize = 0;
         size_t tsize = 0;
@@ -325,6 +358,8 @@ protected:
 //    boost::property_tree::ptree dev_space;
 //
     boost::property_tree::ptree m_allele_track, m_free_track, m_fixed_track;
+
+    cudaStream_t m_freeStream, m_fitStream;
 };
 
 #endif  // ENGINE_CUDA_HOST_RANDOM_HPP_

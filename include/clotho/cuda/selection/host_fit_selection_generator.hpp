@@ -32,7 +32,9 @@ public:
         , m_capacity(0)
         , m_dSize(0)
         , m_dCapacity(0)
-    {    }
+    {
+        cudaStreamCreate( &m_upload );
+    }
 
     void get_state( boost::property_tree::ptree & s ) {
         boost::property_tree::ptree d;
@@ -59,24 +61,12 @@ public:
             boost::random::discrete_distribution< unsigned int, fitness_type > disc_dist( parent->getHostFitness(), parent->getHostFitness() + parent->getIndividualCount() );
             boost::random::bernoulli_distribution< double > bern( m_seq_bias.m_bias );
 
-//            std::cerr << "Individual: " << parent->getIndividualCount() << std::endl;
-//
-//            for( unsigned int i = 0; i < 10; ++i ) {
-//                std::cerr << parent->getHostFitness()[ i ] << ", ";
-//            }
-//            std::cerr << " ... ," << parent->getHostFitness()[ parent->getIndividualCount() - 1 ] << std::endl;
-
             for( unsigned int i = 0; i < m_size; ++i ) {
                 m_hSelection[ i ] = 2 * disc_dist( rng );
                 if( bern( rng ) ) {
                     m_hSelection[ i ] += 1;
                 }
             }
-
-//            for( unsigned int i = 0; i < 10; ++i ) {
-//                std::cerr << m_hSelection[ i ] << ", ";
-//            }
-//            std::cerr << " ... , " << m_hSelection[ m_size - 1] << std::endl;
         }
     }
 
@@ -88,8 +78,7 @@ public:
         return m_dSize;
     }
 
-
-    void updateDevice( ) {
+    void resizeDevice() {
         if( m_size > m_dCapacity ) {
             if( m_dSelection != NULL ) {
                 assert( cudaFree( m_dSelection ) == cudaSuccess);
@@ -100,9 +89,11 @@ public:
             m_dCapacity = m_size;
         }
         m_dSize = m_size;
+    }
 
+    void updateDevice( ) {
+        resizeDevice();
         if( m_dSize > 0 ) {
-//            std::cerr << "Moving " << m_dSize << " select to device [" << m_dCapacity << "]" << std::endl;
             assert( m_dSelection != NULL );
             assert( m_hSelection != NULL );
 
@@ -114,6 +105,24 @@ public:
         }
     }
 
+    void updateDeviceAsync( ) {
+        resizeDevice();
+        if( m_dSize > 0 ) {
+            assert( m_dSelection != NULL );
+            assert( m_hSelection != NULL );
+
+            cudaError_t err = cudaMemcpyAsync( m_dSelection, m_hSelection, m_dSize * sizeof(unsigned int), cudaMemcpyHostToDevice, m_upload);
+            if( err != cudaSuccess ) {
+                std::cerr << "ERROR: " << cudaGetErrorString( err ) << std::endl;
+                assert( false );
+            }
+        }
+    }
+
+    void sync() {
+        cudaStreamSynchronize( m_upload );
+    }
+
     virtual ~HostSelectionGenerator() {
         if( m_hSelection != NULL ) {
             delete [] m_hSelection;
@@ -121,6 +130,8 @@ public:
         if( m_dSelection != NULL ) {
             cudaFree( m_dSelection );
         }
+
+        cudaStreamDestroy( m_upload );
     }
 
 protected:
@@ -143,6 +154,8 @@ protected:
 
     size_t m_size, m_capacity;
     size_t m_dSize, m_dCapacity;
+
+    cudaStream_t m_upload;
 };
 
 #endif  // HOST_FIT_SELECTION_GENERATOR_HPP_

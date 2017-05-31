@@ -21,8 +21,11 @@ public:
 
     template < class RealType, class IntType >
     void operator()( HostPopulationSpace< RealType, IntType > * pop, HostTraitSpace< RealType > & traits, unsigned int all_count ) {
-        traits.updateDevice();
         evaluate_phenotype::execute( pop->getDeviceSequences(), traits.getDeviceWeights(), pop->getDevicePhenotypes(), pop->getSequenceCount(), pop->getBlocksPerSequence(), all_count, traits.getAlleleCount(), traits.getTraitCount() );
+    }
+
+    void operator()( HostPopulationSpace< RealType, IntType > * pop, HostTraitSpace< RealType > & traits, unsigned int all_count, cudaStream_t & stream ) {
+        evaluate_phenotype::execute( pop->getDeviceSequences(), traits.getDeviceWeights(), pop->getDevicePhenotypes(), pop->getSequenceCount(), pop->getBlocksPerSequence(), all_count, traits.getAlleleCount(), traits.getTraitCount(), stream );
     }
 
     virtual ~HostPhenotypeTranslator() {}

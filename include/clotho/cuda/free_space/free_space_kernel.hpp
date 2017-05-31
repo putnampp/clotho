@@ -65,6 +65,11 @@ struct evaluate_free_space {
         assert( width % 32 == 0 );
 
         dim3 blocks( 1,1,1), threads( 1,1,1 );
+        computeSizes( width, blocks, threads );
+        evaluate_free_space_kernel<<< blocks, threads >>>( pop, fspace, seq_count, width );
+    }
+
+    static void computeSizes( unsigned int width, dim3 & blocks, dim3 threads ) {
         if( width > 1024 ) {
             blocks.x = (width / 1024) + ((width % 1024) ? 1 : 0);
             threads.x = 32;
@@ -73,8 +78,18 @@ struct evaluate_free_space {
             threads.x = 32;
             threads.y = width / 32;
         }
-//        std::cerr << "Free Space - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
-        evaluate_free_space_kernel<<< blocks, threads >>>( pop, fspace, seq_count, width );
+
+    }
+
+    template < class IntType >
+    static void execute( IntType * pop, IntType * fspace, unsigned int seq_count, unsigned int width, cudaStream_t & stream ){
+        assert( pop != NULL );
+        assert( fspace != NULL );
+        assert( width % 32 == 0 );
+
+        dim3 blocks( 1,1,1), threads( 1,1,1 );
+        computeSizes( width, blocks, threads );
+        evaluate_free_space_kernel<<< blocks, threads, 0, stream >>>( pop, fspace, seq_count, width );
     }
 };
 
@@ -109,7 +124,14 @@ struct remove_fixed {
         assert( fspace != NULL );
         assert( seq_width % 32 == 0 );
 
-        dim3 blocks( seq_count,1,1), threads( 1,1,1 );
+        dim3 blocks( 1,1,1), threads( 1,1,1 );
+        computeSizes( seq_count, seq_width, blocks, threads );
+        remove_fixed_kernel<<< blocks, threads >>>( pop, fspace, seq_width );
+
+    }
+
+    static void computeSizes( unsigned int seq_count, unsigned int seq_width, dim3 & blocks, dim3 & threads ) {
+        blocks.x = seq_count;
         if( seq_width > 1024 ) {
             blocks.y = (seq_width / 1024) + ((seq_width % 1024) ? 1 : 0);
             threads.x = 32;
@@ -118,8 +140,19 @@ struct remove_fixed {
             threads.x = 32;
             threads.y = seq_width / 32;
         }
+
+    }
+
+    template < class IntType > 
+    static void execute( IntType * pop, IntType * fspace, unsigned int seq_count, unsigned int seq_width, cudaStream_t & stream ) {
+        assert( pop != NULL );
+        assert( fspace != NULL );
+        assert( seq_width % 32 == 0 );
+
+        dim3 blocks( 1,1,1), threads( 1,1,1 );
+        computeSizes( seq_count, seq_width, blocks, threads );
 //        std::cerr << "Remove Fixed - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
-        remove_fixed_kernel<<< blocks, threads >>>( pop, fspace, seq_width );
+        remove_fixed_kernel<<< blocks, threads, 0, stream >>>( pop, fspace, seq_width );
 
     }
 };

@@ -31,12 +31,19 @@ public:
         , m_capacity(0)
         , m_dSize(0)
         , m_dCapacity(0)
-    {}
+    {
+        cudaStreamCreate( &m_upload );
+    }
 
     void updateDevice() {
+        resizeDevice();
+        assert( m_dSize <= m_dCapacity );
+        assert( cudaMemcpy( m_dLoc, m_hLoc, sizeof( location_type ) * m_dCapacity, cudaMemcpyHostToDevice ) == cudaSuccess);
+    }
+
+    void resizeDevice() {
         if( m_capacity > m_dCapacity ) {
             if( m_dLoc != NULL ) {
-//                std::cerr << "Free device locations" << std::endl;
                 assert( cudaFree( m_dLoc ) == cudaSuccess);
             }
             assert( cudaMalloc((void **)&m_dLoc, m_capacity * sizeof(location_type)) == cudaSuccess );
@@ -44,8 +51,16 @@ public:
         }
 
         m_dSize = m_size;
+    }
+
+    void updateDeviceAsync() {
+        resizeDevice();
         assert( m_dSize <= m_dCapacity );
-        assert( cudaMemcpy( m_dLoc, m_hLoc, sizeof( location_type ) * m_dCapacity, cudaMemcpyHostToDevice ) == cudaSuccess);
+        assert( cudaMemcpyAsync( m_dLoc, m_hLoc, sizeof( location_type ) * m_dCapacity, cudaMemcpyHostToDevice, m_upload ) == cudaSuccess);
+    }
+
+    void sync() {
+        cudaStreamSynchronize( m_upload );
     }
 
     void get_state( boost::property_tree::ptree & state ) {
@@ -136,6 +151,8 @@ public:
         if( m_dLoc != NULL ) {
             cudaFree( m_dLoc );
         }
+
+        cudaStreamDestroy( m_upload );
     }
 
 protected:
@@ -146,6 +163,8 @@ protected:
 
     size_t m_size, m_capacity;
     size_t m_dSize, m_dCapacity;
+
+    cudaStream_t m_upload;
 };
 
 #endif  // HOST_ALLELE_SPACE_HPP_

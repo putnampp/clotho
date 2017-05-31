@@ -52,6 +52,18 @@ public:
         assert( cudaMemcpy( m_hFitness, m_dFitness, m_capacity * sizeof( fitness_type ), cudaMemcpyDeviceToHost ) == cudaSuccess);
     }
 
+    void updateHostFitnessAsync( cudaStream_t & stream ) {
+        assert( cudaMemcpyAsync( m_hFitness, m_dFitness, m_capacity * sizeof( fitness_type ), cudaMemcpyDeviceToHost, stream ) == cudaSuccess);
+    }
+
+    void evaluateFreeSpace() {
+        m_seqs.evaluateFreeSpace();
+    }
+
+    void updateHostFreeSpaceAsync( cudaStream_t & stream) {
+        m_seqs.updateHostAsync( stream );
+    }
+
     block_type * getLostSpace() {
         return m_seqs.getLostSpace();
     }

@@ -45,7 +45,9 @@ public:
         , m_pool_capacity(0)
         , m_dist_size(0)
         , m_dist_capacity(0)
-    {}
+    {
+        cudaStreamCreate( &m_maskStream );
+    }
 
     template < class RNG, class RealType, class IntType >
     void initialize( RNG & rng, HostPopulationSpace< RealType, IntType > * pop ) {
@@ -69,6 +71,19 @@ public:
     }
 
     template < class RealType, class IntType >
+    void buildRecombinationMaskAsync( HostAlleleSpace< RealType > & alleles, HostPopulationSpace< RealType, IntType > * offspring ) {
+       updateDeviceAsync();
+
+        if( alleles.getDeviceMaxAlleles() == 0 ) {
+
+            clear_sequence_space::execute( offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence(), m_maskStream );
+
+        } else {
+            build_crossover_mask::execute( alleles.getDeviceLocations(), m_dEventPool, m_dEventDist, offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence(), alleles.getDeviceAlleleCount(), m_maskStream );
+        }
+    }
+
+    template < class RealType, class IntType >
     void performCrossover( HostPopulationSpace< RealType, IntType > * parents, HostPopulationSpace< RealType, IntType > * offspring, HostSelectionGenerator & sel ) {
         if( parents->getDeviceSequences() == NULL ) {
             // some what redundant as the only time the parents will be null
@@ -77,8 +92,6 @@ public:
             // this just adds to the start-up cost
             clear_sequence_space::execute( offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence() );
         } else {
-            sel.updateDevice();
-
             assert( sel.getDeviceSize() == offspring->getSequenceCount() );
 
             crossover::execute( parents->getDeviceSequences(), offspring->getDeviceSequences(), sel.getDeviceList(), offspring->getSequenceCount(), parents->getBlocksPerSequence(), offspring->getBlocksPerSequence() );
@@ -86,11 +99,17 @@ public:
     }
 
     void updateDevice() {
-//        std::cerr << "Event pool size: " << m_pool_size << " [" << m_pool_capacity << "]" << std::endl;
-//        std::cerr << "Event Distribution size: " << m_dist_size << " [" << m_dist_capacity << "]" << std::endl;
-
         assert( cudaMemcpy( m_dEventPool, m_hEventPool, m_pool_size * sizeof( event_type ), cudaMemcpyHostToDevice ) == cudaSuccess );
         assert( cudaMemcpy( m_dEventDist, m_hEventDist, m_dist_size * sizeof( unsigned int ), cudaMemcpyHostToDevice ) == cudaSuccess );
+    }
+
+    void updateDeviceAsync() {
+        assert( cudaMemcpyAsync( m_dEventPool, m_hEventPool, m_pool_size * sizeof( event_type ), cudaMemcpyHostToDevice, m_maskStream ) == cudaSuccess );
+        assert( cudaMemcpyAsync( m_dEventDist, m_hEventDist, m_dist_size * sizeof( unsigned int ), cudaMemcpyHostToDevice, m_maskStream ) == cudaSuccess );
+    }
+
+    void sync() {
+        assert( cudaStreamSynchronize( m_maskStream ) == cudaSuccess );
     }
 
     virtual ~HostCrossoverGenerator() {
@@ -101,6 +120,8 @@ public:
             delete [] m_hEventPool;
             cudaFree( m_dEventPool );
         }
+
+        cudaStreamDestroy( m_maskStream );
     }
 
 protected:
@@ -158,6 +179,8 @@ protected:
 
     unsigned int m_pool_size, m_pool_capacity;
     unsigned int m_dist_size, m_dist_capacity;
+
+    cudaStream_t m_maskStream;
 };
 
 #endif  // HOST_CROSSOVER_GENERATOR_HPP_

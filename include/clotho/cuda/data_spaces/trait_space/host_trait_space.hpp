@@ -75,6 +75,11 @@ public:
     }
 
     void updateDevice() {
+        resizeDevice();
+        assert( cudaMemcpy( m_dTraitSpace, m_hTraitSpace, m_dCapacity * sizeof(weight_type), cudaMemcpyHostToDevice ) == cudaSuccess );
+    }
+
+    void resizeDevice() {
         if( m_capacity > m_dCapacity ) {
             if( m_dTraitSpace != NULL ) {
                 assert( cudaFree( m_dTraitSpace ) == cudaSuccess );
@@ -82,7 +87,11 @@ public:
             assert( cudaMalloc((void **) &m_dTraitSpace, m_capacity * sizeof(weight_type)) == cudaSuccess);
             m_dCapacity = m_capacity;
         }
-        assert( cudaMemcpy( m_dTraitSpace, m_hTraitSpace, m_dCapacity * sizeof(weight_type), cudaMemcpyHostToDevice ) == cudaSuccess );
+    }
+
+    void updateDevice( cudaStream_t & stream ) {
+        resizeDevice();
+        assert( cudaMemcpyAsync( m_dTraitSpace, m_hTraitSpace, m_dCapacity * sizeof(weight_type), cudaMemcpyHostToDevice, stream ) == cudaSuccess );
     }
 
     void update( unsigned int a_idx, self_type & other, unsigned int b_idx ) {

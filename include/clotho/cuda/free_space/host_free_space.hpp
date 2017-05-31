@@ -22,13 +22,14 @@ public:
     template < class RealType, class IntType >
     void operator()( HostPopulationSpace< RealType, IntType > * pop ) {
         evaluate_free_space::execute( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence());
+    }
 
-        cudaDeviceSynchronize();
+    void operator()( HostPopulationSpace< RealType, IntType > * pop, cudaStream_t & stream ) {
+        evaluate_free_space::execute( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence(), stream);
     }
 
     template < class RealType, class IntType >
     void perform_remove_fixed( HostPopulationSpace< RealType, IntType > * pop ) {
-
         remove_fixed::execute( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence() );
     }
 
