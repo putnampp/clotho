@@ -69,7 +69,7 @@ struct evaluate_free_space {
         evaluate_free_space_kernel<<< blocks, threads >>>( pop, fspace, seq_count, width );
     }
 
-    static void computeSizes( unsigned int width, dim3 & blocks, dim3 threads ) {
+    static void computeSizes( unsigned int width, dim3 & blocks, dim3 & threads ) {
         if( width > 1024 ) {
             blocks.x = (width / 1024) + ((width % 1024) ? 1 : 0);
             threads.x = 32;
@@ -78,7 +78,6 @@ struct evaluate_free_space {
             threads.x = 32;
             threads.y = width / 32;
         }
-
     }
 
     template < class IntType >

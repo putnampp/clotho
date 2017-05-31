@@ -61,7 +61,7 @@ public:
     }
 
     void updateHostFreeSpaceAsync( cudaStream_t & stream) {
-        m_seqs.updateHostAsync( stream );
+        m_seqs.updateHost( stream );
     }
 
     block_type * getLostSpace() {

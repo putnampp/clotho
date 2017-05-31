@@ -177,11 +177,17 @@ struct build_crossover_mask {
         assert( mask_buffer != NULL );
 
         // 1 thread per device allele
-        dim3 blocks( seq_count, 1, 1), threads( 1,1,1);
+        dim3 blocks( 1, 1, 1), threads( 1,1,1);
+        computeDimensions( seq_count, seq_width, allele_count, blocks, threads );
 
+        build_crossover_mask_kernel<<< blocks, threads >>>( locations, event_pool, event_dist, mask_buffer, seq_width, allele_count );
+    }
+
+    static void computeDimensions( unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, dim3 & blocks, dim3 & threads ) {
         unsigned int max_locations = seq_width * 32;
         assert( allele_count <= max_locations );
 
+        blocks.x = seq_count;
         if( max_locations > 1024 ) {
             blocks.y = max_locations / 1024;
             if( max_locations % 1024 ) {
@@ -198,10 +204,8 @@ struct build_crossover_mask {
             }
             assert( threads.y <= 32);
         }
-
-//        std::cerr << "Build Mask - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
-        build_crossover_mask_kernel<<< blocks, threads >>>( locations, event_pool, event_dist, mask_buffer, seq_width, allele_count );
     }
+
 
     template < class RealType, class IntType >
     static void execute( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, cudaStream_t & stream ) {
@@ -211,30 +215,10 @@ struct build_crossover_mask {
         assert( mask_buffer != NULL );
 
         // 1 thread per device allele
-        dim3 blocks( seq_count, 1, 1), threads( 1,1,1);
+        dim3 blocks( 1, 1, 1), threads( 1,1,1);
+        computeDimensions( seq_count, seq_width, allele_count, blocks, threads );
 
-        unsigned int max_locations = seq_width * 32;
-        assert( allele_count <= max_locations );
-
-        if( max_locations > 1024 ) {
-            blocks.y = max_locations / 1024;
-            if( max_locations % 1024 ) {
-                blocks.y += 1;
-            }
-
-            threads.x = 32;
-            threads.y = 32;
-        } else {
-            threads.x = 32;
-            threads.y = max_locations / 32;
-            if( max_locations % 32 ) {
-                threads.y += 1;
-            }
-            assert( threads.y <= 32);
-        }
-
-//        std::cerr << "Build Mask - [ " << blocks.x << ", " << blocks.y << " ]; [ " << threads.x << ", " << threads.y << " ]" << std::endl;
-        build_crossover_mask_kernel<<< blocks, threads, stream >>>( locations, event_pool, event_dist, mask_buffer, seq_width, allele_count );
+        build_crossover_mask_kernel<<< blocks, threads, 0, stream >>>( locations, event_pool, event_dist, mask_buffer, seq_width, allele_count );
     }
 };
 

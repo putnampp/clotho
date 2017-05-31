@@ -75,7 +75,6 @@ public:
        updateDeviceAsync();
 
         if( alleles.getDeviceMaxAlleles() == 0 ) {
-
             clear_sequence_space::execute( offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence(), m_maskStream );
 
         } else {

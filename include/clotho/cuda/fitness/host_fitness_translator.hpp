@@ -40,10 +40,23 @@ public:
         assert( pop->getDevicePhenotypes() != NULL );
         assert( pop->getDeviceFitness() != NULL );
 
-//        std::cerr << "Fitness - [" << blocks.x << ", " << blocks.y << "]; [" << threads.x << ", " << threads.y << "]" << std::endl;
         evaluate_quadratic_fitness<<< blocks, threads >>>( pop->getDevicePhenotypes(), pop->getDeviceFitness(), stdev );
     }
 
+    template < class IntType >
+    void operator()( HostPopulationSpace< RealType, IntType > * pop, cudaStream_t & stream ) {
+
+        dim3 blocks( pop->getIndividualCount(), 1, 1), threads( 1,1,1 );
+
+        RealType stdev = (RealType) pop->getSequenceCount();
+        stdev *= 2.0 * m_mutate_rate.m_mu;
+        stdev *= m_quad_param.m_scale;
+
+        assert( pop->getDevicePhenotypes() != NULL );
+        assert( pop->getDeviceFitness() != NULL );
+
+        evaluate_quadratic_fitness<<< blocks, threads, 0, stream >>>( pop->getDevicePhenotypes(), pop->getDeviceFitness(), stdev );
+    }
     virtual ~HostFitnessTranslator() {}
 
 protected:

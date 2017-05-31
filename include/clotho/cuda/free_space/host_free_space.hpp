@@ -24,6 +24,7 @@ public:
         evaluate_free_space::execute( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence());
     }
 
+    template < class RealType, class IntType >
     void operator()( HostPopulationSpace< RealType, IntType > * pop, cudaStream_t & stream ) {
         evaluate_free_space::execute( pop->getDeviceSequences(), pop->getDeviceFreeSpace(), pop->getSequenceCount(), pop->getBlocksPerSequence(), stream);
     }

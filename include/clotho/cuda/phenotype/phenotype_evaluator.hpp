@@ -97,14 +97,34 @@ struct evaluate_phenotype {
         assert( allele_count <= trait_width );
         assert( allele_count <= seq_width * 32 );
 
-        dim3 blocks( seq_count, trait_count, 1 ), threads( 32, 32, 1 );
+        dim3 blocks( 1, 1, 1 ), threads( 32, 32, 1 );
+        computeDimensions( seq_count, seq_width, trait_count, blocks, threads );
 
+        evaluate_phenotype_kernel<<< blocks, threads >>>( seqs, trait_weights, phenos, seq_width, allele_count, trait_width );
+    }
+
+    static void computeDimensions( unsigned int seq_count, unsigned int seq_width, unsigned int trait_count, dim3 & blocks, dim3 & threads ) {
+        blocks.x = seq_count;
+        blocks.y = trait_count;
         if( seq_width < 32 ) {
             threads.y = seq_width;
         }
 
-//        std::cerr << "Phenotype - [" << blocks.x << ", "<< blocks.y << "]; [" << threads.x << ", " << threads.y << "]" << std::endl;
-        evaluate_phenotype_kernel<<< blocks, threads >>>( seqs, trait_weights, phenos, seq_width, allele_count, trait_width );
+    }
+
+    template < class IntType, class RealType >
+    static void execute( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, unsigned int trait_width, unsigned int trait_count, cudaStream_t & stream ) {
+        assert( seqs != NULL );
+        assert( trait_weights != NULL );
+        assert( phenos != NULL );
+
+        assert( allele_count <= trait_width );
+        assert( allele_count <= seq_width * 32 );
+
+        dim3 blocks( 1, 1, 1 ), threads( 32, 32, 1 );
+        computeDimensions( seq_count, seq_width, trait_count, blocks, threads );
+
+        evaluate_phenotype_kernel<<< blocks, threads, 0, stream >>>( seqs, trait_weights, phenos, seq_width, allele_count, trait_width );
     }
 };
 

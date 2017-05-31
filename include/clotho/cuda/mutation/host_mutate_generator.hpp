@@ -68,6 +68,7 @@ public:
         mutate::execute( pop->getDeviceSequences(), m_dAlleleIndexPool, m_dSeqDist, pop->getSequenceCount(), pop->getBlocksPerSequence() );
     }
 
+    template < class RealType, class IntType >
     void executeAsync( HostPopulationSpace< RealType, IntType > * pop ) {
         mutate::execute( pop->getDeviceSequences(), m_dAlleleIndexPool, m_dSeqDist, pop->getSequenceCount(), pop->getBlocksPerSequence(), m_upload );
     }

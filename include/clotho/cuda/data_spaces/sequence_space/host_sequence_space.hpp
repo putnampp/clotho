@@ -47,6 +47,11 @@ public:
         evaluateFreeSpace();
     }
 
+    void updateHost( cudaStream_t & stream ) {
+        assert( cudaMemcpyAsync( m_hFreeSpace, m_dFreeSpace, 3 * m_blocks_per_seq * sizeof( int_type ), cudaMemcpyDeviceToHost, stream ) == cudaSuccess );
+
+    }
+
     void resize( unsigned int allele_count, unsigned int seq_count ) {
         unsigned int bbr = allele_count / bit_helper_type::BITS_PER_BLOCK + ((allele_count % bit_helper_type::BITS_PER_BLOCK != 0 ) ? 1 : 0);
 

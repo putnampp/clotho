@@ -53,7 +53,6 @@ struct mutate {
 
         dim3 blocks( seq_count, 1, 1 ), threads( 1,1,1 );
 
-//        std::cerr << "Mutate - [" << blocks.x << ", " << blocks.y << "]; [" << threads.x << ", " << threads.y << "]" << std::endl;
         mutate_kernel<<< blocks, threads >>>( seqs, allele_index_pool, sequence_dist, seq_width );
     }
 };
