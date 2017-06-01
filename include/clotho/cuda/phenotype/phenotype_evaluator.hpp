@@ -86,34 +86,113 @@ __global__ void evaluate_phenotype_kernel( IntType * seqs, RealType * trait_weig
     }
 }
 
-struct evaluate_phenotype {
+template < class IntType, class RealType >
+__global__ void evaluate_phenotype_kernel( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int seq_count, unsigned int width, unsigned int allele_count, unsigned int trait_width ) {
+    assert( blockDim.x == 32 );
 
-    template < class IntType, class RealType >
-    static void execute( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, unsigned int trait_width, unsigned int trait_count ) {
-        assert( seqs != NULL );
-        assert( trait_weights != NULL );
-        assert( phenos != NULL );
+    // gridDim.x == sequence_count
+    // gridDim.y == trait_count
+    // blockIdx.x == sequence index
+    // blockIdx.y == trait index
+    // blockDim.x == alleles per sequence block
+    // blockDim.y == sequence blocks per batch (warps)
+    // threadIdx.x == allele index in sequence block
+    // threadIdx.y == offset of sequence block
+    unsigned int all_idx = threadIdx.x;
 
-        assert( allele_count <= trait_width );
-        assert( allele_count <= seq_width * 32 );
+    unsigned int seq_idx = blockIdx.x * blockDim.y + threadIdx.y;
 
-        dim3 blocks( 1, 1, 1 ), threads( 32, 32, 1 );
-        computeDimensions( seq_count, seq_width, trait_count, blocks, threads );
+    unsigned int b_idx = seq_idx;
 
-        evaluate_phenotype_kernel<<< blocks, threads >>>( seqs, trait_weights, phenos, seq_width, allele_count, trait_width );
+    // enables all thread y axis thread groups (warps) to continue to operate
+    // despite being outside the bounds of the sequence space
+    if( b_idx >= seq_count ) {
+        b_idx = seq_count - 1;
+    }
+    __syncthreads();
+
+    b_idx *= width;
+
+    unsigned int trait_offset = blockIdx.y * allele_count + all_idx;
+
+    IntType mask = (1 << threadIdx.x);
+    RealType local_pheno = 0.0;
+
+    while( b_idx < width ) { // true for all threads in warp and thread block
+        // trait_index * allele_count + allele_index
+        RealType w = 0.0;
+
+        if( all_idx < allele_count ) {
+            w = trait_weights[ trait_offset ];
+        }
+        __syncthreads();
+
+        // all threads in the same y axis (warp) read the same block
+        IntType b = seqs[ b_idx ];
+
+        if( (b & mask) != 0) {
+            local_pheno += w;
+        }
+
+        // step == threads per warp
+        all_idx += blockDim.x;
+        trait_offset += blockDim.x;
+
+        // sequence_blocks
+        b_idx += 1;
+    }
+    __syncthreads();
+
+    for( unsigned int i = 1; i < 32; i <<= 1 ) {
+        RealType _p = __shfl_up( local_pheno, i );
+        local_pheno += (( threadIdx.x >= i ) ? _p : 0.0);
     }
 
-    static void computeDimensions( unsigned int seq_count, unsigned int seq_width, unsigned int trait_count, dim3 & blocks, dim3 & threads ) {
+    if( threadIdx.x == 31 && seq_idx < seq_count ) {
+        // trait_index * sequence_count + sequence_index
+        phenos[ blockIdx.y * seq_count + seq_idx ] = local_pheno; 
+    }
+}
+
+#ifndef PHENOTYPE_KERNEL_ALGORITHM
+#define PHENOTYPE_KERNEL_ALGORITHM
+
+#define PHENOTYPE_DEFAULT_KERNEL 0
+#define PHENOTYPE_WARP_SEQUENCE_KERNEL 1
+#endif  // PHENOTYPE_KERNEL_ALGORITHM
+
+struct evaluate_phenotype {
+
+    typedef clotho::utility::algo_version< PHENOTYPE_DEFAULT_KERNEL > default_kernel;
+    typedef clotho::utility::algo_version< PHENOTYPE_WARP_SEQUENCE_KERNEL > warp_sequence_kernel;
+
+    template < unsigned char V >
+    static void computeDimensions( unsigned int seq_count, unsigned int seq_width, unsigned int trait_count, dim3 & blocks, dim3 & threads, clotho::utility::algo_version< V > * v ) {
         blocks.x = seq_count;
         blocks.y = trait_count;
         if( seq_width < 32 ) {
             threads.y = seq_width;
         }
-
     }
 
-    template < class IntType, class RealType >
-    static void execute( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, unsigned int trait_width, unsigned int trait_count, cudaStream_t & stream ) {
+    static void computeDimensions( unsigned int seq_count, unsigned int seq_width, unsigned int trait_count, dim3 & blocks, dim3 & threads, clotho::utility::algo_version< PHENOTYPE_WARP_SEQUENCE_KERNEL > * v ) {
+        blocks.y = trait_count;
+        if( seq_count > 32 ) {
+            blocks.x = seq_count / 32;
+            if( seq_count % 32 ) {
+                blocks.x += 1;
+            }
+            threads.x = 32;
+            threads.y = 32;
+        } else {
+            blocks.x = 1;
+            threads.x = 32;
+            threads.y = seq_count;
+        }
+    }
+
+    template < class IntType, class RealType, unsigned char V >
+    static void execute( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, unsigned int trait_width, unsigned int trait_count, clotho::utility::algo_version< V > * v ) {
         assert( seqs != NULL );
         assert( trait_weights != NULL );
         assert( phenos != NULL );
@@ -122,9 +201,54 @@ struct evaluate_phenotype {
         assert( allele_count <= seq_width * 32 );
 
         dim3 blocks( 1, 1, 1 ), threads( 32, 32, 1 );
-        computeDimensions( seq_count, seq_width, trait_count, blocks, threads );
+        computeDimensions( seq_count, seq_width, trait_count, blocks, threads, v );
+
+        evaluate_phenotype_kernel<<< blocks, threads >>>( seqs, trait_weights, phenos, seq_width, allele_count, trait_width );
+    }
+
+    template < class IntType, class RealType, unsigned char V >
+    static void execute( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, unsigned int trait_width, unsigned int trait_count, cudaStream_t & stream, clotho::utility::algo_version< V > * v ) {
+        assert( seqs != NULL );
+        assert( trait_weights != NULL );
+        assert( phenos != NULL );
+
+        assert( allele_count <= trait_width );
+        assert( allele_count <= seq_width * 32 );
+
+        dim3 blocks( 1, 1, 1 ), threads( 32, 32, 1 );
+        computeDimensions( seq_count, seq_width, trait_count, blocks, threads, v );
 
         evaluate_phenotype_kernel<<< blocks, threads, 0, stream >>>( seqs, trait_weights, phenos, seq_width, allele_count, trait_width );
+    }
+
+    template < class IntType, class RealType >
+    static void execute( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, unsigned int trait_width, unsigned int trait_count, clotho::utility::algo_version< PHENOTYPE_WARP_SEQUENCE_KERNEL > * v ) {
+        assert( seqs != NULL );
+        assert( trait_weights != NULL );
+        assert( phenos != NULL );
+
+        assert( allele_count <= trait_width );
+        assert( allele_count <= seq_width * 32 );
+
+        dim3 blocks( 1, 1, 1 ), threads( 32, 32, 1 );
+        computeDimensions( seq_count, seq_width, trait_count, blocks, threads, v );
+
+        evaluate_phenotype_kernel<<< blocks, threads >>>( seqs, trait_weights, phenos, seq_count, seq_width, allele_count, trait_width );
+    }
+
+    template < class IntType, class RealType >
+    static void execute( IntType * seqs, RealType * trait_weights, RealType * phenos, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, unsigned int trait_width, unsigned int trait_count, cudaStream_t & stream, clotho::utility::algo_version< PHENOTYPE_WARP_SEQUENCE_KERNEL > * v ) {
+        assert( seqs != NULL );
+        assert( trait_weights != NULL );
+        assert( phenos != NULL );
+
+        assert( allele_count <= trait_width );
+        assert( allele_count <= seq_width * 32 );
+
+        dim3 blocks( 1, 1, 1 ), threads( 32, 32, 1 );
+        computeDimensions( seq_count, seq_width, trait_count, blocks, threads, v );
+
+        evaluate_phenotype_kernel<<< blocks, threads, 0, stream >>>( seqs, trait_weights, phenos, seq_count, seq_width, allele_count, trait_width );
     }
 };
 

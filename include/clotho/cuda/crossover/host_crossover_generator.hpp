@@ -24,6 +24,8 @@
 
 #include "clotho/cuda/data_spaces/sequence_space/sequence_kernels.hpp"
 
+#include "clotho/utility/algorithm_version.hpp"
+
 template < class EventType >
 class HostCrossoverGenerator {
 public:
@@ -34,6 +36,8 @@ public:
     
     typedef boost::random::poisson_distribution< unsigned int, double > event_distribution_type;
     typedef boost::random::uniform_01< event_type > location_distribution_type;
+
+    typedef clotho::utility::algo_version< BUILD_MASK_BLOCK_PER_ALLELE_GROUP > build_mask_version;
 
     HostCrossoverGenerator( boost::property_tree::ptree & config ) :
         m_recomb( config )
@@ -66,7 +70,8 @@ public:
             clear_sequence_space::execute( offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence() );
 
         } else {
-            build_crossover_mask::execute( alleles.getDeviceLocations(), m_dEventPool, m_dEventDist, offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence(), alleles.getDeviceAlleleCount() );
+            build_mask_version v;
+            build_crossover_mask::execute( alleles.getDeviceLocations(), m_dEventPool, m_dEventDist, offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence(), alleles.getDeviceAlleleCount(), &v );
         }
     }
 
@@ -76,9 +81,9 @@ public:
 
         if( alleles.getDeviceMaxAlleles() == 0 ) {
             clear_sequence_space::execute( offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence(), m_maskStream );
-
         } else {
-            build_crossover_mask::execute( alleles.getDeviceLocations(), m_dEventPool, m_dEventDist, offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence(), alleles.getDeviceAlleleCount(), m_maskStream );
+            build_mask_version v;
+            build_crossover_mask::execute( alleles.getDeviceLocations(), m_dEventPool, m_dEventDist, offspring->getDeviceSequences(), offspring->getSequenceCount(), offspring->getBlocksPerSequence(), alleles.getDeviceAlleleCount(), m_maskStream, &v );
         }
     }
 
