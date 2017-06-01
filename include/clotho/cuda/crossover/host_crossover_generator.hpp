@@ -45,18 +45,17 @@ public:
         , m_dEventPool(NULL)
         , m_hEventDist(NULL)
         , m_dEventDist(NULL)
-        , m_pool_size(0)
+        , m_pool_offset(0)
         , m_pool_capacity(0)
         , m_dist_size(0)
         , m_dist_capacity(0)
+        , m_event_pool_reset( false )
     {
         cudaStreamCreate( &m_maskStream );
     }
 
     template < class RNG, class RealType, class IntType >
     void initialize( RNG & rng, HostPopulationSpace< RealType, IntType > * pop ) {
-        resize( pop->getSequenceCount() );
-
         generateEvents( rng, pop->getSequenceCount() );
     }
 
@@ -103,12 +102,18 @@ public:
     }
 
     void updateDevice() {
-        assert( cudaMemcpy( m_dEventPool, m_hEventPool, m_pool_size * sizeof( event_type ), cudaMemcpyHostToDevice ) == cudaSuccess );
+        if( m_event_pool_reset ) {
+            assert( cudaMemcpy( m_dEventPool, m_hEventPool, m_pool_capacity * sizeof( event_type ), cudaMemcpyHostToDevice ) == cudaSuccess );
+            m_event_pool_reset = false;
+        }
         assert( cudaMemcpy( m_dEventDist, m_hEventDist, m_dist_size * sizeof( unsigned int ), cudaMemcpyHostToDevice ) == cudaSuccess );
     }
 
     void updateDeviceAsync() {
-        assert( cudaMemcpyAsync( m_dEventPool, m_hEventPool, m_pool_size * sizeof( event_type ), cudaMemcpyHostToDevice, m_maskStream ) == cudaSuccess );
+        if( m_event_pool_reset ) {
+            assert( cudaMemcpyAsync( m_dEventPool, m_hEventPool, m_pool_capacity * sizeof( event_type ), cudaMemcpyHostToDevice, m_maskStream ) == cudaSuccess );
+            m_event_pool_reset = false;
+        }
         assert( cudaMemcpyAsync( m_dEventDist, m_hEventDist, m_dist_size * sizeof( unsigned int ), cudaMemcpyHostToDevice, m_maskStream ) == cudaSuccess );
     }
 
@@ -131,25 +136,50 @@ public:
 protected:
 
     template < class RNG >
-    void generateEvents( RNG & rng, unsigned int N ) {
-        assert( N < m_dist_size );
-
+    void generateEventPool( RNG & rng ) {
         location_distribution_type loc_dist;
-        event_distribution_type events( m_recomb.m_rho );
 
-        m_pool_size = 0;
-        m_hEventDist[ 0 ] = 0;
-        for( unsigned int i = 1; i <= N; ++i ) {
-            unsigned int E = events( rng );
-            while( E > 0 ) {
-                m_hEventPool[ m_pool_size++ ] = loc_dist( rng );
-                --E;
-            }
-
-            m_hEventDist[ i ] = m_pool_size;  
+        for( unsigned int i = 0; i < m_pool_capacity; ++i ) {
+            m_hEventPool[ i ] = loc_dist( rng );
         }
     }
-    void resize( unsigned int N ) {
+
+    template < class RNG >
+    void generateEvents( RNG & rng, unsigned int N ) {
+        resizeDistribution( N );
+        assert( N < m_dist_size );
+
+        event_distribution_type events( m_recomb.m_rho );
+
+        m_hEventDist[ 0 ] = m_pool_offset;
+        for( unsigned int i = 1; i <= N; ++i ) {
+            unsigned int E = events( rng );
+
+            m_pool_offset += E;
+
+            m_hEventDist[ i ] = m_pool_offset;  
+        }
+
+        if( m_pool_offset >= m_pool_capacity ) {
+            // just in case sequence space has increased since previous call
+            resizePool( N );
+
+            assert( m_dEventPool != NULL );
+            assert( (m_pool_offset - m_hEventDist[ 0 ]) < m_pool_capacity );
+
+            generateEventPool( rng );
+
+            unsigned int sub_val = m_hEventDist[ 0 ];
+            for( unsigned int i = 0; i <= N; i++ ) {
+                m_hEventDist[ i ] -= sub_val;
+            }
+
+            m_pool_offset = m_hEventDist[ N ];
+            m_event_pool_reset = true;
+        }
+    }
+
+    void resizeDistribution( unsigned int N ) {
         if( N > m_dist_capacity ) {
             if( m_dEventDist != NULL ) {
                 delete [] m_hEventDist;
@@ -161,7 +191,10 @@ protected:
             m_dist_capacity = N + 1;
         }
         m_dist_size = N + 1;
+    }
 
+    void resizePool( unsigned int N ) {
+        // always resize relative to the population size
         unsigned int pool_cap = MAX_MUTATIONS_PER_SEQUENCE * N;
         if( pool_cap > m_pool_capacity ) {
             if( m_hEventPool != NULL ) {
@@ -181,10 +214,11 @@ protected:
     event_type * m_hEventPool, * m_dEventPool;
     unsigned int * m_hEventDist, * m_dEventDist;
 
-    unsigned int m_pool_size, m_pool_capacity;
+    unsigned int m_pool_offset, m_pool_capacity;
     unsigned int m_dist_size, m_dist_capacity;
 
     cudaStream_t m_maskStream;
+    bool m_event_pool_reset;
 };
 
 #endif  // HOST_CROSSOVER_GENERATOR_HPP_
