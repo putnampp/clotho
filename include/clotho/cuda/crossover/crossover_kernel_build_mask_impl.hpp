@@ -233,6 +233,9 @@ __global__ void build_crossover_mask_kernel( RealType * locations, RealType * ev
 #endif  // BUILD_MASK_ALGORITHM_VERSION
 
 struct build_crossover_mask {
+    typedef clotho::utility::algo_version< BUILD_MASK_DEFAULT> default_kernel;
+    typedef clotho::utility::algo_version< BUILD_MASK_BLOCK_PER_ALLELE_GROUP > block_per_allele_group_kernel;
+
     template < class RealType, class IntType, unsigned char V >
     static void execute( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, clotho::utility::algo_version< V > * v ) {
         assert( locations != NULL );
