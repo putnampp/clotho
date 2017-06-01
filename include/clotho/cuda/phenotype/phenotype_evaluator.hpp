@@ -118,7 +118,8 @@ __global__ void evaluate_phenotype_kernel( IntType * seqs, RealType * trait_weig
     IntType mask = (1 << threadIdx.x);
     RealType local_pheno = 0.0;
 
-    while( b_idx < width ) { // true for all threads in warp and thread block
+    unsigned int i = 0;
+    while( i  < width ) { // true for all threads in warp and thread block
         // trait_index * allele_count + allele_index
         RealType w = 0.0;
 
@@ -128,7 +129,7 @@ __global__ void evaluate_phenotype_kernel( IntType * seqs, RealType * trait_weig
         __syncthreads();
 
         // all threads in the same y axis (warp) read the same block
-        IntType b = seqs[ b_idx ];
+        IntType b = seqs[ b_idx + i ];
 
         if( (b & mask) != 0) {
             local_pheno += w;
@@ -138,8 +139,7 @@ __global__ void evaluate_phenotype_kernel( IntType * seqs, RealType * trait_weig
         all_idx += blockDim.x;
         trait_offset += blockDim.x;
 
-        // sequence_blocks
-        b_idx += 1;
+        i += 1;
     }
     __syncthreads();
 
