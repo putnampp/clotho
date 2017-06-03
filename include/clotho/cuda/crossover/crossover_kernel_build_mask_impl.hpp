@@ -109,8 +109,95 @@ __global__ void build_crossover_mask_kernel(  AlleleSpaceType * alleles,
     }
 }
 
+#ifndef BUILD_MASK_ALGORITHM_VERSIONS
+#define BUILD_MASK_ALGORITHM_VERSIONS
+
+#define BUILD_MASK_DEFAULT 0
+#define BUILD_MASK_BLOCK_PER_ALLELE_GROUP 1
+#define BUILD_MASK_BLOCK_PER_SEQUENCE 2
+#endif  // BUILD_MASK_ALGORITHM_VERSION
+
+/**
+ * 
+ * 1 block per sequence
+ *
+ */ 
+template < class RealType, class IntType, unsigned char V >
+__global__ void build_crossover_mask_kernel( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int WIDTH, unsigned int ALLELE_COUNT, clotho::utility::algo_version< V > * v ) {
+    assert( blockDim.x == 32 );
+
+    unsigned int event_start = event_dist[ blockIdx.x ];
+    unsigned int event_end = event_dist[ blockIdx.x + 1 ];
+
+    if( ALLELE_COUNT == 0 || event_start == event_end ) { // true for all threads
+        // clear all sequence
+        unsigned int seq_offset = threadIdx.y * blockDim.x + threadIdx.x;
+        while( seq_offset < WIDTH ) {
+            mask_buffer[ blockIdx.x * WIDTH + seq_offset ] = 0;
+            seq_offset += blockDim.x * blockDim.y;
+        }
+
+    } else {
+
+        __shared__ RealType sEvents[ 32 ];
+
+        // put events into shared memory        
+        if( threadIdx.y == 0 && event_start + threadIdx.x < event_end ) {
+            sEvents[ threadIdx.x ] = event_pool[ threadIdx.x + event_start ]; 
+        }
+        __syncthreads();
+
+        unsigned int allele_offset = threadIdx.y * blockDim.x + threadIdx.x;
+        unsigned int seq_offset = threadIdx.y;
+
+        unsigned int padded_width = WIDTH * 32;
+        padded_width += ((blockDim.x * blockDim.y) - (padded_width % (blockDim.x * blockDim.y)));
+        padded_width /= 32;
+
+        assert( padded_width % blockDim.y == 0);
+
+        event_end -= event_start;
+
+        // by using the padded_width all threads should remain instruction synced
+        while( seq_offset < padded_width ) {
+            event_start = 0;
+            RealType loc = 1.0;
+            if( allele_offset < ALLELE_COUNT) {
+                loc = locations[ allele_offset ];
+            }
+            __syncthreads();
+
+            unsigned int N = 0;
+            while( event_start < event_end ) {
+                RealType w = sEvents[ event_start++ ];
+                N += (( loc < w ) ? 1 : 0 );
+            }
+            __syncthreads();
+
+            IntType mask = 0;
+            if( N & 1) {
+                mask = ( 1 << threadIdx.x);
+            }
+            __syncthreads();
+
+            for( unsigned int i = 1; i < 32; i <<= 1 ) {
+                IntType _m = __shfl_up( mask, i );
+                mask |= ((threadIdx.x >= i) * _m );
+            }
+
+            if( threadIdx.x == 31 && seq_offset < WIDTH ) {
+                mask_buffer[ blockIdx.x * WIDTH + seq_offset ] = mask;
+            }
+            __syncthreads();
+
+            seq_offset += blockDim.y;
+            allele_offset += (blockDim.x * blockDim.y);
+        }
+    } 
+}
+
 template < class RealType, class IntType >
-__global__ void build_crossover_mask_kernel( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int WIDTH, unsigned int ALLELE_COUNT ) {
+__global__ void build_crossover_mask_kernel( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int WIDTH, unsigned int ALLELE_COUNT, clotho::utility::algo_version< BUILD_MASK_BLOCK_PER_SEQUENCE > * v ) {
     assert( blockDim.x == 32 );
 
     unsigned int seq_offset = blockIdx.y * blockDim.y + threadIdx.y;
@@ -225,16 +312,10 @@ __global__ void build_crossover_mask_kernel( RealType * locations, RealType * ev
     }
 }
 
-#ifndef BUILD_MASK_ALGORITHM_VERSIONS
-#define BUILD_MASK_ALGORITHM_VERSIONS
-
-#define BUILD_MASK_DEFAULT 0
-#define BUILD_MASK_BLOCK_PER_ALLELE_GROUP 1
-#endif  // BUILD_MASK_ALGORITHM_VERSION
-
 struct build_crossover_mask {
     typedef clotho::utility::algo_version< BUILD_MASK_DEFAULT> default_kernel;
     typedef clotho::utility::algo_version< BUILD_MASK_BLOCK_PER_ALLELE_GROUP > block_per_allele_group_kernel;
+    typedef clotho::utility::algo_version< BUILD_MASK_BLOCK_PER_SEQUENCE > block_sequence_kernel;
 
     template < class RealType, class IntType, unsigned char V >
     static void execute( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, clotho::utility::algo_version< V > * v ) {
@@ -339,6 +420,49 @@ struct build_crossover_mask {
         computeDimensions( seq_count, seq_width, allele_count, blocks, threads, v );
 
         build_crossover_mask_kernel<<< blocks, threads, 0, stream >>>( locations, event_pool, event_dist, mask_buffer, seq_count, seq_width, allele_count );
+    }
+
+    template < class RealType, class IntType >
+    static void execute( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, clotho::utility::algo_version< BUILD_MASK_BLOCK_PER_SEQUENCE > * v ) {
+        assert( locations != NULL );
+        assert( event_pool != NULL );
+        assert( event_dist != NULL );
+        assert( mask_buffer != NULL );
+
+        // 1 thread per device allele
+        dim3 blocks( 1, 1, 1), threads( 1,1,1);
+        computeDimensions( seq_count, seq_width, allele_count, blocks, threads, v );
+
+        build_crossover_mask_kernel<<< blocks, threads >>>( locations, event_pool, event_dist, mask_buffer, seq_width, allele_count, v );
+    }
+
+    static void computeDimensions( unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, dim3 & blocks, dim3 & threads, clotho::utility::algo_version< BUILD_MASK_BLOCK_PER_SEQUENCE > * v ) {
+        blocks.x = seq_count;
+        blocks.y = 1;
+        threads.x = 32;
+        if( allele_count > 1024 ) {
+            threads.y = 32;
+        } else {
+            threads.y = allele_count / 32;
+            if( allele_count % 32 ) {
+                threads.y += 1;
+            }
+        }
+    }
+
+
+    template < class RealType, class IntType >
+    static void execute( RealType * locations, RealType * event_pool, unsigned int * event_dist, IntType * mask_buffer, unsigned int seq_count, unsigned int seq_width, unsigned int allele_count, cudaStream_t & stream, clotho::utility::algo_version< BUILD_MASK_BLOCK_PER_SEQUENCE > * v ) {
+        assert( locations != NULL );
+        assert( event_pool != NULL );
+        assert( event_dist != NULL );
+        assert( mask_buffer != NULL );
+
+        // 1 thread per device allele
+        dim3 blocks( 1, 1, 1), threads( 1,1,1);
+        computeDimensions( seq_count, seq_width, allele_count, blocks, threads, v );
+
+        build_crossover_mask_kernel<<< blocks, threads, 0, stream >>>( locations, event_pool, event_dist, mask_buffer, seq_width, allele_count, v );
     }
 };
 

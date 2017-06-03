@@ -37,7 +37,7 @@ public:
     typedef boost::random::poisson_distribution< unsigned int, double > event_distribution_type;
     typedef boost::random::uniform_01< event_type > location_distribution_type;
 
-    typedef typename build_crossover_mask::block_per_allele_group_kernel build_mask_version;
+    typedef typename build_crossover_mask::block_sequence_kernel build_mask_version;
 
     HostCrossoverGenerator( boost::property_tree::ptree & config ) :
         m_recomb( config )
