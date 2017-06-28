@@ -44,5 +44,32 @@ __global__ void evaluate_quadratic_fitness( RealType * phenos, RealType * fitnes
     fitness[ blockIdx.x ] = fit;
 }
 
+/**
+ * 
+ * Assume 1 thread per individual
+ * Phenotype are aligned by trait
+ */
+template < class RealType >
+__global__ void evaluate_quadratic_fitness( RealType * phenos, RealType * fitness, unsigned int individual_count, RealType stddev ) {
+
+    unsigned int p_idx = threadIdx.y * blockDim.x + threadIdx.x;
+
+    while( p_idx < individual_count ) {
+        RealType fit = phenos[ 2 * p_idx ];
+        fit += phenos[ 2 * p_idx + 1 ];
+
+        fit /= stddev;
+        fit *= fit;
+
+        if( fit > 1.0) {
+            fit = 0.0;
+        } else {
+            fit = 1.0 - fit;
+        }
+
+        fitness[ p_idx ] = fit;
+        p_idx += blockDim.x * blockDim.y;
+    }
+}
 
 #endif  // FITNESS_EVALUATORS_HPP_
