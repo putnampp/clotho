@@ -203,19 +203,19 @@ population_analyzer::population_analyzer( random_sample_type * s, sequence_space
 
 void population_analyzer::operator()( boost::property_tree::ptree & log ) {
     allele_freq_type af;
-//    pairwise_diff_type pd;
+    pairwise_diff_type pd;
 
     if( m_samp ) {
         af.evaluate( *m_seqs, m_samp->begin(), m_samp->end() );
-//        pd.evaluate( *m_samp->getPopulation(), m_samp->begin(), m_samp->end() );
+        pd.evaluate( *m_seqs, m_samp->begin(), m_samp->end() );
     } else {
         assert( false );
     }
 
     boost::property_tree::ptree af_log, pd_log;
     af.recordResults( af_log );
-//    pd.recordResults( pd_log );
+    pd.recordResults( pd_log );
 
     log.add_child( "allele_frequency", af_log );
-//    log.add_child( "pairwise_difference", pd_log );
+    log.add_child( "pairwise_difference", pd_log );
 }
