@@ -72,4 +72,36 @@ __global__ void count_alleles( device_sequence_space< IntType > * sequences, bas
     }
 }
 
+/**
+ * 
+ * 1 thread per allele
+ *
+ */
+template < class IntType >
+__global__ void count_alleles( IntType * seqs, unsigned int * freq, unsigned int seq_count, unsigned int width, unsigned int allele_count ) {
+    unsigned int all_idx = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+
+    unsigned int b_idx = blockIdx.x * blockDim.y + threadIdx.y;
+    if( b_idx >= width ) {
+        b_idx = width - 1;
+    }
+    __syncthreads();
+
+    IntType mask = (1 << threadIdx.x);
+    
+    unsigned int N = 0;
+    for( unsigned int i = 0; i < seq_count; ++i ) {
+        IntType b = seqs[ i * width + b_idx ];
+
+        if( b & mask ) {
+            N += 1;
+        }
+    }
+    __syncthreads();
+
+    if( all_idx < allele_count ) {
+        freq[ all_idx ] = N;
+    }
+}
+
 #endif  // ALLELE_FREQUENCY_KERNELS_HPP_

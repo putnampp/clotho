@@ -18,27 +18,32 @@
 
 #include "clotho/cuda/data_spaces/phenotype_space/device_phenotype_space.hpp"
 
-#include "qtl_cuda_simulate_engine.hpp"
-
 #include "simulation_log.hpp"
-#include "clotho/cuda/data_spaces/status_buffer/status_buffer.hpp"
 
+#include <boost/random/mersenne_twister.hpp>
+
+#ifdef USE_CUDA_HOST_RANDOM
+#include "engine_cuda_host_random.hpp"
+typedef HostPopulationSpace< real_type, int_type > population_space_type;
+typedef Engine< boost::random::mt19937, real_type, int_type, int_type, cuda_host_random > engine_type;
+#else
 #ifdef USE_UNIT_ORDERING
 typedef unit_ordered_tag< int_type > order_tag_type;
 #else
 typedef unordered_tag   order_tag_type;
 #endif
-
+#include "qtl_cuda_simulate_engine.hpp"
 typedef PopulationSpace< real_type, int_type, order_tag_type > population_space_type;
-
 typedef qtl_cuda_simulate_engine< population_space_type >   engine_type;
+
+#include "clotho/cuda/data_spaces/status_buffer/status_buffer.hpp"
+typedef StatusBuffer< population_space_type >       status_buffer_type;
+#endif  //
 
 static const std::string HEAP_K = "device.heap.malloc.size";
 
 typedef std::shared_ptr< ipopulation_growth_generator >                     population_growth_generator_type;
 typedef std::shared_ptr< ipopulation_growth >                               population_growth_type;
-
-typedef StatusBuffer< population_space_type >       status_buffer_type;
 
 int main( int argc, char ** argv ) {
 
@@ -101,7 +106,9 @@ int main( int argc, char ** argv ) {
     boost::property_tree::ptree _sim, _an, _an_state, _an_samps;
     boost::property_tree::ptree free_count, a_count, var_count;
 
+#ifndef USE_CUDA_HOST_RANDOM
     status_buffer_type stats( nGens );
+#endif  // USE_CUDA_HOST_RANDOM
 
     while( gen < nGens ) {
         p_size = (*pop_grow)( p_size, gen++ );
@@ -110,7 +117,11 @@ int main( int argc, char ** argv ) {
         sim_engine.simulate(p_size);
         t.stop();
 
+#ifdef USE_CUDA_HOST_RANDOM
+        sim_engine.trackStats();
+#else
         stats.track( sim_engine.get_offspring_population(), (gen - 1) );
+#endif  // USE_CUDA_HOST_RANDOM
 
         clotho::utility::add_value_array( _sim, t );
 
@@ -180,10 +191,12 @@ int main( int argc, char ** argv ) {
 //    _mem.put_child( "allele_count", a_count);
 //    _mem.put_child( "variable_count", var_count);
 
+#ifdef USE_CUDA_HOST_RANDOM
+    sim_engine.get_tracked_states( _mem );
+#else
     stats.get_state( _mem );
-
+#endif // USE_CUDA_HOST_RANDOM
     log.add_record( "memory", _mem );
-
     p = log.make_path( "performance" );
     log.write( p );
 
