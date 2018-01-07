@@ -128,6 +128,10 @@ public:
         return m_phenos.getDevicePhenotypes();
     }
 
+    unsigned int getPhenotypeCapacity() const {
+        return m_phenos.getCapacity();
+    }
+
     block_type * getDeviceFreeSpace() {
         return m_seqs.getDeviceFreeSpace();
     }

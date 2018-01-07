@@ -154,6 +154,16 @@ __global__ void evaluate_phenotype_kernel( IntType * seqs, RealType * trait_weig
     }
 }
 
+template < class RealType >
+__global__ void reset_phenotype_kernel( RealType * phenos, unsigned int capacity ) {
+    unsigned int offset = threadIdx.y * blockDim.x + threadIdx.x;
+
+    while( offset < capacity ) {
+        phenos[offset] = 0.0;
+        offset += blockDim.x * blockDim.y;
+    }
+}
+
 #ifndef PHENOTYPE_KERNEL_ALGORITHM
 #define PHENOTYPE_KERNEL_ALGORITHM
 
@@ -249,6 +259,11 @@ struct evaluate_phenotype {
         computeDimensions( seq_count, seq_width, trait_count, blocks, threads, v );
 
         evaluate_phenotype_kernel<<< blocks, threads, 0, stream >>>( seqs, trait_weights, phenos, seq_count, seq_width, allele_count, trait_width );
+    }
+
+    template < class RealType >
+    static void reset( RealType * phenos, unsigned int capacity ) {
+        reset_phenotype_kernel<<< 32, 32 >>>(phenos, capacity);
     }
 };
 

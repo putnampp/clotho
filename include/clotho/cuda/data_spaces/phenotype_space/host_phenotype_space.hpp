@@ -38,6 +38,10 @@ public:
         return m_trait_count;
     }
 
+    unsigned int getCapacity() const {
+        return m_capacity;
+    }
+
     phenotype_type * getDevicePhenotypes() {
         return m_dPhenoSpace;
     }

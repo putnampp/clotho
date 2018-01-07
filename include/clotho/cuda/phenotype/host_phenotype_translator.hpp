@@ -21,14 +21,22 @@ public:
 
     template < class RealType, class IntType >
     void operator()( HostPopulationSpace< RealType, IntType > * pop, HostTraitSpace< RealType > & traits, unsigned int all_count ) {
-        typename evaluate_phenotype::warp_sequence_kernel v;
-        evaluate_phenotype::execute( pop->getDeviceSequences(), traits.getDeviceWeights(), pop->getDevicePhenotypes(), pop->getSequenceCount(), pop->getBlocksPerSequence(), all_count, traits.getAlleleCount(), traits.getTraitCount(), &v );
+        if( traits.isAllNeutral() ) {
+            evaluate_phenotype::reset( pop->getDevicePhenotypes(), pop->getPhenotypeCapacity() );
+        } else {
+            typename evaluate_phenotype::warp_sequence_kernel v;
+            evaluate_phenotype::execute( pop->getDeviceSequences(), traits.getDeviceWeights(), pop->getDevicePhenotypes(), pop->getSequenceCount(), pop->getBlocksPerSequence(), all_count, traits.getAlleleCount(), traits.getTraitCount(), &v );
+        }
     }
 
     template < class RealType, class IntType >
     void operator()( HostPopulationSpace< RealType, IntType > * pop, HostTraitSpace< RealType > & traits, unsigned int all_count, cudaStream_t & stream ) {
-        typename evaluate_phenotype::warp_sequence_kernel v;
-        evaluate_phenotype::execute( pop->getDeviceSequences(), traits.getDeviceWeights(), pop->getDevicePhenotypes(), pop->getSequenceCount(), pop->getBlocksPerSequence(), all_count, traits.getAlleleCount(), traits.getTraitCount(), stream, &v );
+        if( traits.isAllNeutral() ) {
+            evaluate_phenotype::reset( pop->getDevicePhenotypes(), pop->getPhenotypeCapacity() );
+        } else {
+            typename evaluate_phenotype::warp_sequence_kernel v;
+            evaluate_phenotype::execute( pop->getDeviceSequences(), traits.getDeviceWeights(), pop->getDevicePhenotypes(), pop->getSequenceCount(), pop->getBlocksPerSequence(), all_count, traits.getAlleleCount(), traits.getTraitCount(), stream, &v );
+        }
     }
 
     virtual ~HostPhenotypeTranslator() {}

@@ -175,6 +175,8 @@ protected:
             m_hSeqDist[ i ] = N;
             N += tmp;
         }
+
+        traits.updateNeutrality();
     }
 
     void resize( unsigned int seq_count, unsigned int mut_count ) {

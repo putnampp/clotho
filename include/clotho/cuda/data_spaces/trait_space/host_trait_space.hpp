@@ -30,6 +30,7 @@ public:
         , m_dTraitSpace( NULL )
         , m_allele_count(0)
         , m_trait_count(0)
+        , m_all_neutral(true)
         , m_capacity(0)
         , m_dCapacity(0)
     {
@@ -67,11 +68,22 @@ public:
         return m_allele_count;
     }
 
+    bool   isAllNeutral() const {
+        return m_all_neutral;
+    }
+
     void update( unsigned int allele_idx, unsigned int trait_idx, weight_type w ) {
         assert( allele_idx < m_allele_count );
         assert( trait_idx < m_trait_count );
 
         m_hTraitSpace[ trait_idx * m_allele_count + allele_idx ] = w;
+    }
+
+    void updateNeutrality() {
+        m_all_neutral = true;
+        for( unsigned int i = 0; m_all_neutral && i < m_capacity; ++i ) {
+            m_all_neutral = (m_hTraitSpace[i] == 0.);
+        }
     }
 
     void updateDevice() {
@@ -148,6 +160,8 @@ protected:
 
     weight_type   * m_hTraitSpace;
     weight_type   * m_dTraitSpace;
+
+    bool      m_all_neutral;
 
     size_t    m_allele_count, m_trait_count;
 
