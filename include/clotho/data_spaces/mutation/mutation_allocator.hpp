@@ -39,6 +39,8 @@ public:
     {}
 
     int_type allocate( size_t N ) {
+        if( m_mut_rate.m_mu <= 0.0 ) return 0;
+
         typedef typename distribution_type::param_type param_type;
 
         m_dist.param( param_type( m_mut_rate.m_mu * N ) );

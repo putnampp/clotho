@@ -52,6 +52,8 @@
 
 #include "clotho/data_spaces/mutation/mutation_allocator.hpp"
 
+#include "clotho/initializer/initializers.hpp"
+
 #include <vector>
 
 struct parallel_pipeline {};
@@ -70,8 +72,8 @@ public:
 
     typedef SizeType                    size_type;
 
-    typedef clotho::genetics::thread_pool2< RNG >                                                   thread_pool_type;
-    typedef clotho::genetics::AlleleSpace< position_type, size_type >                   allele_type;
+    typedef clotho::genetics::thread_pool2< RNG >                                   thread_pool_type;
+    typedef clotho::genetics::AlleleSpace< position_type, size_type >               allele_type;
 
 #ifdef USE_VECTOR_ALIGNMENT
     typedef clotho::genetics::index_vector_alignment< unsigned int, block_type >    alignment_type;
@@ -102,6 +104,8 @@ public:
 
     typedef typename offspring_generator_type::time_vector  time_vector;
 
+    typedef clotho::genetics::PopulationInitializer population_init_type;
+
     typedef std::map< std::string, time_vector> time_map;
 
     friend struct clotho::utility::state_getter< self_type >;
@@ -112,7 +116,6 @@ public:
         , m_child( &m_pop1 )
         , m_trait_space( config )
         , m_fixed_traits( config )
-//        , select_gen( rng, config )
         , m_fit( config )
         , m_generation( 0 )
         , m_pop_growth()
@@ -124,7 +127,6 @@ public:
         , allele_gen( rng, config )
         , m_recomb_rate( config )
         , m_bias_rate( config )
-//        , m_main_off_gen( rng, &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, m_recomb_rate.m_rho, m_bias_rate.m_bias )
         , m_main_off_gen( rng, &m_allele_space, &m_mut_pool, &m_mut_dist, &m_fit, &m_trait_space, m_recomb_rate.m_rho, m_bias_rate.m_bias )
         , m_worker_off_gens( NULL )
     {
@@ -139,14 +141,16 @@ public:
             population_growth_toolkit::getInstance()->tool_configurations( config );
         }
 
-        init(0);
+        population_init_type pinit(config);
+
+        init(pinit);
     }
 
     size_t getGeneration() const {
         return m_generation;
     }
 
-    void init( size_t aN ) {
+    void init( population_init_type & pinit ) {
         size_t pN = 0;
         if( m_pop_growth ) {
             pN = m_pop_growth->operator()( pN, m_generation );
@@ -157,7 +161,6 @@ public:
             m_worker_off_gens = new offspring_generator_type * [ m_thread_count.m_tc ];
             for( int i = 0; i < m_thread_count.m_tc; ++i ) {
                 m_worker_rng[ i ] = new random_engine_type( (*m_rand)());
-//                m_worker_off_gens[i] = new offspring_generator_type( m_worker_rng[ i ], &m_allele_space, &m_mut_pool, &m_mut_dist, &select_gen, &m_trait_space, m_recomb_rate.m_rho, m_bias_rate.m_bias );
                 m_worker_off_gens[i] = new offspring_generator_type( m_worker_rng[ i ], &m_allele_space, &m_mut_pool, &m_mut_dist, &m_fit, &m_trait_space, m_recomb_rate.m_rho, m_bias_rate.m_bias );
             }
         }
@@ -166,7 +169,54 @@ public:
         m_pop1.getSequenceSpace().fill_empty();
         m_pop1.getSequenceSpace().finalize();
 #endif // USE_ROW_VECTOR
+
+        buildInitialPopulation( pinit, pN );
+        
         ++m_generation;
+    }
+
+    void buildInitialPopulation( population_init_type & pinit, unsigned int pN ) {
+        if(! pinit.hasDistribution() ) return;
+        
+        size_t all_size = child_max_alleles( m_allele_space.size(), 0, pinit.getAlleleCount());
+
+        // grow the child population accordingly
+        m_child->grow( pN, all_size, m_trait_space.trait_count() );
+        m_fit.resize( pN );
+
+        // populate allele and trait space using configured generators
+        generate_child_mutations( all_size );
+
+        generateAlleleFrequency( pinit, pN, all_size );
+    }
+
+    void generateAlleleFrequency( population_init_type & pinit, unsigned int pN, unsigned int all_size ) {
+        double _pN = (double) m_child->haploid_genome_count();
+        boost::random::uniform_int_distribution< unsigned int > seq_gen( 0, m_child->haploid_genome_count() - 1);
+
+        unsigned int all_idx = 0;
+        for( std::vector<double>::const_iterator it = pinit.begin(); it != pinit.end(); it++, ++all_idx ) {
+            unsigned int N = (unsigned int) floor((*it) * _pN);
+
+            for( unsigned int i = 0; i < N; ++i ) {
+                unsigned int seq_idx = seq_gen( *m_rand );
+                m_child->mutate(seq_idx, all_idx);
+            }
+        }
+
+        bool allNeutral = m_trait_space.isAllNeutral();
+
+        m_free_space.resetBuffers( m_child->getMaxBlocks() );
+        free_buffer_type tbuf = m_free_space.getThreadBuffer(0);
+        m_main_off_gen.reset( m_parent, m_child, tbuf, 0, pN, allNeutral );
+
+        // generated population is post recombination and mutate
+        // therefore only need to evaluate phenotype and fixed
+        m_main_off_gen.phenotype();
+        m_main_off_gen.fixed();
+        
+        m_fit( m_child );
+        m_free_space.finalize(all_size);
     }
 
     void simulate( ) {
@@ -197,7 +247,6 @@ public:
         m_fit.resize( pN );
         generate_child_mutations( pM );
 
-//        bool allNeutral = m_allele_space.isAllNeutral();
         bool allNeutral = m_trait_space.isAllNeutral();
 
         thread_pool_type tpool( m_thread_count.m_tc );
@@ -218,6 +267,7 @@ public:
         tpool.post_list( m_worker_off_gens, m_thread_count.m_tc );
 
         if( off_idx < pN ) {
+            assert( j < TC );
             free_buffer_type tbuf = m_free_space.getThreadBuffer( j );
             m_main_off_gen.reset( m_parent, m_child, tbuf, off_idx, pN, allNeutral );
             m_main_off_gen();
@@ -330,8 +380,6 @@ protected:
 //        std::cerr << "Free space: " << m_free_space.free_size() << std::endl;
 //
         resetMutationEvents( N );
-
-//        m_allele_space.alignNeutralToPopulation( m_child->getMaxBlocks() );
 
         boost::random::uniform_int_distribution< unsigned int > seq_gen( 0, m_child->haploid_genome_count() - 1);
         typename free_space_type::base_type::iterator it = m_free_space.free_begin(), end = m_free_space.free_end();
