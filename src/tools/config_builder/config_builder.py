@@ -85,15 +85,12 @@ def recombination_performance_experiment( path_prefix ):
     P = [ "10000" ]
 
     p_neutrality = [ "0.0", "1.0" ]
-    mu = [ "0.00000001" ]
+    mu = [ "0.000025" ]
     rho = [ "1.0", "10.0", "23.0", "35.0", "50.0", "100.0" ]
     threads = [ "0", "11" ]
     init_alleles = [ 500, 5000, 50000, 100000 ]
     # quadratic scale
     scale = [ "4.0" ]
-
-    if path_prefix != "":
-        path_prefix = "{0}/".format(path_prefix)
 
     for g, p, n, m, r, t, a, s in itertools.product(G, P, p_neutrality, mu, rho, threads, init_alleles, scale ):
         print("{4};{5};{0} x {1} x {2} x {3}".format( n, m, r, t, g, p))
