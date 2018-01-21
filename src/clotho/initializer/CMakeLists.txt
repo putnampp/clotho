@@ -11,18 +11,8 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-LIST( APPEND CLOTHO_DIRS initializer )
-LIST( APPEND CLOTHO_DIRS utility )
-LIST( APPEND CLOTHO_DIRS genetics )
-LIST( APPEND CLOTHO_DIRS fitness )
-LIST( APPEND CLOTHO_DIRS configuration_manager )
-#LIST( APPEND CLOTHO_DIRS recombination )
-#LIST( APPEND CLOTHO_DIRS mutation )
+INCLUDE_DIRECTORIES( ${${PROJECT_NAME}_INCLUDE_DIR} )
 
-IF( WITH_CUDA_EXAMPLES )
-    LIST( APPEND CLOTHO_DIRS cuda )
-ENDIF( WITH_CUDA_EXAMPLES )
+LIST( APPEND INIT_SRCS PopulationInitializer.cpp )
 
-FOREACH( D ${CLOTHO_DIRS} )
-    ADD_SUBDIRECTORY( ${D} )
-ENDFOREACH( D )
+ADD_LIBRARY( ${PROJECT_NAME}_initializer SHARED ${INIT_SRCS} )

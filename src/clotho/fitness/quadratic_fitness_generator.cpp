@@ -44,7 +44,7 @@ std::shared_ptr< ifitness > quadratic_fitness_generator::generate( size_t N ) {
     // sqrt( 2 * N * mu), where
     //  N - is the haploid sequence count
     //  mu - mutation rate per sequence
-
+    //
     double std = 4.0 * (double)N;
     std *= m_mu;
     std = sqrt( std );  // theoretical standard deviation

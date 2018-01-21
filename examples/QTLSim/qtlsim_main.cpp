@@ -116,7 +116,9 @@ int main( int argc, char ** argv ) {
 
     random_engine_type  rand_engine( seed_param.m_seed );
 
+    timer_type init_time;
     simulate_engine_type sim_engine( &rand_engine, conf_block );
+    init_time.stop();
 
     config.put_child( CONFIG_BLOCK_K, conf_block );
     writeLog( config, out_path, ".config");
@@ -126,7 +128,7 @@ int main( int argc, char ** argv ) {
 
         boost::property_tree::ptree sim_times, stat_times, sim_times_start, sim_times_end;
 
-        timer_type rep_time;
+        timer_type run_time;
         unsigned int T_gen = gen_param.m_size;
         while( T_gen-- ) {
             timer_type sim_time;
@@ -178,10 +180,11 @@ int main( int argc, char ** argv ) {
             }
         }
 
-        rep_time.stop();
+        run_time.stop();
 
         boost::property_tree::ptree perform_log;
-        perform_log.add( "performance.runtime", rep_time.elapsed().count() );
+        perform_log.add( "performance.runtime", run_time.elapsed().count() );
+        perform_log.add( "performance.initialization", init_time.elapsed().count() );
         perform_log.put_child( "performance.simulate", sim_times );
         perform_log.put_child( "performance.generations.start", sim_times_start );
         perform_log.put_child( "performance.generations.stop", sim_times_end );
@@ -203,18 +206,18 @@ population_analyzer::population_analyzer( random_sample_type * s, sequence_space
 
 void population_analyzer::operator()( boost::property_tree::ptree & log ) {
     allele_freq_type af;
-    pairwise_diff_type pd;
+//    pairwise_diff_type pd;
 
     if( m_samp ) {
         af.evaluate( *m_seqs, m_samp->begin(), m_samp->end() );
-        pd.evaluate( *m_seqs, m_samp->begin(), m_samp->end() );
+//        pd.evaluate( *m_seqs, m_samp->begin(), m_samp->end() );
     } else {
         assert( false );
     }
 
     boost::property_tree::ptree af_log, pd_log;
     af.recordResults( af_log );
-    pd.recordResults( pd_log );
+//    pd.recordResults( pd_log );
 
     log.add_child( "allele_frequency", af_log );
     log.add_child( "pairwise_difference", pd_log );

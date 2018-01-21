@@ -114,29 +114,6 @@ public:
         m_fixed_times.push_back( std::make_pair( fixed_time.getStart(), fixed_time.getStop()));
     }
 
-//    void record( time_vector & xover, time_vector & mut, time_vector & pheno, time_vector & fixed ) {
-//        xover.push_back( std::make_pair( m_crossover_timer.getStart(), m_crossover_timer.getStop() ) );
-//        mut.push_back( std::make_pair( m_mutate_timer.getStart(), m_mutate_timer.getStop() ) );
-//        pheno.push_back( std::make_pair( m_phenotype_timer.getStart(), m_phenotype_timer.getStop() ) );
-//        fixed.push_back( std::make_pair( m_fixed_timer.getStart(), m_fixed_timer.getStop() ) );
-//    }
-//
-//    void recordCrossover( boost::property_tree::ptree & log ) {
-//        recordTime( log, m_crossover_timer );
-//    }
-//
-//    void recordMutate( boost::property_tree::ptree & log ) {
-//        recordTime( log, m_mutate_timer );
-//    }
-//
-//    void recordPhenotype( boost::property_tree::ptree & log ) {
-//        recordTime( log, m_phenotype_timer );
-//    }
-//
-//    void recordFixed( boost::property_tree::ptree & log ) {
-//        recordTime( log, m_fixed_timer );
-//    }
-
     void record( boost::property_tree::ptree & xo, boost::property_tree::ptree & mt, boost::property_tree::ptree & ph, boost::property_tree::ptree & fx ) {
 
         boost::property_tree::ptree xo_begins, xo_ends;
@@ -162,7 +139,7 @@ public:
 
     virtual ~offspring_generator() {}
 
-protected:
+//protected:
 
     void buildTimeLog( boost::property_tree::ptree & begins, boost::property_tree::ptree & ends, time_vector & t ) {
         for( typename time_vector::iterator it = t.begin(); it != t.end(); it++ ) {
@@ -170,35 +147,6 @@ protected:
             clotho::utility::add_value_array( ends, it->second );
         }
     }
-
-
-//    void recordTime( boost::property_tree::ptree & log, const timer_type & t ) {
-//        boost::property_tree::ptree elapsed, start, stop;
-//
-//        elapsed = log.get_child("elapsed", elapsed);
-//        start = log.get_child( "start", start );
-//        stop = log.get_child( "stop", stop );
-//
-//        clotho::utility::add_value_array( elapsed, t );
-//        clotho::utility::add_value_array( start, t.getStart() );
-//        clotho::utility::add_value_array( stop, t.getStop() );
-//        
-//        log.put_child( "elapsed", elapsed );
-//        log.put_child( "start", start );
-//        log.put_child( "stop", stop );
-//    }
-
-//    void crossover() {
-//        typename selection_type::iterator b = m_fitness->begin() + m_off_begin, e = m_fitness->begin() + m_off_end;
-//
-//        unsigned int off_idx = 2 * m_off_begin;
-//        while( b != e ) {
-//            perform_crossover_method( 2 * b->first, off_idx++ );
-//            perform_crossover_method( 2 * b->second, off_idx++ );
-//
-//            ++b;
-//        }
-//    }
 
     void crossover() {
         std::shared_ptr< selection_details< random_engine_type, unsigned int > > sel = clotho::genetics::make_selection_generator( m_rng, m_fitness);
