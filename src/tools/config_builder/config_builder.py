@@ -1,4 +1,5 @@
 import json, itertools, os, random
+import math
 
 def make_generation( g ):
     return { "size": "{0}".format(g) }
@@ -58,25 +59,35 @@ def make_initial_allele_frequency_distribution( A ):
 
     return { "allele_distribution" : ad }
 
+def make_initial_genotype_distribution( A, P ):
+    # [ {AA: 0, AB: 0, BA: 0, BB: 0 } ]
+    # AA + AB + BA + BB = P
+    gt = []
+    
+    P = int(P)
+    while len(gt) < A:
+        AA = int(math.floor(random.uniform(0, P - 1)))
+        AB = int(math.floor(random.uniform(0, P - AA - 1)))
+        BA = int(math.floor(random.uniform(0, P - AA - AB - 1)))
+        BB = P - AA - AB - BA
 
-def make_constant_quadratic_configuration( G, P, neut, mu, rho, thread, A, quad_fit_scale ):
+        gt.append( { "AA": "{0}".format(AA), "AB": "{0}".format(AB),"BA": "{0}".format(BA),"BB": "{0}".format(BB) } )
+
+    return { "genotype_distribution": gt }
+
+def make_base_configuration( G, P, neut, mu, rho, thread, log_period=100 ):
     pconfig = {}
     pconfig[ "generations" ] = make_generation( G )
     pconfig[ "population_growth" ] = make_constant_population( P )
     pconfig[ "neutral" ] = make_allele_neutrality( neut )
     pconfig[ "mutation" ] = make_mutation( mu )
     pconfig[ "recombination" ] = make_recombination( rho )
-    pconfig[ "fitness" ] = make_quadratic_fitness( quad_fit_scale )
     pconfig[ "traits" ] = make_normal_traits( "1", "0.0", "1.0" )
     pconfig[ "random_number" ] = make_random()
     pconfig[ "multithreading" ] = make_multithread( thread )
-    pconfig[ "log" ] = make_log( 100 )
-
-    if A > 0:
-        pconfig[ "initialize" ] = make_initial_allele_frequency_distribution( A )
-
+    pconfig[ "log" ] = make_log( log_period )
     return pconfig
-    
+
 
 def recombination_performance_experiment( path_prefix ):
     # generations
@@ -86,15 +97,21 @@ def recombination_performance_experiment( path_prefix ):
 
     p_neutrality = [ "0.0", "1.0" ]
     mu = [ "0.000025" ]
-    rho = [ "1.0", "10.0", "23.0", "35.0", "50.0", "100.0" ]
+#    rho = [ "1.0", "10.0", "23.0", "35.0", "50.0", "100.0" ]
+    rho = [ "23.0", "70.0", "100.0" ]
     threads = [ "0", "11" ]
-    init_alleles = [ 500, 5000, 50000, 100000 ]
+    init_alleles = [ 430, 4300, 43000, 430000 ]
     # quadratic scale
     scale = [ "4.0" ]
 
     for g, p, n, m, r, t, a, s in itertools.product(G, P, p_neutrality, mu, rho, threads, init_alleles, scale ):
         print("{4};{5};{0} x {1} x {2} x {3}".format( n, m, r, t, g, p))
-        config = make_constant_quadratic_configuration( g, p, n, m, r, t, a, s )
+        config = make_base_configuration( g, p, n, m, r, t, g )
+        config[ "fitness" ] = make_quadratic_fitness( s )
+
+        if a > 0:
+#            config[ "initialize" ] = make_initial_allele_frequency_distribution( A ) 
+            config[ "initialize" ] = make_initial_genotype_distribution( a, p )
 
         path="{0}neutral={1}/mu={2}/rho={3}/A={4}/T={5}".format( path_prefix, n, m, r, a, t )
         if not os.path.exists( path ):

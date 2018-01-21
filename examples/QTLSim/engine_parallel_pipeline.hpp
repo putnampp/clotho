@@ -55,6 +55,7 @@
 #include "clotho/initializer/initializers.hpp"
 
 #include <vector>
+#include <algorithm>
 
 struct parallel_pipeline {};
 
@@ -187,7 +188,55 @@ public:
         // populate allele and trait space using configured generators
         generate_child_mutations( all_size );
 
-        generateAlleleFrequency( pinit, pN, all_size );
+        if( pinit.hasAlleleDistribution() ) {
+            generateAlleleFrequency( pinit, pN, all_size );
+        } else {
+            generateGenotypeDistribution( pinit, pN, all_size );
+        }
+    }
+
+    void generateGenotypeDistribution( population_init_type & pinit, unsigned int pN, unsigned int all_size ) {
+
+        typedef typename population_init_type::genotype_dist_type::iterator iterator;
+
+        std::vector< unsigned int > dist;
+        dist.reserve( pN );
+        unsigned all_idx = 0;
+        for( iterator it = pinit.genotype_begin(); it != pinit.genotype_end(); it++ ) {
+            clotho::genetics::genotype_distribution tmp = *it;
+            assert( tmp.AA + tmp.AB + tmp.BA + tmp.BB == pN );
+
+            dist.clear();
+
+            for( unsigned int i = 0; i < tmp.AA; ++i ) {
+                dist.push_back( 0 );
+            }
+            for( unsigned int i = 0; i < tmp.AB; ++i ) {
+                dist.push_back( 1 );
+            }
+            for( unsigned int i = 0; i < tmp.BA; ++i ) {
+                dist.push_back( 2 );
+            }
+            for( unsigned int i = 0; i < tmp.BB; ++i ) {
+                dist.push_back( 3 );
+            }
+
+            std::shuffle( dist.begin(), dist.end(), *m_rand );
+
+            unsigned int seq_idx = 0;
+            for( std::vector< unsigned int >::iterator d_it = dist.begin(); d_it != dist.end(); d_it++ ) {
+                if( *d_it == 0 || *d_it == 1 ) {
+                    m_child->mutate( seq_idx, all_idx );
+                }
+
+                if( *d_it == 0 || *d_it == 3 ) {
+                    m_child->mutate( seq_idx + 1, all_idx );
+                }
+                seq_idx += 2;
+            }
+
+            all_idx += 1;
+        }
     }
 
     void generateAlleleFrequency( population_init_type & pinit, unsigned int pN, unsigned int all_size ) {
@@ -195,7 +244,7 @@ public:
         boost::random::uniform_int_distribution< unsigned int > seq_gen( 0, m_child->haploid_genome_count() - 1);
 
         unsigned int all_idx = 0;
-        for( std::vector<double>::const_iterator it = pinit.begin(); it != pinit.end(); it++, ++all_idx ) {
+        for( std::vector<double>::const_iterator it = pinit.allele_frequency_begin(); it != pinit.allele_frequency_end(); it++, ++all_idx ) {
             unsigned int N = (unsigned int) floor((*it) * _pN);
 
             for( unsigned int i = 0; i < N; ++i ) {
