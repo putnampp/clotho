@@ -30,7 +30,7 @@ template < class EventType >
 class HostCrossoverGenerator {
 public:
 
-    static const unsigned int MAX_MUTATIONS_PER_SEQUENCE = 32;
+    static const unsigned int MAX_MUTATIONS_PER_SEQUENCE = MAX_SHARED_EVENT_SIZE;
 
     typedef EventType   event_type;
     

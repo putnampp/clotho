@@ -21,6 +21,10 @@
 #include "clotho/utility/algorithm_version.hpp"
 #include <cuda.h>
 
+#ifndef MAX_SHARED_EVENT_SIZE
+#define MAX_SHARED_EVENT_SIZE 256
+#endif  // MAX_SHARED_EVENT_SIZE
+
 /**
  * This algorithm assumes that the event pool contains recombination events
  * have been generated elsewhere
@@ -119,7 +123,7 @@ __global__ void build_crossover_mask_kernel(  AlleleSpaceType * alleles,
 
 /**
  * 
- * 1 block per sequence
+ * 1 block per offspring sequence
  *
  */ 
 template < class RealType, class IntType, unsigned char V >
@@ -128,6 +132,8 @@ __global__ void build_crossover_mask_kernel( RealType * locations, RealType * ev
 
     unsigned int event_start = event_dist[ blockIdx.x ];
     unsigned int event_end = event_dist[ blockIdx.x + 1 ];
+
+    assert( event_end - event_start < MAX_SHARED_EVENT_SIZE);
 
     if( ALLELE_COUNT == 0 || event_start == event_end ) { // true for all threads
         // clear all sequence
@@ -139,7 +145,7 @@ __global__ void build_crossover_mask_kernel( RealType * locations, RealType * ev
 
     } else {
 
-        __shared__ RealType sEvents[ 32 ];
+        __shared__ RealType sEvents[ MAX_SHARED_EVENT_SIZE ];
 
         // put events into shared memory        
         if( threadIdx.y == 0 && event_start + threadIdx.x < event_end ) {
@@ -206,6 +212,8 @@ __global__ void build_crossover_mask_kernel( RealType * locations, RealType * ev
     unsigned int event_start = event_dist[ blockIdx.x ];
     unsigned int event_end = event_dist[ blockIdx.x + 1 ];
 
+    assert( event_end - event_start < MAX_SHARED_EVENT_SIZE);
+
     if( ALLELE_COUNT == 0 || event_start == event_end ) { // true for all threads
         if( threadIdx.x == 0 && seq_offset < WIDTH ) {
             mask_buffer[ seq_idx ] = 0;
@@ -213,7 +221,8 @@ __global__ void build_crossover_mask_kernel( RealType * locations, RealType * ev
         __syncthreads();
     } else {
 
-        __shared__ RealType sEvents[ 32 ];
+        __shared__ RealType sEvents[ MAX_SHARED_EVENT_SIZE ];
+
 
         // put events into shared memory        
         if( threadIdx.y == 0 && event_start + threadIdx.x < event_end ) {

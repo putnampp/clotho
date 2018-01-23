@@ -91,20 +91,25 @@ def make_base_configuration( G, P, neut, mu, rho, thread, log_period=100 ):
 
 def recombination_performance_experiment( path_prefix ):
     # generations
-    G = [ "100" ] 
+    G = [ "10" ] 
     # population size
     P = [ "10000" ]
 
     p_neutrality = [ "0.0", "1.0" ]
-    mu = [ "0.000025" ]
 #    rho = [ "1.0", "10.0", "23.0", "35.0", "50.0", "100.0" ]
     rho = [ "23.0", "70.0", "100.0" ]
-    threads = [ "0", "11" ]
+    threads = [ "11" ]
+
+    mu = [ "0.0035" ]
     init_alleles = [ 430, 4300, 43000, 430000 ]
+
+    # [ (mu, founding population alleles) ]
+    mu_alleles = [ ("0.0035", 43000), ("0.05", 430000) ]
     # quadratic scale
     scale = [ "4.0" ]
 
-    for g, p, n, m, r, t, a, s in itertools.product(G, P, p_neutrality, mu, rho, threads, init_alleles, scale ):
+#    for g, p, n, m, r, t, a, s in itertools.product(G, P, p_neutrality, mu, rho, threads, init_alleles, scale ):
+    for g, p, n, r, t, s, (m, a) in itertools.product(G, P, p_neutrality, rho, threads, scale, mu_alleles ):
         print("{4};{5};{0} x {1} x {2} x {3}".format( n, m, r, t, g, p))
         config = make_base_configuration( g, p, n, m, r, t, g )
         config[ "fitness" ] = make_quadratic_fitness( s )
